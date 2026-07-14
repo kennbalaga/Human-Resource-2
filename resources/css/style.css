@@ -1,5 +1,5 @@
 :root {
-    --primary-blue: #1B5E3A; /* Matched to the image's vibrant blue */
+    --primary-blue: #1B5E3A;
     --primary-hover: #0F3714;
     --text-dark: #1A1A1A;
     --text-gray: #757575;
@@ -331,13 +331,13 @@ body {
 
 .hero-image {
     width: 100%;
-    max-width: 400px; /* Prevents the image from getting too large */
+    max-width: 400px;
     height: auto;
-    border-radius: 12px; /* Gives the image rounded corners */
+    border-radius: 12px;
     display: block;
     margin: 0 auto;
     position: relative;
-    z-index: 2; /* Ensures it sits above the decorative background shapes */
+    z-index: 2;
 }
 
 /* Decorative Background Shapes */
@@ -374,6 +374,6 @@ body {
     }
 
     .right-pane {
-        display: none; /* Hide the hero section on mobile to focus on login */
+        display: none;
     }
 }
