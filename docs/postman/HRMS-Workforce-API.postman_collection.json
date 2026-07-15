@@ -1,0 +1,590 @@
+{
+  "info": {
+    "_postman_id": "e57e78e6-9c8f-4cf5-88d8-c01dcb2e9001",
+    "name": "HRMS Workforce API",
+    "description": "Versioned Workforce Management REST API. Select the HRMS Local environment and run Create token first.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.upsert({ key: 'Accept', value: 'application/json' });",
+          "pm.request.headers.upsert({ key: 'X-Request-ID', value: pm.variables.replaceIn('{{$guid}}') });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Create token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Token created', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.token) pm.environment.set('token', body.data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"{{employee_id}}\",\n  \"password\": \"{{password}}\",\n  \"device_name\": \"Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "token"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Revoke current token",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/auth/token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "token"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "List employees",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/employees?per_page=25",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "employees"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "25"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Show employee",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/employees/{{employee_record_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "employees",
+                "{{employee_record_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "List attendance",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/attendance?per_page=25",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "attendance"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "25"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Show attendance",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/attendance/{{attendance_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "attendance",
+                "{{attendance_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Approve attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"manager_notes\": \"Reviewed and approved via API.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/attendance/{{attendance_id}}/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "attendance",
+                "{{attendance_id}}",
+                "approve"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schedules",
+      "item": [
+        {
+          "name": "List schedules",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/schedules?date_from={{start_date}}&date_to={{end_date}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schedules"
+              ],
+              "query": [
+                {
+                  "key": "date_from",
+                  "value": "{{start_date}}"
+                },
+                {
+                  "key": "date_to",
+                  "value": "{{end_date}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": {{employee_record_id}},\n  \"shift_id\": {{shift_id}},\n  \"work_date\": \"{{start_date}}\",\n  \"notes\": \"Created from Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/schedules",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schedules"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update schedule",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": {{employee_record_id}},\n  \"shift_id\": {{shift_id}},\n  \"work_date\": \"{{start_date}}\",\n  \"notes\": \"Updated from Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/schedules/{{schedule_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schedules",
+                "{{schedule_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete schedule",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/schedules/{{schedule_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schedules",
+                "{{schedule_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Timesheets",
+      "item": [
+        {
+          "name": "List timesheets",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/timesheets?per_page=25",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "timesheets"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "25"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Show timesheet",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/timesheets/{{timesheet_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "timesheets",
+                "{{timesheet_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit timesheet",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/timesheets/{{timesheet_id}}/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "timesheets",
+                "{{timesheet_id}}",
+                "submit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Approve timesheet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewer_notes\": \"Approved via API.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/timesheets/{{timesheet_id}}/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "timesheets",
+                "{{timesheet_id}}",
+                "approve"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reject timesheet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewer_notes\": \"Please correct the recorded hours.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/timesheets/{{timesheet_id}}/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "timesheets",
+                "{{timesheet_id}}",
+                "reject"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leave",
+      "item": [
+        {
+          "name": "List leave requests",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/leaves?per_page=25",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaves"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "25"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create leave request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leave_type_id\": {{leave_type_id}},\n  \"start_date\": \"{{start_date}}\",\n  \"end_date\": \"{{start_date}}\",\n  \"reason\": \"Planned personal leave submitted from Postman.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/leaves",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaves"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Show leave request",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/leaves/{{leave_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaves",
+                "{{leave_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Approve leave request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewer_notes\": \"Approved via API.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/leaves/{{leave_id}}/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaves",
+                "{{leave_id}}",
+                "approve"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reject leave request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewer_notes\": \"Please provide another available date.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/leaves/{{leave_id}}/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaves",
+                "{{leave_id}}",
+                "reject"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel leave request",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/leaves/{{leave_id}}/cancel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaves",
+                "{{leave_id}}",
+                "cancel"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get workforce analytics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/analytics?date_from={{start_date}}&date_to={{end_date}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "analytics"
+              ],
+              "query": [
+                {
+                  "key": "date_from",
+                  "value": "{{start_date}}"
+                },
+                {
+                  "key": "date_to",
+                  "value": "{{end_date}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api/v1"
+    }
+  ]
+}

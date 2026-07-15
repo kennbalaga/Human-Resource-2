@@ -7,8 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    @vite (['resources/css/style.css', 'resources/js/script.js'])
-    @vite (['resources/images/doctors.png'])
+    @vite(['resources/css/style.css', 'resources/js/script.js'])
 </head>
 <body>
 
@@ -24,23 +23,39 @@
                     <p>Enter your email and password to access your account.</p>
                 </div>
 
-                <form id="loginForm" onsubmit="event.preventDefault();">
+                <form id="loginForm" method="POST" action="{{ route('login') }}">
+                    @csrf
+
+                    @if ($errors->any())
+                        <p role="alert" style="color: #b91c1c; font-size: 0.875rem; margin-bottom: 1rem;">
+                            {{ $errors->first() }}
+                        </p>
+                    @endif
+
                     <div class="input-group">
-                        <label for="email">Employee Id</label>
-                        <input type="email" id="email" required>
+                        <label for="employee_id">Employee Id</label>
+                        <input
+                            type="text"
+                            id="employee_id"
+                            name="employee_id"
+                            value="{{ old('employee_id') }}"
+                            autocomplete="username"
+                            required
+                            autofocus
+                        >
                     </div>
 
                     <div class="input-group">
                         <label for="password">Password</label>
                         <div class="password-wrapper">
-                            <input type="password" id="password" required>
+                            <input type="password" id="password" name="password" autocomplete="current-password" required>
                             <i class="fa-regular fa-eye-slash toggle-password" id="togglePassword"></i>
                         </div>
                     </div>
 
                     <div class="form-actions">
                         <div class="remember-me">
-                            <input type="checkbox" id="remember">
+                            <input type="checkbox" id="remember" name="remember" value="1" @checked(old('remember'))>
                             <label for="remember">Remember Me</label>
                         </div>
                         <a href="#" class="forgot-password">Forgot Your Password?</a>
@@ -69,6 +84,5 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
 </body>
 </html>

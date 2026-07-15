@@ -1,0 +1,101 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Api\V1\Concerns\AuthorizesWorkforce;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Leave\StoreLeaveRequest;
+use App\Http\Resources\LeaveRequestResource;
+use App\Models\LeaveAttachment;
+use App\Models\LeaveRequest;
+use App\Models\LeaveType;
+use App\Services\Integrations\SafeIntegrationDispatcher;
+use App\Services\LeaveService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+
+class LeaveController extends Controller
+{
+    use AuthorizesWorkforce;
+
+    public function index(Request $request): AnonymousResourceCollection
+    {
+        $this->requireRead($request->user());
+        $validated = $request->validate([
+            'status' => ['nullable', 'in:pending,approved,rejected,cancelled'],
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
+            'per_page' => ['nullable', 'integer', 'between:1,100'],
+        ]);
+        $manager = $this->canManage($request->user());
+        $records = LeaveRequest::query()->with(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments'])
+            ->when(! $manager, fn (Builder $query) => $query->where('employee_id', $request->user()->employee?->id))
+            ->when($manager && ! empty($validated['employee_id']), fn (Builder $query) => $query->where('employee_id', $validated['employee_id']))
+            ->when($validated['status'] ?? null, fn (Builder $query, $status) => $query->where('status', $status))
+            ->latest()->paginate($validated['per_page'] ?? 25);
+
+        return LeaveRequestResource::collection($records);
+    }
+
+    public function show(Request $request, LeaveRequest $leaveRequest): LeaveRequestResource
+    {
+        $this->requireRead($request->user());
+        abort_unless($this->canManage($request->user()) || $leaveRequest->employee_id === $request->user()->employee?->id, 403);
+
+        return new LeaveRequestResource($leaveRequest->load(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments']));
+    }
+
+    public function store(StoreLeaveRequest $request, LeaveService $service): LeaveRequestResource
+    {
+        abort_unless($request->user()->tokenCan('leave:write') || $request->user()->tokenCan('workforce:write'), 403);
+        $data = $request->validated();
+        $type = LeaveType::query()->findOrFail($data['leave_type_id']);
+        if ($type->requires_attachment && ! $request->hasFile('attachments')) {
+            throw ValidationException::withMessages(['attachments' => ["{$type->name} requires a supporting attachment."]]);
+        }
+        $leave = $service->create($request->user()->employee, $data);
+        foreach ($request->file('attachments', []) as $file) {
+            $path = $file->storeAs('leave-attachments/'.$leave->uuid, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
+            LeaveAttachment::query()->create([
+                'leave_request_id' => $leave->id,
+                'disk' => 'local',
+                'path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'size_bytes' => $file->getSize(),
+                'uploaded_by' => $request->user()->id,
+            ]);
+        }
+
+        return new LeaveRequestResource($leave->load(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments']));
+    }
+
+    public function approve(Request $request, LeaveRequest $leaveRequest, LeaveService $service, SafeIntegrationDispatcher $integrations): LeaveRequestResource
+    {
+        $this->requireManager($request->user());
+        $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
+        $leave = $service->approve($leaveRequest, $request->user(), $validated['reviewer_notes'] ?? null);
+        $integrations->zapier('leave.approved', ['leave_request_id' => $leave->id, 'employee_id' => $leave->employee_id]);
+
+        return new LeaveRequestResource($leave->load(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments']));
+    }
+
+    public function reject(Request $request, LeaveRequest $leaveRequest, LeaveService $service): LeaveRequestResource
+    {
+        $this->requireManager($request->user());
+        $validated = $request->validate(['reviewer_notes' => ['required', 'string', 'min:5', 'max:500']]);
+        $leave = $service->reject($leaveRequest, $request->user(), $validated['reviewer_notes']);
+
+        return new LeaveRequestResource($leave->load(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments']));
+    }
+
+    public function cancel(Request $request, LeaveRequest $leaveRequest, LeaveService $service): LeaveRequestResource
+    {
+        abort_unless($request->user()->tokenCan('leave:write') || $request->user()->tokenCan('workforce:write'), 403);
+        $leave = $service->cancel($leaveRequest, $request->user());
+
+        return new LeaveRequestResource($leave->load(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments']));
+    }
+}

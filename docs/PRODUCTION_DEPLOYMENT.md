@@ -1,0 +1,95 @@
+# Production deployment
+
+This is a baseline Linux deployment for Nginx/Apache, PHP-FPM, MySQL, and a process supervisor. Adapt paths and service names to the hosting platform. Test the exact release process in staging first.
+
+## Server requirements
+
+- PHP 8.3+ with `bcmath`, `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `hash`, `mbstring`, `openssl`, `pdo_mysql`, `session`, `tokenizer`, and `xml`
+- Composer 2, MySQL 8+/MariaDB 10.6+, and Node.js 20+ for asset builds
+- Nginx or Apache with the document root set to the project's `public` directory
+- TLS certificate, queue supervisor, and cron access
+
+## Environment
+
+Create a protected `.env` on the server; never deploy a developer `.env`:
+
+```dotenv
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://hrms.example.com
+LOG_LEVEL=warning
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=human_resource_2
+DB_USERNAME=hrms_app
+DB_PASSWORD=use-a-secret-manager
+SESSION_DRIVER=database
+SESSION_SECURE_COOKIE=true
+QUEUE_CONNECTION=database
+CACHE_STORE=database
+INITIAL_USER_PASSWORD=replace-before-first-seed
+```
+
+Create a least-privilege MySQL user limited to the HRMS database. Generate `APP_KEY` once with `php artisan key:generate`; preserve it across releases or encrypted application data/cookies become unreadable.
+
+## Release commands
+
+From a new release directory:
+
+```bash
+composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+npm ci
+npm run build
+php artisan migrate --force
+php artisan storage:link
+php artisan optimize
+php artisan queue:restart
+```
+
+Do not run `db:seed` on every deployment. Seed only during approved initialization because seed data can include development accounts. Migrations are the mechanism that updates every developer/production schema after a Git pull.
+
+Use atomic releases (new timestamped directory plus a symlink switch) where possible. Back up the database before non-trivial migrations. Roll back by restoring the previous release and a compatible database backup; do not assume every migration is safely reversible after live writes.
+
+## Web server
+
+Set the site root to `/var/www/hrms/current/public`, deny access to dotfiles, route missing files to `index.php`, and allow PHP execution only for `public/index.php`. Enable HTTPS and redirect HTTP to HTTPS. The web-server user needs write access only to `storage` and `bootstrap/cache`.
+
+Example permissions (adapt user/group):
+
+```bash
+chown -R deploy:www-data /var/www/hrms
+find /var/www/hrms/current/storage /var/www/hrms/current/bootstrap/cache -type d -exec chmod 775 {} \;
+find /var/www/hrms/current/storage /var/www/hrms/current/bootstrap/cache -type f -exec chmod 664 {} \;
+```
+
+## Queue and scheduler
+
+Run a supervised process similar to:
+
+```bash
+php /var/www/hrms/current/artisan queue:work --queue=integrations,default --sleep=3 --tries=3 --timeout=120
+```
+
+Add one cron entry:
+
+```cron
+* * * * * cd /var/www/hrms/current && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Deploys should call `php artisan queue:restart` so workers load current code.
+
+## Pre-release and post-release checks
+
+Before release:
+
+```bash
+vendor/bin/pint --test
+php artisan test
+composer audit
+npm audit
+```
+
+After release, verify `/up`, login/logout, one read-only dashboard request, queue health, scheduler logs, storage access, and database backups. Test Gemini/Zapier/Zoom separately; an integration failure must only produce a warning/event record, never an HR transaction failure.
+
+Monitor application logs, HTTP 5xx/429 rates, queue failures, database capacity, `audit_logs`, and `integration_events`. Configure encrypted off-host database and private-upload backups, then regularly test restoration.
