@@ -14,6 +14,14 @@
             root.dataset.themeResolved = requested === 'system'
                 ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
                 : requested;
+
+            try {
+                root.dataset.sidebar = localStorage.getItem('workforce.sidebar') === 'collapsed'
+                    ? 'collapsed'
+                    : 'expanded';
+            } catch (error) {
+                root.dataset.sidebar = 'expanded';
+            }
         })();
     </script>
 
@@ -23,6 +31,19 @@
 <body class="app-body {{ $uiPreference->compact_navigation ? 'compact-navigation' : '' }} {{ $uiPreference->reduce_motion ? 'reduce-motion' : '' }}">
     <div class="app-shell">
         @include('partials.sidebar')
+
+        <button
+            class="sidebar-collapse-button"
+            type="button"
+            aria-controls="appSidebar"
+            aria-expanded="true"
+            aria-label="Collapse sidebar"
+            data-sidebar-collapse
+            data-sidebar-label="Collapse sidebar"
+        >
+            <span class="sidebar-collapse-grip" aria-hidden="true"></span>
+            <x-icon name="chevron-right" />
+        </button>
 
         <button class="sidebar-overlay" type="button" aria-label="Close navigation" data-sidebar-close></button>
 

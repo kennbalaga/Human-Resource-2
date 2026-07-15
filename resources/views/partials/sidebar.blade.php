@@ -62,7 +62,7 @@
         <x-sidebar-link :href="route('settings.edit')" icon="settings" :active="request()->routeIs('settings.*')">Settings</x-sidebar-link>
     </nav>
 
-    <div class="sidebar-support-card">
+    <div class="sidebar-support-card" title="System operational">
         <span class="support-icon"><x-icon name="check-circle" /></span>
         <div>
             <strong>System operational</strong>
@@ -70,7 +70,7 @@
         </div>
     </div>
 
-    <a class="sidebar-user sidebar-user-link" href="{{ route('profile.show') }}">
+    <a class="sidebar-user sidebar-user-link" href="{{ route('profile.show') }}" aria-label="Open profile for {{ auth()->user()->name }}" title="My profile">
         <span class="avatar avatar-sm">{{ str(auth()->user()->name)->substr(0, 1)->upper() }}</span>
         <span class="sidebar-user-copy">
             <strong>{{ auth()->user()->name }}</strong>

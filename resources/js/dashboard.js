@@ -1,7 +1,37 @@
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
+    const root = document.documentElement;
     const sidebarToggle = document.querySelector('[data-sidebar-toggle]');
     const sidebarCloseButtons = document.querySelectorAll('[data-sidebar-close]');
+    const sidebarCollapseButton = document.querySelector('[data-sidebar-collapse]');
+    const desktopSidebar = window.matchMedia('(min-width: 1101px)');
+    const sidebarStorageKey = 'workforce.sidebar';
+
+    const syncCollapseButton = () => {
+        if (!sidebarCollapseButton) {
+            return;
+        }
+
+        const isCollapsed = root.dataset.sidebar === 'collapsed';
+        const action = isCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+
+        sidebarCollapseButton.setAttribute('aria-expanded', String(!isCollapsed));
+        sidebarCollapseButton.setAttribute('aria-label', action);
+        sidebarCollapseButton.dataset.sidebarLabel = action;
+    };
+
+    const setDesktopSidebar = (isCollapsed, persist = false) => {
+        root.dataset.sidebar = isCollapsed ? 'collapsed' : 'expanded';
+        syncCollapseButton();
+
+        if (persist) {
+            try {
+                localStorage.setItem(sidebarStorageKey, root.dataset.sidebar);
+            } catch (error) {
+                // The sidebar still works when browser storage is unavailable.
+            }
+        }
+    };
 
     const closeSidebar = () => {
         body.classList.remove('sidebar-open');
@@ -13,6 +43,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         body.classList.toggle('sidebar-open', willOpen);
         sidebarToggle.setAttribute('aria-expanded', String(willOpen));
+    });
+
+    sidebarCollapseButton?.addEventListener('click', () => {
+        if (!desktopSidebar.matches) {
+            return;
+        }
+
+        setDesktopSidebar(root.dataset.sidebar !== 'collapsed', true);
     });
 
     sidebarCloseButtons.forEach((button) => {
@@ -47,4 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
             closeSidebar();
         }
     });
+
+    syncCollapseButton();
 });

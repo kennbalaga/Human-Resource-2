@@ -29,6 +29,13 @@ class DashboardTest extends TestCase
             ->assertSee('Total employees')
             ->assertSee('Recently added employees')
             ->assertSee('Workforce by department')
-            ->assertSee('HR-0001');
+            ->assertSee('HR-0001')
+            ->assertSee('data-sidebar-collapse', false)
+            ->assertSee('data-sidebar-label="Collapse sidebar"', false)
+            ->assertSee('aria-label="Collapse sidebar"', false)
+            ->assertSee('sidebar-collapse-grip', false)
+            ->assertSee('title="Dashboard"', false)
+            ->assertSee(route('profile.show'), false)
+            ->assertSee(route('settings.edit'), false);
     }
 }
