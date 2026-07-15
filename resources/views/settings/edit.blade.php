@@ -11,7 +11,7 @@
     <section class="settings-layout">
         <aside class="panel settings-section-nav" aria-label="Settings sections">
             <a href="#account"><x-icon name="users" /><span><strong>Account</strong><small>Email and identity</small></span></a>
-            <a href="#preferences"><x-icon name="settings" /><span><strong>Preferences</strong><small>Notifications and display</small></span></a>
+            <a href="#preferences"><x-icon name="moon" /><span><strong>Appearance</strong><small>Theme and display</small></span></a>
             <a href="#security"><x-icon name="shield" /><span><strong>Security</strong><small>Password and tokens</small></span></a>
         </aside>
 
@@ -29,6 +29,15 @@
                 <div class="panel-header"><div><p class="panel-kicker">Workspace behavior</p><h2>Preferences</h2></div><x-icon name="settings" /></div>
                 <form method="POST" action="{{ route('settings.preferences.update') }}" class="profile-settings-form">
                     @csrf @method('PATCH')
+                    <fieldset class="appearance-options">
+                        <legend>Color theme</legend>
+                        <p>Choose a theme or follow your device appearance automatically.</p>
+                        <div>
+                            @foreach(['light' => ['sun', 'Light', 'Bright and clear'], 'dark' => ['moon', 'Dark', 'Easy on the eyes'], 'system' => ['settings', 'System', 'Follow this device']] as $value => [$icon, $label, $description])
+                                <label class="appearance-option"><input type="radio" name="theme" value="{{ $value }}" @checked(old('theme', $preference->theme) === $value)><span><x-icon :name="$icon" /><strong>{{ $label }}</strong><small>{{ $description }}</small></span></label>
+                            @endforeach
+                        </div>
+                    </fieldset>
                     <label class="settings-select"><span>Display timezone</span><select name="timezone" required>@foreach($timezones as $value => $label)<option value="{{ $value }}" @selected(old('timezone', $preference->timezone) === $value)>{{ $label }}</option>@endforeach</select><small>Controls dates shown in the application header.</small></label>
                     <div class="settings-toggle-list">
                         @foreach([

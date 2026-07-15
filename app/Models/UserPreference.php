@@ -13,6 +13,7 @@ class UserPreference extends Model
     protected $fillable = [
         'user_id',
         'timezone',
+        'theme',
         'email_notifications',
         'attendance_reminders',
         'schedule_updates',

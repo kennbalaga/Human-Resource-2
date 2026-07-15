@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::patch('/settings/account', [SettingsController::class, 'updateAccount'])->name('settings.account.update');
     Route::patch('/settings/preferences', [SettingsController::class, 'updatePreferences'])->name('settings.preferences.update');
+    Route::patch('/settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.theme.update');
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
 
     Route::get('/schedules', [ScheduleCalendarController::class, 'index'])->name('schedules.index');

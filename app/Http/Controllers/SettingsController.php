@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Settings\UpdateAccountRequest;
 use App\Http\Requests\Settings\UpdatePasswordRequest;
 use App\Http\Requests\Settings\UpdatePreferencesRequest;
+use App\Http\Requests\Settings\UpdateThemeRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -36,6 +38,13 @@ class SettingsController extends Controller
         $request->user()->preference()->updateOrCreate([], $request->validated());
 
         return back()->with('success', 'Preferences saved successfully.');
+    }
+
+    public function updateTheme(UpdateThemeRequest $request): JsonResponse
+    {
+        $request->user()->preference()->updateOrCreate([], $request->validated());
+
+        return response()->json(['message' => 'Appearance updated.', 'theme' => $request->validated('theme')]);
     }
 
     public function updatePassword(UpdatePasswordRequest $request): RedirectResponse

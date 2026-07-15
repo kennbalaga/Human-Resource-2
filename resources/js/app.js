@@ -3,5 +3,6 @@ import './dashboard';
 import './attendance';
 import './schedule';
 import './workforce';
+import './theme';
 
 window.bootstrap = bootstrap;

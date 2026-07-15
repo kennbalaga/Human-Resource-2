@@ -23,6 +23,7 @@ class UpdatePreferencesRequest extends FormRequest
     {
         return [
             'timezone' => ['required', Rule::in(['Asia/Manila', 'Asia/Singapore', 'UTC'])],
+            'theme' => ['required', Rule::in(['light', 'dark', 'system'])],
             'email_notifications' => ['required', 'boolean'],
             'attendance_reminders' => ['required', 'boolean'],
             'schedule_updates' => ['required', 'boolean'],

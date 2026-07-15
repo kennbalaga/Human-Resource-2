@@ -28,6 +28,11 @@
             <span>{{ now($uiPreference->timezone ?? 'Asia/Manila')->format('D, M j, Y') }}</span>
         </div>
 
+        <button class="icon-button theme-toggle" type="button" data-theme-toggle data-theme-update-url="{{ route('settings.theme.update') }}" aria-label="Switch color theme" title="Switch color theme">
+            <span class="theme-icon theme-icon-moon"><x-icon name="moon" /></span>
+            <span class="theme-icon theme-icon-sun"><x-icon name="sun" /></span>
+        </button>
+
         <div class="dropdown">
             <button class="icon-button notification-button" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open notifications">
                 <x-icon name="bell" />

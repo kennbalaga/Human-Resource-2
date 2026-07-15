@@ -63,6 +63,7 @@ class ProfileSettingsTest extends TestCase
 
         $this->actingAs($user)->patch('/settings/preferences', [
             'timezone' => 'UTC',
+            'theme' => 'dark',
             'email_notifications' => '1',
             'attendance_reminders' => '0',
             'schedule_updates' => '1',
@@ -74,6 +75,7 @@ class ProfileSettingsTest extends TestCase
         $this->assertDatabaseHas('user_preferences', [
             'user_id' => $user->id,
             'timezone' => 'UTC',
+            'theme' => 'dark',
             'attendance_reminders' => false,
             'compact_navigation' => true,
             'reduce_motion' => true,
@@ -81,8 +83,31 @@ class ProfileSettingsTest extends TestCase
 
         $this->actingAs($user)->get('/settings')
             ->assertOk()
+            ->assertSee('data-theme="dark"', false)
             ->assertSee('compact-navigation', false)
             ->assertSee('reduce-motion', false);
+    }
+
+    public function test_topbar_theme_toggle_endpoint_persists_a_valid_theme(): void
+    {
+        $user = $this->employeeUser();
+
+        $this->actingAs($user)->patchJson('/settings/theme', ['theme' => 'dark'])
+            ->assertOk()
+            ->assertJson(['theme' => 'dark']);
+
+        $this->assertDatabaseHas('user_preferences', ['user_id' => $user->id, 'theme' => 'dark']);
+        $this->actingAs($user)->get('/dashboard')
+            ->assertOk()
+            ->assertSee('data-theme="dark"', false)
+            ->assertSee('data-theme-toggle', false);
+    }
+
+    public function test_invalid_theme_is_rejected(): void
+    {
+        $this->actingAs($this->employeeUser())->patch('/settings/theme', ['theme' => 'neon'])
+            ->assertRedirect()
+            ->assertSessionHasErrors('theme');
     }
 
     public function test_account_email_must_be_unique(): void
