@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->authenticateSessions();
         $middleware->web(append: [SecurityHeaders::class, AuditWriteRequests::class]);
         $middleware->api(append: [SecurityHeaders::class, AuditWriteRequests::class]);
     })

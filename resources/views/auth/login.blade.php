@@ -20,14 +20,20 @@
             <main class="login-container">
                 <div class="login-header">
                     <h1>Welcome Back</h1>
-                    <p>Enter your email and password to access your account.</p>
+                    <p>Enter your employee ID and password to access your account.</p>
                 </div>
 
                 <form id="loginForm" method="POST" action="{{ route('login') }}">
                     @csrf
 
+                    @if (session('status'))
+                        <p role="status" class="auth-alert auth-alert-success">
+                            {{ session('status') }}
+                        </p>
+                    @endif
+
                     @if ($errors->any())
-                        <p role="alert" style="color: #b91c1c; font-size: 0.875rem; margin-bottom: 1rem;">
+                        <p role="alert" class="auth-alert auth-alert-error">
                             {{ $errors->first() }}
                         </p>
                     @endif
@@ -58,7 +64,7 @@
                             <input type="checkbox" id="remember" name="remember" value="1" @checked(old('remember'))>
                             <label for="remember">Remember Me</label>
                         </div>
-                        <a href="#" class="forgot-password">Forgot Your Password?</a>
+                        <a href="{{ route('password.request') }}" class="forgot-password">Forgot Your Password?</a>
                     </div>
 
                     <button type="submit" class="btn-primary">Log In</button>

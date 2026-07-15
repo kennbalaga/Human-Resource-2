@@ -128,11 +128,11 @@ class ProfileSettingsTest extends TestCase
 
         $this->actingAs($user)->put('/settings/password', [
             'current_password' => 'ChangeMe123!',
-            'password' => 'NewSecurePass456',
-            'password_confirmation' => 'NewSecurePass456',
+            'password' => 'NewSecurePass456!',
+            'password_confirmation' => 'NewSecurePass456!',
         ])->assertRedirect()->assertSessionHas('success');
 
-        $this->assertTrue(Hash::check('NewSecurePass456', $user->fresh()->password));
+        $this->assertTrue(Hash::check('NewSecurePass456!', $user->fresh()->password));
         $this->assertDatabaseCount('personal_access_tokens', 0);
         $this->assertAuthenticatedAs($user);
     }

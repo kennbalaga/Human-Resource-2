@@ -56,9 +56,11 @@ class TimesheetWorkflowTest extends TestCase
         $this->actingAs($manager)->post(route('attendance.records.approve', $attendance));
         $timesheet = Timesheet::query()->firstOrFail();
 
+        $this->flushSession();
         $this->actingAs($employee)->post(route('timesheets.submit', $timesheet))->assertSessionHasNoErrors();
         $this->assertDatabaseHas('timesheets', ['id' => $timesheet->id, 'status' => 'submitted']);
 
+        $this->flushSession();
         $this->actingAs($manager)->post(route('timesheets.approve', $timesheet), ['reviewer_notes' => 'Verified'])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('timesheets', ['id' => $timesheet->id, 'status' => 'approved', 'reviewed_by' => $manager->id]);
     }

@@ -120,6 +120,73 @@ body {
     transform: translateY(-50%);
     color: var(--text-light);
     cursor: pointer;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    font-size: 1rem;
+}
+
+.password-wrapper input {
+    padding-right: 3rem !important;
+}
+
+.auth-alert {
+    padding: 0.75rem 0.875rem;
+    border: 1px solid;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    margin-bottom: 1rem;
+}
+
+.auth-alert-success {
+    color: #14532d;
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.auth-alert-error {
+    color: #991b1b;
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.security-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.75rem;
+    margin: -0.25rem 0 1.25rem;
+    border-radius: 8px;
+    color: #365f47;
+    background: #f0fdf4;
+    font-size: 0.75rem;
+    line-height: 1.45;
+}
+
+.security-note i {
+    margin-top: 0.125rem;
+}
+
+.password-hint {
+    color: var(--text-gray);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    margin-top: 0.5rem;
+}
+
+.back-to-login {
+    display: block;
+    margin-top: 1rem;
+    color: var(--primary-blue);
+    text-align: center;
+    text-decoration: none;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.back-to-login i {
+    margin-right: 0.35rem;
 }
 
 
@@ -369,7 +436,7 @@ body {
     
     .left-pane {
         max-width: 100%;
-        height: 100vh;
+        min-height: 100vh;
         padding: 2rem;
     }
 

@@ -49,6 +49,22 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        /*
+         * Gmail SMTP is opt-in so local development keeps using the safe log
+         * mailer until credentials are explicitly configured.
+         */
+        'gmail' => [
+            'transport' => 'smtp',
+            'scheme' => 'smtp',
+            'host' => 'smtp.gmail.com',
+            'port' => 587,
+            'username' => env('GMAIL_SMTP_USERNAME'),
+            'password' => str_replace(' ', '', (string) env('GMAIL_SMTP_APP_PASSWORD')),
+            'require_tls' => true,
+            'timeout' => 15,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],

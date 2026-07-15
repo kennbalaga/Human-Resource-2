@@ -61,7 +61,7 @@
                 <form method="POST" action="{{ route('settings.password.update') }}" class="profile-settings-form settings-password-grid">
                     @csrf @method('PUT')
                     <label><span>Current password</span><input type="password" name="current_password" autocomplete="current-password" required></label>
-                    <label><span>New password</span><input type="password" name="password" autocomplete="new-password" required><small>At least 12 characters with upper/lowercase letters and a number.</small></label>
+                    <label><span>New password</span><input type="password" name="password" autocomplete="new-password" required><small>At least 12 characters with uppercase, lowercase, a number, and a symbol.</small></label>
                     <label><span>Confirm new password</span><input type="password" name="password_confirmation" autocomplete="new-password" required></label>
                     <button class="btn btn-primary" type="submit">Update password</button>
                 </form>

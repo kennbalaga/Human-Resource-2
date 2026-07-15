@@ -45,6 +45,7 @@ class LeaveWorkflowTest extends TestCase
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
         $leave = $this->submitVacation($employee);
 
+        $this->flushSession();
         $this->actingAs($manager)->post(route('leaves.approve', $leave), ['reviewer_notes' => 'Coverage confirmed'])->assertSessionHasNoErrors();
         $balance = LeaveBalance::query()->where('employee_id', $employee->employee->id)->where('leave_type_id', $leave->leave_type_id)->where('year', 2027)->firstOrFail();
 
@@ -59,8 +60,11 @@ class LeaveWorkflowTest extends TestCase
         $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
         $leave = $this->submitVacation($employee);
+
+        $this->flushSession();
         $this->actingAs($manager)->post(route('leaves.approve', $leave));
 
+        $this->flushSession();
         $this->actingAs($employee)->post(route('leaves.cancel', $leave))->assertSessionHasNoErrors();
         $balance = LeaveBalance::query()->where('employee_id', $employee->employee->id)->where('leave_type_id', $leave->leave_type_id)->where('year', 2027)->firstOrFail();
         $this->assertSame(0.0, (float) $balance->used_days);

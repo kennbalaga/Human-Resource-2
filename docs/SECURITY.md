@@ -3,6 +3,8 @@
 ## Implemented controls
 
 - Breeze session authentication for the web UI and Sanctum bearer tokens for `/api/v1`.
+- Password recovery requires a matching employee ID and registered work email, returns a generic response to prevent account discovery, uses hashed single-use tokens that expire after 30 minutes, and rate-limits requests.
+- Successful password resets rotate the remember token, revoke Sanctum API tokens, and invalidate existing browser sessions.
 - Role checks plus scoped token abilities.
 - CSRF protection for browser forms and request validation for write operations.
 - API throttling: 60 requests/minute and 5 token attempts/minute.
@@ -24,6 +26,10 @@ php artisan route:list --path=api
 ```
 
 Use `APP_ENV=production`, `APP_DEBUG=false`, HTTPS, secure cookies, a least-privilege database user, encrypted backups, and restricted access to `storage`. Change the seeded password immediately and set a unique `INITIAL_USER_PASSWORD` before initial production seeding.
+
+Configure a real transactional mail provider in production. The local `log` mailer only writes reset emails to `storage/logs/laravel.log`; it does not deliver them. Set `APP_URL` to the public HTTPS origin so reset links point to the correct trusted host.
+
+For Gmail SMTP, use the isolated `gmail` mailer documented in `docs/GMAIL_PASSWORD_RESET_SETUP.md`. It requires Google 2-Step Verification and an App Password. Never use or store the normal Gmail account password.
 
 Audit and integration tables grow over time. Define an organization-approved retention policy and archive/delete old records through a reviewed scheduled command; do not silently purge legally required audit data.
 
