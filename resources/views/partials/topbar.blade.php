@@ -25,7 +25,7 @@
     <div class="topbar-actions">
         <div class="topbar-date d-none d-lg-flex">
             <x-icon name="calendar" />
-            <span>{{ now()->format('D, M j, Y') }}</span>
+            <span>{{ now($uiPreference->timezone ?? 'Asia/Manila')->format('D, M j, Y') }}</span>
         </div>
 
         <div class="dropdown">
@@ -87,8 +87,8 @@
                     </div>
                 </div>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="#"><x-icon name="users" /> My profile</a>
-                <a class="dropdown-item" href="#"><x-icon name="settings" /> Account settings</a>
+                <a class="dropdown-item" href="{{ route('profile.show') }}"><x-icon name="users" /> My profile</a>
+                <a class="dropdown-item" href="{{ route('settings.edit') }}"><x-icon name="settings" /> Account settings</a>
                 <div class="dropdown-divider"></div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

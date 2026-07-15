@@ -181,9 +181,44 @@ class AnalyticsController extends Controller
     /** @param array<string, mixed> $filters @return array<string, mixed> */
     private function cachedAnalytics(array $filters): array
     {
-        $key = 'analytics.dataset.'.hash('sha256', json_encode($filters));
+        $key = 'analytics.dataset.v2.'.hash('sha256', json_encode($filters));
+        $resolver = function () use ($filters): array {
+            $data = $this->analytics($filters);
 
-        return Cache::remember($key, now()->addMinutes(2), fn () => $this->analytics($filters));
+            foreach (['departmentMetrics', 'attendanceTrend', 'leaveMix', 'timesheetStatuses'] as $field) {
+                $data[$field] = $data[$field]->values()->all();
+            }
+
+            return $data;
+        };
+        $data = Cache::remember($key, now()->addMinutes(2), $resolver);
+
+        if (! $this->validCachedAnalytics($data)) {
+            Cache::forget($key);
+            $data = $resolver();
+            Cache::put($key, $data, now()->addMinutes(2));
+        }
+
+        foreach (['departmentMetrics', 'attendanceTrend', 'leaveMix', 'timesheetStatuses'] as $field) {
+            $data[$field] = collect($data[$field]);
+        }
+
+        return $data;
+    }
+
+    private function validCachedAnalytics(mixed $data): bool
+    {
+        if (! is_array($data) || ! is_array($data['metrics'] ?? null)) {
+            return false;
+        }
+
+        foreach (['departmentMetrics', 'attendanceTrend', 'leaveMix', 'timesheetStatuses'] as $field) {
+            if (! is_array($data[$field] ?? null)) {
+                return false;
+            }
+        }
+
+        return isset($data['chartMax']);
     }
 
     private function leaveDaysWithin(LeaveRequest $leave, Carbon $from, Carbon $to): float

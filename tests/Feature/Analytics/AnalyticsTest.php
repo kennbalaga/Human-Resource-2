@@ -27,6 +27,17 @@ class AnalyticsTest extends TestCase
             ->assertSee('Workforce performance');
     }
 
+    public function test_database_cached_analytics_can_be_read_on_later_requests(): void
+    {
+        config(['cache.default' => 'database']);
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+
+        $this->actingAs($manager)->get('/analytics')->assertOk();
+        $this->actingAs($manager)->get('/analytics')
+            ->assertOk()
+            ->assertSee('Attendance trend');
+    }
+
     public function test_hr_manager_can_download_analytics_csv(): void
     {
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();

@@ -59,7 +59,7 @@
                 Audit Logs
             </x-sidebar-link>
         @endif
-        <x-sidebar-link href="#" icon="settings">Settings</x-sidebar-link>
+        <x-sidebar-link :href="route('settings.edit')" icon="settings" :active="request()->routeIs('settings.*')">Settings</x-sidebar-link>
     </nav>
 
     <div class="sidebar-support-card">
@@ -70,12 +70,12 @@
         </div>
     </div>
 
-    <div class="sidebar-user">
+    <a class="sidebar-user sidebar-user-link" href="{{ route('profile.show') }}">
         <span class="avatar avatar-sm">{{ str(auth()->user()->name)->substr(0, 1)->upper() }}</span>
         <span class="sidebar-user-copy">
             <strong>{{ auth()->user()->name }}</strong>
             <small>{{ $currentRole ?? 'Employee' }}</small>
         </span>
         <x-icon name="chevron-right" class="sidebar-user-chevron" />
-    </div>
+    </a>
 </aside>

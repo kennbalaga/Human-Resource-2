@@ -30,6 +30,19 @@ class User extends Authenticatable
         return $this->hasOne(Employee::class);
     }
 
+    public function preference(): HasOne
+    {
+        return $this->hasOne(UserPreference::class)->withDefault([
+            'timezone' => 'Asia/Manila',
+            'email_notifications' => true,
+            'attendance_reminders' => true,
+            'schedule_updates' => true,
+            'leave_updates' => true,
+            'compact_navigation' => false,
+            'reduce_motion' => false,
+        ]);
+    }
+
     public function hasRole(string $slug): bool
     {
         return $this->roles()->where('slug', $slug)->exists();

@@ -9,10 +9,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\LeaveAttachmentController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Schedule\RecurringScheduleController;
 use App\Http\Controllers\Schedule\ScheduleAssignmentController;
 use App\Http\Controllers\Schedule\ScheduleCalendarController;
 use App\Http\Controllers\Schedule\ShiftController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TimesheetController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +35,13 @@ Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(func
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
+    Route::patch('/settings/account', [SettingsController::class, 'updateAccount'])->name('settings.account.update');
+    Route::patch('/settings/preferences', [SettingsController::class, 'updatePreferences'])->name('settings.preferences.update');
+    Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
+
     Route::get('/schedules', [ScheduleCalendarController::class, 'index'])->name('schedules.index');
     Route::get('/schedules/events', [ScheduleCalendarController::class, 'events'])->name('schedules.events');
     Route::post('/schedules/conflicts', [ScheduleCalendarController::class, 'conflicts'])->name('schedules.conflicts');
