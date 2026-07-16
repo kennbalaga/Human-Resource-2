@@ -1,0 +1,207 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\Organization\SaveEmployeeRequest;
+use App\Models\Department;
+use App\Models\Employee;
+use App\Models\Position;
+use App\Models\Role;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
+use Throwable;
+
+class EmployeeController extends Controller
+{
+    public function index(Request $request): View
+    {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'status' => ['nullable', 'in:active,inactive,on_leave,terminated'],
+        ]);
+        $query = Employee::query()->with(['user', 'department', 'position', 'supervisor']);
+
+        $query
+            ->when($filters['search'] ?? null, function (Builder $builder, string $search): void {
+                $builder->where(function (Builder $searchQuery) use ($search): void {
+                    $searchQuery
+                        ->where('employee_number', 'like', "%{$search}%")
+                        ->orWhere('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->where('email', 'like', "%{$search}%"));
+                });
+            })
+            ->when($filters['department_id'] ?? null, fn (Builder $builder, int $departmentId) => $builder->where('department_id', $departmentId))
+            ->when($filters['status'] ?? null, fn (Builder $builder, string $status) => $builder->where('employment_status', $status));
+
+        return view('employees.index', [
+            'employees' => $query->orderBy('last_name')->orderBy('first_name')->paginate(15)->withQueryString(),
+            'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
+            'filters' => $filters,
+            'canManage' => $this->canManage($request),
+            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+        ]);
+    }
+
+    public function show(Request $request, Employee $employee): View
+    {
+        $employee->load(['user', 'department', 'position', 'supervisor', 'directReports']);
+
+        return view('employees.show', [
+            'employee' => $employee,
+            'canManage' => $this->canManage($request),
+            'canViewPrivate' => $this->canManage($request) || $request->user()->employee?->is($employee),
+            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+        ]);
+    }
+
+    public function create(Request $request): View
+    {
+        $this->requireManager($request);
+
+        return view('employees.create', $this->formData($request));
+    }
+
+    public function store(SaveEmployeeRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+        $temporaryPassword = Str::password(40);
+
+        $employee = DB::transaction(function () use ($data, $temporaryPassword): Employee {
+            $user = User::query()->create([
+                'name' => $this->displayName($data),
+                'email' => $data['email'],
+                'password' => $temporaryPassword,
+                'is_active' => $this->accountIsActive($data['employment_status']),
+            ]);
+            $role = Role::query()->where('slug', 'employee')->firstOrFail();
+            $user->roles()->attach($role);
+
+            return Employee::query()->create($this->employeeData($data) + ['user_id' => $user->id]);
+        });
+
+        $setupEmailSent = $this->sendPasswordSetupLink($employee->user);
+        $message = 'Employee account created successfully.';
+
+        if ($setupEmailSent) {
+            $message .= ' A secure password setup link was sent to the work email.';
+        } else {
+            $message .= ' The password setup email could not be sent; the employee may use Forgot Password later.';
+        }
+
+        return redirect()->route('employees.show', $employee)->with('success', $message);
+    }
+
+    public function edit(Request $request, Employee $employee): View
+    {
+        $this->requireManager($request);
+
+        return view('employees.edit', $this->formData($request, $employee) + [
+            'employee' => $employee->load('user'),
+        ]);
+    }
+
+    public function update(SaveEmployeeRequest $request, Employee $employee): RedirectResponse
+    {
+        $data = $request->validated();
+
+        DB::transaction(function () use ($data, $employee): void {
+            $user = $employee->user;
+
+            if ($user === null) {
+                $user = User::query()->create([
+                    'name' => $this->displayName($data),
+                    'email' => $data['email'],
+                    'password' => Str::password(40),
+                    'is_active' => $this->accountIsActive($data['employment_status']),
+                ]);
+                $role = Role::query()->where('slug', 'employee')->firstOrFail();
+                $user->roles()->attach($role);
+                $employee->user()->associate($user);
+            } else {
+                $emailChanged = $user->email !== $data['email'];
+                $user->update([
+                    'name' => $this->displayName($data),
+                    'email' => $data['email'],
+                    'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
+                    'is_active' => $this->accountIsActive($data['employment_status']),
+                ]);
+            }
+
+            $employee->fill($this->employeeData($data))->save();
+        });
+
+        return redirect()->route('employees.show', $employee)->with('success', 'Employee profile updated successfully.');
+    }
+
+    /** @return array<string, mixed> */
+    private function formData(Request $request, ?Employee $employee = null): array
+    {
+        return [
+            'departments' => Department::query()
+                ->where(fn (Builder $query) => $query->where('is_active', true)->when($employee, fn (Builder $nested) => $nested->orWhereKey($employee->department_id)))
+                ->orderBy('name')
+                ->get(),
+            'positions' => Position::query()
+                ->with('department')
+                ->where(fn (Builder $query) => $query->where('is_active', true)->when($employee, fn (Builder $nested) => $nested->orWhereKey($employee->position_id)))
+                ->orderBy('title')
+                ->get(),
+            'supervisors' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
+            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+        ];
+    }
+
+    /** @param array<string, mixed> $data */
+    private function employeeData(array $data): array
+    {
+        return collect($data)->only([
+            'employee_number', 'first_name', 'middle_name', 'last_name', 'suffix',
+            'department_id', 'position_id', 'supervisor_id', 'employment_status',
+            'hire_date', 'contact_number', 'address',
+        ])->all();
+    }
+
+    /** @param array<string, mixed> $data */
+    private function displayName(array $data): string
+    {
+        return collect([$data['first_name'], $data['middle_name'], $data['last_name'], $data['suffix']])->filter()->implode(' ');
+    }
+
+    private function accountIsActive(string $status): bool
+    {
+        return in_array($status, ['active', 'on_leave'], true);
+    }
+
+    private function sendPasswordSetupLink(User $user): bool
+    {
+        try {
+            return Password::sendResetLink(['email' => $user->email]) === Password::RESET_LINK_SENT;
+        } catch (Throwable $exception) {
+            Log::warning('The employee onboarding email could not be sent.', [
+                'user_id' => $user->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    private function canManage(Request $request): bool
+    {
+        return $request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists();
+    }
+
+    private function requireManager(Request $request): void
+    {
+        abort_unless($this->canManage($request), 403);
+    }
+}

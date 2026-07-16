@@ -1,0 +1,360 @@
+.organization-heading-actions,
+.organization-form-actions,
+.organization-row-actions {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+}
+
+.organization-filters {
+    display: grid;
+    grid-template-columns: minmax(14rem, 2fr) repeat(2, minmax(10rem, 1fr)) auto;
+    gap: .8rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.organization-filters label,
+.organization-field {
+    display: grid;
+    gap: .4rem;
+}
+
+.organization-filters label > span,
+.organization-field > span,
+.organization-fieldset legend {
+    color: #5b6b63;
+    font-size: .7rem;
+    font-weight: 700;
+}
+
+.organization-filters input,
+.organization-filters select,
+.organization-field input,
+.organization-field select,
+.organization-field textarea {
+    width: 100%;
+    min-height: 2.65rem;
+    padding: .58rem .72rem;
+    border: 1px solid var(--hr-border);
+    border-radius: .65rem;
+    outline: 0;
+    color: #2f4038;
+    background: #fff;
+    font-size: .78rem;
+}
+
+.organization-field textarea {
+    min-height: 6.5rem;
+    resize: vertical;
+}
+
+.organization-filters input:focus,
+.organization-filters select:focus,
+.organization-field input:focus,
+.organization-field select:focus,
+.organization-field textarea:focus {
+    border-color: var(--hr-primary);
+    box-shadow: 0 0 0 3px rgba(25, 128, 78, .12);
+}
+
+.organization-filter-actions {
+    display: flex;
+    align-items: end;
+    gap: .5rem;
+}
+
+.organization-table-panel {
+    overflow: hidden;
+}
+
+.organization-table-panel .panel-header {
+    padding: 1rem 1.25rem;
+}
+
+.organization-table {
+    min-width: 980px;
+}
+
+.organization-secondary {
+    display: block;
+    margin-top: .15rem;
+    color: #839089;
+    font-size: .63rem;
+}
+
+.organization-row-actions {
+    justify-content: flex-end;
+}
+
+.organization-row-actions .btn {
+    padding: .4rem .65rem;
+    font-size: .68rem;
+}
+
+.organization-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.organization-card {
+    display: grid;
+    min-height: 12rem;
+    padding: 1.15rem;
+    border: 1px solid var(--hr-border);
+    border-radius: 1rem;
+    background: var(--hr-surface);
+    box-shadow: var(--hr-shadow);
+    gap: 1rem;
+}
+
+.organization-card-header,
+.organization-card-meta,
+.organization-profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: .75rem;
+}
+
+.organization-code {
+    display: inline-flex;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    padding: .45rem;
+    border-radius: .7rem;
+    align-items: center;
+    justify-content: center;
+    color: #168056;
+    background: #e5f6ed;
+    font-size: .7rem;
+    font-weight: 800;
+}
+
+.organization-card h2,
+.organization-profile-header h2 {
+    margin: 0;
+    color: #203129;
+    font-size: .95rem;
+}
+
+.organization-card p {
+    margin: .35rem 0 0;
+    color: #718078;
+    font-size: .72rem;
+    line-height: 1.55;
+}
+
+.organization-card-meta {
+    margin-top: auto;
+    padding-top: .85rem;
+    border-top: 1px solid var(--hr-border);
+    align-items: center;
+}
+
+.organization-card-counts {
+    display: flex;
+    gap: 1rem;
+    color: #718078;
+    font-size: .66rem;
+}
+
+.organization-card-counts strong {
+    color: #2a3c33;
+}
+
+.organization-form-shell {
+    max-width: 920px;
+    margin: 0 auto;
+}
+
+.organization-form {
+    display: grid;
+    gap: 1rem;
+}
+
+.organization-fieldset {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 0;
+}
+
+.organization-fieldset + .organization-fieldset {
+    border-top: 1px solid var(--hr-border);
+}
+
+.organization-fieldset legend {
+    grid-column: 1 / -1;
+    float: none;
+    width: auto;
+    margin: 0;
+    color: var(--hr-primary);
+    font-size: .68rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.organization-field-full {
+    grid-column: 1 / -1;
+}
+
+.organization-field small {
+    color: #839089;
+    font-size: .64rem;
+}
+
+.organization-error {
+    color: #b93949 !important;
+}
+
+.organization-checkbox {
+    display: flex;
+    min-height: 3.5rem;
+    padding: .75rem;
+    border: 1px solid var(--hr-border);
+    border-radius: .7rem;
+    align-items: center;
+    gap: .65rem;
+}
+
+.organization-checkbox input {
+    width: 1rem;
+    min-height: auto;
+}
+
+.organization-checkbox div {
+    display: grid;
+}
+
+.organization-checkbox strong {
+    color: #34463d;
+    font-size: .75rem;
+}
+
+.organization-form-footer {
+    display: flex;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--hr-border);
+    justify-content: flex-end;
+    gap: .65rem;
+}
+
+.organization-profile {
+    padding: 1.3rem;
+}
+
+.organization-profile-header {
+    padding-bottom: 1.1rem;
+    border-bottom: 1px solid var(--hr-border);
+    align-items: center;
+}
+
+.organization-profile-identity {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+}
+
+.organization-profile-identity .avatar {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: .9rem;
+}
+
+.organization-profile-identity p {
+    margin: .25rem 0 0;
+    color: #7c8a83;
+    font-size: .7rem;
+}
+
+.organization-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .85rem;
+    padding-top: 1.15rem;
+}
+
+.organization-detail {
+    display: grid;
+    min-height: 4.5rem;
+    padding: .8rem;
+    border-radius: .7rem;
+    background: #f7faf8;
+    align-content: center;
+    gap: .25rem;
+}
+
+.organization-detail span {
+    color: #839089;
+    font-size: .62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.organization-detail strong {
+    overflow-wrap: anywhere;
+    color: #304139;
+    font-size: .75rem;
+}
+
+html[data-theme-resolved='dark'] .organization-filters label > span,
+html[data-theme-resolved='dark'] .organization-field > span,
+html[data-theme-resolved='dark'] .organization-fieldset legend,
+html[data-theme-resolved='dark'] .organization-card p,
+html[data-theme-resolved='dark'] .organization-card-counts,
+html[data-theme-resolved='dark'] .organization-profile-identity p,
+html[data-theme-resolved='dark'] .organization-detail span,
+html[data-theme-resolved='dark'] .organization-field small,
+html[data-theme-resolved='dark'] .organization-secondary {
+    color: #a9b8b0;
+}
+
+html[data-theme-resolved='dark'] .organization-filters input,
+html[data-theme-resolved='dark'] .organization-filters select,
+html[data-theme-resolved='dark'] .organization-field input,
+html[data-theme-resolved='dark'] .organization-field select,
+html[data-theme-resolved='dark'] .organization-field textarea {
+    border-color: #34483d;
+    color: var(--hr-text);
+    background: #0f1b16;
+}
+
+html[data-theme-resolved='dark'] .organization-card h2,
+html[data-theme-resolved='dark'] .organization-profile-header h2,
+html[data-theme-resolved='dark'] .organization-card-counts strong,
+html[data-theme-resolved='dark'] .organization-checkbox strong,
+html[data-theme-resolved='dark'] .organization-detail strong {
+    color: var(--hr-text);
+}
+
+html[data-theme-resolved='dark'] .organization-code {
+    color: #65d49a;
+    background: #123d2c;
+}
+
+html[data-theme-resolved='dark'] .organization-detail {
+    background: #0f1b16;
+}
+
+@media (max-width: 1050px) {
+    .organization-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .organization-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .organization-filter-actions { align-items: center; }
+}
+
+@media (max-width: 700px) {
+    .organization-heading-actions,
+    .organization-form-actions { width: 100%; }
+    .organization-heading-actions .btn,
+    .organization-form-actions .btn { flex: 1; }
+    .organization-card-grid,
+    .organization-filters,
+    .organization-fieldset,
+    .organization-detail-grid { grid-template-columns: 1fr; }
+    .organization-field-full,
+    .organization-fieldset legend { grid-column: auto; }
+    .organization-profile-header { align-items: flex-start; flex-direction: column; }
+}

@@ -17,10 +17,12 @@
             <h1>{{ $greeting }}, {{ str(auth()->user()->name)->before(' ') }}.</h1>
             <p>Here’s what’s happening across your hospital workforce today.</p>
         </div>
-        <button class="btn btn-primary dashboard-action" type="button">
-            <x-icon name="users" />
-            Add employee
-        </button>
+        @if ($canManageWorkforce)
+            <a class="btn btn-primary dashboard-action" href="{{ route('employees.create') }}">
+                <x-icon name="users" />
+                Add employee
+            </a>
+        @endif
     </section>
 
     <section class="stats-grid" aria-label="Workforce summary">
@@ -31,7 +33,7 @@
             tone="primary"
             :detail="$stats['new_this_month'].' new this month'"
             :actions="[
-                ['label' => 'View recent employees', 'url' => '#employee-overview', 'icon' => 'users'],
+                ['label' => 'View employee directory', 'url' => route('employees.index'), 'icon' => 'users'],
                 ['label' => 'Open schedule calendar', 'url' => route('schedules.index'), 'icon' => 'calendar'],
             ]"
         />
@@ -53,7 +55,7 @@
             tone="violet"
             detail="Operational units"
             :actions="[
-                ['label' => 'View department summary', 'url' => '#department-overview', 'icon' => 'building'],
+                ['label' => 'View departments', 'url' => route('departments.index'), 'icon' => 'building'],
                 ['label' => $canManageWorkforce ? 'Open workforce analytics' : 'Open schedule calendar', 'url' => $canManageWorkforce ? route('analytics.index') : route('schedules.index'), 'icon' => $canManageWorkforce ? 'analytics' : 'calendar'],
             ]"
         />
@@ -64,7 +66,7 @@
             tone="amber"
             detail="Defined roles"
             :actions="[
-                ['label' => 'View organization readiness', 'url' => '#position-overview', 'icon' => 'briefcase'],
+                ['label' => 'View positions', 'url' => route('positions.index'), 'icon' => 'briefcase'],
                 ['label' => $canManageWorkforce ? 'Open shift templates' : 'Open schedule calendar', 'url' => $canManageWorkforce ? route('shifts.index') : route('schedules.index'), 'icon' => $canManageWorkforce ? 'repeat' : 'calendar'],
             ]"
         />
@@ -77,7 +79,7 @@
                     <p class="panel-kicker">Employee directory</p>
                     <h2>Recently added employees</h2>
                 </div>
-                <a href="#" class="panel-link">View all <x-icon name="chevron-right" /></a>
+                <a href="{{ route('employees.index') }}" class="panel-link">View all <x-icon name="chevron-right" /></a>
             </div>
 
             <div class="table-responsive">
@@ -187,7 +189,7 @@
                 @endforelse
             </div>
 
-            <a href="#" class="department-footer-link">Manage departments <x-icon name="chevron-right" /></a>
+            <a href="{{ route('departments.index') }}" class="department-footer-link">{{ $canManageWorkforce ? 'Manage' : 'View' }} departments <x-icon name="chevron-right" /></a>
         </aside>
     </div>
 

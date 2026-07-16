@@ -6,10 +6,13 @@ use App\Http\Controllers\Attendance\AttendanceController;
 use App\Http\Controllers\Attendance\AttendanceReportController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\LeaveAttachmentController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Schedule\RecurringScheduleController;
 use App\Http\Controllers\Schedule\ScheduleAssignmentController;
@@ -36,6 +39,10 @@ Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(func
 });
 
 Route::middleware('auth')->group(function () {
+    Route::resource('employees', EmployeeController::class)->except('destroy');
+    Route::resource('departments', DepartmentController::class)->except(['show', 'destroy']);
+    Route::resource('positions', PositionController::class)->except(['show', 'destroy']);
+
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
