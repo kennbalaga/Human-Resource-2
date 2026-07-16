@@ -1,5 +1,4 @@
 @php
-    $notificationItems = $notifications ?? collect();
     $userInitials = collect(explode(' ', auth()->user()->name))
         ->filter()
         ->take(2)
@@ -36,8 +35,8 @@
         <div class="dropdown">
             <button class="icon-button notification-button" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open notifications">
                 <x-icon name="bell" />
-                @if ($notificationItems->isNotEmpty())
-                    <span class="notification-count">{{ $notificationItems->count() }}</span>
+                @if ($notificationUnreadCount > 0)
+                    <span class="notification-count">{{ $notificationUnreadCount > 99 ? '99+' : $notificationUnreadCount }}</span>
                 @endif
             </button>
 
@@ -45,29 +44,42 @@
                 <div class="notification-header">
                     <div>
                         <strong>Notifications</strong>
-                        <span>{{ $notificationItems->count() }} new updates</span>
+                        <span>{{ $notificationUnreadCount === 0 ? 'No unread notifications' : $notificationUnreadCount.' unread '.Str::plural('notification', $notificationUnreadCount) }}</span>
                     </div>
-                    <button type="button">Mark all as read</button>
+                    @if($notificationUnreadCount > 0)
+                        <form method="POST" action="{{ route('notifications.read-all') }}">
+                            @csrf @method('PATCH')
+                            <button type="submit">Mark all as read</button>
+                        </form>
+                    @endif
                 </div>
 
                 <div class="notification-list">
                     @forelse ($notificationItems as $notification)
-                        <article class="notification-item">
-                            <span class="notification-icon notification-{{ $notification['tone'] }}">
-                                <x-icon :name="$notification['icon']" />
+                        @php
+                            $tone = in_array(data_get($notification->data, 'tone'), ['success', 'primary', 'warning'], true) ? data_get($notification->data, 'tone') : 'primary';
+                            $icon = in_array(data_get($notification->data, 'icon'), ['clock', 'calendar', 'leave'], true) ? data_get($notification->data, 'icon') : 'bell';
+                        @endphp
+                        <a class="notification-item" href="{{ route('notifications.open', $notification->id) }}">
+                            <span class="notification-icon notification-{{ $tone }}">
+                                <x-icon :name="$icon" />
                             </span>
                             <div>
-                                <strong>{{ $notification['title'] }}</strong>
-                                <p>{{ $notification['message'] }}</p>
-                                <time>{{ $notification['time'] }}</time>
+                                <strong>{{ data_get($notification->data, 'title', 'HRMS update') }}</strong>
+                                <p>{{ data_get($notification->data, 'message', 'You have a new workforce update.') }}</p>
+                                <time datetime="{{ $notification->created_at->toIso8601String() }}">{{ $notification->created_at->diffForHumans() }}</time>
                             </div>
-                        </article>
+                        </a>
                     @empty
-                        <p class="notification-empty">You are all caught up.</p>
+                        <div class="notification-empty">
+                            <span class="notification-empty-icon"><x-icon name="check-circle" /></span>
+                            <strong>You're all caught up</strong>
+                            <span>No unread notifications right now.</span>
+                        </div>
                     @endforelse
                 </div>
 
-                <a class="notification-footer" href="#">View all notifications</a>
+                <a class="notification-footer" href="{{ route('notifications.index') }}">View all notifications</a>
             </div>
         </div>
 

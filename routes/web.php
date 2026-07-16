@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\LeaveAttachmentController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Schedule\RecurringScheduleController;
 use App\Http\Controllers\Schedule\ScheduleAssignmentController;
@@ -42,6 +43,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/preferences', [SettingsController::class, 'updatePreferences'])->name('settings.preferences.update');
     Route::patch('/settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.theme.update');
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::get('/notifications/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
 
     Route::get('/schedules', [ScheduleCalendarController::class, 'index'])->name('schedules.index');
     Route::get('/schedules/events', [ScheduleCalendarController::class, 'events'])->name('schedules.events');
