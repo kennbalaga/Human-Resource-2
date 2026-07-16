@@ -645,6 +645,28 @@ input {
     height: 18px;
 }
 
+.dashboard-action-menu .dropdown-menu {
+    min-width: 12.5rem;
+    padding: 6px;
+}
+
+.dashboard-action-menu .dropdown-item {
+    display: flex;
+    min-height: 36px;
+    padding: 8px 9px;
+    border-radius: 8px;
+    align-items: center;
+    gap: 9px;
+    font-size: 0.7rem;
+    font-weight: 560;
+}
+
+.dashboard-action-menu .dropdown-item .ui-icon {
+    width: 15px;
+    height: 15px;
+    color: var(--hr-primary);
+}
+
 .notification-button {
     position: relative;
 }

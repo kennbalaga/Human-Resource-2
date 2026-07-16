@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -36,6 +37,33 @@ class DashboardTest extends TestCase
             ->assertSee('sidebar-collapse-grip', false)
             ->assertSee('title="Dashboard"', false)
             ->assertSee(route('profile.show'), false)
-            ->assertSee(route('settings.edit'), false);
+            ->assertSee(route('settings.edit'), false)
+            ->assertSee('data-bs-toggle="dropdown"', false);
+
+        $employee = Employee::query()->where('employee_number', 'HR-0002')->firstOrFail();
+
+        $this->assertSame(9, substr_count($response->getContent(), 'data-dashboard-action-menu'));
+        $response
+            ->assertSee(route('schedules.index', ['employee_id' => $employee->id]), false)
+            ->assertSee(route('attendance.reports.index', ['employee_id' => $employee->id]), false)
+            ->assertSee(route('leaves.index', ['employee_id' => $employee->id]), false);
+    }
+
+    public function test_standard_employee_dashboard_actions_use_non_manager_pages(): void
+    {
+        $this->seed();
+
+        $user = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response
+            ->assertOk()
+            ->assertSee('Open my attendance')
+            ->assertSee('Open my schedule')
+            ->assertSee('Open my leave requests')
+            ->assertDontSee('Open attendance reports')
+            ->assertDontSee('Open shift templates');
+
+        $this->assertSame(9, substr_count($response->getContent(), 'data-dashboard-action-menu'));
     }
 }

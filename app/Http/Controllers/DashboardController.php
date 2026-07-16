@@ -14,6 +14,9 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request): View
     {
+        $canManageWorkforce = $request->user()->roles()
+            ->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])
+            ->exists();
         $activeEmployees = Employee::query()
             ->where('employment_status', 'active')
             ->count();
@@ -73,6 +76,7 @@ class DashboardController extends Controller
             'stats' => $stats,
             'recentEmployees' => $recentEmployees,
             'departments' => $departments,
+            'canManageWorkforce' => $canManageWorkforce,
             'notifications' => $notifications,
             'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
         ]);

@@ -1,3 +1,5 @@
+import { Dropdown } from 'bootstrap';
+
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
     const root = document.documentElement;
@@ -6,6 +8,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarCollapseButton = document.querySelector('[data-sidebar-collapse]');
     const desktopSidebar = window.matchMedia('(min-width: 1101px)');
     const sidebarStorageKey = 'workforce.sidebar';
+
+    document.querySelectorAll('[data-dashboard-action-menu]').forEach((toggle) => {
+        Dropdown.getOrCreateInstance(toggle, {
+            popperConfig: (defaultConfig) => ({
+                ...defaultConfig,
+                strategy: 'fixed',
+            }),
+        });
+    });
 
     const syncCollapseButton = () => {
         if (!sidebarCollapseButton) {

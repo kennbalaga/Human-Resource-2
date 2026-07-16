@@ -4,6 +4,7 @@
     'icon',
     'tone' => 'primary',
     'detail' => null,
+    'actions' => [],
 ])
 
 <article class="stat-card">
@@ -11,9 +12,7 @@
         <span class="stat-icon stat-icon-{{ $tone }}">
             <x-icon :name="$icon" />
         </span>
-        <button class="icon-button subtle" type="button" aria-label="More options">
-            <x-icon name="more" />
-        </button>
+        <x-dashboard-action-menu :label="'Options for '.$title" :items="$actions" />
     </div>
     <p class="stat-title">{{ $title }}</p>
     <div class="stat-value-row">

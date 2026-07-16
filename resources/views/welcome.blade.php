@@ -30,6 +30,10 @@
             icon="users"
             tone="primary"
             :detail="$stats['new_this_month'].' new this month'"
+            :actions="[
+                ['label' => 'View recent employees', 'url' => '#employee-overview', 'icon' => 'users'],
+                ['label' => 'Open schedule calendar', 'url' => route('schedules.index'), 'icon' => 'calendar'],
+            ]"
         />
         <x-stat-card
             title="Active workforce"
@@ -37,6 +41,10 @@
             icon="check-circle"
             tone="success"
             detail="Ready for duty"
+            :actions="[
+                ['label' => $canManageWorkforce ? 'Open attendance reports' : 'Open my attendance', 'url' => $canManageWorkforce ? route('attendance.reports.index') : route('attendance.index'), 'icon' => 'clock'],
+                ['label' => 'Open timesheets', 'url' => route('timesheets.index'), 'icon' => 'timesheet'],
+            ]"
         />
         <x-stat-card
             title="Departments"
@@ -44,6 +52,10 @@
             icon="building"
             tone="violet"
             detail="Operational units"
+            :actions="[
+                ['label' => 'View department summary', 'url' => '#department-overview', 'icon' => 'building'],
+                ['label' => $canManageWorkforce ? 'Open workforce analytics' : 'Open schedule calendar', 'url' => $canManageWorkforce ? route('analytics.index') : route('schedules.index'), 'icon' => $canManageWorkforce ? 'analytics' : 'calendar'],
+            ]"
         />
         <x-stat-card
             title="Positions"
@@ -51,6 +63,10 @@
             icon="briefcase"
             tone="amber"
             detail="Defined roles"
+            :actions="[
+                ['label' => 'View organization readiness', 'url' => '#position-overview', 'icon' => 'briefcase'],
+                ['label' => $canManageWorkforce ? 'Open shift templates' : 'Open schedule calendar', 'url' => $canManageWorkforce ? route('shifts.index') : route('schedules.index'), 'icon' => $canManageWorkforce ? 'repeat' : 'calendar'],
+            ]"
         />
     </section>
 
@@ -96,9 +112,18 @@
                                 <td>{{ $employee->position?->title ?? 'Unassigned' }}</td>
                                 <td><x-status-badge :status="$employee->employment_status" /></td>
                                 <td>
-                                    <button class="icon-button subtle" type="button" aria-label="Actions for {{ $employee->full_name }}">
-                                        <x-icon name="more" />
-                                    </button>
+                                    <x-dashboard-action-menu
+                                        :label="'Actions for '.$employee->full_name"
+                                        :items="$canManageWorkforce ? [
+                                            ['label' => 'View schedule', 'url' => route('schedules.index', ['employee_id' => $employee->id]), 'icon' => 'calendar'],
+                                            ['label' => 'View attendance', 'url' => route('attendance.reports.index', ['employee_id' => $employee->id]), 'icon' => 'clock'],
+                                            ['label' => 'View leave records', 'url' => route('leaves.index', ['employee_id' => $employee->id]), 'icon' => 'leave'],
+                                        ] : [
+                                            ['label' => 'Open my schedule', 'url' => route('schedules.index'), 'icon' => 'calendar'],
+                                            ['label' => 'Open my attendance', 'url' => route('attendance.index'), 'icon' => 'clock'],
+                                            ['label' => 'Open my leave requests', 'url' => route('leaves.index'), 'icon' => 'leave'],
+                                        ]"
+                                    />
                                 </td>
                             </tr>
                         @empty
@@ -121,7 +146,17 @@
                     <p class="panel-kicker">Organization</p>
                     <h2>Workforce by department</h2>
                 </div>
-                <button class="icon-button subtle" type="button" aria-label="Department options"><x-icon name="more" /></button>
+                <x-dashboard-action-menu
+                    label="Department options"
+                    :items="$canManageWorkforce ? [
+                        ['label' => 'Open workforce analytics', 'url' => route('analytics.index'), 'icon' => 'analytics'],
+                        ['label' => 'Filter schedules by department', 'url' => route('schedules.index'), 'icon' => 'calendar'],
+                        ['label' => 'Open attendance reports', 'url' => route('attendance.reports.index'), 'icon' => 'report'],
+                    ] : [
+                        ['label' => 'Open schedule calendar', 'url' => route('schedules.index'), 'icon' => 'calendar'],
+                        ['label' => 'Open leave management', 'url' => route('leaves.index'), 'icon' => 'leave'],
+                    ]"
+                />
             </div>
 
             <div class="department-list">
