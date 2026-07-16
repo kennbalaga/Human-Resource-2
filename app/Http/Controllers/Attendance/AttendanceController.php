@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Attendance;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Attendance\AttendanceLocationRequest;
+use App\Http\Requests\Attendance\AttendanceActionRequest;
 use App\Models\AttendanceRecord;
 use App\Models\OfficeLocation;
 use App\Services\AttendanceService;
@@ -39,20 +39,19 @@ class AttendanceController extends Controller
             'office' => $office,
             'todayRecord' => $todayRecord,
             'recentRecords' => $recentRecords,
-            'googleMapsApiKey' => config('attendance.google_maps_api_key'),
             'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
             'notifications' => collect(),
         ]);
     }
 
-    public function checkIn(AttendanceLocationRequest $request, AttendanceService $attendanceService): RedirectResponse
+    public function checkIn(AttendanceActionRequest $request, AttendanceService $attendanceService): RedirectResponse
     {
         $office = OfficeLocation::query()->where('is_active', true)->findOrFail($request->integer('office_location_id'));
 
         $record = $attendanceService->checkIn(
             $request->user()->employee,
             $office,
-            $this->locationData($request),
+            $this->notes($request),
             $request->ip(),
             $request->userAgent(),
         );
@@ -63,14 +62,14 @@ class AttendanceController extends Controller
         );
     }
 
-    public function checkOut(AttendanceLocationRequest $request, AttendanceService $attendanceService): RedirectResponse
+    public function checkOut(AttendanceActionRequest $request, AttendanceService $attendanceService): RedirectResponse
     {
         $office = OfficeLocation::query()->where('is_active', true)->findOrFail($request->integer('office_location_id'));
 
         $record = $attendanceService->checkOut(
             $request->user()->employee,
             $office,
-            $this->locationData($request),
+            $this->notes($request),
             $request->ip(),
             $request->userAgent(),
         );
@@ -81,16 +80,8 @@ class AttendanceController extends Controller
         );
     }
 
-    /**
-     * @return array{latitude: float, longitude: float, accuracy: float|null, notes: string|null}
-     */
-    private function locationData(AttendanceLocationRequest $request): array
+    private function notes(AttendanceActionRequest $request): ?string
     {
-        return [
-            'latitude' => $request->float('latitude'),
-            'longitude' => $request->float('longitude'),
-            'accuracy' => $request->filled('accuracy') ? $request->float('accuracy') : null,
-            'notes' => ((string) $request->string('notes')->trim()) ?: null,
-        ];
+        return ((string) $request->string('notes')->trim()) ?: null;
     }
 }

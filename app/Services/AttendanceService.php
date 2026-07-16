@@ -11,19 +11,14 @@ use Illuminate\Validation\ValidationException;
 
 class AttendanceService
 {
-    public function __construct(private readonly GeoFenceService $geoFenceService) {}
-
-    /**
-     * @param  array{latitude: float, longitude: float, accuracy?: float|null, notes?: string|null}  $locationData
-     */
     public function checkIn(
         Employee $employee,
         OfficeLocation $office,
-        array $locationData,
+        ?string $notes,
         ?string $ipAddress,
         ?string $userAgent,
     ): AttendanceRecord {
-        return DB::transaction(function () use ($employee, $office, $locationData, $ipAddress, $userAgent) {
+        return DB::transaction(function () use ($employee, $office, $notes, $ipAddress, $userAgent) {
             $now = now();
             $localNow = $now->copy()->timezone($office->timezone);
             $attendanceDate = $localNow->toDateString();
@@ -40,13 +35,6 @@ class AttendanceService
                 ]);
             }
 
-            $geoFence = $this->geoFenceService->evaluate(
-                $office,
-                $locationData['latitude'],
-                $locationData['longitude'],
-            );
-            $this->geoFenceService->ensureAllowed($office, $geoFence['within_geofence']);
-
             $scheduledStart = $this->officeDateTime(
                 $attendanceDate,
                 $office->work_start_time,
@@ -62,31 +50,23 @@ class AttendanceService
                 'office_location_id' => $office->id,
                 'attendance_date' => $attendanceDate,
                 'check_in_at' => $now,
-                'check_in_latitude' => $locationData['latitude'],
-                'check_in_longitude' => $locationData['longitude'],
-                'check_in_accuracy_meters' => $locationData['accuracy'] ?? null,
-                'check_in_distance_meters' => $geoFence['distance_meters'],
-                'check_in_within_geofence' => $geoFence['within_geofence'],
                 'status' => $lateMinutes > 0 ? 'late' : 'present',
                 'late_minutes' => $lateMinutes,
-                'notes' => $locationData['notes'] ?? null,
+                'notes' => $notes,
                 'check_in_ip_address' => $ipAddress,
                 'check_in_user_agent' => $userAgent,
             ]);
         });
     }
 
-    /**
-     * @param  array{latitude: float, longitude: float, accuracy?: float|null, notes?: string|null}  $locationData
-     */
     public function checkOut(
         Employee $employee,
         OfficeLocation $office,
-        array $locationData,
+        ?string $notes,
         ?string $ipAddress,
         ?string $userAgent,
     ): AttendanceRecord {
-        return DB::transaction(function () use ($employee, $office, $locationData, $ipAddress, $userAgent) {
+        return DB::transaction(function () use ($employee, $office, $notes, $ipAddress, $userAgent) {
             $now = now();
             $localNow = $now->copy()->timezone($office->timezone);
             $attendanceDate = $localNow->toDateString();
@@ -110,13 +90,6 @@ class AttendanceService
             }
 
             $recordOffice = $record->officeLocation ?? $office;
-            $geoFence = $this->geoFenceService->evaluate(
-                $recordOffice,
-                $locationData['latitude'],
-                $locationData['longitude'],
-            );
-            $this->geoFenceService->ensureAllowed($recordOffice, $geoFence['within_geofence']);
-
             $checkInLocal = $record->check_in_at->copy()->timezone($recordOffice->timezone);
             $scheduledEnd = $this->officeDateTime(
                 $attendanceDate,
@@ -135,15 +108,10 @@ class AttendanceService
 
             $record->update([
                 'check_out_at' => $now,
-                'check_out_latitude' => $locationData['latitude'],
-                'check_out_longitude' => $locationData['longitude'],
-                'check_out_accuracy_meters' => $locationData['accuracy'] ?? null,
-                'check_out_distance_meters' => $geoFence['distance_meters'],
-                'check_out_within_geofence' => $geoFence['within_geofence'],
                 'worked_minutes' => $workedMinutes,
                 'undertime_minutes' => $undertimeMinutes,
                 'overtime_minutes' => $overtimeMinutes,
-                'notes' => $locationData['notes'] ?? $record->notes,
+                'notes' => $notes ?? $record->notes,
                 'check_out_ip_address' => $ipAddress,
                 'check_out_user_agent' => $userAgent,
             ]);

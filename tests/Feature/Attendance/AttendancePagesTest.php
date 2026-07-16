@@ -31,10 +31,13 @@ class AttendancePagesTest extends TestCase
             ->assertOk()
             ->assertSee('Time &amp; Attendance', false)
             ->assertSee('Check in now')
-            ->assertSee('Location verification');
+            ->assertDontSee('Location verification')
+            ->assertDontSee('Device location verification')
+            ->assertDontSee('Google Maps')
+            ->assertDontSee('data-google-maps-key', false);
     }
 
-    public function test_location_is_required_when_checking_in(): void
+    public function test_employee_can_check_in_without_location_data(): void
     {
         $user = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
 
@@ -42,8 +45,11 @@ class AttendancePagesTest extends TestCase
             'office_location_id' => 1,
         ]);
 
-        $response->assertSessionHasErrors(['latitude', 'longitude']);
-        $this->assertDatabaseCount('attendance_records', 0);
+        $response->assertRedirect('/attendance')->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('attendance_records', [
+            'employee_id' => $user->employee->id,
+            'office_location_id' => 1,
+        ]);
     }
 
     public function test_hr_manager_can_view_reports_and_export_csv(): void

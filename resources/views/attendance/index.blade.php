@@ -3,20 +3,12 @@
 @section('title', 'Time & Attendance')
 
 @section('content')
-    <div
-        id="attendanceApp"
-        data-google-maps-key="{{ $googleMapsApiKey }}"
-        data-office-latitude="{{ $office->latitude }}"
-        data-office-longitude="{{ $office->longitude }}"
-        data-office-radius="{{ $office->radius_meters }}"
-        data-office-timezone="{{ $office->timezone }}"
-        data-geofence-enabled="{{ $office->geofence_enabled ? 'true' : 'false' }}"
-    >
+    <div id="attendanceApp" data-office-timezone="{{ $office->timezone }}">
         <section class="page-heading attendance-heading">
             <div>
                 <p class="eyebrow">Workforce Management</p>
                 <h1>Time & Attendance</h1>
-                <p>Record your daily attendance using your verified device location.</p>
+                <p>Record your daily attendance and keep track of your work hours.</p>
             </div>
             @if (auth()->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists())
                 <a class="btn btn-outline-primary dashboard-action" href="{{ route('attendance.reports.index') }}">
@@ -55,7 +47,7 @@
                         <div>
                             <p>Ready to start your day?</p>
                             <h2>Check in to {{ $office->name }}</h2>
-                            <span>Your location will be verified before attendance is recorded.</span>
+                            <span>Your attendance will be timestamped when you check in.</span>
                         </div>
                     @elseif (! $todayRecord->check_out_at)
                         <span class="attendance-state-icon state-working"><x-icon name="clock" /></span>
@@ -83,9 +75,6 @@
                     >
                         @csrf
                         <input type="hidden" name="office_location_id" value="{{ $office->id }}">
-                        <input type="hidden" name="latitude" data-location-field="latitude">
-                        <input type="hidden" name="longitude" data-location-field="longitude">
-                        <input type="hidden" name="accuracy" data-location-field="accuracy">
 
                         <label class="attendance-note">
                             <span>Optional note</span>
@@ -102,56 +91,7 @@
                 <div class="attendance-policy">
                     <div><span>Work hours</span><strong>{{ \Carbon\Carbon::parse($office->work_start_time)->format('g:i A') }}–{{ \Carbon\Carbon::parse($office->work_end_time)->format('g:i A') }}</strong></div>
                     <div><span>Grace period</span><strong>{{ $office->grace_period_minutes }} minutes</strong></div>
-                    <div><span>Required radius</span><strong>{{ $office->geofence_enabled ? $office->radius_meters.' meters' : 'Capture only' }}</strong></div>
                 </div>
-            </section>
-
-            <section class="panel attendance-map-panel">
-                <div class="panel-header">
-                    <div>
-                        <p class="panel-kicker">Location verification</p>
-                        <h2>{{ $office->name }}</h2>
-                    </div>
-                    <button class="btn location-refresh-button" type="button" data-refresh-location>
-                        <x-icon name="refresh" /> Refresh
-                    </button>
-                </div>
-
-                <div class="location-status" id="locationStatus" aria-live="polite">
-                    <span class="location-status-icon"><x-icon name="map-pin" /></span>
-                    <div>
-                        <strong>Location not captured</strong>
-                        <span>Allow location access to verify your attendance.</span>
-                    </div>
-                </div>
-
-                <div class="attendance-map-wrap">
-                    <div id="attendanceMap" class="attendance-map" aria-label="Attendance location map"></div>
-                    <div class="map-fallback" id="mapFallback">
-                        <span><x-icon name="map-pin" /></span>
-                        <strong>Google Maps preview unavailable</strong>
-                        <p>Add a Maps JavaScript API key to display the interactive map. Location capture still works.</p>
-                    </div>
-                </div>
-
-                <div class="location-details">
-                    <div>
-                        <span>Current coordinates</span>
-                        <strong id="currentCoordinates">Waiting for permission</strong>
-                    </div>
-                    <div>
-                        <span>GPS accuracy</span>
-                        <strong id="locationAccuracy">—</strong>
-                    </div>
-                    <div>
-                        <span>Office distance</span>
-                        <strong id="officeDistance">—</strong>
-                    </div>
-                </div>
-
-                <p class="location-privacy-note">
-                    <x-icon name="check-circle" /> Your coordinates are stored only when you check in or out.
-                </p>
             </section>
         </div>
 

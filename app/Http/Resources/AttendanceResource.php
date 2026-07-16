@@ -24,10 +24,6 @@ class AttendanceResource extends JsonResource
                 'undertime' => $this->undertime_minutes,
                 'overtime' => $this->overtime_minutes,
             ],
-            'geofence' => [
-                'check_in_verified' => $this->check_in_within_geofence,
-                'check_out_verified' => $this->check_out_within_geofence,
-            ],
         ];
     }
 }
