@@ -41,10 +41,10 @@
                     <label class="settings-select"><span>Display timezone</span><select name="timezone" required>@foreach($timezones as $value => $label)<option value="{{ $value }}" @selected(old('timezone', $preference->timezone) === $value)>{{ $label }}</option>@endforeach</select><small>Controls dates shown in the application header.</small></label>
                     <div class="settings-toggle-list">
                         @foreach([
-                            'email_notifications' => ['Email notifications', 'Allow the HRMS to send account and workflow emails.'],
-                            'attendance_reminders' => ['Attendance reminders', 'Receive reminders related to check-in and check-out.'],
-                            'schedule_updates' => ['Schedule updates', 'Receive updates when assigned schedules change.'],
-                            'leave_updates' => ['Leave updates', 'Receive status changes for leave requests.'],
+                            'email_notifications' => ['Email notifications', 'Master switch for attendance, schedule, and leave emails.'],
+                            'attendance_reminders' => ['Attendance reminders', 'Receive weekday check-in and check-out reminders.'],
+                            'schedule_updates' => ['Schedule updates', 'Receive an email when a schedule is assigned, changed, or removed.'],
+                            'leave_updates' => ['Leave updates', 'Receive submission, approval, rejection, and cancellation updates.'],
                             'compact_navigation' => ['Compact navigation', 'Reduce spacing in the sidebar navigation.'],
                             'reduce_motion' => ['Reduce motion', 'Minimize interface transitions and animations.'],
                         ] as $field => [$title, $description])

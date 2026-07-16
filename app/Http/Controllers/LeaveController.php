@@ -9,8 +9,10 @@ use App\Models\Employee;
 use App\Models\LeaveAttachment;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Notifications\PreferenceMailNotification;
 use App\Services\Integrations\SafeIntegrationDispatcher;
 use App\Services\LeaveService;
+use App\Services\PreferenceNotificationService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -84,8 +86,11 @@ class LeaveController extends Controller
         ]);
     }
 
-    public function store(StoreLeaveRequest $request, LeaveService $service): RedirectResponse
-    {
+    public function store(
+        StoreLeaveRequest $request,
+        LeaveService $service,
+        PreferenceNotificationService $notifications,
+    ): RedirectResponse {
         $data = $request->validated();
         $type = LeaveType::query()->findOrFail($data['leave_type_id']);
         if ($type->requires_attachment && ! $request->hasFile('attachments')) {
@@ -106,32 +111,49 @@ class LeaveController extends Controller
                 'uploaded_by' => $request->user()->id,
             ]);
         }
+        $this->notifyEmployee($leave, 'submitted', $notifications);
 
         return back()->with('success', 'Leave request submitted for approval.');
     }
 
-    public function approve(Request $request, LeaveRequest $leaveRequest, LeaveService $service, SafeIntegrationDispatcher $integrations): RedirectResponse
-    {
+    public function approve(
+        Request $request,
+        LeaveRequest $leaveRequest,
+        LeaveService $service,
+        SafeIntegrationDispatcher $integrations,
+        PreferenceNotificationService $notifications,
+    ): RedirectResponse {
         $this->requireManager($request);
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
-        $service->approve($leaveRequest, $request->user(), $validated['reviewer_notes'] ?? null);
+        $leave = $service->approve($leaveRequest, $request->user(), $validated['reviewer_notes'] ?? null);
         $integrations->zapier('leave.approved', ['leave_request_id' => $leaveRequest->id, 'employee_id' => $leaveRequest->employee_id, 'start_date' => $leaveRequest->start_date->toDateString(), 'end_date' => $leaveRequest->end_date->toDateString(), 'requested_days' => (float) $leaveRequest->requested_days]);
+        $this->notifyEmployee($leave, 'approved', $notifications);
 
         return back()->with('success', 'Leave request approved and balance updated.');
     }
 
-    public function reject(Request $request, LeaveRequest $leaveRequest, LeaveService $service): RedirectResponse
-    {
+    public function reject(
+        Request $request,
+        LeaveRequest $leaveRequest,
+        LeaveService $service,
+        PreferenceNotificationService $notifications,
+    ): RedirectResponse {
         $this->requireManager($request);
         $validated = $request->validate(['reviewer_notes' => ['required', 'string', 'min:5', 'max:500']]);
-        $service->reject($leaveRequest, $request->user(), $validated['reviewer_notes']);
+        $leave = $service->reject($leaveRequest, $request->user(), $validated['reviewer_notes']);
+        $this->notifyEmployee($leave, 'rejected', $notifications);
 
         return back()->with('success', 'Leave request rejected.');
     }
 
-    public function cancel(Request $request, LeaveRequest $leaveRequest, LeaveService $service): RedirectResponse
-    {
-        $service->cancel($leaveRequest, $request->user());
+    public function cancel(
+        Request $request,
+        LeaveRequest $leaveRequest,
+        LeaveService $service,
+        PreferenceNotificationService $notifications,
+    ): RedirectResponse {
+        $leave = $service->cancel($leaveRequest, $request->user());
+        $this->notifyEmployee($leave, 'cancelled', $notifications);
 
         return back()->with('success', 'Leave request cancelled and balance restored.');
     }
@@ -144,5 +166,42 @@ class LeaveController extends Controller
     private function requireManager(Request $request): void
     {
         abort_unless($this->canManage($request), 403);
+    }
+
+    private function notifyEmployee(
+        LeaveRequest $leave,
+        string $status,
+        PreferenceNotificationService $notifications,
+    ): void {
+        $leave->loadMissing(['employee.user.preference', 'leaveType']);
+        $user = $leave->employee->user;
+
+        if ($user === null) {
+            return;
+        }
+
+        $subject = match ($status) {
+            'submitted' => 'Leave request received',
+            'approved' => 'Leave request approved',
+            'rejected' => 'Leave request rejected',
+            default => 'Leave request cancelled',
+        };
+
+        $lines = [
+            'Your '.$leave->leaveType->name.' request is now '.$status.'.',
+            'Leave period: '.$leave->start_date->format('F j, Y').'–'.$leave->end_date->format('F j, Y').'.',
+            'Requested days: '.number_format((float) $leave->requested_days, 1).'.',
+        ];
+
+        if (filled($leave->reviewer_notes)) {
+            $lines[] = 'Reviewer note: '.$leave->reviewer_notes;
+        }
+
+        $notifications->send($user, 'leave_updates', new PreferenceMailNotification(
+            $subject,
+            $lines,
+            'View Leave Requests',
+            route('leaves.index'),
+        ));
     }
 }
