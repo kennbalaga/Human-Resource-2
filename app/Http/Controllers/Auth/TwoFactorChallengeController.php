@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\RememberedLoginService;
 use App\Services\TwoFactorSecurityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Laravel\Fortify\Events\TwoFactorAuthenticationFailed;
@@ -24,8 +24,11 @@ class TwoFactorChallengeController extends Controller
         return view('auth.two-factor-challenge');
     }
 
-    public function store(Request $request, TwoFactorSecurityService $twoFactor): RedirectResponse
-    {
+    public function store(
+        Request $request,
+        TwoFactorSecurityService $twoFactor,
+        RememberedLoginService $rememberedLogin,
+    ): RedirectResponse {
         $validated = $request->validate([
             'code' => ['nullable', 'string', 'max:30', 'required_without:recovery_code'],
             'recovery_code' => ['nullable', 'string', 'max:50', 'required_without:code'],
@@ -53,7 +56,7 @@ class TwoFactorChallengeController extends Controller
 
         $remember = (bool) $request->session()->pull('login.remember', false);
         $request->session()->forget('login.id');
-        Auth::guard('web')->login($user, $remember);
+        $rememberedLogin->login($user, $remember);
         $request->session()->regenerate();
 
         $user->forceFill(['last_login_at' => now()])->save();

@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Laravel\Fortify\Fortify;
 use Laravel\Sanctum\Sanctum;
@@ -78,6 +79,59 @@ class TwoFactorAuthenticationTest extends TestCase
         ])->assertSessionHasErrors('code');
 
         $this->assertGuest();
+    }
+
+    public function test_saved_two_factor_identity_still_requires_password_and_totp_after_session_loss(): void
+    {
+        $user = $this->enableTwoFactor($this->userForEmployee('HR-0002'));
+
+        $this->post('/login', [
+            'employee_id' => 'HR-0002',
+            'password' => 'ChangeMe123!',
+            'remember' => '1',
+        ])->assertRedirect(route('two-factor.login'));
+
+        $login = $this->post(route('two-factor.login.store'), [
+            'recovery_code' => $user->recoveryCodes()[0],
+        ])->assertRedirect('/dashboard');
+
+        $recallerName = Auth::guard('web')->getRecallerName();
+        $rememberedEmployee = $login->getCookie('hrms_remembered_employee')?->getValue();
+        $login
+            ->assertCookie('hrms_remembered_employee', 'HR-0002')
+            ->assertCookieExpired($recallerName);
+        $this->flushSession();
+        Auth::forgetGuards();
+
+        $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
+            ->get(route('settings.edit'))
+            ->assertRedirect(route('login'));
+
+        $this->assertGuest();
+
+        $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
+            ->get(route('login'))
+            ->assertOk()
+            ->assertSee('value="HR-0002"', false);
+
+        $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
+            ->post(route('login'), [
+                'employee_id' => 'HR-0002',
+                'password' => 'ChangeMe123!',
+                'remember' => '1',
+            ])->assertRedirect(route('two-factor.login'))
+            ->assertSessionHas('login.id', $user->id);
+
+        $this->assertGuest();
+
+        $challenge = $this
+            ->post(route('two-factor.login.store'), [
+                'code' => $this->currentCode($user),
+            ])->assertRedirect(route('settings.edit'));
+
+        $challenge->assertSessionHas(Auth::guard('web')->getName(), $user->id);
+        Auth::forgetGuards();
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_pending_enrollment_using_legacy_string_encryption_is_repaired(): void

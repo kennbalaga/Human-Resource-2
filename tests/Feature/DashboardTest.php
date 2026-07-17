@@ -38,7 +38,13 @@ class DashboardTest extends TestCase
             ->assertSee('title="Dashboard"', false)
             ->assertSee(route('profile.show'), false)
             ->assertSee(route('settings.edit'), false)
-            ->assertSee('data-bs-toggle="dropdown"', false);
+            ->assertSee('data-bs-toggle="dropdown"', false)
+            ->assertSee('data-session-timeout', false)
+            ->assertSee('data-timeout-seconds="1800"', false)
+            ->assertSee('data-warning-seconds="300"', false)
+            ->assertSee(route('session.keep-alive'), false)
+            ->assertSee('Are you still working?')
+            ->assertSee('data-session-login', false);
 
         $employee = Employee::query()->where('employee_number', 'HR-0002')->firstOrFail();
 

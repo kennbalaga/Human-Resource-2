@@ -1,4 +1,8 @@
-@php($uiPreference = auth()->user()->preference)
+@php
+    $uiPreference = auth()->user()->preference;
+    $sessionTimeoutSeconds = max(60, (int) config('session.lifetime', 30) * 60);
+    $sessionWarningSeconds = max(30, min((int) config('security.session.warning_seconds', 300), $sessionTimeoutSeconds - 30));
+@endphp
 <!DOCTYPE html>
 <html lang="en" data-theme="{{ $uiPreference->theme }}" data-theme-resolved="light">
 <head>
@@ -61,6 +65,11 @@
             </footer>
         </div>
     </div>
+
+    @include('partials.session-timeout', [
+        'sessionTimeoutSeconds' => $sessionTimeoutSeconds,
+        'sessionWarningSeconds' => $sessionWarningSeconds,
+    ])
 
     @stack('scripts')
 </body>

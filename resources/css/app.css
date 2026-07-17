@@ -7,4 +7,5 @@
 @import './profile-settings.css';
 @import './organization.css';
 @import './ai-scheduling.css';
+@import './session-timeout.css';
 @import './dark-mode.css';

@@ -45,7 +45,7 @@
                             type="text"
                             id="employee_id"
                             name="employee_id"
-                            value="{{ old('employee_id') }}"
+                            value="{{ old('employee_id', $rememberedEmployeeId) }}"
                             autocomplete="username"
                             required
                             autofocus
@@ -62,7 +62,8 @@
 
                     <div class="form-actions">
                         <div class="remember-me">
-                            <input type="checkbox" id="remember" name="remember" value="1" @checked(old('remember'))>
+                            <input type="hidden" name="remember" value="0">
+                            <input type="checkbox" id="remember" name="remember" value="1" @checked((bool) old('remember', $rememberedEmployeeSelected))>
                             <label for="remember">Remember Me</label>
                         </div>
                         <a href="{{ route('password.request') }}" class="forgot-password">Forgot Your Password?</a>

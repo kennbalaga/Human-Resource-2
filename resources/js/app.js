@@ -7,5 +7,6 @@ import './organization';
 import './ai-scheduling';
 import './integration-settings';
 import './theme';
+import './session-timeout';
 
 window.bootstrap = bootstrap;
