@@ -6,6 +6,7 @@ use App\Http\Requests\Settings\UpdateAccountRequest;
 use App\Http\Requests\Settings\UpdatePasswordRequest;
 use App\Http\Requests\Settings\UpdatePreferencesRequest;
 use App\Http\Requests\Settings\UpdateThemeRequest;
+use App\Services\TwoFactorSecurityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ use Illuminate\View\View;
 
 class SettingsController extends Controller
 {
-    public function edit(Request $request): View
+    public function edit(Request $request, TwoFactorSecurityService $twoFactor): View
     {
         $user = $request->user()->load(['roles', 'employee', 'preference']);
 
@@ -23,6 +24,12 @@ class SettingsController extends Controller
             'currentRole' => $user->roles->pluck('name')->join(', ') ?: 'Employee',
             'notifications' => collect(),
             'timezones' => ['Asia/Manila' => 'Philippines (UTC+8)', 'Asia/Singapore' => 'Singapore (UTC+8)', 'UTC' => 'UTC'],
+            'twoFactorEnabled' => $user->hasEnabledTwoFactorAuthentication(),
+            'twoFactorPending' => $user->two_factor_secret !== null && $user->two_factor_confirmed_at === null,
+            'twoFactorRequired' => $twoFactor->isRequiredFor($user),
+            'twoFactorQrCode' => $user->two_factor_secret !== null && $user->two_factor_confirmed_at === null
+                ? $user->twoFactorQrCodeSvg()
+                : null,
         ]);
     }
 

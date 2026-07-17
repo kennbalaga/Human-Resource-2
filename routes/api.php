@@ -8,12 +8,13 @@ use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\LeaveController;
 use App\Http\Controllers\Api\V1\ScheduleController;
 use App\Http\Controllers\Api\V1\TimesheetController;
+use App\Http\Middleware\EnsureApiTwoFactorEnrollment;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::post('/auth/token', [AuthController::class, 'token'])->middleware('throttle:api-login')->name('auth.token');
 
-    Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    Route::middleware(['auth:sanctum', EnsureApiTwoFactorEnrollment::class, 'throttle:api'])->group(function () {
         Route::delete('/auth/token', [AuthController::class, 'logout'])->name('auth.logout');
 
         Route::apiResource('employees', EmployeeController::class)->only(['index', 'show']);

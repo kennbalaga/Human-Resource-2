@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuditWriteRequests;
+use App\Http\Middleware\EnsureRequiredTwoFactorAuthentication;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -22,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->authenticateSessions();
-        $middleware->web(append: [SecurityHeaders::class, AuditWriteRequests::class]);
+        $middleware->web(append: [SecurityHeaders::class, AuditWriteRequests::class, EnsureRequiredTwoFactorAuthentication::class]);
         $middleware->api(append: [SecurityHeaders::class, AuditWriteRequests::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

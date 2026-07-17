@@ -3,10 +3,11 @@
 namespace App\Http\Requests\Auth;
 
 use App\Models\Employee;
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -29,7 +30,7 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    public function authenticate(): void
+    public function authenticate(): User
     {
         $this->ensureIsNotRateLimited();
 
@@ -43,10 +44,7 @@ class LoginRequest extends FormRequest
         $authenticated = $user !== null
             && $user->is_active
             && $employee->employment_status === 'active'
-            && Auth::attempt([
-                'email' => $user->email,
-                'password' => (string) $this->input('password'),
-            ], $this->boolean('remember'));
+            && Hash::check((string) $this->input('password'), $user->password);
 
         if (! $authenticated) {
             RateLimiter::hit($this->throttleKey());
@@ -57,6 +55,12 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        if (Hash::needsRehash($user->password)) {
+            $user->forceFill(['password' => (string) $this->input('password')])->save();
+        }
+
+        return $user;
     }
 
     public function ensureIsNotRateLimited(): void

@@ -59,6 +59,10 @@ class EmployeeController extends Controller
             'employee' => $employee,
             'canManage' => $this->canManage($request),
             'canViewPrivate' => $this->canManage($request) || $request->user()->employee?->is($employee),
+            'canResetTwoFactor' => $request->user()->hasRole('system-administrator')
+                && $employee->user !== null
+                && ! $employee->user->is($request->user())
+                && $employee->user->two_factor_secret !== null,
             'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
         ]);
     }

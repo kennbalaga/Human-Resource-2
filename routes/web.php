@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminTwoFactorController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Attendance\AttendanceApprovalController;
 use App\Http\Controllers\Attendance\AttendanceController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Schedule\ScheduleCalendarController;
 use App\Http\Controllers\Schedule\ShiftController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TimesheetController;
+use App\Http\Controllers\TwoFactorSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
@@ -42,6 +44,7 @@ Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(func
 Route::middleware('auth')->group(function () {
     Route::get('/organization', [EmployeeController::class, 'index'])->name('organization.index');
     Route::resource('employees', EmployeeController::class)->except('destroy');
+    Route::post('/employees/{employee}/two-factor/reset', [AdminTwoFactorController::class, 'reset'])->name('employees.two-factor.reset');
     Route::resource('departments', DepartmentController::class)->except(['show', 'destroy']);
     Route::resource('positions', PositionController::class)->except(['show', 'destroy']);
 
@@ -52,6 +55,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/preferences', [SettingsController::class, 'updatePreferences'])->name('settings.preferences.update');
     Route::patch('/settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.theme.update');
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
+    Route::post('/settings/two-factor', [TwoFactorSettingsController::class, 'enable'])->name('two-factor.settings.enable');
+    Route::post('/settings/two-factor/confirm', [TwoFactorSettingsController::class, 'confirm'])->name('two-factor.settings.confirm');
+    Route::post('/settings/two-factor/recovery-codes/show', [TwoFactorSettingsController::class, 'recoveryCodes'])->name('two-factor.settings.recovery-codes.show');
+    Route::post('/settings/two-factor/recovery-codes', [TwoFactorSettingsController::class, 'regenerateRecoveryCodes'])->name('two-factor.settings.recovery-codes.regenerate');
+    Route::delete('/settings/two-factor', [TwoFactorSettingsController::class, 'disable'])->name('two-factor.settings.disable');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');

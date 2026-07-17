@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Tests\TestCase;
 
 class PasswordResetTest extends TestCase
@@ -115,6 +116,32 @@ class PasswordResetTest extends TestCase
         $this->from('/reset-password/'.$token)->post('/reset-password', $payload)
             ->assertRedirect('/reset-password/'.$token)
             ->assertSessionHasErrors('email');
+    }
+
+    public function test_password_reset_does_not_bypass_or_remove_two_factor_authentication(): void
+    {
+        $user = $this->userForEmployee('HR-0001');
+        app(EnableTwoFactorAuthentication::class)($user);
+        $user->forceFill(['two_factor_confirmed_at' => now()])->save();
+        $originalSecret = $user->two_factor_secret;
+        $token = Password::createToken($user);
+
+        $this->post('/reset-password', [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'NewSecurePass456!',
+            'password_confirmation' => 'NewSecurePass456!',
+        ])->assertRedirect('/login');
+
+        $user->refresh();
+        $this->assertSame($originalSecret, $user->two_factor_secret);
+        $this->assertTrue($user->hasEnabledTwoFactorAuthentication());
+
+        $this->post('/login', [
+            'employee_id' => 'HR-0001',
+            'password' => 'NewSecurePass456!',
+        ])->assertRedirect(route('two-factor.login'));
+        $this->assertGuest();
     }
 
     public function test_reset_password_requires_the_strong_password_policy(): void

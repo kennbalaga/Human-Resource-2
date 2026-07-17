@@ -29,9 +29,10 @@ SESSION_SECURE_COOKIE=true
 QUEUE_CONNECTION=database
 CACHE_STORE=database
 INITIAL_USER_PASSWORD=replace-before-first-seed
+TWO_FACTOR_REQUIRED_ROLES=system-administrator,hr-manager,department-head
 ```
 
-Create a least-privilege MySQL user limited to the HRMS database. Generate `APP_KEY` once with `php artisan key:generate`; preserve it across releases or encrypted application data/cookies become unreadable.
+Create a least-privilege MySQL user limited to the HRMS database. Generate `APP_KEY` once with `php artisan key:generate`; preserve it across releases or encrypted application data, cookies, 2FA secrets, and recovery codes become unreadable.
 
 ## Release commands
 
@@ -90,6 +91,6 @@ composer audit
 npm audit
 ```
 
-After release, verify `/up`, login/logout, one read-only dashboard request, queue health, scheduler logs, storage access, and database backups. Test Gemini/Zapier/Zoom separately; an integration failure must only produce a warning/event record, never an HR transaction failure.
+After release, verify `/up`, login/logout, privileged-role 2FA enrollment and challenge, one read-only dashboard request, queue health, scheduler logs, storage access, and database backups. Test Gemini/Zapier/Zoom separately; an integration failure must only produce a warning/event record, never an HR transaction failure.
 
 Monitor application logs, HTTP 5xx/429 rates, queue failures, database capacity, `audit_logs`, and `integration_events`. Configure encrypted off-host database and private-upload backups, then regularly test restoration.

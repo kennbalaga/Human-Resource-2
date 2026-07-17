@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Laravel\Fortify\Events\TwoFactorAuthenticationChallenged;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -18,10 +19,23 @@ class AuthenticatedSessionController extends Controller
 
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
+        $user = $request->authenticate();
+
+        if ($user->hasEnabledTwoFactorAuthentication()) {
+            $request->session()->put([
+                'login.id' => $user->getKey(),
+                'login.remember' => $request->boolean('remember'),
+            ]);
+
+            TwoFactorAuthenticationChallenged::dispatch($user);
+
+            return redirect()->route('two-factor.login');
+        }
+
+        Auth::guard('web')->login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        $request->user()->forceFill([
+        $user->forceFill([
             'last_login_at' => now(),
         ])->save();
 

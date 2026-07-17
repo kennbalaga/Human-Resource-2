@@ -23,4 +23,16 @@
             @endif
         </div>
     </section>
+    @if($canResetTwoFactor)
+        <section class="panel organization-profile two-factor-admin-reset">
+            <div class="panel-header"><div><p class="panel-kicker">Security recovery</p><h2>Reset employee two-factor authentication</h2></div><x-icon name="shield" /></div>
+            <div class="settings-security-note"><x-icon name="shield" /><p>Use only after verifying the employee’s identity outside this system. The reset signs out existing database sessions, revokes API tokens, and is recorded in Audit Logs.</p></div>
+            <form method="POST" action="{{ route('employees.two-factor.reset', $employee) }}" class="profile-settings-form">
+                @csrf
+                <label><span>Your administrator password</span><input type="password" name="current_password" autocomplete="current-password" required></label>
+                <label class="two-factor-identity-check"><input type="checkbox" name="identity_verified" value="1" required><span>I confirm that I verified this employee’s identity using the hospital’s approved process.</span></label>
+                <button class="btn btn-danger" type="submit">Reset employee 2FA</button>
+            </form>
+        </section>
+    @endif
 @endsection

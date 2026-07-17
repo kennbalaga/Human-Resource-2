@@ -189,6 +189,18 @@ body {
     margin-right: 0.35rem;
 }
 
+.two-factor-challenge { max-width: 430px; }
+.two-factor-challenge-icon { display:grid; width:3.25rem; height:3.25rem; margin:0 auto 1rem; border-radius:.9rem; color:#176b43; background:#e9f7ef; font-size:1.25rem; place-items:center; }
+.two-factor-challenge .login-header { margin-bottom:1.35rem; }
+.two-factor-challenge .login-header p { max-width:25rem; margin:0 auto; line-height:1.55; }
+.two-factor-challenge .one-time-code { letter-spacing:.28rem; text-align:center; font-size:1.05rem!important; font-weight:700; }
+.recovery-login { margin-top:1rem; border:1px solid var(--border-color); border-radius:8px; }
+.recovery-login summary { padding:.8rem; color:var(--primary-blue); font-size:.78rem; font-weight:700; text-align:center; cursor:pointer; }
+.recovery-login[open] summary { border-bottom:1px solid var(--border-color); }
+.recovery-login form { padding:1rem; }
+.two-factor-help { display:flex; align-items:flex-start; gap:.5rem; margin-top:1rem; padding:.75rem; border-radius:8px; color:#365f47; background:#f0fdf4; font-size:.7rem; line-height:1.5; }
+.two-factor-help i { margin-top:.15rem; }
+
 
 .form-actions {
     display: flex;

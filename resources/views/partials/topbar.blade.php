@@ -58,7 +58,7 @@
                     @forelse ($notificationItems as $notification)
                         @php
                             $tone = in_array(data_get($notification->data, 'tone'), ['success', 'primary', 'warning'], true) ? data_get($notification->data, 'tone') : 'primary';
-                            $icon = in_array(data_get($notification->data, 'icon'), ['clock', 'calendar', 'leave'], true) ? data_get($notification->data, 'icon') : 'bell';
+                            $icon = in_array(data_get($notification->data, 'icon'), ['clock', 'calendar', 'leave', 'shield'], true) ? data_get($notification->data, 'icon') : 'bell';
                         @endphp
                         <a class="notification-item" href="{{ route('notifications.open', $notification->id) }}">
                             <span class="notification-icon notification-{{ $tone }}">
