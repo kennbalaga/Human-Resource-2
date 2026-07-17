@@ -81,7 +81,7 @@ Then open `http://127.0.0.1:8000`.
 Open a second Laragon terminal:
 
 ```powershell
-php artisan queue:work --queue=integrations,default --tries=3
+php artisan queue:work --queue=default --tries=3
 ```
 
 For development scheduling, open another terminal and run `php artisan schedule:work`. Integration credentials are optional; leave all `*_ENABLED=false` until configured.

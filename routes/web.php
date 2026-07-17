@@ -101,8 +101,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/integrations', [IntegrationController::class, 'index'])->name('integrations.index');
     Route::patch('/integrations/ai-scheduling', [IntegrationController::class, 'updateAiScheduling'])->name('integrations.ai-scheduling.update');
-    Route::post('/integrations/zapier/test', [IntegrationController::class, 'testZapier'])->name('integrations.zapier.test');
-    Route::post('/integrations/zoom/meetings', [IntegrationController::class, 'createZoomMeeting'])->name('integrations.zoom.meetings.store');
 
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->name('audit-logs.export');

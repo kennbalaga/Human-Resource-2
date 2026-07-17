@@ -44,4 +44,4 @@ Uploaded leave attachments use the private local disk. Production web servers mu
 
 ## Incident handling
 
-If a credential or bearer token leaks, revoke/rotate it, clear cached Zoom tokens with `php artisan cache:clear`, inspect `audit_logs` and `integration_events`, and review application/web-server logs. Back up evidence before applying retention cleanup. For a lost authenticator, use a one-time recovery code; if none remain, a System Administrator must verify the employee's identity and perform the audited reset from the employee profile.
+If a credential or bearer token leaks, revoke or rotate it, inspect `audit_logs` and `integration_events`, and review application/web-server logs. Back up evidence before applying retention cleanup. For a lost authenticator, use a one-time recovery code; if none remain, a System Administrator must verify the employee's identity and perform the audited reset from the employee profile.

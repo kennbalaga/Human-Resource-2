@@ -123,10 +123,6 @@
             <path d="M12 3a5 5 0 0 0-5 5c0 .7.1 1.3.4 1.9A4 4 0 0 0 9 17.5V21h6v-3.5a4 4 0 0 0 1.6-7.6A5 5 0 0 0 12 3Z" />
             <path d="M9 9h.01M15 9h.01M10 13h4" />
             @break
-        @case('video')
-            <rect x="3" y="6" width="13" height="12" rx="2" />
-            <path d="m16 10 5-3v10l-5-3" />
-            @break
         @case('shield')
             <path d="M12 3 20 6v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6Z" />
             <path d="m9 12 2 2 4-4" />

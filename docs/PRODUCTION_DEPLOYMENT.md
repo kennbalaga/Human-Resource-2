@@ -69,7 +69,7 @@ find /var/www/hrms/current/storage /var/www/hrms/current/bootstrap/cache -type f
 Run a supervised process similar to:
 
 ```bash
-php /var/www/hrms/current/artisan queue:work --queue=integrations,default --sleep=3 --tries=3 --timeout=120
+php /var/www/hrms/current/artisan queue:work --queue=default --sleep=3 --tries=3 --timeout=120
 ```
 
 Add one cron entry:
@@ -91,6 +91,6 @@ composer audit
 npm audit
 ```
 
-After release, verify `/up`, login/logout, privileged-role 2FA enrollment and challenge, one read-only dashboard request, queue health, scheduler logs, storage access, and database backups. Test Gemini/Zapier/Zoom separately; an integration failure must only produce a warning/event record, never an HR transaction failure.
+After release, verify `/up`, login/logout, privileged-role 2FA enrollment and challenge, one read-only dashboard request, queue health, scheduler logs, storage access, and database backups. Test Gemini separately; an AI provider failure must only produce a warning/event record, never an HR transaction failure.
 
 Monitor application logs, HTTP 5xx/429 rates, queue failures, database capacity, `audit_logs`, and `integration_events`. Configure encrypted off-host database and private-upload backups, then regularly test restoration.

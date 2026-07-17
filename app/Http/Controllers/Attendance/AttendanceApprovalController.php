@@ -4,23 +4,16 @@ namespace App\Http\Controllers\Attendance;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
-use App\Services\Integrations\SafeIntegrationDispatcher;
 use App\Services\TimesheetService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class AttendanceApprovalController extends Controller
 {
-    public function approve(Request $request, AttendanceRecord $attendanceRecord, TimesheetService $service, SafeIntegrationDispatcher $integrations): RedirectResponse
+    public function approve(Request $request, AttendanceRecord $attendanceRecord, TimesheetService $service): RedirectResponse
     {
         $this->authorizeManager($request);
-        $timesheet = $service->approveAttendance($attendanceRecord, $request->user());
-        $integrations->zapier('attendance.approved', [
-            'attendance_id' => $attendanceRecord->id,
-            'employee_id' => $attendanceRecord->employee_id,
-            'attendance_date' => $attendanceRecord->attendance_date->toDateString(),
-            'timesheet_id' => $timesheet->id,
-        ]);
+        $service->approveAttendance($attendanceRecord, $request->user());
 
         return back()->with('success', 'Attendance approved and added to the employee timesheet.');
     }

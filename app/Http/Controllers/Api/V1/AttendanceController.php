@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\V1\Concerns\AuthorizesWorkforce;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AttendanceResource;
 use App\Models\AttendanceRecord;
-use App\Services\Integrations\SafeIntegrationDispatcher;
 use App\Services\TimesheetService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -47,11 +46,10 @@ class AttendanceController extends Controller
         return new AttendanceResource($attendanceRecord->load(['employee.user', 'employee.department', 'employee.position']));
     }
 
-    public function approve(Request $request, AttendanceRecord $attendanceRecord, TimesheetService $service, SafeIntegrationDispatcher $integrations): JsonResponse
+    public function approve(Request $request, AttendanceRecord $attendanceRecord, TimesheetService $service): JsonResponse
     {
         $this->requireManager($request->user());
         $timesheet = $service->approveAttendance($attendanceRecord, $request->user());
-        $integrations->zapier('attendance.approved', ['attendance_id' => $attendanceRecord->id, 'employee_id' => $attendanceRecord->employee_id, 'timesheet_id' => $timesheet->id]);
 
         return response()->json(['message' => 'Attendance approved.', 'timesheet_id' => $timesheet->id]);
     }

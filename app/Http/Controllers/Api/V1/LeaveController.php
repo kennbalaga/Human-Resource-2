@@ -9,7 +9,6 @@ use App\Http\Resources\LeaveRequestResource;
 use App\Models\LeaveAttachment;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
-use App\Services\Integrations\SafeIntegrationDispatcher;
 use App\Services\LeaveService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -72,12 +71,11 @@ class LeaveController extends Controller
         return new LeaveRequestResource($leave->load(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments']));
     }
 
-    public function approve(Request $request, LeaveRequest $leaveRequest, LeaveService $service, SafeIntegrationDispatcher $integrations): LeaveRequestResource
+    public function approve(Request $request, LeaveRequest $leaveRequest, LeaveService $service): LeaveRequestResource
     {
         $this->requireManager($request->user());
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $leave = $service->approve($leaveRequest, $request->user(), $validated['reviewer_notes'] ?? null);
-        $integrations->zapier('leave.approved', ['leave_request_id' => $leave->id, 'employee_id' => $leave->employee_id]);
 
         return new LeaveRequestResource($leave->load(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments']));
     }

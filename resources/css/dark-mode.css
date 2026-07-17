@@ -175,8 +175,7 @@ html[data-theme-resolved='dark'] .appearance-option input:checked+span { color:#
 html[data-theme-resolved='dark'] .settings-account-id { color:#b8d8c7; background:#1b3428; }
 html[data-theme-resolved='dark'] .settings-security-note,
 html[data-theme-resolved='dark'] .attendance-alert-warning { color:#f1d08c; border-color:#5b4825; background:#332913; }
-html[data-theme-resolved='dark'] .attendance-alert-success,
-html[data-theme-resolved='dark'] .zoom-result { color:#9be5bb; border-color:#28563e; background:#153424; }
+html[data-theme-resolved='dark'] .attendance-alert-success { color:#9be5bb; border-color:#28563e; background:#153424; }
 html[data-theme-resolved='dark'] .attendance-alert-danger { color:#f5a6af; border-color:#65323a; background:#361b20; }
 
 html[data-theme-resolved='dark'] .integration-logo,
@@ -195,8 +194,7 @@ html[data-theme-resolved='dark'] .btn-outline-primary:hover { color:#0b1911; bor
 html[data-theme-resolved='dark'] .btn-outline-danger { color:#f08391; border-color:#8d4650; }
 html[data-theme-resolved='dark'] .btn-outline-danger:hover { color:#fff; background:#b94d5a; }
 html[data-theme-resolved='dark'] .text-action,
-html[data-theme-resolved='dark'] .attachment-link,
-html[data-theme-resolved='dark'] .zoom-result a { color:#82b8ff; }
+html[data-theme-resolved='dark'] .attachment-link { color:#82b8ff; }
 
 /* Shared content contrast */
 html[data-theme-resolved='dark'] .stat-value,

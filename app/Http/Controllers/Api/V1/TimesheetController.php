@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\V1\Concerns\AuthorizesWorkforce;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TimesheetResource;
 use App\Models\Timesheet;
-use App\Services\Integrations\SafeIntegrationDispatcher;
 use App\Services\TimesheetService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -50,12 +49,11 @@ class TimesheetController extends Controller
         return new TimesheetResource($timesheet->load(['employee.user', 'employee.department', 'employee.position', 'entries']));
     }
 
-    public function approve(Request $request, Timesheet $timesheet, TimesheetService $service, SafeIntegrationDispatcher $integrations): TimesheetResource
+    public function approve(Request $request, Timesheet $timesheet, TimesheetService $service): TimesheetResource
     {
         $this->requireManager($request->user());
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $timesheet = $service->review($timesheet, $request->user(), 'approved', $validated['reviewer_notes'] ?? null);
-        $integrations->zapier('timesheet.approved', ['timesheet_id' => $timesheet->id, 'employee_id' => $timesheet->employee_id]);
 
         return new TimesheetResource($timesheet->load(['employee.user', 'employee.department', 'employee.position', 'entries']));
     }

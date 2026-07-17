@@ -1,6 +1,6 @@
 # HRMS Workforce Management
 
-Laravel-based Workforce Management module for the Human Resource Management System. It includes session authentication, dashboard, attendance, shifts and schedules, timesheets, leave management, analytics, optional third-party integrations, and a versioned REST API.
+Laravel-based Workforce Management module for the Human Resource Management System. It includes session authentication, dashboard, attendance, shifts and schedules, timesheets, leave management, analytics, optional Gemini AI features, and a versioned REST API.
 
 ## Requirements
 
@@ -34,16 +34,16 @@ Open `http://127.0.0.1:8000`. Seeded accounts use the password configured in `IN
 
 ```bash
 npm run dev
-php artisan queue:work --queue=integrations,default
+php artisan queue:work --queue=default
 php artisan schedule:work
 ```
 
-Third-party integrations are disabled by default and are not required for core HR functions.
+Gemini AI is disabled by default and is not required for core HR functions.
 
 ## Documentation
 
 - [REST API](docs/API.md)
-- [Gemini, Zapier, and Zoom](docs/INTEGRATIONS.md)
+- [Gemini AI integration](docs/INTEGRATIONS.md)
 - [Security and operations](docs/SECURITY.md)
 - [Laragon setup on Windows](docs/LARAGON_SETUP.md)
 - [Production deployment](docs/PRODUCTION_DEPLOYMENT.md)

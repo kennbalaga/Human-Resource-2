@@ -6,7 +6,6 @@ use App\Http\Requests\Timesheet\TimesheetFilterRequest;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Timesheet;
-use App\Services\Integrations\SafeIntegrationDispatcher;
 use App\Services\TimesheetService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -47,12 +46,11 @@ class TimesheetController extends Controller
         return back()->with('success', 'Timesheet submitted for approval.');
     }
 
-    public function approve(Request $request, Timesheet $timesheet, TimesheetService $service, SafeIntegrationDispatcher $integrations): RedirectResponse
+    public function approve(Request $request, Timesheet $timesheet, TimesheetService $service): RedirectResponse
     {
         $this->requireManager($request);
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $service->review($timesheet, $request->user(), 'approved', $validated['reviewer_notes'] ?? null);
-        $integrations->zapier('timesheet.approved', ['timesheet_id' => $timesheet->id, 'employee_id' => $timesheet->employee_id, 'period_start' => $timesheet->period_start->toDateString(), 'period_end' => $timesheet->period_end->toDateString()]);
 
         return back()->with('success', 'Timesheet approved.');
     }

@@ -10,7 +10,6 @@ use App\Models\LeaveAttachment;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Notifications\PreferenceMailNotification;
-use App\Services\Integrations\SafeIntegrationDispatcher;
 use App\Services\LeaveService;
 use App\Services\PreferenceNotificationService;
 use Carbon\Carbon;
@@ -120,13 +119,11 @@ class LeaveController extends Controller
         Request $request,
         LeaveRequest $leaveRequest,
         LeaveService $service,
-        SafeIntegrationDispatcher $integrations,
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
         $this->requireManager($request);
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $leave = $service->approve($leaveRequest, $request->user(), $validated['reviewer_notes'] ?? null);
-        $integrations->zapier('leave.approved', ['leave_request_id' => $leaveRequest->id, 'employee_id' => $leaveRequest->employee_id, 'start_date' => $leaveRequest->start_date->toDateString(), 'end_date' => $leaveRequest->end_date->toDateString(), 'requested_days' => (float) $leaveRequest->requested_days]);
         $this->notifyEmployee($leave, 'approved', $notifications);
 
         return back()->with('success', 'Leave request approved and balance updated.');
