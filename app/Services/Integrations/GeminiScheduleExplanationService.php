@@ -38,7 +38,7 @@ class GeminiScheduleExplanationService
                 ->retry(2, 200, throw: false)
                 ->post($endpoint, [
                     'contents' => [['parts' => [['text' => $prompt]]]],
-                    'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 320],
+                    'generationConfig' => ['maxOutputTokens' => 320],
                 ]);
 
             if (! $response->successful()) {

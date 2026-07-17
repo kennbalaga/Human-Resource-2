@@ -48,7 +48,32 @@
     </section>
 
     <section class="integration-card-grid">
-        <article class="integration-card"><span class="integration-logo"><x-icon name="ai" /></span><div><h2>Gemini AI</h2><p>Privacy-filtered workforce insights and advisory scheduling explanations.</p><div class="integration-state"><x-status-badge :status="$providers['gemini']['enabled'] && $providers['gemini']['configured'] ? 'active' : 'inactive'" /><span>{{ $providers['gemini']['configured'] ? 'API credentials detected' : 'API credentials missing' }}</span></div></div></article>
+        <article class="integration-card">
+            <span class="integration-logo"><x-icon name="ai" /></span>
+            <div>
+                <h2>Gemini AI</h2>
+                <p>Privacy-filtered workforce insights and advisory scheduling explanations.</p>
+                <div class="integration-state">
+                    <x-status-badge :status="$providers['gemini']['enabled'] && $providers['gemini']['configured'] ? 'active' : 'inactive'" />
+                    <span>
+                        @if(! $providers['gemini']['configured'])
+                            API key missing
+                        @elseif(! $providers['gemini']['enabled'])
+                            Provider disabled in .env
+                        @else
+                            Ready · {{ $providers['gemini']['model'] }}
+                        @endif
+                    </span>
+                </div>
+                @if($canManageAiScheduling)
+                    <form method="POST" action="{{ route('integrations.gemini.test') }}" class="integration-test-form">
+                        @csrf
+                        <button class="btn btn-outline-primary" type="submit" @disabled(! $providers['gemini']['enabled'] || ! $providers['gemini']['configured'])><x-icon name="refresh" /> Test Gemini connection</button>
+                        <small>Validates the API key and configured model without sending employee data.</small>
+                    </form>
+                @endif
+            </div>
+        </article>
     </section>
 
     <section class="panel workforce-table-panel"><div class="panel-header"><div><p class="panel-kicker">Resilience monitoring</p><h2>Recent Gemini attempts</h2></div><span class="history-caption">Last 25</span></div><div class="table-responsive"><table class="dashboard-table workforce-table"><thead><tr><th>Time</th><th>Feature</th><th>Status</th><th>HTTP</th><th>Duration</th><th>Message</th></tr></thead><tbody>@forelse($events as $event)<tr><td>{{ $event->created_at->format('M j, g:i A') }}</td><td>{{ str($event->event_type)->headline() }}</td><td><x-status-badge :status="$event->status === 'success' ? 'active' : 'rejected'" /></td><td>{{ $event->response_code ?? '—' }}</td><td>{{ $event->duration_ms !== null ? $event->duration_ms.'ms' : '—' }}</td><td>{{ $event->message }}</td></tr>@empty<tr><td colspan="6" class="empty-table-cell"><x-icon name="ai" /><strong>No Gemini attempts yet</strong><span>AI features remain optional and do not affect manual HR workflows.</span></td></tr>@endforelse</tbody></table></div></section>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Integrations\UpdateAiSchedulingSettingsRequest;
 use App\Models\IntegrationEvent;
+use App\Services\Integrations\GeminiConnectionService;
 use App\Services\Scheduling\AiSchedulingFeatureSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,11 @@ class IntegrationController extends Controller
 
         return view('integrations.index', [
             'providers' => [
-                'gemini' => ['enabled' => (bool) config('integrations.gemini.enabled'), 'configured' => filled(config('integrations.gemini.api_key'))],
+                'gemini' => [
+                    'enabled' => (bool) config('integrations.gemini.enabled'),
+                    'configured' => filled(config('integrations.gemini.api_key')),
+                    'model' => (string) config('integrations.gemini.model'),
+                ],
             ],
             'events' => IntegrationEvent::query()->where('provider', 'gemini')->latest()->limit(25)->get(),
             'aiScheduling' => [
@@ -53,6 +58,15 @@ class IntegrationController extends Controller
         return back()->with('success', $assistantEnabled
             ? 'AI Scheduling Assistant settings updated.'
             : 'AI Scheduling Assistant disabled. Manual scheduling remains available.');
+    }
+
+    public function testGemini(Request $request, GeminiConnectionService $service): RedirectResponse
+    {
+        abort_unless($request->user()->hasRole('system-administrator'), 403);
+
+        $result = $service->test();
+
+        return back()->with($result->success ? 'success' : 'warning', $result->message);
     }
 
     private function authorizeIntegrationAdmin(Request $request): void

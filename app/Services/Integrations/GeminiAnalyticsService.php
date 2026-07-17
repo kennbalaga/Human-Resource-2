@@ -31,7 +31,7 @@ class GeminiAnalyticsService
                 ->retry(2, 200, throw: false)
                 ->post($endpoint, [
                     'contents' => [['parts' => [['text' => $prompt]]]],
-                    'generationConfig' => ['temperature' => 0.2, 'maxOutputTokens' => 900],
+                    'generationConfig' => ['maxOutputTokens' => 900],
                 ]);
 
             if (! $response->successful()) {

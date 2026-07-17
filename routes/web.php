@@ -101,6 +101,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/integrations', [IntegrationController::class, 'index'])->name('integrations.index');
     Route::patch('/integrations/ai-scheduling', [IntegrationController::class, 'updateAiScheduling'])->name('integrations.ai-scheduling.update');
+    Route::post('/integrations/gemini/test', [IntegrationController::class, 'testGemini'])->middleware('throttle:5,1')->name('integrations.gemini.test');
 
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->name('audit-logs.export');
