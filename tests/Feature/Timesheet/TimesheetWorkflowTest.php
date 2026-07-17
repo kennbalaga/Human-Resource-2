@@ -6,7 +6,9 @@ use App\Models\AttendanceRecord;
 use App\Models\OfficeLocation;
 use App\Models\Timesheet;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class TimesheetWorkflowTest extends TestCase
@@ -24,12 +26,24 @@ class TimesheetWorkflowTest extends TestCase
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
         $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
         $attendance = $this->completedAttendance($employee, '2027-05-03');
+        $queries = [];
+        DB::listen(function (QueryExecuted $query) use (&$queries): void {
+            $queries[] = $query->sql;
+        });
 
-        $this->actingAs($manager)->post(route('attendance.records.approve', $attendance))->assertSessionHasNoErrors();
+        $this->actingAs($manager)
+            ->from(route('attendance.reports.index'))
+            ->post(route('attendance.records.approve', $attendance))
+            ->assertRedirect(route('attendance.reports.index'))
+            ->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('attendance_records', ['id' => $attendance->id, 'approval_status' => 'approved']);
         $this->assertDatabaseHas('timesheets', ['employee_id' => $employee->employee->id, 'period_start' => '2027-05-03 00:00:00', 'status' => 'draft']);
         $this->assertDatabaseHas('timesheet_entries', ['attendance_record_id' => $attendance->id, 'regular_minutes' => 480, 'overtime_minutes' => 30]);
+
+        $totalsQuery = collect($queries)->first(fn (string $sql) => str_contains(strtolower($sql), 'sum(regular_minutes)'));
+        $this->assertNotNull($totalsQuery);
+        $this->assertStringNotContainsString('order by', strtolower($totalsQuery));
     }
 
     public function test_incomplete_attendance_cannot_be_approved(): void

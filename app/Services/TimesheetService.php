@@ -145,6 +145,7 @@ class TimesheetService
     public function recalculate(Timesheet $timesheet): Timesheet
     {
         $totals = $timesheet->entries()
+            ->reorder()
             ->selectRaw('COALESCE(SUM(regular_minutes), 0) as regular_minutes')
             ->selectRaw('COALESCE(SUM(overtime_minutes), 0) as overtime_minutes')
             ->selectRaw('COALESCE(SUM(late_minutes), 0) as late_minutes')
