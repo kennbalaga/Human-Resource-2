@@ -74,7 +74,7 @@ class PositionController extends Controller
     {
         return [
             'departments' => Department::query()
-                ->where(fn (Builder $query) => $query->where('is_active', true)->when($position, fn (Builder $nested) => $nested->orWhereKey($position->department_id)))
+                ->where(fn (Builder $query) => $query->where('is_active', true)->when($position, fn (Builder $nested) => $nested->orWhere('id', $position->department_id)))
                 ->orderBy('name')
                 ->get(),
             'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',

@@ -88,6 +88,20 @@ class OrganizationManagementTest extends TestCase
         $this->actingAs($manager)->get(route('positions.create'))->assertOk()->assertSee('Create position');
     }
 
+    public function test_manager_can_open_position_edit_even_when_its_department_is_inactive(): void
+    {
+        $this->seed();
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+        $position = Position::query()->with('department')->where('code', 'HR-MGR')->firstOrFail();
+        $position->department->update(['is_active' => false]);
+
+        $this->actingAs($manager)->get(route('positions.edit', $position))
+            ->assertOk()
+            ->assertSee('Edit '.$position->title)
+            ->assertSee($position->code)
+            ->assertSee($position->department->name);
+    }
+
     public function test_manager_can_create_department_position_and_employee_with_secure_onboarding_email(): void
     {
         Notification::fake();
