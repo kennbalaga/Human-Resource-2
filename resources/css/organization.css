@@ -6,6 +6,82 @@
     gap: .65rem;
 }
 
+.organization-workspace-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .45rem;
+    padding: .45rem;
+    margin: -.15rem 0 1rem;
+    border: 1px solid var(--hr-border);
+    border-radius: .95rem;
+    background: var(--hr-surface);
+    box-shadow: var(--hr-shadow);
+}
+
+.organization-workspace-tabs a {
+    display: flex;
+    min-width: 0;
+    min-height: 4.2rem;
+    padding: .7rem .8rem;
+    border: 1px solid transparent;
+    border-radius: .72rem;
+    align-items: center;
+    gap: .65rem;
+    color: #65746c;
+    text-decoration: none;
+    transition: color .16s ease, border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+
+.organization-workspace-tabs a:hover {
+    color: #245f43;
+    background: #f3f8f5;
+}
+
+.organization-workspace-tabs a.active {
+    border-color: #b8ddca;
+    color: #176b43;
+    background: #eaf7f0;
+    box-shadow: 0 4px 14px rgba(23, 107, 67, .08);
+}
+
+.organization-tab-icon {
+    display: grid;
+    width: 2.15rem;
+    height: 2.15rem;
+    flex: 0 0 auto;
+    border-radius: .62rem;
+    color: #557168;
+    background: #edf3f0;
+    place-items: center;
+}
+
+.organization-tab-icon svg {
+    width: 1rem;
+}
+
+.organization-workspace-tabs a.active .organization-tab-icon {
+    color: #fff;
+    background: #176b43;
+}
+
+.organization-workspace-tabs a > span:last-child {
+    display: grid;
+    min-width: 0;
+}
+
+.organization-workspace-tabs strong {
+    font-size: .75rem;
+}
+
+.organization-workspace-tabs small {
+    margin-top: .12rem;
+    overflow: hidden;
+    color: #859189;
+    font-size: .61rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .organization-filters {
     display: grid;
     grid-template-columns: minmax(14rem, 2fr) repeat(2, minmax(10rem, 1fr)) auto;
@@ -312,6 +388,31 @@ html[data-theme-resolved='dark'] .organization-secondary {
     color: #a9b8b0;
 }
 
+html[data-theme-resolved='dark'] .organization-workspace-tabs a {
+    color: #a9b8b0;
+}
+
+html[data-theme-resolved='dark'] .organization-workspace-tabs a:hover {
+    color: var(--hr-text);
+    background: #17251e;
+}
+
+html[data-theme-resolved='dark'] .organization-workspace-tabs a.active {
+    border-color: #285f45;
+    color: #79d9a8;
+    background: #123323;
+}
+
+html[data-theme-resolved='dark'] .organization-tab-icon {
+    color: #a9b8b0;
+    background: #24372d;
+}
+
+html[data-theme-resolved='dark'] .organization-workspace-tabs a.active .organization-tab-icon {
+    color: #fff;
+    background: #176b43;
+}
+
 html[data-theme-resolved='dark'] .organization-filters input,
 html[data-theme-resolved='dark'] .organization-filters select,
 html[data-theme-resolved='dark'] .organization-field input,
@@ -357,4 +458,6 @@ html[data-theme-resolved='dark'] .organization-detail {
     .organization-field-full,
     .organization-fieldset legend { grid-column: auto; }
     .organization-profile-header { align-items: flex-start; flex-direction: column; }
+    .organization-workspace-tabs { display:flex; overflow-x:auto; scrollbar-width:thin; }
+    .organization-workspace-tabs a { min-width:14rem; }
 }

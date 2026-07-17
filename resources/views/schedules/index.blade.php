@@ -203,19 +203,36 @@
 
     @if ($canManage)
         <div class="modal fade" id="scheduleAssignmentModal" tabindex="-1" aria-labelledby="scheduleAssignmentModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered"><div class="modal-content schedule-modal-content">
+            <div @class(['modal-dialog modal-dialog-centered', 'schedule-assignment-dialog' => $aiSchedulingEnabled])><div class="modal-content schedule-modal-content">
                 <form method="POST" action="{{ route('schedules.store') }}" id="scheduleAssignmentForm" data-store-url="{{ route('schedules.store') }}" data-update-url-template="{{ route('schedules.update', ['scheduleAssignment' => '__ID__']) }}" data-conflict-url="{{ route('schedules.conflicts') }}">
                     @csrf
                     <input type="hidden" name="_method" value="POST" data-method-field>
                     <div class="modal-header"><div><p class="panel-kicker">Schedule assignment</p><h2 class="modal-title" id="scheduleAssignmentModalLabel">Assign a shift</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-                    <div class="modal-body schedule-form-grid">
-                        <label class="full-width"><span>Employee</span><select name="employee_id" required><option value="">Select employee</option>@foreach($employees as $employee)<option value="{{ $employee->id }}">{{ $employee->employee_number }} · {{ $employee->full_name }} ({{ $employee->department?->code }})</option>@endforeach</select></label>
-                        <label><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
-                        <label><span>Work date</span><input type="date" name="work_date" value="{{ $focusDate->toDateString() }}" required></label>
-                        <label class="full-width"><span>Notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Optional assignment note"></textarea></label>
-                        <div class="schedule-conflict-status full-width" data-conflict-status><x-icon name="check-circle" /><span>Select an employee, shift, and date to check availability.</span></div>
+                    <div @class(['modal-body', 'schedule-assignment-workspace' => $aiSchedulingEnabled, 'schedule-form-grid' => ! $aiSchedulingEnabled])>
+                        @if ($aiSchedulingEnabled)
+                            <section class="schedule-assignment-manual" aria-labelledby="manualAssignmentTitle">
+                                <div class="schedule-assignment-section-heading">
+                                    <span><x-icon name="calendar" /></span>
+                                    <div><p>Manual assignment</p><h3 id="manualAssignmentTitle">Assignment details</h3></div>
+                                </div>
+                                <p class="schedule-assignment-section-copy">Set the actual shift details here. AI can recommend an employee, but these fields and the final save remain under HR control.</p>
+                                <div class="schedule-form-grid schedule-assignment-fields">
+                        @endif
+                                    <label class="full-width"><span>Employee</span><select name="employee_id" required><option value="">Select employee</option>@foreach($employees as $employee)<option value="{{ $employee->id }}">{{ $employee->employee_number }} · {{ $employee->full_name }} ({{ $employee->department?->code }})</option>@endforeach</select></label>
+                                    <label><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
+                                    <label><span>Work date</span><input type="date" name="work_date" value="{{ $focusDate->toDateString() }}" required></label>
+                                    <label class="full-width"><span>Notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Optional assignment note"></textarea></label>
+                                    <div class="schedule-conflict-status full-width" data-conflict-status><x-icon name="check-circle" /><span>Select an employee, shift, and date to check availability.</span></div>
+                        @if ($aiSchedulingEnabled)
+                                </div>
+                            </section>
+                            @include('schedules.partials.ai-recommendation')
+                        @endif
                     </div>
-                    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save assignment</button></div>
+                    <div class="modal-footer">
+                        @if ($aiSchedulingEnabled)<p class="schedule-save-note"><x-icon name="shield" /> AI suggestions never save automatically.</p>@endif
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save assignment</button>
+                    </div>
                 </form>
             </div></div>
         </div>

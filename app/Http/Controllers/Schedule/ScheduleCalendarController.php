@@ -7,10 +7,12 @@ use App\Http\Requests\Schedule\ScheduleAssignmentRequest;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Models\Position;
 use App\Models\RecurringSchedule;
 use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Services\ScheduleService;
+use App\Services\Scheduling\AiSchedulingFeatureSettings;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,7 +22,7 @@ use Illuminate\View\View;
 
 class ScheduleCalendarController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, AiSchedulingFeatureSettings $aiSettings): View
     {
         $view = in_array($request->query('view'), ['month', 'week', 'list'], true)
             ? $request->query('view')
@@ -116,6 +118,10 @@ class ScheduleCalendarController extends Controller
                 : collect([$currentEmployee->load('department')]),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'shifts' => Shift::query()->where('is_active', true)->orderBy('start_time')->get(),
+            'aiSchedulingEnabled' => $canManage && $aiSettings->assistantEnabled(),
+            'aiPositions' => $canManage && $aiSettings->assistantEnabled()
+                ? Position::query()->where('is_active', true)->whereHas('department', fn (Builder $query) => $query->where('is_active', true))->orderBy('title')->get()
+                : collect(),
             'activeSeries' => $activeSeries,
             'filters' => $filters,
             'canManage' => $canManage,

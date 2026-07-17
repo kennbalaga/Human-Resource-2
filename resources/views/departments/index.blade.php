@@ -5,6 +5,7 @@
         <div><p class="eyebrow">Organization</p><h1>Departments</h1><p>Maintain the hospital’s operational units and review their workforce capacity.</p></div>
         @if($canManage)<a class="btn btn-primary dashboard-action" href="{{ route('departments.create') }}"><x-icon name="plus" /> Add department</a>@endif
     </section>
+    @include('partials.organization-tabs')
     @include('partials.organization-feedback')
     <form class="panel organization-filters" method="GET" action="{{ route('departments.index') }}">
         <label><span>Search departments</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Department name or code"></label>

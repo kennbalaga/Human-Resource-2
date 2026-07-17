@@ -17,9 +17,7 @@
         </x-sidebar-link>
 
         <p class="sidebar-section-label">Organization</p>
-        <x-sidebar-link :href="route('employees.index')" icon="users" :active="request()->routeIs('employees.*')">Employees</x-sidebar-link>
-        <x-sidebar-link :href="route('departments.index')" icon="building" :active="request()->routeIs('departments.*')">Departments</x-sidebar-link>
-        <x-sidebar-link :href="route('positions.index')" icon="briefcase" :active="request()->routeIs('positions.*')">Positions</x-sidebar-link>
+        <x-sidebar-link :href="route('organization.index')" icon="building" :active="request()->routeIs('organization.*', 'employees.*', 'departments.*', 'positions.*')">Organization</x-sidebar-link>
 
         <p class="sidebar-section-label">Workforce</p>
         <x-sidebar-link :href="route('schedules.index')" icon="calendar" :active="request()->routeIs('schedules.*')">

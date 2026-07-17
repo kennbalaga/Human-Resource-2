@@ -5,6 +5,7 @@
         <div><p class="eyebrow">Organization</p><h1>Positions</h1><p>Define approved workforce roles and keep every role aligned with its department.</p></div>
         @if($canManage)<a class="btn btn-primary dashboard-action" href="{{ route('positions.create') }}"><x-icon name="plus" /> Add position</a>@endif
     </section>
+    @include('partials.organization-tabs')
     @include('partials.organization-feedback')
     <form class="panel organization-filters" method="GET" action="{{ route('positions.index') }}">
         <label><span>Search positions</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Position title or code"></label>

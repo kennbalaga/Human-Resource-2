@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AiScheduleRecommendationController;
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -19,6 +20,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::apiResource('attendance', AttendanceController::class)->parameters(['attendance' => 'attendanceRecord'])->only(['index', 'show']);
         Route::post('/attendance/{attendanceRecord}/approve', [AttendanceController::class, 'approve'])->name('attendance.approve');
         Route::apiResource('schedules', ScheduleController::class)->parameters(['schedules' => 'scheduleAssignment'])->except(['show']);
+        Route::post('/schedule-recommendations', [AiScheduleRecommendationController::class, 'store'])->middleware('throttle:10,1')->name('schedule-recommendations.store');
+        Route::post('/schedule-recommendations/{scheduleRecommendation}/apply', [AiScheduleRecommendationController::class, 'apply'])->middleware('throttle:20,1')->name('schedule-recommendations.apply');
+        Route::post('/schedule-recommendations/{scheduleRecommendation}/decision', [AiScheduleRecommendationController::class, 'decision'])->middleware('throttle:20,1')->name('schedule-recommendations.decision');
         Route::apiResource('timesheets', TimesheetController::class)->only(['index', 'show']);
         Route::post('/timesheets/{timesheet}/submit', [TimesheetController::class, 'submit'])->name('timesheets.submit');
         Route::post('/timesheets/{timesheet}/approve', [TimesheetController::class, 'approve'])->name('timesheets.approve');

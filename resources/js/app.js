@@ -4,6 +4,8 @@ import './attendance';
 import './schedule';
 import './workforce';
 import './organization';
+import './ai-scheduling';
+import './integration-settings';
 import './theme';
 
 window.bootstrap = bootstrap;

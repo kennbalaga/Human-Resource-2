@@ -17,9 +17,41 @@ class OrganizationManagementTest extends TestCase
 
     public function test_organization_pages_require_authentication(): void
     {
+        $this->get('/organization')->assertRedirect('/login');
         $this->get('/employees')->assertRedirect('/login');
         $this->get('/departments')->assertRedirect('/login');
         $this->get('/positions')->assertRedirect('/login');
+    }
+
+    public function test_sidebar_uses_one_organization_entry_and_workspace_tabs_preserve_each_resource_page(): void
+    {
+        $this->seed();
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+
+        $sidebarResponse = $this->actingAs($manager)->get(route('schedules.index'));
+        $sidebarResponse
+            ->assertOk()
+            ->assertSee(route('organization.index'), false)
+            ->assertDontSee(route('employees.index'), false)
+            ->assertDontSee(route('departments.index'), false)
+            ->assertDontSee(route('positions.index'), false);
+
+        $this->actingAs($manager)->get(route('organization.index'))
+            ->assertOk()
+            ->assertSee('Employee directory')
+            ->assertSee('Organization workspace')
+            ->assertSee('People, accounts, and reporting lines')
+            ->assertSee(route('departments.index'), false)
+            ->assertSee(route('positions.index'), false);
+
+        $this->actingAs($manager)->get(route('departments.index'))
+            ->assertOk()
+            ->assertSee('Hospital units and workforce capacity')
+            ->assertSee('aria-current="page"', false);
+        $this->actingAs($manager)->get(route('positions.index'))
+            ->assertOk()
+            ->assertSee('Approved roles and department alignment')
+            ->assertSee('aria-current="page"', false);
     }
 
     public function test_authenticated_employees_can_view_the_organization_but_cannot_manage_it(): void

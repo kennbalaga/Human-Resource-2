@@ -14,6 +14,8 @@
         @endif
     </section>
 
+    @include('partials.organization-tabs')
+
     @include('partials.organization-feedback')
 
     <form class="panel organization-filters" method="GET" action="{{ route('employees.index') }}">
