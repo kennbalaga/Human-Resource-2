@@ -206,6 +206,19 @@ if (element) {
         heartbeat();
     };
 
+    element.addEventListener('show.bs.modal', () => {
+        if (warningVisible || expired) {
+            return;
+        }
+
+        // A manual preview should exercise the real countdown and reset flow,
+        // not display a static copy of the warning.
+        const previewActivityAt = Date.now() - warningStartsAt;
+        lastActivityAt = previewActivityAt;
+        writeNumber(activityKey, previewActivityAt);
+        warningVisible = true;
+    });
+
     ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach((eventName) => {
         document.addEventListener(eventName, recordActivity, { passive: true });
     });
