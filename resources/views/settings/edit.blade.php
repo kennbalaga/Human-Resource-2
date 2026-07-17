@@ -7,6 +7,7 @@
 
     @if(session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
     @if(session('two_factor_required'))<div class="attendance-alert attendance-alert-danger"><x-icon name="shield" /><span>{{ session('two_factor_required') }}</span></div>@endif
+    @if($twoFactorSetupReset)<div class="attendance-alert attendance-alert-warning"><x-icon name="shield" /><span>An incomplete 2FA setup from another environment could not be decrypted and was safely reset. Start the setup again on this device.</span></div>@endif
     @if($errors->any())<div class="attendance-alert attendance-alert-danger"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>@endif
 
     <section class="settings-layout">

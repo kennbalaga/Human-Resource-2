@@ -17,6 +17,8 @@ class SettingsController extends Controller
     public function edit(Request $request, TwoFactorSecurityService $twoFactor): View
     {
         $user = $request->user()->load(['roles', 'employee', 'preference']);
+        $pendingEncryptionState = $twoFactor->normalizePendingEnrollment($user);
+        $user->refresh()->load(['roles', 'employee', 'preference']);
 
         return view('settings.edit', [
             'user' => $user,
@@ -27,6 +29,7 @@ class SettingsController extends Controller
             'twoFactorEnabled' => $user->hasEnabledTwoFactorAuthentication(),
             'twoFactorPending' => $user->two_factor_secret !== null && $user->two_factor_confirmed_at === null,
             'twoFactorRequired' => $twoFactor->isRequiredFor($user),
+            'twoFactorSetupReset' => $pendingEncryptionState === 'reset',
             'twoFactorQrCode' => $user->two_factor_secret !== null && $user->two_factor_confirmed_at === null
                 ? $user->twoFactorQrCodeSvg()
                 : null,

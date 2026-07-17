@@ -80,6 +80,63 @@ class TwoFactorAuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_pending_enrollment_using_legacy_string_encryption_is_repaired(): void
+    {
+        $user = $this->userForEmployee('HR-0002');
+        $secret = app(Google2FA::class)->generateSecretKey(32);
+        $recoveryCodes = json_encode(['legacy-code-one', 'legacy-code-two'], JSON_THROW_ON_ERROR);
+
+        $user->forceFill([
+            'two_factor_secret' => Fortify::currentEncrypter()->encryptString($secret),
+            'two_factor_recovery_codes' => Fortify::currentEncrypter()->encryptString($recoveryCodes),
+        ])->save();
+
+        $this->actingAs($user)->get(route('settings.edit'))
+            ->assertOk()
+            ->assertSee('Scan this QR code');
+
+        $user->refresh();
+        $this->assertSame($secret, Fortify::currentEncrypter()->decrypt($user->two_factor_secret));
+        $this->assertSame($recoveryCodes, Fortify::currentEncrypter()->decrypt($user->two_factor_recovery_codes));
+    }
+
+    public function test_unreadable_unconfirmed_enrollment_is_safely_reset_instead_of_crashing_settings(): void
+    {
+        $user = $this->userForEmployee('HR-0002');
+        $user->forceFill([
+            'two_factor_secret' => 'belongs-to-another-application-key',
+            'two_factor_recovery_codes' => 'unreadable-recovery-codes',
+        ])->save();
+
+        $this->actingAs($user)->get(route('settings.edit'))
+            ->assertOk()
+            ->assertSee('could not be decrypted and was safely reset')
+            ->assertSee('Start secure setup');
+
+        $user->refresh();
+        $this->assertNull($user->two_factor_secret);
+        $this->assertNull($user->two_factor_recovery_codes);
+    }
+
+    public function test_unreadable_confirmed_enrollment_fails_closed_without_a_server_error(): void
+    {
+        $user = $this->userForEmployee('HR-0002');
+        $user->forceFill([
+            'two_factor_secret' => 'unreadable-confirmed-secret',
+            'two_factor_recovery_codes' => 'unreadable-confirmed-recovery-codes',
+            'two_factor_confirmed_at' => now(),
+        ])->save();
+
+        $this->post('/login', [
+            'employee_id' => 'HR-0002',
+            'password' => 'ChangeMe123!',
+        ])->assertRedirect(route('two-factor.login'));
+
+        $this->post(route('two-factor.login.store'), ['code' => '123456'])
+            ->assertSessionHasErrors('code');
+        $this->assertGuest();
+    }
+
     public function test_privileged_role_is_redirected_to_enrollment_until_protected(): void
     {
         config(['security.two_factor.required_roles' => ['hr-manager']]);
