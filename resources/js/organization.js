@@ -2,6 +2,7 @@ const initializePositionFiltering = () => {
     document.querySelectorAll('[data-employee-assignment]').forEach((form) => {
         const department = form.querySelector('[data-department-select]');
         const position = form.querySelector('[data-position-select]');
+        const generatedEmployeeNumber = form.querySelector('[data-generated-employee-number]');
 
         if (!department || !position) return;
 
@@ -20,8 +21,21 @@ const initializePositionFiltering = () => {
             if (resetSelection && selected?.disabled) position.value = '';
         };
 
+        const previewEmployeeNumber = () => {
+            if (!generatedEmployeeNumber) return;
+
+            const departmentCode = department.selectedOptions[0]?.dataset.departmentCode;
+            generatedEmployeeNumber.value = departmentCode
+                ? `${departmentCode}-[next]`
+                : 'Select a department first';
+        };
+
         filterPositions();
-        department.addEventListener('change', () => filterPositions(true));
+        previewEmployeeNumber();
+        department.addEventListener('change', () => {
+            filterPositions(true);
+            previewEmployeeNumber();
+        });
     });
 };
 

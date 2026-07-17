@@ -125,6 +125,12 @@
     resize: vertical;
 }
 
+.organization-field input[readonly] {
+    cursor: not-allowed;
+    color: #53645b;
+    background: #f2f6f4;
+}
+
 .organization-filters input:focus,
 .organization-filters select:focus,
 .organization-field input:focus,
@@ -421,6 +427,11 @@ html[data-theme-resolved='dark'] .organization-field textarea {
     border-color: #34483d;
     color: var(--hr-text);
     background: #0f1b16;
+}
+
+html[data-theme-resolved='dark'] .organization-field input[readonly] {
+    color: #b8c9c0;
+    background: #17251e;
 }
 
 html[data-theme-resolved='dark'] .organization-card h2,

@@ -8,6 +8,8 @@ use App\Models\Employee;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Organization\EmployeeNumberGenerator;
+use App\Services\Organization\EmployeeNumberSettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +22,11 @@ use Throwable;
 
 class EmployeeController extends Controller
 {
+    public function __construct(
+        private readonly EmployeeNumberGenerator $employeeNumberGenerator,
+        private readonly EmployeeNumberSettings $employeeNumberSettings,
+    ) {}
+
     public function index(Request $request): View
     {
         $filters = $request->validate([
@@ -78,8 +85,13 @@ class EmployeeController extends Controller
     {
         $data = $request->validated();
         $temporaryPassword = Str::password(40);
+        $autoGenerateEmployeeNumber = $this->employeeNumberSettings->autoGenerateEnabled();
 
-        $employee = DB::transaction(function () use ($data, $temporaryPassword): Employee {
+        $employee = DB::transaction(function () use ($data, $temporaryPassword, $autoGenerateEmployeeNumber): Employee {
+            if ($autoGenerateEmployeeNumber) {
+                $data['employee_number'] = $this->employeeNumberGenerator->generateForDepartment((int) $data['department_id']);
+            }
+
             $user = User::query()->create([
                 'name' => $this->displayName($data),
                 'email' => $data['email'],
@@ -151,15 +163,16 @@ class EmployeeController extends Controller
     {
         return [
             'departments' => Department::query()
-                ->where(fn (Builder $query) => $query->where('is_active', true)->when($employee, fn (Builder $nested) => $nested->orWhereKey($employee->department_id)))
+                ->where(fn (Builder $query) => $query->where('is_active', true)->when($employee, fn (Builder $nested) => $nested->orWhere('id', $employee->department_id)))
                 ->orderBy('name')
                 ->get(),
             'positions' => Position::query()
                 ->with('department')
-                ->where(fn (Builder $query) => $query->where('is_active', true)->when($employee, fn (Builder $nested) => $nested->orWhereKey($employee->position_id)))
+                ->where(fn (Builder $query) => $query->where('is_active', true)->when($employee, fn (Builder $nested) => $nested->orWhere('id', $employee->position_id)))
                 ->orderBy('title')
                 ->get(),
             'supervisors' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
+            'employeeNumberAutoGenerate' => $this->employeeNumberSettings->autoGenerateEnabled(),
             'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
         ];
     }

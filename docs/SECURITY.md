@@ -42,6 +42,8 @@ Audit and integration tables grow over time. Define an organization-approved ret
 
 Uploaded leave attachments use the private local disk. Production web servers must never expose `storage/app/private` directly. Downloads must continue through authorized application routes.
 
+Employee IDs are generated from the selected department code by default. Generation locks the department row inside the employee creation transaction, considers soft-deleted historical IDs, and relies on the database unique constraint as a final safeguard. Existing IDs are immutable. Only a System Administrator can disable automatic generation from Account Settings; manual mode should be used only for controlled migrations or legacy identifiers.
+
 ## Incident handling
 
 If a credential or bearer token leaks, revoke or rotate it, inspect `audit_logs` and `integration_events`, and review application/web-server logs. Back up evidence before applying retention cleanup. For a lost authenticator, use a one-time recovery code; if none remain, a System Administrator must verify the employee's identity and perform the audited reset from the employee profile.

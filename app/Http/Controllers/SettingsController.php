@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Settings\UpdateAccountRequest;
+use App\Http\Requests\Settings\UpdateEmployeeNumberSettingsRequest;
 use App\Http\Requests\Settings\UpdatePasswordRequest;
 use App\Http\Requests\Settings\UpdatePreferencesRequest;
 use App\Http\Requests\Settings\UpdateThemeRequest;
+use App\Services\Organization\EmployeeNumberSettings;
 use App\Services\TwoFactorSecurityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -14,8 +16,11 @@ use Illuminate\View\View;
 
 class SettingsController extends Controller
 {
-    public function edit(Request $request, TwoFactorSecurityService $twoFactor): View
-    {
+    public function edit(
+        Request $request,
+        TwoFactorSecurityService $twoFactor,
+        EmployeeNumberSettings $employeeNumberSettings,
+    ): View {
         $user = $request->user()->load(['roles', 'employee', 'preference']);
         $pendingEncryptionState = $twoFactor->normalizePendingEnrollment($user);
         $user->refresh()->load(['roles', 'employee', 'preference']);
@@ -33,6 +38,10 @@ class SettingsController extends Controller
             'twoFactorQrCode' => $user->two_factor_secret !== null && $user->two_factor_confirmed_at === null
                 ? $user->twoFactorQrCodeSvg()
                 : null,
+            'canManageEmployeeNumberSettings' => $user->hasRole('system-administrator'),
+            'employeeNumberAutoGenerate' => $employeeNumberSettings->autoGenerateEnabled(),
+            'employeeNumberSettingSource' => $employeeNumberSettings->source(),
+            'employeeNumberSettingUpdatedBy' => $employeeNumberSettings->updatedBy()?->name,
         ]);
     }
 
@@ -55,6 +64,17 @@ class SettingsController extends Controller
         $request->user()->preference()->updateOrCreate([], $request->validated());
 
         return response()->json(['message' => 'Appearance updated.', 'theme' => $request->validated('theme')]);
+    }
+
+    public function updateEmployeeNumberSettings(
+        UpdateEmployeeNumberSettingsRequest $request,
+        EmployeeNumberSettings $employeeNumberSettings,
+    ): RedirectResponse {
+        $employeeNumberSettings->update($request->user(), $request->boolean('auto_generate'));
+
+        return back()->with('success', $request->boolean('auto_generate')
+            ? 'Automatic employee ID generation enabled.'
+            : 'Automatic employee ID generation disabled. New employee IDs must be entered manually.');
     }
 
     public function updatePassword(UpdatePasswordRequest $request): RedirectResponse

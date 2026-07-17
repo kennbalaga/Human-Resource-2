@@ -13,6 +13,7 @@
     <section class="settings-layout">
         <aside class="panel settings-section-nav" aria-label="Settings sections">
             <a href="#account"><x-icon name="users" /><span><strong>Account</strong><small>Email and identity</small></span></a>
+            @if($canManageEmployeeNumberSettings)<a href="#system-controls"><x-icon name="settings" /><span><strong>System controls</strong><small>Employee ID policy</small></span></a>@endif
             <a href="#preferences"><x-icon name="moon" /><span><strong>Appearance</strong><small>Theme and display</small></span></a>
             <a href="#two-factor"><x-icon name="shield" /><span><strong>Two-factor security</strong><small>Authenticator and recovery</small></span></a>
             <a href="#security"><x-icon name="settings" /><span><strong>Password</strong><small>Password and API tokens</small></span></a>
@@ -27,6 +28,24 @@
                     <button class="btn btn-primary" type="submit">Update email</button>
                 </form>
             </article>
+
+            @if($canManageEmployeeNumberSettings)
+                <article class="panel settings-panel" id="system-controls">
+                    <div class="panel-header"><div><p class="panel-kicker">Organization policy</p><h2>Employee ID generation</h2></div><x-status-badge :status="$employeeNumberAutoGenerate ? 'active' : 'inactive'" /></div>
+                    <form method="POST" action="{{ route('settings.employee-numbers.update') }}" class="profile-settings-form">
+                        @csrf @method('PATCH')
+                        <div class="settings-toggle-list">
+                            <label class="settings-toggle"><span><strong>Automatically generate employee IDs</strong><small>New employees receive the next department-based ID, such as HR-0003 or NUR-0002.</small></span><input type="checkbox" name="auto_generate" value="1" @checked(old('auto_generate', $employeeNumberAutoGenerate))><i aria-hidden="true"></i></label>
+                        </div>
+                        <div class="settings-security-note"><x-icon name="shield" /><p>Generated IDs are concurrency-safe, never reuse deleted employee IDs, and remain permanent when an employee changes department.</p></div>
+                        <small>
+                            {{ $employeeNumberSettingSource === 'admin_setting' ? 'Controlled by the saved system setting' : 'Using the deployment default' }}
+                            @if($employeeNumberSettingUpdatedBy) · Last changed by {{ $employeeNumberSettingUpdatedBy }}@endif
+                        </small>
+                        <button class="btn btn-primary" type="submit"><x-icon name="check-circle" /> Save system setting</button>
+                    </form>
+                </article>
+            @endif
 
             <article class="panel settings-panel" id="preferences">
                 <div class="panel-header"><div><p class="panel-kicker">Workspace behavior</p><h2>Preferences</h2></div><x-icon name="settings" /></div>

@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/account', [SettingsController::class, 'updateAccount'])->name('settings.account.update');
     Route::patch('/settings/preferences', [SettingsController::class, 'updatePreferences'])->name('settings.preferences.update');
     Route::patch('/settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.theme.update');
+    Route::patch('/settings/system/employee-numbers', [SettingsController::class, 'updateEmployeeNumberSettings'])->name('settings.employee-numbers.update');
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
     Route::post('/settings/two-factor', [TwoFactorSettingsController::class, 'enable'])->name('two-factor.settings.enable');
     Route::post('/settings/two-factor/confirm', [TwoFactorSettingsController::class, 'confirm'])->name('two-factor.settings.confirm');

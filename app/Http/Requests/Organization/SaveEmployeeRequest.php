@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Organization;
 
 use App\Models\Position;
+use App\Services\Organization\EmployeeNumberSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -31,6 +32,7 @@ class SaveEmployeeRequest extends FormRequest
     public function rules(): array
     {
         $employee = $this->route('employee');
+        $autoGenerate = $employee === null && app(EmployeeNumberSettings::class)->autoGenerateEnabled();
         $departmentExists = Rule::exists('departments', 'id');
         $positionExists = Rule::exists('positions', 'id');
 
@@ -43,7 +45,7 @@ class SaveEmployeeRequest extends FormRequest
         }
 
         return [
-            'employee_number' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9-]+$/', Rule::unique('employees', 'employee_number')->ignore($employee?->id)],
+            'employee_number' => [Rule::excludeIf($employee !== null || $autoGenerate), 'required', 'string', 'max:50', 'regex:/^[A-Z0-9-]+$/', Rule::unique('employees', 'employee_number')],
             'email' => ['required', 'email:rfc', 'max:255', Rule::unique('users', 'email')->ignore($employee?->user_id)],
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
