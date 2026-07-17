@@ -12,6 +12,10 @@ return new class extends Migration
         $missingRecoveryCodes = ! Schema::hasColumn('users', 'two_factor_recovery_codes');
         $missingConfirmedAt = ! Schema::hasColumn('users', 'two_factor_confirmed_at');
 
+        if (! $missingSecret && ! $missingRecoveryCodes && ! $missingConfirmedAt) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) use ($missingSecret, $missingRecoveryCodes, $missingConfirmedAt): void {
             if ($missingSecret) {
                 $table->text('two_factor_secret')->nullable();
@@ -29,18 +33,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        $existingColumns = collect([
-            'two_factor_secret',
-            'two_factor_recovery_codes',
-            'two_factor_confirmed_at',
-        ])->filter(fn (string $column) => Schema::hasColumn('users', $column))->values()->all();
-
-        if ($existingColumns === []) {
-            return;
-        }
-
-        Schema::table('users', function (Blueprint $table) use ($existingColumns): void {
-            $table->dropColumn($existingColumns);
-        });
+        // This repair migration does not remove security data on rollback.
     }
 };
