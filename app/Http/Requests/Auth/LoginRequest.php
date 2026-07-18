@@ -8,6 +8,7 @@ use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -48,6 +49,7 @@ class LoginRequest extends FormRequest
 
         if (! $authenticated) {
             RateLimiter::hit($this->throttleKey());
+            $this->recordSecurityEvent('authentication.failure');
 
             throw ValidationException::withMessages([
                 'employee_id' => trans('auth.failed'),
@@ -70,6 +72,7 @@ class LoginRequest extends FormRequest
         }
 
         event(new Lockout($this));
+        $this->recordSecurityEvent('rate_limit.triggered');
 
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
@@ -86,5 +89,19 @@ class LoginRequest extends FormRequest
         return Str::transliterate(
             Str::lower($this->string('employee_id')).'|'.$this->ip()
         );
+    }
+
+    private function recordSecurityEvent(string $event): void
+    {
+        Log::notice('HRMS web authentication event.', [
+            'event' => $event,
+            'employee_id_hash' => hash_hmac(
+                'sha256',
+                Str::upper(trim((string) $this->input('employee_id'))),
+                (string) config('app.key', 'missing-app-key'),
+            ),
+            'ip_address' => $this->ip(),
+            'user_agent' => $this->userAgent(),
+        ]);
     }
 }

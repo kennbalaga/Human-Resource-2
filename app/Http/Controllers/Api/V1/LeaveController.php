@@ -10,6 +10,8 @@ use App\Models\LeaveAttachment;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Services\LeaveService;
+use App\Services\Security\AttachmentMalwareScanner;
+use App\Services\Security\UnsafeAttachmentException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -46,14 +48,26 @@ class LeaveController extends Controller
         return new LeaveRequestResource($leaveRequest->load(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments']));
     }
 
-    public function store(StoreLeaveRequest $request, LeaveService $service): LeaveRequestResource
-    {
+    public function store(
+        StoreLeaveRequest $request,
+        LeaveService $service,
+        AttachmentMalwareScanner $scanner,
+    ): LeaveRequestResource {
         abort_unless($request->user()->tokenCan('leave:write') || $request->user()->tokenCan('workforce:write'), 403);
         $data = $request->validated();
         $type = LeaveType::query()->findOrFail($data['leave_type_id']);
         if ($type->requires_attachment && ! $request->hasFile('attachments')) {
             throw ValidationException::withMessages(['attachments' => ["{$type->name} requires a supporting attachment."]]);
         }
+
+        foreach ($request->file('attachments', []) as $file) {
+            try {
+                $scanner->scan($file);
+            } catch (UnsafeAttachmentException $exception) {
+                throw ValidationException::withMessages(['attachments' => [$exception->userMessage]]);
+            }
+        }
+
         $leave = $service->create($request->user()->employee, $data);
         foreach ($request->file('attachments', []) as $file) {
             $path = $file->storeAs('leave-attachments/'.$leave->uuid, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');

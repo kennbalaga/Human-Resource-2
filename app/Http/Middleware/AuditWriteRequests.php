@@ -16,11 +16,40 @@ class AuditWriteRequests
     {
         $response = $next($request);
 
-        if (! in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'], true)) {
+        // CSP reports are untrusted, high-volume telemetry. They are handled by
+        // the dedicated logger/rate limiter and must not fill the business audit
+        // table or become an audit-log export surface.
+        if (! in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'], true)
+            && $request->route()?->getName() !== 'api.v1.security.csp-report') {
             $this->record($request, $response);
         }
 
+        $this->recordSecuritySignal($request, $response);
+
         return $response;
+    }
+
+    private function recordSecuritySignal(Request $request, Response $response): void
+    {
+        if (! in_array($response->getStatusCode(), [401, 403, 419, 429], true)) {
+            return;
+        }
+
+        Log::notice('HRMS security signal', [
+            'event' => match ($response->getStatusCode()) {
+                401 => 'authentication.failure',
+                403 => 'authorization.failure',
+                419 => 'csrf.failure',
+                429 => 'rate_limit.triggered',
+            },
+            'route_name' => $request->route()?->getName(),
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'user_id' => $request->user()?->id,
+            'ip_address' => $request->ip(),
+            'response_status' => $response->getStatusCode(),
+            'request_id' => $request->headers->get('X-Request-ID'),
+        ]);
     }
 
     private function record(Request $request, Response $response): void

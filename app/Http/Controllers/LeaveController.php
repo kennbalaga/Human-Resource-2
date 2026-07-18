@@ -12,6 +12,8 @@ use App\Models\LeaveType;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\LeaveService;
 use App\Services\PreferenceNotificationService;
+use App\Services\Security\AttachmentMalwareScanner;
+use App\Services\Security\UnsafeAttachmentException;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -89,11 +91,20 @@ class LeaveController extends Controller
         StoreLeaveRequest $request,
         LeaveService $service,
         PreferenceNotificationService $notifications,
+        AttachmentMalwareScanner $scanner,
     ): RedirectResponse {
         $data = $request->validated();
         $type = LeaveType::query()->findOrFail($data['leave_type_id']);
         if ($type->requires_attachment && ! $request->hasFile('attachments')) {
             throw ValidationException::withMessages(['attachments' => "{$type->name} requires a supporting attachment."]);
+        }
+
+        foreach ($request->file('attachments', []) as $file) {
+            try {
+                $scanner->scan($file);
+            } catch (UnsafeAttachmentException $exception) {
+                throw ValidationException::withMessages(['attachments' => [$exception->userMessage]]);
+            }
         }
 
         $leave = $service->create($request->user()->employee, $data);

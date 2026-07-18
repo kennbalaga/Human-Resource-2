@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AiScheduleRecommendationController;
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CspReportController;
 use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\LeaveController;
 use App\Http\Controllers\Api\V1\ScheduleController;
@@ -12,6 +13,10 @@ use App\Http\Middleware\EnsureApiTwoFactorEnrollment;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
+    Route::post('/security/csp-report', CspReportController::class)
+        ->middleware('throttle:csp-report')
+        ->name('security.csp-report');
+
     Route::post('/auth/token', [AuthController::class, 'token'])->middleware('throttle:api-login')->name('auth.token');
 
     Route::middleware(['auth:sanctum', EnsureApiTwoFactorEnrollment::class, 'throttle:api'])->group(function () {

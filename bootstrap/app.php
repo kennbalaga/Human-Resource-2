@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuditWriteRequests;
+use App\Http\Middleware\EnforceProductionSecurity;
 use App\Http\Middleware\EnsureRequiredTwoFactorAuthentication;
 use App\Http\Middleware\PreventRememberedAuthentication;
 use App\Http\Middleware\SecurityHeaders;
@@ -11,6 +12,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -23,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(EnforceProductionSecurity::class);
         $middleware->authenticateSessions();
         $middleware->web(append: [
             SecurityHeaders::class,
@@ -33,6 +37,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [SecurityHeaders::class, AuditWriteRequests::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->report(function (TokenMismatchException $exception, Request $request): void {
+            Log::notice('HRMS CSRF validation failure.', [
+                'event' => 'csrf.failure',
+                'route_name' => $request->route()?->getName(),
+                'method' => $request->method(),
+                'path' => $request->path(),
+                'user_id' => $request->user()?->id,
+                'ip_address' => $request->ip(),
+                'request_id' => $request->headers->get('X-Request-ID'),
+            ]);
+        });
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
