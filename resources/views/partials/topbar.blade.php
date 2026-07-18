@@ -4,6 +4,8 @@
         ->take(2)
         ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
         ->implode('');
+    $displayTimezone = $uiPreference->timezone ?? 'Asia/Manila';
+    $displayNow = now($displayTimezone);
 @endphp
 
 <header class="app-topbar">
@@ -22,10 +24,20 @@
     </div>
 
     <div class="topbar-actions">
-        <div class="topbar-date d-none d-lg-flex">
+        <time
+            class="topbar-date d-none d-lg-flex"
+            datetime="{{ $displayNow->toIso8601String() }}"
+            data-topbar-clock
+            data-timezone="{{ $displayTimezone }}"
+            data-server-epoch="{{ $displayNow->getTimestamp() }}"
+            title="Display timezone: {{ $displayTimezone }}"
+        >
             <x-icon name="calendar" />
-            <span>{{ now($uiPreference->timezone ?? 'Asia/Manila')->format('D, M j, Y') }}</span>
-        </div>
+            <span class="topbar-clock-copy">
+                <strong class="topbar-clock-time" data-topbar-time>{{ $displayNow->format('g:i:s A') }}</strong>
+                <span class="topbar-clock-date" data-topbar-date>{{ $displayNow->format('D, M j, Y') }}</span>
+            </span>
+        </time>
 
         <button class="icon-button theme-toggle" type="button" data-theme-toggle data-theme-update-url="{{ route('settings.theme.update') }}" aria-label="Switch color theme" title="Switch color theme">
             <span class="theme-icon theme-icon-moon"><x-icon name="moon" /></span>

@@ -8,6 +8,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarCollapseButton = document.querySelector('[data-sidebar-collapse]');
     const desktopSidebar = window.matchMedia('(min-width: 1101px)');
     const sidebarStorageKey = 'workforce.sidebar';
+    const topbarClock = document.querySelector('[data-topbar-clock]');
+
+    if (topbarClock) {
+        const dateOutput = topbarClock.querySelector('[data-topbar-date]');
+        const timeOutput = topbarClock.querySelector('[data-topbar-time]');
+        const timezone = topbarClock.dataset.timezone || 'Asia/Manila';
+        const serverEpoch = Number(topbarClock.dataset.serverEpoch) * 1000;
+        const baselineEpoch = Number.isFinite(serverEpoch) ? serverEpoch : Date.now();
+        const baselineLocalTime = Date.now();
+
+        try {
+            const dateFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+            });
+            const timeFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true,
+            });
+
+            const renderClock = () => {
+                const currentTime = new Date(baselineEpoch + (Date.now() - baselineLocalTime));
+
+                dateOutput.textContent = dateFormatter.format(currentTime);
+                timeOutput.textContent = timeFormatter.format(currentTime);
+                topbarClock.dateTime = currentTime.toISOString();
+            };
+
+            renderClock();
+            window.setInterval(renderClock, 1000);
+        } catch (error) {
+            // Keep the server-rendered date and time if Intl rejects a timezone.
+        }
+    }
 
     document.querySelectorAll('[data-dashboard-action-menu]').forEach((toggle) => {
         Dropdown.getOrCreateInstance(toggle, {

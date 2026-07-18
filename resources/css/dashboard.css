@@ -614,6 +614,27 @@ input {
     height: 17px;
 }
 
+.topbar-clock-copy {
+    display: grid;
+    min-width: 7.3rem;
+    line-height: 1.15;
+}
+
+.topbar-clock-time {
+    color: var(--hr-text);
+    font-size: 0.77rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+}
+
+.topbar-clock-date {
+    margin-top: 3px;
+    color: var(--hr-muted);
+    font-size: 0.65rem;
+    white-space: nowrap;
+}
+
 .icon-button {
     display: inline-grid;
     width: 40px;
