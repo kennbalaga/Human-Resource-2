@@ -3,7 +3,15 @@
 @section('title', 'Time & Attendance')
 
 @section('content')
-    <div id="attendanceApp" data-office-timezone="{{ $office->timezone }}">
+    <div
+        id="attendanceApp"
+        data-office-timezone="{{ $office->timezone }}"
+        data-attendance-capture-state="{{ $attendanceCaptureState }}"
+        data-attendance-state-url="{{ route('attendance.state') }}"
+        @if ($attendanceCaptureMode === \App\Services\AttendanceCaptureSettings::EMERGENCY_MANUAL && $manualAttendanceExpiresAt)
+            data-manual-mode-expires-at="{{ $manualAttendanceExpiresAt->getTimestamp() }}"
+        @endif
+    >
         <section class="page-heading attendance-heading">
             <div>
                 <p class="eyebrow">Workforce Management</p>
@@ -30,6 +38,21 @@
                 <span>{{ $errors->first() }}</span>
             </div>
         @endif
+
+        <div class="attendance-alert {{ $manualAttendanceAllowed ? 'attendance-alert-warning' : 'attendance-alert-success' }}" role="status">
+            <x-icon :name="$manualAttendanceAllowed ? 'settings' : 'shield'" />
+            <span>
+                Attendance mode: <strong>{{ str($attendanceCaptureMode)->replace('_', ' ')->title() }}</strong>.
+                @if (! $manualAttendanceAllowed)
+                    Website check-in/out is disabled; use the biometric terminal.
+                @elseif ($manualAttendanceReasonRequired)
+                    Manual attendance is temporarily enabled and a reason is required.
+                    @if($manualAttendanceExpiresAt) This mode expires {{ $manualAttendanceExpiresAt->timezone($office->timezone)->format('M j, Y g:i A') }}.@endif
+                @else
+                    Website and biometric attendance are both available.
+                @endif
+            </span>
+        </div>
 
         <div class="attendance-layout">
             <section class="panel attendance-clock-panel">
@@ -66,7 +89,7 @@
                     @endif
                 </div>
 
-                @if (! $todayRecord?->check_out_at)
+                @if (! $todayRecord?->check_out_at && $manualAttendanceAllowed)
                     <form
                         method="POST"
                         action="{{ $todayRecord?->check_in_at ? route('attendance.check-out') : route('attendance.check-in') }}"
@@ -77,8 +100,8 @@
                         <input type="hidden" name="office_location_id" value="{{ $office->id }}">
 
                         <label class="attendance-note">
-                            <span>Optional note</span>
-                            <textarea name="notes" rows="2" maxlength="500" placeholder="Add a note for HR...">{{ old('notes') }}</textarea>
+                            <span>{{ $manualAttendanceReasonRequired ? 'Reason for manual attendance' : 'Optional note' }}</span>
+                            <textarea name="notes" rows="2" maxlength="500" placeholder="{{ $manualAttendanceReasonRequired ? 'Explain why the biometric terminal cannot be used...' : 'Add a note for HR...' }}" @required($manualAttendanceReasonRequired)>{{ old('notes') }}</textarea>
                         </label>
 
                         <button class="btn attendance-submit {{ $todayRecord?->check_in_at ? 'attendance-checkout' : 'attendance-checkin' }}" type="submit">
@@ -86,6 +109,10 @@
                             <span>{{ $todayRecord?->check_in_at ? 'Check out now' : 'Check in now' }}</span>
                         </button>
                     </form>
+                @elseif (! $todayRecord?->check_out_at)
+                    <div class="attendance-policy">
+                        <div><span>Manual attendance</span><strong>Disabled by System Administrator</strong></div>
+                    </div>
                 @endif
 
                 <div class="attendance-policy">
@@ -111,7 +138,9 @@
                             <th>Date</th>
                             <th>Location</th>
                             <th>Check in</th>
+                            <th>In source</th>
                             <th>Check out</th>
+                            <th>Out source</th>
                             <th>Worked</th>
                             <th>Late</th>
                             <th>Overtime</th>
@@ -124,7 +153,19 @@
                                 <td><strong>{{ $record->attendance_date->format('M j, Y') }}</strong></td>
                                 <td>{{ $record->officeLocation?->name ?? 'Not available' }}</td>
                                 <td>{{ $record->check_in_at?->timezone($office->timezone)->format('g:i A') ?? '—' }}</td>
+                                <td>
+                                    <strong>{{ str($record->check_in_method ?? 'manual')->title() }}</strong>
+                                    @if($record->checkInBiometricDevice)<small>{{ $record->checkInBiometricDevice->name }}</small>@endif
+                                </td>
                                 <td>{{ $record->check_out_at?->timezone($office->timezone)->format('g:i A') ?? '—' }}</td>
+                                <td>
+                                    @if($record->check_out_at)
+                                        <strong>{{ str($record->check_out_method ?? 'manual')->title() }}</strong>
+                                        @if($record->checkOutBiometricDevice)<small>{{ $record->checkOutBiometricDevice->name }}</small>@endif
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                                 <td>{{ $record->worked_hours }}</td>
                                 <td>{{ $record->late_minutes ? $record->late_minutes.' min' : '—' }}</td>
                                 <td>{{ $record->overtime_minutes ? $record->overtime_minutes.' min' : '—' }}</td>
@@ -132,7 +173,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="empty-table-cell">
+                                <td colspan="10" class="empty-table-cell">
                                     <x-icon name="clock" />
                                     <strong>No attendance records yet</strong>
                                     <span>Your first check-in will appear here.</span>

@@ -8,6 +8,7 @@ use App\Models\Position;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -146,6 +147,7 @@ class OrganizationManagementTest extends TestCase
         $this->assertTrue($newUser->roles()->where('slug', 'employee')->exists());
         $this->assertSame($department->id, $employee->department_id);
         $this->assertSame($position->id, $employee->position_id);
+        $this->assertTrue(Hash::check('ChangeMe123!', $newUser->password));
         Notification::assertSentTo($newUser, ResetPassword::class);
     }
 

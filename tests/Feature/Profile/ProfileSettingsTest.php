@@ -74,7 +74,7 @@ class ProfileSettingsTest extends TestCase
 
         $this->assertDatabaseHas('user_preferences', [
             'user_id' => $user->id,
-            'timezone' => 'UTC',
+            'timezone' => 'Asia/Manila',
             'theme' => 'dark',
             'attendance_reminders' => false,
             'compact_navigation' => true,
@@ -85,7 +85,8 @@ class ProfileSettingsTest extends TestCase
             ->assertOk()
             ->assertSee('data-theme="dark"', false)
             ->assertSee('compact-navigation', false)
-            ->assertSee('reduce-motion', false);
+            ->assertSee('reduce-motion', false)
+            ->assertDontSee('Display timezone');
     }
 
     public function test_topbar_theme_toggle_endpoint_persists_a_valid_theme(): void

@@ -14,6 +14,8 @@ class UpdatePreferencesRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->merge(['timezone' => 'Asia/Manila']);
+
         foreach (['email_notifications', 'attendance_reminders', 'schedule_updates', 'leave_updates', 'compact_navigation', 'reduce_motion'] as $field) {
             $this->merge([$field => $this->boolean($field)]);
         }
@@ -22,7 +24,7 @@ class UpdatePreferencesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'timezone' => ['required', Rule::in(['Asia/Manila', 'Asia/Singapore', 'UTC'])],
+            'timezone' => ['required', Rule::in(['Asia/Manila'])],
             'theme' => ['required', Rule::in(['light', 'dark', 'system'])],
             'email_notifications' => ['required', 'boolean'],
             'attendance_reminders' => ['required', 'boolean'],

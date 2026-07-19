@@ -6,6 +6,7 @@
     <section class="page-heading workforce-heading"><div><p class="eyebrow">Personal preferences</p><h1>Account Settings</h1><p>Manage account security, notifications, timezone, and interface preferences.</p></div><a class="btn btn-outline-primary profile-heading-action" href="{{ route('profile.show') }}"><x-icon name="users" /> View profile</a></section>
 
     @if(session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
+    @if(session('warning'))<div class="attendance-alert attendance-alert-warning"><x-icon name="settings" /><span>{{ session('warning') }}</span></div>@endif
     @if(session('two_factor_required'))<div class="attendance-alert attendance-alert-danger"><x-icon name="shield" /><span>{{ session('two_factor_required') }}</span></div>@endif
     @if($twoFactorSetupReset)<div class="attendance-alert attendance-alert-warning"><x-icon name="shield" /><span>An incomplete 2FA setup from another environment could not be decrypted and was safely reset. Start the setup again on this device.</span></div>@endif
     @if($errors->any())<div class="attendance-alert attendance-alert-danger"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>@endif
@@ -13,7 +14,7 @@
     <section class="settings-layout">
         <aside class="panel settings-section-nav" aria-label="Settings sections">
             <a href="#account"><x-icon name="users" /><span><strong>Account</strong><small>Email and identity</small></span></a>
-            @if($canManageEmployeeNumberSettings)<a href="#system-controls"><x-icon name="settings" /><span><strong>System controls</strong><small>Employee ID policy</small></span></a>@endif
+            @if($canManageEmployeeNumberSettings || $canManageAttendanceSettings)<a href="#system-controls"><x-icon name="settings" /><span><strong>System controls</strong><small>IDs and attendance capture</small></span></a>@endif
             <a href="#preferences"><x-icon name="moon" /><span><strong>Appearance</strong><small>Theme and display</small></span></a>
             <a href="#two-factor"><x-icon name="shield" /><span><strong>Two-factor security</strong><small>Authenticator and recovery</small></span></a>
             <a href="#security"><x-icon name="settings" /><span><strong>Password</strong><small>Password and API tokens</small></span></a>
@@ -47,6 +48,68 @@
                 </article>
             @endif
 
+            @if($canManageAttendanceSettings)
+                <article
+                    class="panel settings-panel"
+                    id="attendance-capture"
+                    data-attendance-settings-sync
+                    data-attendance-capture-state="{{ $attendanceCaptureState }}"
+                    data-attendance-state-url="{{ route('attendance.state') }}"
+                    @if ($attendanceCaptureMode === \App\Services\AttendanceCaptureSettings::EMERGENCY_MANUAL && $attendanceManualModeExpiresAt)
+                        data-manual-mode-expires-at="{{ $attendanceManualModeExpiresAt->getTimestamp() }}"
+                    @endif
+                >
+                    <div class="panel-header"><div><p class="panel-kicker">Attendance policy</p><h2>Attendance capture mode</h2></div><x-status-badge :status="$attendanceCaptureMode === 'biometric_only' ? 'active' : 'pending'" /></div>
+                    <form method="POST" action="{{ route('settings.attendance-capture.update') }}" class="profile-settings-form">
+                        @csrf @method('PATCH')
+                        <fieldset class="appearance-options">
+                            <legend>Allowed capture methods</legend>
+                            <p>Changes apply immediately. Existing attendance records are not modified.</p>
+                            <div>
+                                @foreach([
+                                    'biometric_only' => ['shield', 'Biometric only', 'Website check-in/out is disabled.'],
+                                    'hybrid' => ['settings', 'Hybrid', 'Biometric and manual website attendance are allowed.'],
+                                    'emergency_manual' => ['clock', 'Emergency manual', 'Biometric events pause and website attendance requires a reason.'],
+                                ] as $value => [$icon, $label, $description])
+                                    <label class="appearance-option"><input type="radio" name="capture_mode" value="{{ $value }}" @checked(old('capture_mode', $attendanceCaptureMode) === $value)><span><x-icon :name="$icon" /><strong>{{ $label }}</strong><small>{{ $description }}</small></span></label>
+                                @endforeach
+                            </div>
+                        </fieldset>
+                        <label><span>Emergency reason</span><textarea name="manual_mode_reason" rows="2" maxlength="1000" placeholder="Example: Front entrance scanner is offline">{{ old('manual_mode_reason', $attendanceManualModeReason) }}</textarea><small>Required only for Emergency Manual mode and shown to administrators.</small></label>
+                        <label><span>Emergency mode expiry (Philippine time)</span><input type="datetime-local" name="manual_mode_expires_at" value="{{ old('manual_mode_expires_at', $attendanceManualModeExpiresAt?->copy()->timezone(config('workforce.timezone'))->format('Y-m-d\TH:i')) }}"><small>Required for Emergency Manual mode. When it expires, the effective mode automatically returns to Biometric Only.</small></label>
+                        <div class="settings-security-note"><x-icon name="shield" /><p>Manual entries remain pending for review and are labeled separately from biometric scans. Every mode change is included in the audit log.</p></div>
+                        @if($attendanceSettingUpdatedBy)<small>Last changed by {{ $attendanceSettingUpdatedBy }}</small>@endif
+                        <button class="btn btn-primary" type="submit"><x-icon name="check-circle" /> Save attendance mode</button>
+                    </form>
+                </article>
+
+                @if($biometricSimulatorAvailable)
+                    <article class="panel settings-panel" id="biometric-simulator">
+                        <div class="panel-header"><div><p class="panel-kicker">Development tool</p><h2>Biometric scanner simulator</h2></div><x-status-badge status="testing" /></div>
+                        <div class="settings-security-note"><x-icon name="shield" /><p>This simulator is available only in local/testing environments. It creates device events and attendance records without collecting or storing fingerprints.</p></div>
+                        <form method="POST" action="{{ route('settings.biometric-simulator.store') }}" class="profile-settings-form settings-inline-form">
+                            @csrf
+                            <label><span>Simulated fingerprint identity</span><select name="employee_id" required><option value="">Select an enrolled employee</option>@foreach($biometricSimulatorEmployees as $simulatorEmployee)<option value="{{ $simulatorEmployee->id }}">{{ $simulatorEmployee->employee_number }} · {{ $simulatorEmployee->full_name }}</option>@endforeach</select></label>
+                            <label><span>Scan action</span><select name="event_type" required><option value="check_in">Check in</option><option value="check_out">Check out</option></select></label>
+                            <button class="btn btn-primary" type="submit"><x-icon name="clock" /> Simulate fingerprint scan</button>
+                        </form>
+
+                        @if($recentBiometricEvents->isNotEmpty())
+                            <div class="table-responsive">
+                                <table class="dashboard-table">
+                                    <thead><tr><th>Received</th><th>Employee</th><th>Event</th><th>Device</th><th>Status</th></tr></thead>
+                                    <tbody>
+                                        @foreach($recentBiometricEvents as $biometricEvent)
+                                            <tr><td>{{ $biometricEvent->received_at->format('M j, g:i:s A') }}</td><td>{{ $biometricEvent->employee?->full_name ?? 'Unmatched identity' }}</td><td>{{ str($biometricEvent->event_type)->replace('_', ' ')->title() }}</td><td>{{ $biometricEvent->device->name }}</td><td><x-status-badge :status="$biometricEvent->status" /></td></tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </article>
+                @endif
+            @endif
+
             <article class="panel settings-panel" id="preferences">
                 <div class="panel-header"><div><p class="panel-kicker">Workspace behavior</p><h2>Preferences</h2></div><x-icon name="settings" /></div>
                 <form method="POST" action="{{ route('settings.preferences.update') }}" class="profile-settings-form">
@@ -60,7 +123,7 @@
                             @endforeach
                         </div>
                     </fieldset>
-                    <label class="settings-select"><span>Display timezone</span><select name="timezone" required>@foreach($timezones as $value => $label)<option value="{{ $value }}" @selected(old('timezone', $preference->timezone) === $value)>{{ $label }}</option>@endforeach</select><small>Controls dates shown in the application header.</small></label>
+                    <input type="hidden" name="timezone" value="Asia/Manila">
                     <div class="settings-toggle-list">
                         @foreach([
                             'email_notifications' => ['Email notifications', 'Master switch for attendance, schedule, and leave emails.'],

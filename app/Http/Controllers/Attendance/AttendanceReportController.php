@@ -58,6 +58,7 @@ class AttendanceReportController extends Controller
             $output = fopen('php://output', 'w');
             fputcsv($output, [
                 'Date', 'Employee ID', 'Employee', 'Department', 'Check In', 'Check Out',
+                'Check In Source', 'Check In Device', 'Check Out Source', 'Check Out Device',
                 'Status', 'Late Minutes', 'Worked Minutes', 'Undertime Minutes', 'Overtime Minutes',
             ]);
 
@@ -69,6 +70,10 @@ class AttendanceReportController extends Controller
                     $record->employee->department?->name,
                     $record->check_in_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('Y-m-d H:i:s'),
                     $record->check_out_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('Y-m-d H:i:s'),
+                    $record->check_in_method,
+                    $record->checkInBiometricDevice?->name,
+                    $record->check_out_method,
+                    $record->checkOutBiometricDevice?->name,
                     $record->status,
                     $record->late_minutes,
                     $record->worked_minutes,
@@ -87,8 +92,9 @@ class AttendanceReportController extends Controller
     private function reportQuery(array $filters): Builder
     {
         return AttendanceRecord::query()
-            ->with(['employee.user', 'employee.department', 'employee.position', 'officeLocation'])
-            ->whereBetween('attendance_date', [$filters['date_from'], $filters['date_to']])
+            ->with(['employee.user', 'employee.department', 'employee.position', 'officeLocation', 'checkInBiometricDevice', 'checkOutBiometricDevice'])
+            ->whereDate('attendance_date', '>=', $filters['date_from'])
+            ->whereDate('attendance_date', '<=', $filters['date_to'])
             ->when($filters['department_id'] ?? null, fn (Builder $query, $departmentId) => $query
                 ->whereHas('employee', fn (Builder $employeeQuery) => $employeeQuery->where('department_id', $departmentId)))
             ->when($filters['employee_id'] ?? null, fn (Builder $query, $employeeId) => $query
@@ -96,6 +102,17 @@ class AttendanceReportController extends Controller
             ->when($filters['status'] ?? null, fn (Builder $query, $status) => $query
                 ->where('status', $status))
             ->when($filters['approval_status'] ?? null, fn (Builder $query, $status) => $query
-                ->where('approval_status', $status));
+                ->where('approval_status', $status))
+            ->when($filters['capture_method'] ?? null, function (Builder $query, string $method): void {
+                if ($method === 'mixed') {
+                    $query->whereNotNull('check_out_method')->whereColumn('check_in_method', '!=', 'check_out_method');
+
+                    return;
+                }
+
+                $query->where(function (Builder $sourceQuery) use ($method): void {
+                    $sourceQuery->where('check_in_method', $method)->orWhere('check_out_method', $method);
+                });
+            });
     }
 }

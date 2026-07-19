@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use RuntimeException;
 use Throwable;
 
 class EmployeeController extends Controller
@@ -84,7 +85,7 @@ class EmployeeController extends Controller
     public function store(SaveEmployeeRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $temporaryPassword = Str::password(40);
+        $temporaryPassword = $this->initialEmployeePassword();
         $autoGenerateEmployeeNumber = $this->employeeNumberSettings->autoGenerateEnabled();
 
         $employee = DB::transaction(function () use ($data, $temporaryPassword, $autoGenerateEmployeeNumber): Employee {
@@ -112,6 +113,9 @@ class EmployeeController extends Controller
         } else {
             $message .= ' The password setup email could not be sent; the employee may use Forgot Password later.';
         }
+        if ($this->usesLocalEmployeeDefaultPassword()) {
+            $message .= ' This local/testing environment uses the configured development default password.';
+        }
 
         return redirect()->route('employees.show', $employee)->with('success', $message);
     }
@@ -136,7 +140,7 @@ class EmployeeController extends Controller
                 $user = User::query()->create([
                     'name' => $this->displayName($data),
                     'email' => $data['email'],
-                    'password' => Str::password(40),
+                    'password' => $this->initialEmployeePassword(),
                     'is_active' => $this->accountIsActive($data['employment_status']),
                 ]);
                 $role = Role::query()->where('slug', 'employee')->firstOrFail();
@@ -210,6 +214,25 @@ class EmployeeController extends Controller
 
             return false;
         }
+    }
+
+    private function initialEmployeePassword(): string
+    {
+        if (! $this->usesLocalEmployeeDefaultPassword()) {
+            return Str::password(40);
+        }
+
+        $password = (string) config('workforce.local_employee_default_password');
+        if (strlen($password) < 12) {
+            throw new RuntimeException('LOCAL_EMPLOYEE_DEFAULT_PASSWORD must contain at least 12 characters.');
+        }
+
+        return $password;
+    }
+
+    private function usesLocalEmployeeDefaultPassword(): bool
+    {
+        return app()->environment(['local', 'testing']);
     }
 
     private function canManage(Request $request): bool

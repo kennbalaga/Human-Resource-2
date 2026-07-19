@@ -21,7 +21,7 @@ npm run build
 php artisan serve
 ```
 
-Open `http://127.0.0.1:8000`. Seeded accounts use the password configured in `INITIAL_USER_PASSWORD` (development default: `ChangeMe123!`). Change it outside local development.
+Open `http://127.0.0.1:8000`. Seeded accounts use the password configured in `INITIAL_USER_PASSWORD` (development default: `ChangeMe123!`). Employees created through the UI also use `LOCAL_EMPLOYEE_DEFAULT_PASSWORD` in local/testing only. Production continues to generate an unguessable password and sends a setup link. Change development defaults outside local development.
 
 | Role | Employee ID |
 |---|---|

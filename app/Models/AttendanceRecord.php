@@ -16,7 +16,11 @@ class AttendanceRecord extends Model
         'office_location_id',
         'attendance_date',
         'check_in_at',
+        'check_in_method',
+        'check_in_biometric_device_id',
         'check_out_at',
+        'check_out_method',
+        'check_out_biometric_device_id',
         'status',
         'approval_status',
         'approved_by',
@@ -51,6 +55,16 @@ class AttendanceRecord extends Model
     public function officeLocation(): BelongsTo
     {
         return $this->belongsTo(OfficeLocation::class);
+    }
+
+    public function checkInBiometricDevice(): BelongsTo
+    {
+        return $this->belongsTo(BiometricDevice::class, 'check_in_biometric_device_id');
+    }
+
+    public function checkOutBiometricDevice(): BelongsTo
+    {
+        return $this->belongsTo(BiometricDevice::class, 'check_out_biometric_device_id');
     }
 
     public function approver(): BelongsTo

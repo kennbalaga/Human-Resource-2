@@ -73,6 +73,15 @@
                     <option value="rejected" @selected(($filters['approval_status'] ?? '') === 'rejected')>Rejected</option>
                 </select>
             </label>
+            <label>
+                <span>Capture source</span>
+                <select name="capture_method">
+                    <option value="">All sources</option>
+                    <option value="biometric" @selected(($filters['capture_method'] ?? '') === 'biometric')>Biometric</option>
+                    <option value="manual" @selected(($filters['capture_method'] ?? '') === 'manual')>Manual website</option>
+                    <option value="mixed" @selected(($filters['capture_method'] ?? '') === 'mixed')>Mixed in/out</option>
+                </select>
+            </label>
             <button class="btn btn-primary" type="submit">Apply filters</button>
         </form>
     </section>
@@ -104,7 +113,9 @@
                         <th>Employee</th>
                         <th>Department</th>
                         <th>In</th>
+                        <th>In source</th>
                         <th>Out</th>
+                        <th>Out source</th>
                         <th>Worked</th>
                         <th>Late</th>
                         <th>Undertime</th>
@@ -126,7 +137,9 @@
                             </td>
                             <td>{{ $record->employee->department?->name ?? 'Unassigned' }}</td>
                             <td>{{ $record->check_in_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('g:i A') ?? '—' }}</td>
+                            <td><strong>{{ str($record->check_in_method ?? 'manual')->title() }}</strong>@if($record->checkInBiometricDevice)<small>{{ $record->checkInBiometricDevice->name }}</small>@endif</td>
                             <td>{{ $record->check_out_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('g:i A') ?? '—' }}</td>
+                            <td>@if($record->check_out_at)<strong>{{ str($record->check_out_method ?? 'manual')->title() }}</strong>@if($record->checkOutBiometricDevice)<small>{{ $record->checkOutBiometricDevice->name }}</small>@endif @else — @endif</td>
                             <td>{{ $record->worked_hours }}</td>
                             <td>{{ $record->late_minutes ? $record->late_minutes.'m' : '—' }}</td>
                             <td>{{ $record->undertime_minutes ? $record->undertime_minutes.'m' : '—' }}</td>
@@ -147,7 +160,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="12" class="empty-table-cell"><x-icon name="report" /><strong>No matching records</strong><span>Try changing the date range or filters.</span></td></tr>
+                        <tr><td colspan="14" class="empty-table-cell"><x-icon name="report" /><strong>No matching records</strong><span>Try changing the date range or filters.</span></td></tr>
                     @endforelse
                 </tbody>
             </table>

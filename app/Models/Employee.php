@@ -65,6 +65,11 @@ class Employee extends Model
         return $this->hasMany(AttendanceRecord::class);
     }
 
+    public function biometricEnrollments(): HasMany
+    {
+        return $this->hasMany(BiometricEnrollment::class);
+    }
+
     public function scheduleAssignments(): HasMany
     {
         return $this->hasMany(ScheduleAssignment::class);

@@ -4,7 +4,7 @@
         ->take(2)
         ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
         ->implode('');
-    $displayTimezone = $uiPreference->timezone ?? 'Asia/Manila';
+    $displayTimezone = config('workforce.timezone', 'Asia/Manila');
     $displayNow = now($displayTimezone);
 @endphp
 
@@ -30,7 +30,7 @@
             data-topbar-clock
             data-timezone="{{ $displayTimezone }}"
             data-server-epoch="{{ $displayNow->getTimestamp() }}"
-            title="Display timezone: {{ $displayTimezone }}"
+            title="Philippine time ({{ $displayTimezone }})"
         >
             <x-icon name="calendar" />
             <span class="topbar-clock-copy">

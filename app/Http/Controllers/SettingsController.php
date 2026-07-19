@@ -3,12 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Settings\UpdateAccountRequest;
+use App\Http\Requests\Settings\UpdateAttendanceCaptureSettingsRequest;
 use App\Http\Requests\Settings\UpdateEmployeeNumberSettingsRequest;
 use App\Http\Requests\Settings\UpdatePasswordRequest;
 use App\Http\Requests\Settings\UpdatePreferencesRequest;
 use App\Http\Requests\Settings\UpdateThemeRequest;
+use App\Models\BiometricScanEvent;
+use App\Models\Employee;
+use App\Services\AttendanceCaptureSettings;
 use App\Services\Organization\EmployeeNumberSettings;
 use App\Services\TwoFactorSecurityService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,17 +25,21 @@ class SettingsController extends Controller
         Request $request,
         TwoFactorSecurityService $twoFactor,
         EmployeeNumberSettings $employeeNumberSettings,
+        AttendanceCaptureSettings $attendanceCaptureSettings,
     ): View {
         $user = $request->user()->load(['roles', 'employee', 'preference']);
         $pendingEncryptionState = $twoFactor->normalizePendingEnrollment($user);
         $user->refresh()->load(['roles', 'employee', 'preference']);
+        $attendanceCaptureMode = $attendanceCaptureSettings->mode();
+        $attendanceManualModeExpiresAt = $attendanceCaptureMode === AttendanceCaptureSettings::EMERGENCY_MANUAL
+            ? $attendanceCaptureSettings->expiresAt()
+            : null;
 
         return view('settings.edit', [
             'user' => $user,
             'preference' => $user->preference,
             'currentRole' => $user->roles->pluck('name')->join(', ') ?: 'Employee',
             'notifications' => collect(),
-            'timezones' => ['Asia/Manila' => 'Philippines (UTC+8)', 'Asia/Singapore' => 'Singapore (UTC+8)', 'UTC' => 'UTC'],
             'twoFactorEnabled' => $user->hasEnabledTwoFactorAuthentication(),
             'twoFactorPending' => $user->two_factor_secret !== null && $user->two_factor_confirmed_at === null,
             'twoFactorRequired' => $twoFactor->isRequiredFor($user),
@@ -39,9 +48,24 @@ class SettingsController extends Controller
                 ? $user->twoFactorQrCodeSvg()
                 : null,
             'canManageEmployeeNumberSettings' => $user->hasRole('system-administrator'),
+            'canManageAttendanceSettings' => $user->hasRole('system-administrator'),
             'employeeNumberAutoGenerate' => $employeeNumberSettings->autoGenerateEnabled(),
             'employeeNumberSettingSource' => $employeeNumberSettings->source(),
             'employeeNumberSettingUpdatedBy' => $employeeNumberSettings->updatedBy()?->name,
+            'attendanceCaptureMode' => $attendanceCaptureMode,
+            'attendanceCaptureState' => $attendanceCaptureMode.':'.($attendanceManualModeExpiresAt?->getTimestamp() ?? ''),
+            'attendanceManualModeReason' => $attendanceCaptureMode === AttendanceCaptureSettings::EMERGENCY_MANUAL
+                ? $attendanceCaptureSettings->reason()
+                : null,
+            'attendanceManualModeExpiresAt' => $attendanceManualModeExpiresAt,
+            'attendanceSettingUpdatedBy' => $attendanceCaptureSettings->updatedBy()?->name,
+            'biometricSimulatorAvailable' => app()->environment(['local', 'testing']) && $user->hasRole('system-administrator'),
+            'biometricSimulatorEmployees' => app()->environment(['local', 'testing']) && $user->hasRole('system-administrator')
+                ? Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get()
+                : collect(),
+            'recentBiometricEvents' => app()->environment(['local', 'testing']) && $user->hasRole('system-administrator')
+                ? BiometricScanEvent::query()->with(['employee', 'device'])->latest('received_at')->limit(5)->get()
+                : collect(),
         ]);
     }
 
@@ -75,6 +99,25 @@ class SettingsController extends Controller
         return back()->with('success', $request->boolean('auto_generate')
             ? 'Automatic employee ID generation enabled.'
             : 'Automatic employee ID generation disabled. New employee IDs must be entered manually.');
+    }
+
+    public function updateAttendanceCaptureSettings(
+        UpdateAttendanceCaptureSettingsRequest $request,
+        AttendanceCaptureSettings $attendanceCaptureSettings,
+    ): RedirectResponse {
+        $validated = $request->validated();
+        $expiresAt = ! empty($validated['manual_mode_expires_at'])
+            ? Carbon::parse($validated['manual_mode_expires_at'], config('workforce.timezone'))->utc()
+            : null;
+
+        $attendanceCaptureSettings->update(
+            $request->user(),
+            $validated['capture_mode'],
+            $validated['manual_mode_reason'] ?? null,
+            $expiresAt,
+        );
+
+        return back()->with('success', 'Attendance capture mode updated successfully.');
     }
 
     public function updatePassword(UpdatePasswordRequest $request): RedirectResponse

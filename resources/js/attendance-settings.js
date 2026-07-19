@@ -1,30 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const app = document.getElementById('attendanceApp');
-    const clockElement = document.getElementById('liveAttendanceClock');
+    const settingsPanel = document.querySelector('[data-attendance-settings-sync]');
 
-    if (!app || !clockElement) {
+    if (!settingsPanel) {
         return;
     }
 
-    const clockFormatter = new Intl.DateTimeFormat('en-PH', {
-        timeZone: app.dataset.officeTimezone || 'Asia/Manila',
-        hour: 'numeric',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-    });
-
-    const updateClock = () => {
-        clockElement.textContent = clockFormatter.format(new Date());
-    };
-
-    updateClock();
-    window.setInterval(updateClock, 1000);
-
-    const manualModeExpiry = Number(app.dataset.manualModeExpiresAt);
-    const attendanceStateUrl = app.dataset.attendanceStateUrl;
-    const initialAttendanceState = app.dataset.attendanceCaptureState;
+    const attendanceStateUrl = settingsPanel.dataset.attendanceStateUrl;
+    const initialAttendanceState = settingsPanel.dataset.attendanceCaptureState;
+    const manualModeExpiry = Number(settingsPanel.dataset.manualModeExpiresAt);
     let checkingAttendanceState = false;
+    let expiryTimer;
 
     const checkAttendanceState = async () => {
         if (!attendanceStateUrl || !initialAttendanceState || checkingAttendanceState) {
@@ -52,23 +37,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.reload();
             }
         } catch {
-            // A temporary network failure should not interrupt attendance actions.
+            // Keep the settings form usable during a temporary network failure.
         } finally {
             checkingAttendanceState = false;
         }
     };
 
-    window.setInterval(checkAttendanceState, 5000);
-
-    let expiryTimer;
-
-    const syncAttendanceMode = () => {
+    const syncExpiredMode = () => {
         if (!Number.isFinite(manualModeExpiry) || manualModeExpiry <= 0) {
             return;
         }
 
-        const manualModeExpiryMilliseconds = manualModeExpiry * 1000;
-        const millisecondsUntilExpiry = manualModeExpiryMilliseconds - Date.now();
+        const millisecondsUntilExpiry = (manualModeExpiry * 1000) - Date.now();
 
         if (millisecondsUntilExpiry <= 0) {
             window.location.reload();
@@ -78,22 +58,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.clearTimeout(expiryTimer);
         expiryTimer = window.setTimeout(
-            syncAttendanceMode,
+            syncExpiredMode,
             Math.min(millisecondsUntilExpiry + 250, 60_000),
         );
     };
 
-    syncAttendanceMode();
+    syncExpiredMode();
+    window.setInterval(checkAttendanceState, 5000);
 
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
-            syncAttendanceMode();
+            syncExpiredMode();
             checkAttendanceState();
         }
     });
 
     window.addEventListener('focus', () => {
-        syncAttendanceMode();
+        syncExpiredMode();
         checkAttendanceState();
     });
 });

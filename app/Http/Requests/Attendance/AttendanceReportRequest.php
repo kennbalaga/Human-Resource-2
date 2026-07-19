@@ -16,9 +16,11 @@ class AttendanceReportRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $today = now()->timezone(config('attendance.default_location.timezone'));
+
         $this->merge([
-            'date_from' => $this->input('date_from', now()->startOfMonth()->toDateString()),
-            'date_to' => $this->input('date_to', now()->toDateString()),
+            'date_from' => $this->input('date_from', $today->copy()->startOfMonth()->toDateString()),
+            'date_to' => $this->input('date_to', $today->toDateString()),
         ]);
     }
 
@@ -45,6 +47,7 @@ class AttendanceReportRequest extends FormRequest
             'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'status' => ['nullable', 'string', 'in:present,late'],
             'approval_status' => ['nullable', 'string', 'in:pending,approved,rejected'],
+            'capture_method' => ['nullable', 'string', 'in:manual,biometric,mixed'],
         ];
     }
 }
