@@ -26,6 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Local tunnels such as ngrok terminate HTTPS before forwarding to the
+        // application on 127.0.0.1. Trust that local proxy so Laravel keeps
+        // the original HTTPS scheme when generating asset and form URLs.
+        $middleware->trustProxies(at: ['127.0.0.1']);
         $middleware->prepend(EnforceProductionSecurity::class);
         $middleware->authenticateSessions();
         $middleware->web(append: [
