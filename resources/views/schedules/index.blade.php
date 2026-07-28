@@ -9,6 +9,7 @@
             : $focusDate->format('F Y');
         $queryFor = fn (array $values) => route('schedules.index', array_merge(request()->except('page'), $values));
         $weekdays = [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'];
+        $scheduleListDates = $assignmentsByDate->keys()->merge($dayOffsByDate->keys())->unique()->sort()->values();
     @endphp
 
     <section class="page-heading schedule-heading">
@@ -21,6 +22,7 @@
             <div class="schedule-heading-actions">
                 <a class="btn btn-outline-primary dashboard-action" href="{{ route('shifts.index') }}"><x-icon name="repeat" /> Shift templates</a>
                 <button class="btn btn-outline-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#recurringScheduleModal"><x-icon name="repeat" /> Recurring schedule</button>
+                <button class="btn btn-outline-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#bulkScheduleModal"><x-icon name="users" /> Department schedule</button>
                 <button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#scheduleAssignmentModal"><x-icon name="plus" /> Assign shift</button>
             </div>
         @endif
@@ -123,6 +125,9 @@
                                 @if ($day['assignments']->count() > 3)
                                     <span class="more-events">+{{ $day['assignments']->count() - 3 }} more</span>
                                 @endif
+                                @foreach($day['day_offs']->take(2) as $dayOff)
+                                    <span class="schedule-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManage)<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" onsubmit="return confirm('Remove this day off?')">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>
+                                @endforeach
                                 @foreach($day['leaves']->take(2) as $leave)
                                     <span class="schedule-leave-event" style="--leave-color: {{ $leave->leaveType->color }}"><x-icon name="leave" /><span><strong>{{ $leave->employee->first_name }} {{ $leave->employee->last_name }}</strong><small>{{ $leave->leaveType->name }}</small></span></span>
                                 @endforeach
@@ -150,8 +155,9 @@
                                     <small>{{ $assignment->employee->full_name }}</small>
                                 </button>
                             @empty
-                                @if($day['leaves']->isEmpty())<span class="week-empty">No shifts</span>@endif
+                                @if($day['leaves']->isEmpty() && $day['day_offs']->isEmpty())<span class="week-empty">No shifts</span>@endif
                             @endforelse
+                            @foreach($day['day_offs'] as $dayOff)<span class="schedule-day-off-event week-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManage)<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" onsubmit="return confirm('Remove this day off?')">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>@endforeach
                             @foreach($day['leaves'] as $leave)<span class="schedule-leave-event week-leave-event" style="--leave-color: {{ $leave->leaveType->color }}"><x-icon name="leave" /><span><strong>{{ $leave->employee->full_name }}</strong><small>{{ $leave->leaveType->name }}</small></span></span>@endforeach
                         </div>
                     </article>
@@ -159,7 +165,10 @@
             </div>
         @else
             <div class="schedule-list-view">
-                @forelse ($assignmentsByDate as $date => $dateAssignments)
+                @forelse ($scheduleListDates as $date)
+                    @php
+                        $dateAssignments = $assignmentsByDate->get($date, collect());
+                    @endphp
                     <section class="schedule-list-day">
                         <div class="schedule-list-date"><span>{{ \Carbon\Carbon::parse($date)->format('D') }}</span><strong>{{ \Carbon\Carbon::parse($date)->day }}</strong><small>{{ \Carbon\Carbon::parse($date)->format('M Y') }}</small></div>
                         <div class="schedule-list-items">
@@ -174,6 +183,9 @@
                                     <span class="schedule-list-shift">{{ $assignment->shift->name }} @if($assignment->recurring_schedule_id)<x-icon name="repeat" />@endif</span>
                                     <x-icon name="chevron-right" />
                                 </button>
+                            @endforeach
+                            @foreach ($dayOffsByDate->get($date, collect()) as $dayOff)
+                                <div class="schedule-list-item schedule-list-day-off"><span class="event-color"></span><span class="schedule-list-time">All day</span><span class="schedule-list-employee"><strong>{{ $dayOff->employee->full_name }}</strong><small>{{ $dayOff->employee->employee_number }} · {{ $dayOff->employee->department?->name }}</small></span><span class="schedule-list-shift">Day off</span>@if($canManage)<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" onsubmit="return confirm('Remove this day off?')">@csrf @method('DELETE')<button class="icon-button subtle" type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</div>
                             @endforeach
                         </div>
                     </section>
@@ -233,6 +245,57 @@
                         @if ($aiSchedulingEnabled)<p class="schedule-save-note"><x-icon name="shield" /> AI suggestions never save automatically.</p>@endif
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save assignment</button>
                     </div>
+                </form>
+            </div></div>
+        </div>
+
+        <div class="modal fade" id="bulkScheduleModal" tabindex="-1" aria-labelledby="bulkScheduleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content schedule-modal-content">
+                <form method="POST" action="{{ route('schedules.bulk-store') }}" id="bulkScheduleForm" data-preview-url="{{ route('schedules.bulk-preview') }}" data-store-url="{{ route('schedules.bulk-store') }}" @if($aiSchedulingEnabled) data-rotation-preview-url="{{ route('schedules.rotation-preview') }}" data-rotation-store-url="{{ route('schedules.rotation-store') }}" @endif>@csrf
+                    <div class="modal-header"><div><p class="panel-kicker">Department scheduling</p><h2 class="modal-title" id="bulkScheduleModalLabel">Create a department schedule</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                    <div class="modal-body bulk-schedule-form">
+                        <p class="bulk-schedule-intro">Plan a fixed department shift or let the AI assistant build a balanced weekly rotation with one explicit day off per employee. Every result must be reviewed before saving.</p>
+                        <div class="schedule-form-grid bulk-schedule-details">
+                            @if($aiSchedulingEnabled)
+                                <label><span>Scheduling method</span><select name="schedule_method" data-schedule-method><option value="fixed">Fixed shift</option><option value="rotation">AI balanced rotation</option></select></label>
+                            @endif
+                            <label @class(['full-width' => ! $aiSchedulingEnabled]) data-fixed-shift><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
+                            @if($aiSchedulingEnabled)
+                                <fieldset class="rotation-shift-picker full-width" data-rotation-shifts hidden><legend>Shifts to rotate</legend><p>Select at least two shifts. Each employee keeps one shift for the week, then rotates the following week.</p><div>@foreach($shifts as $shift)<label><input type="checkbox" name="shift_ids[]" value="{{ $shift->id }}" disabled><span class="shift-color" style="background:{{ $shift->color }}"></span><span><strong>{{ $shift->name }}</strong><small>{{ $shift->formatted_time }}</small></span></label>@endforeach</div></fieldset>
+                            @endif
+                            <label><span>Schedule period</span><select name="schedule_period" data-schedule-period><option value="weekly">Weekly · 7 days</option><option value="two_weeks">Two weeks · 14 days</option><option value="monthly">Monthly · calendar month</option></select></label>
+                            <label data-period-start><span>Schedule starts</span><input type="date" name="period_start" value="{{ $focusDate->toDateString() }}" required></label>
+                            <label data-period-month hidden><span>Schedule month</span><input type="month" name="period_month" value="{{ $focusDate->format('Y-m') }}"></label>
+                            <input type="hidden" name="start_date" value="{{ $focusDate->toDateString() }}">
+                            <input type="hidden" name="end_date" value="{{ $focusDate->copy()->addDays(6)->toDateString() }}">
+                            <div class="bulk-period-range full-width"><button type="button" class="icon-button subtle" data-bulk-period-previous aria-label="Previous schedule period"><x-icon name="chevron-right" class="flip-horizontal" /></button><strong data-bulk-period-range>Weekly period</strong><button type="button" class="icon-button subtle" data-bulk-period-next aria-label="Next schedule period"><x-icon name="chevron-right" /></button></div>
+                            <label class="bulk-weekend-toggle full-width"><input type="checkbox" name="include_weekends" value="1"><span><strong>Include weekends</strong><small>Weekdays are scheduled by default.</small></span></label>
+                        </div>
+
+                        <section class="bulk-employee-picker" aria-labelledby="bulkEmployeePickerTitle">
+                            <div class="bulk-employee-picker-header"><div><p class="panel-kicker">Employees</p><h3 id="bulkEmployeePickerTitle">Choose who to schedule</h3></div><span data-bulk-selected-count>0 selected</span></div>
+                            <div class="bulk-employee-filters">
+                                <select name="department_id" data-bulk-department-filter aria-label="Select department" required><option value="">Select department</option>@foreach($departments as $department)<option value="{{ $department->id }}">{{ $department->name }}</option>@endforeach</select>
+                                <select data-bulk-position-filter aria-label="Filter employees by position"><option value="">All positions</option>@foreach($positions as $position)<option value="{{ $position->id }}">{{ $position->title }}</option>@endforeach</select>
+                                <input type="search" data-bulk-employee-search placeholder="Search employees" aria-label="Search employees">
+                                <button class="btn btn-light" type="button" data-bulk-select-all>Select visible</button>
+                            </div>
+                            <div class="bulk-employee-list" data-bulk-employee-list>
+                                <p class="bulk-employee-empty" data-bulk-employee-empty>Select a department to load active employees.</p>
+                                @foreach($employees as $employee)
+                                    <label class="bulk-employee-option" data-department-id="{{ $employee->department_id }}" data-position-id="{{ $employee->position_id }}" data-search="{{ strtolower($employee->employee_number.' '.$employee->full_name.' '.$employee->department?->name.' '.$employee->position?->title) }}">
+                                        <input type="checkbox" name="employee_ids[]" value="{{ $employee->id }}">
+                                        <span class="bulk-employee-check"><x-icon name="check" /></span>
+                                        <span><strong>{{ $employee->full_name }}</strong><small>{{ $employee->employee_number }} · {{ $employee->department?->name ?? 'No department' }} · {{ $employee->position?->title ?? 'No position' }}</small></span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </section>
+                        <label class="bulk-schedule-notes"><span>Notes</span><textarea name="notes" rows="2" maxlength="500" placeholder="Optional note for all created assignments"></textarea></label>
+                        <section class="bulk-schedule-review" data-bulk-review aria-live="polite"><x-icon name="shield" /><div><strong>Review before saving</strong><span>Select employees, a shift, and dates, then review availability.</span></div></section>
+                        @if($aiSchedulingEnabled)<section class="rotation-preview" data-rotation-preview hidden aria-live="polite"></section>@endif
+                    </div>
+                    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-outline-primary" data-bulk-review-button>Review assignments</button><button type="submit" class="btn btn-primary" data-bulk-save disabled>Save valid assignments</button></div>
                 </form>
             </div></div>
         </div>

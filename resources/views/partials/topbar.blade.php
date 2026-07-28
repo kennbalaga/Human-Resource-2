@@ -15,12 +15,11 @@
             <span class="visually-hidden">Open navigation</span>
         </button>
 
-        <label class="global-search">
+        <form class="global-search" method="GET" action="{{ route('search.index') }}" role="search">
             <x-icon name="search" />
             <span class="visually-hidden">Search HRMS</span>
-            <input type="search" placeholder="Search employees, departments..." aria-label="Search HRMS">
-            <kbd>⌘ K</kbd>
-        </label>
+            <input type="search" name="q" value="{{ request('q') }}" placeholder="Search employees, departments..." aria-label="Search employees and departments" autocomplete="off">
+        </form>
     </div>
 
     <div class="topbar-actions">

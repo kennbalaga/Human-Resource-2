@@ -16,11 +16,14 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Schedule\AiRotationScheduleController;
 use App\Http\Controllers\Schedule\AiScheduleRecommendationController;
 use App\Http\Controllers\Schedule\RecurringScheduleController;
 use App\Http\Controllers\Schedule\ScheduleAssignmentController;
 use App\Http\Controllers\Schedule\ScheduleCalendarController;
+use App\Http\Controllers\Schedule\ScheduleDayOffController;
 use App\Http\Controllers\Schedule\ShiftController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\TwoFactorSettingsController;
@@ -44,6 +47,7 @@ Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(func
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::get('/organization', [EmployeeController::class, 'index'])->name('organization.index');
     Route::resource('employees', EmployeeController::class)->except('destroy');
     Route::post('/employees/{employee}/two-factor/reset', [AdminTwoFactorController::class, 'reset'])->name('employees.two-factor.reset');
@@ -73,12 +77,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/schedules', [ScheduleCalendarController::class, 'index'])->name('schedules.index');
     Route::get('/schedules/events', [ScheduleCalendarController::class, 'events'])->name('schedules.events');
     Route::post('/schedules/conflicts', [ScheduleCalendarController::class, 'conflicts'])->name('schedules.conflicts');
+    Route::post('/schedules/bulk-preview', [ScheduleAssignmentController::class, 'bulkPreview'])->name('schedules.bulk-preview');
+    Route::post('/schedules/rotation-preview', [AiRotationScheduleController::class, 'preview'])->middleware('throttle:10,1')->name('schedules.rotation-preview');
     Route::post('/schedules/ai-recommendations', [AiScheduleRecommendationController::class, 'store'])->middleware('throttle:10,1')->name('schedules.ai-recommendations.store');
     Route::post('/schedules/ai-recommendations/{scheduleRecommendation}/apply', [AiScheduleRecommendationController::class, 'apply'])->middleware('throttle:20,1')->name('schedules.ai-recommendations.apply');
     Route::post('/schedules/ai-recommendations/{scheduleRecommendation}/decision', [AiScheduleRecommendationController::class, 'decision'])->middleware('throttle:20,1')->name('schedules.ai-recommendations.decision');
     Route::post('/schedules', [ScheduleAssignmentController::class, 'store'])->name('schedules.store');
+    Route::post('/schedules/bulk', [ScheduleAssignmentController::class, 'bulkStore'])->name('schedules.bulk-store');
+    Route::post('/schedules/rotation', [AiRotationScheduleController::class, 'store'])->middleware('throttle:10,1')->name('schedules.rotation-store');
     Route::put('/schedules/{scheduleAssignment}', [ScheduleAssignmentController::class, 'update'])->name('schedules.update');
     Route::delete('/schedules/{scheduleAssignment}', [ScheduleAssignmentController::class, 'destroy'])->name('schedules.destroy');
+    Route::delete('/schedule-day-offs/{scheduleDayOff}', [ScheduleDayOffController::class, 'destroy'])->name('schedule-day-offs.destroy');
     Route::post('/recurring-schedules', [RecurringScheduleController::class, 'store'])->name('recurring-schedules.store');
     Route::delete('/recurring-schedules/{recurringSchedule}', [RecurringScheduleController::class, 'destroy'])->name('recurring-schedules.destroy');
 

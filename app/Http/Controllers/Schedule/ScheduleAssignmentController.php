@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Schedule;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Schedule\BulkScheduleAssignmentRequest;
 use App\Http\Requests\Schedule\ScheduleAssignmentRequest;
 use App\Models\ScheduleAssignment;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\PreferenceNotificationService;
 use App\Services\ScheduleService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -34,6 +36,39 @@ class ScheduleAssignmentController extends Controller
         $this->notifyEmployee($assignment, 'updated', $notifications);
 
         return back()->with('success', 'Schedule assignment updated successfully.');
+    }
+
+    public function bulkPreview(BulkScheduleAssignmentRequest $request, ScheduleService $scheduleService): JsonResponse
+    {
+        $plan = $scheduleService->bulkAssignmentPlan($request->validated());
+
+        return response()->json([
+            'ready_count' => $plan['ready']->count(),
+            'skipped_count' => $plan['skipped']->count(),
+            'requested_count' => $plan['ready']->count() + $plan['skipped']->count(),
+            'skipped' => $plan['skipped']->take(10)->values(),
+        ]);
+    }
+
+    public function bulkStore(
+        BulkScheduleAssignmentRequest $request,
+        ScheduleService $scheduleService,
+        PreferenceNotificationService $notifications,
+    ): RedirectResponse {
+        $result = $scheduleService->createBulkAssignments($request->validated(), $request->user());
+
+        foreach ($result['assignments'] as $assignment) {
+            $this->notifyEmployee($assignment, 'assigned', $notifications);
+        }
+
+        $created = $result['assignments']->count();
+        $skipped = $result['skipped']->count();
+        $message = "{$created} ".str('assignment')->plural($created).' created.';
+        if ($skipped > 0) {
+            $message .= " {$skipped} skipped because of conflicts, leave, or inactive employees.";
+        }
+
+        return back()->with('success', $message);
     }
 
     public function destroy(

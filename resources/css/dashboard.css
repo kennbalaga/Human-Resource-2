@@ -588,18 +588,6 @@ input {
     color: #98a39e;
 }
 
-.global-search kbd {
-    padding: 2px 6px;
-    border: 1px solid #dee6e2;
-    border-bottom-width: 2px;
-    border-radius: 5px;
-    color: #87938e;
-    background: #fff;
-    font-family: inherit;
-    font-size: 0.65rem;
-    font-weight: 500;
-}
-
 .topbar-date {
     min-height: 40px;
     padding: 0 12px;
@@ -1719,10 +1707,6 @@ input {
         width: auto;
         min-width: 0;
         flex: 1;
-    }
-
-    .global-search kbd {
-        display: none;
     }
 
     .topbar-actions {

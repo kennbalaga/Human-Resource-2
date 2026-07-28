@@ -382,6 +382,98 @@
     font-size: .75rem;
 }
 
+.global-search-results-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.global-search-results-panel {
+    overflow: hidden;
+}
+
+.global-search-result-list {
+    display: grid;
+}
+
+.global-search-result {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .75rem;
+    padding: .85rem 1.25rem;
+    border-top: 1px solid var(--hr-border);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color .16s ease;
+}
+
+.global-search-result:hover,
+.global-search-result:focus-visible {
+    background: #f3f8f5;
+}
+
+.global-search-result > span:nth-child(2) {
+    display: grid;
+    min-width: 0;
+    gap: .15rem;
+}
+
+.global-search-result strong {
+    color: var(--hr-text);
+    font-size: .8rem;
+}
+
+.global-search-result small,
+.global-search-section-empty,
+.global-search-empty-state span {
+    overflow: hidden;
+    color: var(--hr-muted);
+    font-size: .68rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.global-search-result > svg {
+    width: 1rem;
+    color: var(--hr-muted);
+}
+
+.global-search-department-code {
+    min-width: 3.2rem;
+    padding: .35rem .45rem;
+    border-radius: .45rem;
+    color: #176b43;
+    background: #eaf7f0;
+    font-size: .66rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.global-search-section-empty {
+    margin: 0;
+    padding: 1rem 1.25rem;
+}
+
+.global-search-empty-state {
+    display: grid;
+    min-height: 13rem;
+    place-items: center;
+    align-content: center;
+    gap: .45rem;
+    text-align: center;
+}
+
+.global-search-empty-state > svg {
+    width: 1.8rem;
+    height: 1.8rem;
+    color: var(--hr-primary);
+}
+
+.global-search-empty-state strong {
+    color: var(--hr-text);
+}
+
 html[data-theme-resolved='dark'] .organization-filters label > span,
 html[data-theme-resolved='dark'] .organization-field > span,
 html[data-theme-resolved='dark'] .organization-fieldset legend,
@@ -463,6 +555,7 @@ html[data-theme-resolved='dark'] .organization-detail {
     .organization-heading-actions .btn,
     .organization-form-actions .btn { flex: 1; }
     .organization-card-grid,
+    .global-search-results-grid,
     .organization-filters,
     .organization-fieldset,
     .organization-detail-grid { grid-template-columns: 1fr; }

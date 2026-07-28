@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Employee;
+use App\Models\LeaveRequest;
 use App\Models\RecurringSchedule;
 use App\Models\ScheduleAssignment;
+use App\Models\ScheduleDayOff;
 use App\Models\Shift;
 use App\Models\User;
 use Carbon\Carbon;
@@ -35,6 +37,106 @@ class ScheduleService
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $creator->id,
             ]);
+        });
+    }
+
+    /**
+     * @param  array{employee_ids: array<int>, shift_id: int, start_date: string, end_date: string, include_weekends?: bool, notes?: string|null}  $data
+     * @return array{ready: Collection<int, array{employee: Employee, date: Carbon}>, skipped: Collection<int, array{employee: string, date: string, reason: string}>}
+     */
+    public function bulkAssignmentPlan(array $data): array
+    {
+        $employees = Employee::query()
+            ->whereKey($data['employee_ids'])
+            ->orderBy('last_name')
+            ->get()
+            ->keyBy('id');
+        $shift = Shift::query()->findOrFail($data['shift_id']);
+
+        if (! $shift->is_active) {
+            throw ValidationException::withMessages(['shift_id' => 'The selected shift is inactive.']);
+        }
+
+        $start = Carbon::parse($data['start_date'], config('schedule.timezone'))->startOfDay();
+        $end = Carbon::parse($data['end_date'], config('schedule.timezone'))->startOfDay();
+        $dates = collect(CarbonPeriod::create($start, $end))
+            ->map(fn ($date) => Carbon::instance($date)->timezone(config('schedule.timezone'))->startOfDay())
+            ->filter(fn (Carbon $date) => ($data['include_weekends'] ?? false) || ! $date->isWeekend())
+            ->values();
+        if ($dates->isEmpty()) {
+            throw ValidationException::withMessages([
+                'start_date' => 'Choose a weekday or include weekends in the bulk assignment.',
+            ]);
+        }
+        $employeeIds = $employees->keys()->all();
+        $assignmentsByEmployee = ScheduleAssignment::query()
+            ->with('shift')
+            ->whereIn('employee_id', $employeeIds)
+            ->where('status', 'scheduled')
+            ->whereBetween('work_date', [$start->copy()->subDay()->toDateString(), $end->copy()->addDay()->toDateString()])
+            ->get()
+            ->groupBy('employee_id');
+        $leavesByEmployee = LeaveRequest::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $end->toDateString())
+            ->whereDate('end_date', '>=', $start->toDateString())
+            ->get()
+            ->groupBy('employee_id');
+        $dayOffsByEmployee = ScheduleDayOff::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+            ->get()
+            ->groupBy('employee_id');
+        $ready = collect();
+        $skipped = collect();
+
+        foreach ($employees as $employee) {
+            foreach ($dates as $date) {
+                $reason = $this->bulkAssignmentBlockReason(
+                    $employee,
+                    $shift,
+                    $date,
+                    $assignmentsByEmployee->get($employee->id, collect()),
+                    $leavesByEmployee->get($employee->id, collect()),
+                    $dayOffsByEmployee->get($employee->id, collect()),
+                );
+
+                if ($reason !== null) {
+                    $skipped->push([
+                        'employee' => $employee->full_name,
+                        'date' => $date->toDateString(),
+                        'reason' => $reason,
+                    ]);
+
+                    continue;
+                }
+
+                $ready->push(['employee' => $employee, 'date' => $date]);
+            }
+        }
+
+        return compact('ready', 'skipped');
+    }
+
+    /**
+     * @param  array{employee_ids: array<int>, shift_id: int, start_date: string, end_date: string, include_weekends?: bool, notes?: string|null}  $data
+     * @return array{assignments: Collection<int, ScheduleAssignment>, skipped: Collection<int, array{employee: string, date: string, reason: string}>}
+     */
+    public function createBulkAssignments(array $data, User $creator): array
+    {
+        return DB::transaction(function () use ($data, $creator) {
+            $plan = $this->bulkAssignmentPlan($data);
+            $assignments = $plan['ready']->map(fn (array $item) => ScheduleAssignment::query()->create([
+                'employee_id' => $item['employee']->id,
+                'shift_id' => $data['shift_id'],
+                'work_date' => $item['date']->toDateString(),
+                'status' => 'scheduled',
+                'notes' => $data['notes'] ?? null,
+                'created_by' => $creator->id,
+            ]));
+
+            return ['assignments' => $assignments, 'skipped' => $plan['skipped']];
         });
     }
 
@@ -85,11 +187,17 @@ class ScheduleService
             }
 
             foreach ($dates as $date) {
+                $this->ensureNoDayOff($employee, $date->toDateString());
                 $conflicts = $this->conflictsFor($employee, $shift, $date->toDateString());
                 if ($conflicts->isNotEmpty()) {
                     $conflict = $conflicts->first();
                     throw ValidationException::withMessages([
                         'schedule' => "Recurring schedule conflicts on {$date->format('M j, Y')} with {$conflict->shift->name} ({$conflict->shift->formatted_time}).",
+                    ]);
+                }
+                if ($this->restConflictsFor($employee, $shift, $date->toDateString())->isNotEmpty()) {
+                    throw ValidationException::withMessages([
+                        'schedule' => "Recurring schedule does not provide the configured minimum rest before or after {$date->format('M j, Y')}.",
                     ]);
                 }
             }
@@ -154,6 +262,53 @@ class ScheduleService
             ->values();
     }
 
+    public function dayOffFor(Employee $employee, string $workDate): ?ScheduleDayOff
+    {
+        return ScheduleDayOff::query()
+            ->where('employee_id', $employee->id)
+            ->whereDate('work_date', $workDate)
+            ->first();
+    }
+
+    /** @return Collection<int, ScheduleAssignment> */
+    public function restConflictsFor(
+        Employee $employee,
+        Shift $shift,
+        string $workDate,
+        ?int $excludeAssignmentId = null,
+    ): Collection {
+        $minimumMinutes = max(0, (int) config('schedule.minimum_rest_hours')) * 60;
+        if ($minimumMinutes === 0) {
+            return collect();
+        }
+
+        [$candidateStart, $candidateEnd] = $this->intervalFor($shift, $workDate);
+        $date = Carbon::parse($workDate, config('schedule.timezone'));
+
+        return ScheduleAssignment::query()
+            ->with('shift')
+            ->where('employee_id', $employee->id)
+            ->where('status', 'scheduled')
+            ->whereBetween('work_date', [$date->copy()->subDays(2)->toDateString(), $date->copy()->addDays(2)->toDateString()])
+            ->when($excludeAssignmentId, fn ($query) => $query->where('id', '!=', $excludeAssignmentId))
+            ->get()
+            ->filter(function (ScheduleAssignment $existing) use ($candidateStart, $candidateEnd, $minimumMinutes) {
+                [$existingStart, $existingEnd] = $this->intervalFor($existing->shift, $existing->work_date->toDateString());
+                if ($candidateStart->lessThan($existingEnd) && $candidateEnd->greaterThan($existingStart)) {
+                    return false;
+                }
+                if ($candidateStart->greaterThanOrEqualTo($existingEnd)) {
+                    return $existingEnd->diffInMinutes($candidateStart) < $minimumMinutes;
+                }
+                if ($existingStart->greaterThanOrEqualTo($candidateEnd)) {
+                    return $candidateEnd->diffInMinutes($existingStart) < $minimumMinutes;
+                }
+
+                return false;
+            })
+            ->values();
+    }
+
     /**
      * @return array{Carbon, Carbon}
      */
@@ -206,12 +361,85 @@ class ScheduleService
         string $workDate,
         ?int $excludeAssignmentId = null,
     ): void {
+        $this->ensureNoDayOff($employee, $workDate);
         $conflicts = $this->conflictsFor($employee, $shift, $workDate, $excludeAssignmentId);
 
         if ($conflicts->isNotEmpty()) {
             $conflict = $conflicts->first();
             throw ValidationException::withMessages([
                 'schedule' => "This assignment overlaps {$conflict->shift->name} on {$conflict->work_date->format('M j, Y')} ({$conflict->shift->formatted_time}).",
+            ]);
+        }
+
+        $restConflicts = $this->restConflictsFor($employee, $shift, $workDate, $excludeAssignmentId);
+        if ($restConflicts->isNotEmpty()) {
+            $conflict = $restConflicts->first();
+            throw ValidationException::withMessages([
+                'schedule' => "This assignment does not provide the configured minimum rest before or after {$conflict->shift->name} on {$conflict->work_date->format('M j, Y')}.",
+            ]);
+        }
+    }
+
+    /**
+     * @param  Collection<int, ScheduleAssignment>  $assignments
+     * @param  Collection<int, LeaveRequest>  $leaves
+     * @param  Collection<int, ScheduleDayOff>  $dayOffs
+     */
+    private function bulkAssignmentBlockReason(
+        Employee $employee,
+        Shift $shift,
+        Carbon $date,
+        Collection $assignments,
+        Collection $leaves,
+        Collection $dayOffs,
+    ): ?string {
+        if ($employee->employment_status !== 'active') {
+            return 'Inactive employee';
+        }
+
+        if ($leaves->contains(fn (LeaveRequest $leave) => $date->toDateString() >= $leave->start_date->toDateString()
+            && $date->toDateString() <= $leave->end_date->toDateString())) {
+            return 'Approved leave';
+        }
+
+        if ($dayOffs->contains(fn (ScheduleDayOff $dayOff) => $dayOff->work_date->toDateString() === $date->toDateString())) {
+            return 'Scheduled day off';
+        }
+
+        [$candidateStart, $candidateEnd] = $this->intervalFor($shift, $date->toDateString());
+        $hasConflict = $assignments->contains(function (ScheduleAssignment $assignment) use ($candidateStart, $candidateEnd) {
+            [$existingStart, $existingEnd] = $this->intervalFor($assignment->shift, $assignment->work_date->toDateString());
+
+            return $candidateStart->lessThan($existingEnd) && $candidateEnd->greaterThan($existingStart);
+        });
+
+        if ($hasConflict) {
+            return 'Overlapping schedule';
+        }
+
+        $minimumMinutes = max(0, (int) config('schedule.minimum_rest_hours')) * 60;
+        if ($minimumMinutes > 0 && $assignments->contains(function (ScheduleAssignment $assignment) use ($candidateStart, $candidateEnd, $minimumMinutes) {
+            [$existingStart, $existingEnd] = $this->intervalFor($assignment->shift, $assignment->work_date->toDateString());
+            if ($candidateStart->greaterThanOrEqualTo($existingEnd)) {
+                return $existingEnd->diffInMinutes($candidateStart) < $minimumMinutes;
+            }
+            if ($existingStart->greaterThanOrEqualTo($candidateEnd)) {
+                return $candidateEnd->diffInMinutes($existingStart) < $minimumMinutes;
+            }
+
+            return false;
+        })) {
+            return 'Minimum rest period not met';
+        }
+
+        return null;
+    }
+
+    private function ensureNoDayOff(Employee $employee, string $workDate): void
+    {
+        if ($this->dayOffFor($employee, $workDate)) {
+            throw ValidationException::withMessages([
+                'schedule' => 'This employee has a scheduled day off on '.Carbon::parse($workDate)->format('M j, Y').'. Remove the day off before assigning a shift.',
             ]);
         }
     }

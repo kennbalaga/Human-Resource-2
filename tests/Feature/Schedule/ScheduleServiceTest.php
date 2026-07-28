@@ -97,6 +97,11 @@ class ScheduleServiceTest extends TestCase
         );
 
         $this->assertCount(0, $conflicts, 'A shift ending exactly at 7:00 AM may be followed by one starting at 7:00 AM.');
+        $this->assertCount(1, $this->service->restConflictsFor(
+            $this->employee,
+            $morningShift,
+            '2027-01-14',
+        ), 'Back-to-back shifts must still be flagged by the configurable minimum-rest rule.');
 
         $overlapShift = Shift::query()->create([
             'code' => 'EARLY-0600',

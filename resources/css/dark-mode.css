@@ -62,8 +62,7 @@ html[data-theme-resolved='dark'] .global-search:focus-within,
 html[data-theme-resolved='dark'] .icon-button:hover,
 html[data-theme-resolved='dark'] .mobile-menu-button:hover { color:var(--hr-primary); border-color:#3b5748; background:#1b2c23; }
 html[data-theme-resolved='dark'] .global-search input { color:var(--hr-text); }
-html[data-theme-resolved='dark'] .global-search input::placeholder { color:#73867b; }
-html[data-theme-resolved='dark'] .global-search kbd { color:#99aaa0; border-color:#34483d; background:#17251e; }
+html[data-theme-resolved='dark'] .global-search input::placeholder { color:#a9b8b0; }
 html[data-theme-resolved='dark'] .profile-menu-button:hover { background:#18261f; }
 html[data-theme-resolved='dark'] .avatar { color:#d9f5e6; border-color:#315442; background:linear-gradient(145deg,#24533b,#173c2b); }
 
@@ -407,3 +406,78 @@ html[data-theme-resolved='dark'] .recovery-code-grid code { color:#d9eee2; borde
 html[data-theme-resolved='dark'] .two-factor-status { color:#c1cec7; background:#26372e; }
 html[data-theme-resolved='dark'] .two-factor-status.is-pending { color:#f1d08c; background:#332913; }
 html[data-theme-resolved='dark'] .two-factor-status.is-enabled { color:#9be5bb; background:#153424; }
+
+/* Bulk scheduling and AI rotation use the same readable text scale as the rest of dark mode. */
+html[data-theme-resolved='dark'] .bulk-schedule-intro,
+html[data-theme-resolved='dark'] .bulk-weekend-toggle small,
+html[data-theme-resolved='dark'] .rotation-shift-picker > p,
+html[data-theme-resolved='dark'] .rotation-shift-picker small,
+html[data-theme-resolved='dark'] .rotation-preview-identity small,
+html[data-theme-resolved='dark'] .rotation-preview-week small,
+html[data-theme-resolved='dark'] .schedule-day-off-event small,
+html[data-theme-resolved='dark'] .bulk-employee-empty,
+html[data-theme-resolved='dark'] .bulk-employee-option small,
+html[data-theme-resolved='dark'] .bulk-employee-picker-header > span,
+html[data-theme-resolved='dark'] .global-search-result small,
+html[data-theme-resolved='dark'] .global-search-section-empty,
+html[data-theme-resolved='dark'] .global-search-empty-state span { color:#a9b8b0; }
+
+html[data-theme-resolved='dark'] .bulk-weekend-toggle strong,
+html[data-theme-resolved='dark'] .bulk-schedule-notes > span,
+html[data-theme-resolved='dark'] .bulk-period-range strong,
+html[data-theme-resolved='dark'] .rotation-shift-picker strong,
+html[data-theme-resolved='dark'] .rotation-preview-identity strong,
+html[data-theme-resolved='dark'] .rotation-preview-week strong,
+html[data-theme-resolved='dark'] .schedule-day-off-event,
+html[data-theme-resolved='dark'] .bulk-employee-picker-header h3,
+html[data-theme-resolved='dark'] .bulk-employee-option strong,
+html[data-theme-resolved='dark'] .bulk-schedule-review strong,
+html[data-theme-resolved='dark'] .global-search-result strong,
+html[data-theme-resolved='dark'] .global-search-empty-state strong { color:var(--hr-text); }
+
+html[data-theme-resolved='dark'] .bulk-weekend-toggle,
+html[data-theme-resolved='dark'] .bulk-period-range,
+html[data-theme-resolved='dark'] .bulk-employee-picker { border-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .rotation-shift-picker,
+html[data-theme-resolved='dark'] .rotation-preview { border-color:#294c66; background:#101f28; }
+html[data-theme-resolved='dark'] .rotation-shift-picker legend,
+html[data-theme-resolved='dark'] .rotation-preview-heading { color:#9ac4ff; }
+html[data-theme-resolved='dark'] .rotation-shift-picker label { border-color:#344b58; background:#0d191f; }
+html[data-theme-resolved='dark'] .rotation-preview-heading { background:#142b3a; }
+html[data-theme-resolved='dark'] .rotation-preview-employee,
+html[data-theme-resolved='dark'] .bulk-employee-picker-header,
+html[data-theme-resolved='dark'] .bulk-employee-option { border-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .rotation-preview-week { background:color-mix(in srgb,var(--rotation-color) 16%,#101c17); }
+html[data-theme-resolved='dark'] .rotation-preview-week span,
+html[data-theme-resolved='dark'] .bulk-employee-picker-header p { color:#86e4ad; }
+html[data-theme-resolved='dark'] .schedule-day-off-event { border-color:#64748b; background:#1d2a32; }
+html[data-theme-resolved='dark'] .schedule-day-off-event > svg,
+html[data-theme-resolved='dark'] .schedule-day-off-event button { color:#b8c9d4; }
+html[data-theme-resolved='dark'] .bulk-employee-filters { background:#101c17; }
+html[data-theme-resolved='dark'] .bulk-employee-option:hover { background:#172a21; }
+html[data-theme-resolved='dark'] .bulk-employee-check { border-color:#4a5d70; }
+html[data-theme-resolved='dark'] .bulk-schedule-review { color:#c2d0c8; background:#17251e; }
+html[data-theme-resolved='dark'] .bulk-schedule-review.has-skips { color:#f1d08c; background:#332913; }
+html[data-theme-resolved='dark'] .bulk-schedule-review.no-ready { color:#f5a6af; background:#361b20; }
+
+/* Complete the remaining AI panel labels and status text that use dedicated colors. */
+html[data-theme-resolved='dark'] .ai-scheduling-heading p,
+html[data-theme-resolved='dark'] .ai-scheduling-controls label span { color:#9ac4ff; }
+html[data-theme-resolved='dark'] .ai-scheduling-advisory { color:#f1d08c; background:#332913; }
+html[data-theme-resolved='dark'] .ai-scheduling-status { color:#b8c9d4; background:#1d2a32; }
+html[data-theme-resolved='dark'] .ai-scheduling-status[data-tone='success'],
+html[data-theme-resolved='dark'] .ai-risk-low { color:#9be5bb; background:#153424; }
+html[data-theme-resolved='dark'] .ai-scheduling-status[data-tone='warning'],
+html[data-theme-resolved='dark'] .ai-risk-moderate { color:#f1d08c; background:#332913; }
+html[data-theme-resolved='dark'] .ai-scheduling-status[data-tone='danger'],
+html[data-theme-resolved='dark'] .ai-risk-high,
+html[data-theme-resolved='dark'] .ai-scheduling-empty { color:#f5a6af; background:#361b20; }
+html[data-theme-resolved='dark'] .ai-candidate-heading span { color:#a9b8c2; }
+html[data-theme-resolved='dark'] .ai-candidate-heading b { color:#86e4ad; }
+
+/* Global-search result content. */
+html[data-theme-resolved='dark'] .global-search-result { border-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .global-search-result:hover,
+html[data-theme-resolved='dark'] .global-search-result:focus-visible { background:#172a21; }
+html[data-theme-resolved='dark'] .global-search-result > svg { color:#a9b8b0; }
+html[data-theme-resolved='dark'] .global-search-department-code { color:#86e4ad; background:#173a29; }

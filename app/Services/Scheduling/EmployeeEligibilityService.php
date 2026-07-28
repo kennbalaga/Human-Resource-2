@@ -80,6 +80,14 @@ class EmployeeEligibilityService
                 'conflict_ids' => $conflicts->pluck('id')->map(fn ($id) => (int) $id)->all(),
             ]);
         }
+        $restConflicts = $this->scheduleService->restConflictsFor($employee, $shift, $workDate);
+        if ($restConflicts->isNotEmpty()) {
+            $reasons->push([
+                'code' => 'insufficient_rest',
+                'message' => 'Employee would not receive the configured minimum rest period.',
+                'conflict_ids' => $restConflicts->pluck('id')->map(fn ($id) => (int) $id)->all(),
+            ]);
+        }
 
         return [
             'employee_id' => $employee->id,

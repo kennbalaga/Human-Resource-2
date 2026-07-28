@@ -80,6 +80,11 @@ class Employee extends Model
         return $this->hasMany(RecurringSchedule::class);
     }
 
+    public function scheduleDayOffs(): HasMany
+    {
+        return $this->hasMany(ScheduleDayOff::class);
+    }
+
     public function timesheets(): HasMany
     {
         return $this->hasMany(Timesheet::class);

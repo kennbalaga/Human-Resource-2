@@ -10,6 +10,7 @@ use App\Models\LeaveRequest;
 use App\Models\Position;
 use App\Models\RecurringSchedule;
 use App\Models\ScheduleAssignment;
+use App\Models\ScheduleDayOff;
 use App\Models\Shift;
 use App\Services\ScheduleService;
 use App\Services\Scheduling\AiSchedulingFeatureSettings;
@@ -60,6 +61,20 @@ class ScheduleCalendarController extends Controller
             ->values();
         $assignmentsByDate = $assignments->groupBy(fn (ScheduleAssignment $assignment) => $assignment->work_date->toDateString());
 
+        $dayOffQuery = ScheduleDayOff::query()
+            ->with(['employee.department'])
+            ->whereBetween('work_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()]);
+        if (! $canManage) {
+            $dayOffQuery->where('employee_id', $currentEmployee->id);
+        } else {
+            $dayOffQuery
+                ->when($filters['department_id'] ?? null, fn (Builder $query, $departmentId) => $query
+                    ->whereHas('employee', fn (Builder $employeeQuery) => $employeeQuery->where('department_id', $departmentId)))
+                ->when($filters['employee_id'] ?? null, fn (Builder $query, $employeeId) => $query->where('employee_id', $employeeId));
+        }
+        $dayOffs = $dayOffQuery->orderBy('work_date')->get();
+        $dayOffsByDate = $dayOffs->groupBy(fn (ScheduleDayOff $dayOff) => $dayOff->work_date->toDateString());
+
         $leaveQuery = LeaveRequest::query()
             ->with(['employee.department', 'leaveType'])
             ->where('status', 'approved')
@@ -90,6 +105,7 @@ class ScheduleCalendarController extends Controller
                 'is_current_month' => Carbon::instance($date)->month === $focusDate->month,
                 'is_today' => Carbon::instance($date)->isToday(),
                 'assignments' => $assignmentsByDate->get(Carbon::instance($date)->toDateString(), collect()),
+                'day_offs' => $dayOffsByDate->get(Carbon::instance($date)->toDateString(), collect()),
                 'leaves' => $leavesByDate->get(Carbon::instance($date)->toDateString(), collect()),
             ]);
 
@@ -113,10 +129,14 @@ class ScheduleCalendarController extends Controller
             'calendarDays' => $calendarDays,
             'assignments' => $assignments,
             'assignmentsByDate' => $assignmentsByDate,
+            'dayOffsByDate' => $dayOffsByDate,
             'employees' => $canManage
-                ? Employee::query()->with('department')->where('employment_status', 'active')->orderBy('last_name')->get()
-                : collect([$currentEmployee->load('department')]),
+                ? Employee::query()->with(['department', 'position'])->where('employment_status', 'active')->orderBy('last_name')->get()
+                : collect([$currentEmployee->load(['department', 'position'])]),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
+            'positions' => $canManage
+                ? Position::query()->where('is_active', true)->orderBy('title')->get()
+                : collect(),
             'shifts' => Shift::query()->where('is_active', true)->orderBy('start_time')->get(),
             'aiSchedulingEnabled' => $canManage && $aiSettings->assistantEnabled(),
             'aiPositions' => $canManage && $aiSettings->assistantEnabled()
@@ -185,9 +205,23 @@ class ScheduleCalendarController extends Controller
             $data['work_date'],
             $data['exclude_assignment_id'] ?? null,
         );
+        $dayOff = $scheduleService->dayOffFor($employee, $data['work_date']);
+        $restConflicts = $scheduleService->restConflictsFor(
+            $employee,
+            $shift,
+            $data['work_date'],
+            $data['exclude_assignment_id'] ?? null,
+        );
 
         return response()->json([
-            'has_conflicts' => $conflicts->isNotEmpty(),
+            'has_conflicts' => $conflicts->isNotEmpty() || $restConflicts->isNotEmpty() || $dayOff !== null,
+            'day_off' => $dayOff ? ['date' => $dayOff->work_date->toDateString()] : null,
+            'rest_conflicts' => $restConflicts->map(fn (ScheduleAssignment $assignment) => [
+                'id' => $assignment->id,
+                'date' => $assignment->work_date->toDateString(),
+                'shift' => $assignment->shift->name,
+                'time' => $assignment->shift->formatted_time,
+            ]),
             'conflicts' => $conflicts->map(fn (ScheduleAssignment $assignment) => [
                 'id' => $assignment->id,
                 'date' => $assignment->work_date->toDateString(),
