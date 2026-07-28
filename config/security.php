@@ -1,5 +1,13 @@
 <?php
 
+$viteDevelopmentOrigins = (string) env('APP_ENV') === 'local'
+    ? ' http://localhost:* http://127.0.0.1:* http://[::1]:*'
+    : '';
+
+$viteDevelopmentConnectOrigins = (string) env('APP_ENV') === 'local'
+    ? ' http://[::1]:* ws://[::1]:*'
+    : '';
+
 return [
     'production' => [
         // Local and test environments are never blocked. In production, turning
@@ -18,11 +26,11 @@ return [
             "form-action 'self'",
             "frame-ancestors 'none'",
             "object-src 'none'",
-            "script-src 'self' 'unsafe-inline'",
-            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com",
+            "script-src 'self' 'unsafe-inline'{$viteDevelopmentOrigins}",
+            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com{$viteDevelopmentOrigins}",
             "font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com",
             "img-src 'self' data: blob:",
-            "connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*",
+            "connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*{$viteDevelopmentConnectOrigins}",
             "media-src 'self'",
             "worker-src 'self' blob:",
             "manifest-src 'self'",
