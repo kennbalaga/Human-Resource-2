@@ -184,9 +184,11 @@ document.addEventListener('DOMContentLoaded', () => {
         shiftForm.querySelector('[data-method-field]').value = shift ? 'PUT' : 'POST';
         shiftForm.querySelector('.modal-title').textContent = shift ? 'Edit shift template' : 'New shift template';
         shiftForm.querySelector('button[type="submit"]').textContent = shift ? 'Update template' : 'Save template';
+        shiftForm.querySelector('[data-shift-code-preview]').textContent = shift
+            ? shift.code
+            : 'Generated automatically after saving';
 
         if (!shift) return;
-        shiftForm.elements.code.value = shift.code;
         shiftForm.elements.name.value = shift.name;
         shiftForm.elements.start_time.value = shift.start_time;
         shiftForm.elements.end_time.value = shift.end_time;

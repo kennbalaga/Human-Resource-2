@@ -89,24 +89,23 @@ class SchedulePagesTest extends TestCase
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
 
         $this->actingAs($manager)->post('/shifts', [
-            'code' => 'FLEX-1000',
+            'code' => 'MANUAL-CODE',
             'name' => 'Flex Shift',
             'start_time' => '10:00',
             'end_time' => '18:00',
             'break_minutes' => 30,
-            'color' => '#0EA5E9',
+            'color' => '#2F80ED',
             'is_active' => '1',
         ])->assertSessionHasNoErrors();
 
         $shift = Shift::query()->where('code', 'FLEX-1000')->firstOrFail();
 
         $this->actingAs($manager)->put("/shifts/{$shift->id}", [
-            'code' => 'FLEX-1000',
             'name' => 'Flexible Shift',
             'start_time' => '10:00',
             'end_time' => '18:00',
             'break_minutes' => 45,
-            'color' => '#0284C7',
+            'color' => '#176B43',
         ])->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('shifts', [

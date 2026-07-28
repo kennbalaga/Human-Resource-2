@@ -7,6 +7,7 @@ use App\Http\Requests\Schedule\ShiftRequest;
 use App\Models\Shift;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -25,7 +26,13 @@ class ShiftController extends Controller
 
     public function store(ShiftRequest $request): RedirectResponse
     {
-        Shift::query()->create($this->shiftData($request) + ['created_by' => $request->user()->id]);
+        Shift::query()->create($this->shiftData($request) + [
+            'code' => $this->nextShiftCode(
+                $request->string('name')->trim()->toString(),
+                $request->string('start_time')->toString(),
+            ),
+            'created_by' => $request->user()->id,
+        ]);
 
         return back()->with('success', 'Shift template created.');
     }
@@ -58,7 +65,6 @@ class ShiftController extends Controller
     private function shiftData(ShiftRequest $request): array
     {
         return [
-            'code' => strtoupper($request->string('code')->trim()->toString()),
             'name' => $request->string('name')->trim()->toString(),
             'start_time' => $request->string('start_time')->toString(),
             'end_time' => $request->string('end_time')->toString(),
@@ -66,5 +72,26 @@ class ShiftController extends Controller
             'color' => strtoupper($request->string('color')->toString()),
             'is_active' => $request->boolean('is_active'),
         ];
+    }
+
+    private function nextShiftCode(string $name, string $startTime): string
+    {
+        $prefix = Str::of(Str::ascii($name))
+            ->upper()
+            ->replaceMatches('/[^A-Z0-9]+/', '-')
+            ->trim('-')
+            ->before('-')
+            ->substr(0, 24)
+            ->toString() ?: 'SHIFT';
+        $base = $prefix.'-'.str_replace(':', '', $startTime);
+
+        for ($sequence = 1; ; $sequence++) {
+            $suffix = $sequence === 1 ? '' : '-'.$sequence;
+            $code = substr($base, 0, 30 - strlen($suffix)).$suffix;
+
+            if (! Shift::withTrashed()->where('code', $code)->exists()) {
+                return $code;
+            }
+        }
     }
 }

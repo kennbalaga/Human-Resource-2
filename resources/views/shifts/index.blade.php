@@ -81,12 +81,16 @@
                 <input type="hidden" name="_method" value="POST" data-method-field>
                 <div class="modal-header"><div><p class="panel-kicker">Reusable work pattern</p><h2 class="modal-title" id="shiftTemplateModalLabel">New shift template</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                 <div class="modal-body schedule-form-grid">
-                    <label><span>Shift code</span><input type="text" name="code" maxlength="30" placeholder="DAY-0800" required></label>
+                    <div class="shift-code-preview"><span>Shift code</span><strong data-shift-code-preview>Generated automatically after saving</strong></div>
                     <label><span>Shift name</span><input type="text" name="name" maxlength="100" placeholder="Day Shift" required></label>
                     <label><span>Start time</span><input type="time" name="start_time" required></label>
                     <label><span>End time</span><input type="time" name="end_time" required></label>
                     <label><span>Break (minutes)</span><input type="number" name="break_minutes" min="0" max="480" value="60" required></label>
-                    <label><span>Calendar color</span><input class="shift-color-input" type="color" name="color" value="#2563EB" required></label>
+                    <fieldset class="shift-color-choices"><legend>Calendar color</legend><div>
+                        @foreach (['#176B43' => 'Green', '#2F80ED' => 'Blue', '#8B5CF6' => 'Purple', '#334155' => 'Slate', '#D97706' => 'Orange', '#DC2626' => 'Red'] as $color => $label)
+                            <label title="{{ $label }}"><input type="radio" name="color" value="{{ $color }}" @checked($color === '#176B43')><span class="shift-color-choice" style="background: {{ $color }}"><span class="visually-hidden">{{ $label }}</span></span></label>
+                        @endforeach
+                    </div></fieldset>
                     <label class="shift-active-toggle full-width"><input type="checkbox" name="is_active" value="1" checked><span><strong>Active template</strong><small>Available for new assignments and recurring schedules.</small></span></label>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save template</button></div>

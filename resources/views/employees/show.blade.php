@@ -19,7 +19,7 @@
             @if($canViewPrivate)
                 <div class="organization-detail"><span>Contact number</span><strong>{{ $employee->contact_number ?: 'Not recorded' }}</strong></div>
                 <div class="organization-detail"><span>Account access</span><strong>{{ $employee->user?->is_active ? 'Enabled' : 'Disabled' }}</strong></div>
-                <div class="organization-detail organization-field-full"><span>Address</span><strong>{{ $employee->address ?: 'Not recorded' }}</strong></div>
+                <div class="organization-detail organization-field-full"><span>Email address</span><strong>{{ $employee->user?->email ?: 'Not recorded' }}</strong></div>
             @endif
         </div>
     </section>
