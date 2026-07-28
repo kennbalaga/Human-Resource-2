@@ -32,10 +32,7 @@
             icon="users"
             tone="primary"
             :detail="$stats['new_this_month'].' new this month'"
-            :actions="[
-                ['label' => 'View employee directory', 'url' => route('employees.index'), 'icon' => 'users'],
-                ['label' => 'Open schedule calendar', 'url' => route('schedules.index'), 'icon' => 'calendar'],
-            ]"
+            :href="route('employees.index')"
         />
         <x-stat-card
             title="Active workforce"
@@ -43,10 +40,7 @@
             icon="check-circle"
             tone="success"
             detail="Ready for duty"
-            :actions="[
-                ['label' => $canManageWorkforce ? 'Open attendance reports' : 'Open my attendance', 'url' => $canManageWorkforce ? route('attendance.reports.index') : route('attendance.index'), 'icon' => 'clock'],
-                ['label' => 'Open timesheets', 'url' => route('timesheets.index'), 'icon' => 'timesheet'],
-            ]"
+            :href="$canManageWorkforce ? route('attendance.reports.index') : route('attendance.index')"
         />
         <x-stat-card
             title="Departments"
@@ -54,10 +48,7 @@
             icon="building"
             tone="violet"
             detail="Operational units"
-            :actions="[
-                ['label' => 'View departments', 'url' => route('departments.index'), 'icon' => 'building'],
-                ['label' => $canManageWorkforce ? 'Open workforce analytics' : 'Open schedule calendar', 'url' => $canManageWorkforce ? route('analytics.index') : route('schedules.index'), 'icon' => $canManageWorkforce ? 'analytics' : 'calendar'],
-            ]"
+            :href="route('departments.index')"
         />
         <x-stat-card
             title="Positions"
@@ -65,10 +56,7 @@
             icon="briefcase"
             tone="amber"
             detail="Defined roles"
-            :actions="[
-                ['label' => 'View positions', 'url' => route('positions.index'), 'icon' => 'briefcase'],
-                ['label' => $canManageWorkforce ? 'Open shift templates' : 'Open schedule calendar', 'url' => $canManageWorkforce ? route('shifts.index') : route('schedules.index'), 'icon' => $canManageWorkforce ? 'repeat' : 'calendar'],
-            ]"
+            :href="route('positions.index')"
         />
     </section>
 

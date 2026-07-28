@@ -49,6 +49,9 @@ class SettingsController extends Controller
                 : null,
             'canManageEmployeeNumberSettings' => $user->hasRole('system-administrator'),
             'canManageAttendanceSettings' => $user->hasRole('system-administrator'),
+            'canAccessSystemAdministration' => $user->roles->contains(
+                fn ($role) => in_array($role->slug, ['system-administrator', 'hr-manager'], true),
+            ),
             'employeeNumberAutoGenerate' => $employeeNumberSettings->autoGenerateEnabled(),
             'employeeNumberSettingSource' => $employeeNumberSettings->source(),
             'employeeNumberSettingUpdatedBy' => $employeeNumberSettings->updatedBy()?->name,

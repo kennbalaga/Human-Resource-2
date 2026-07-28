@@ -4,15 +4,15 @@
     'icon',
     'tone' => 'primary',
     'detail' => null,
-    'actions' => [],
+    'href' => '#',
 ])
 
-<article class="stat-card">
+<a class="stat-card" href="{{ $href }}" aria-label="Open {{ $title }}">
     <div class="stat-card-top">
         <span class="stat-icon stat-icon-{{ $tone }}">
             <x-icon :name="$icon" />
         </span>
-        <x-dashboard-action-menu :label="'Options for '.$title" :items="$actions" />
+        <span class="stat-card-link-icon" aria-hidden="true"><x-icon name="chevron-right" /></span>
     </div>
     <p class="stat-title">{{ $title }}</p>
     <div class="stat-value-row">
@@ -21,4 +21,4 @@
             <span class="stat-detail"><x-icon name="arrow-up" /> {{ $detail }}</span>
         @endif
     </div>
-</article>
+</a>

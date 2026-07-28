@@ -37,19 +37,6 @@
     <div class="app-shell">
         @include('partials.sidebar')
 
-        <button
-            class="sidebar-collapse-button"
-            type="button"
-            aria-controls="appSidebar"
-            aria-expanded="true"
-            aria-label="Collapse sidebar"
-            data-sidebar-collapse
-            data-sidebar-label="Collapse sidebar"
-        >
-            <span class="sidebar-collapse-grip" aria-hidden="true"></span>
-            <x-icon name="chevron-right" />
-        </button>
-
         <button class="sidebar-overlay" type="button" aria-label="Close navigation" data-sidebar-close></button>
 
         <div class="app-main">

@@ -15,6 +15,7 @@
         <aside class="panel settings-section-nav" aria-label="Settings sections">
             <a href="#account"><x-icon name="users" /><span><strong>Account</strong><small>Email and identity</small></span></a>
             @if($canManageEmployeeNumberSettings || $canManageAttendanceSettings)<a href="#system-controls"><x-icon name="settings" /><span><strong>System controls</strong><small>IDs and attendance capture</small></span></a>@endif
+            @if($canAccessSystemAdministration)<a href="#system-administration"><x-icon name="shield" /><span><strong>Administration</strong><small>Integrations and audit history</small></span></a>@endif
             <a href="#preferences"><x-icon name="moon" /><span><strong>Appearance</strong><small>Theme and display</small></span></a>
             <a href="#two-factor"><x-icon name="shield" /><span><strong>Two-factor security</strong><small>Authenticator and recovery</small></span></a>
             <a href="#security"><x-icon name="settings" /><span><strong>Password</strong><small>Password and API tokens</small></span></a>
@@ -108,6 +109,16 @@
                         @endif
                     </article>
                 @endif
+            @endif
+
+            @if($canAccessSystemAdministration)
+                <article class="panel settings-panel" id="system-administration">
+                    <div class="panel-header"><div><p class="panel-kicker">System administration</p><h2>Operational tools</h2></div><x-icon name="shield" /></div>
+                    <div class="settings-resource-links">
+                        <a href="{{ route('integrations.index') }}"><span class="settings-resource-icon"><x-icon name="plug" /></span><span><strong>Integrations</strong><small>Manage AI scheduling and the Gemini connection.</small></span><x-icon name="chevron-right" /></a>
+                        <a href="{{ route('audit-logs.index') }}"><span class="settings-resource-icon"><x-icon name="report" /></span><span><strong>Audit logs</strong><small>Review security and compliance activity.</small></span><x-icon name="chevron-right" /></a>
+                    </div>
+                </article>
             @endif
 
             <article class="panel settings-panel" id="preferences">

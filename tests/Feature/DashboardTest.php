@@ -34,7 +34,12 @@ class DashboardTest extends TestCase
             ->assertSee('data-sidebar-collapse', false)
             ->assertSee('data-sidebar-label="Collapse sidebar"', false)
             ->assertSee('aria-label="Collapse sidebar"', false)
-            ->assertSee('sidebar-collapse-grip', false)
+            ->assertSee('sidebar-brand-toggle', false)
+            ->assertSee('Dr. Jose Rodriguez')
+            ->assertDontSee('sidebar-section-label')
+            ->assertDontSee('>Integrations<', false)
+            ->assertDontSee('>Audit Logs<', false)
+            ->assertDontSee('sidebar-user', false)
             ->assertSee('data-topbar-clock', false)
             ->assertSee('data-timezone="Asia/Manila"', false)
             ->assertSee('data-topbar-time', false)
@@ -52,8 +57,12 @@ class DashboardTest extends TestCase
 
         $employee = Employee::query()->where('employee_number', 'HR-0002')->firstOrFail();
 
-        $this->assertSame(9, substr_count($response->getContent(), 'data-dashboard-action-menu'));
+        $this->assertSame(5, substr_count($response->getContent(), 'data-dashboard-action-menu'));
         $response
+            ->assertSee(route('employees.index'), false)
+            ->assertSee(route('attendance.reports.index'), false)
+            ->assertSee(route('departments.index'), false)
+            ->assertSee(route('positions.index'), false)
             ->assertSee(route('schedules.index', ['employee_id' => $employee->id]), false)
             ->assertSee(route('attendance.reports.index', ['employee_id' => $employee->id]), false)
             ->assertSee(route('leaves.index', ['employee_id' => $employee->id]), false);
@@ -74,6 +83,6 @@ class DashboardTest extends TestCase
             ->assertDontSee('Open attendance reports')
             ->assertDontSee('Open shift templates');
 
-        $this->assertSame(9, substr_count($response->getContent(), 'data-dashboard-action-menu'));
+        $this->assertSame(5, substr_count($response->getContent(), 'data-dashboard-action-menu'));
     }
 }

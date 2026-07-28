@@ -40,6 +40,15 @@ class ProfileSettingsTest extends TestCase
             ->assertSee(route('settings.edit'), false);
     }
 
+    public function test_standard_employees_do_not_see_system_administration_tools_in_settings(): void
+    {
+        $this->actingAs($this->employeeUser())->get(route('settings.edit'))
+            ->assertOk()
+            ->assertDontSee('Operational tools')
+            ->assertDontSee(route('integrations.index'), false)
+            ->assertDontSee(route('audit-logs.index'), false);
+    }
+
     public function test_employee_can_update_only_personal_contact_information(): void
     {
         $user = $this->employeeUser();
