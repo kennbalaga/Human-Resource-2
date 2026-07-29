@@ -4,6 +4,7 @@
     @if($editing) @method('PUT') @endif
     <fieldset class="organization-fieldset">
         <legend>Department details</legend>
+        <label class="organization-field"><span>Department group</span><select name="category" required>@foreach($categories as $value => $label)<option value="{{ $value }}" @selected(old('category', $department->category ?? \App\Models\Department::CATEGORY_ADMINISTRATIVE) === $value)>{{ $label }}</option>@endforeach</select>@error('category')<small class="organization-error">{{ $message }}</small>@enderror</label>
         <label class="organization-field"><span>Department code</span><input type="text" name="code" maxlength="20" required value="{{ old('code', $department->code ?? '') }}" placeholder="HR">@error('code')<small class="organization-error">{{ $message }}</small>@enderror</label>
         <label class="organization-field"><span>Department name</span><input type="text" name="name" maxlength="150" required value="{{ old('name', $department->name ?? '') }}" placeholder="Human Resources">@error('name')<small class="organization-error">{{ $message }}</small>@enderror</label>
         <label class="organization-field organization-field-full"><span>Description</span><textarea name="description" maxlength="1000" placeholder="Purpose and responsibilities of this department">{{ old('description', $department->description ?? '') }}</textarea>@error('description')<small class="organization-error">{{ $message }}</small>@enderror</label>

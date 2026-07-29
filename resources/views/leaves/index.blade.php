@@ -10,7 +10,10 @@
     @endphp
     <section class="page-heading workforce-heading">
         <div><p class="eyebrow">Workforce Management</p><h1>Leave Management</h1><p>Track balances, submit supporting documents, and manage leave approvals.</p></div>
-        <button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#leaveRequestModal"><x-icon name="plus" /> Request leave</button>
+        <div class="row-action-group">
+            @if($canManageLeaveTypes)<button class="btn btn-outline-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#leaveTypeModal"><x-icon name="plus" /> Add leave type</button>@endif
+            <button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#leaveRequestModal"><x-icon name="plus" /> Request leave</button>
+        </div>
     </section>
 
     @if(session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
@@ -74,4 +77,17 @@
         <label class="full-width"><span>Leave type</span><select name="leave_type_id" required><option value="">Select leave type</option>@foreach($types as $type)<option value="{{ $type->id }}">{{ $type->name }} · {{ number_format($balances->firstWhere('leave_type_id', $type->id)?->available_days ?? 0, 1) }} days available{{ $type->requires_attachment ? ' · Attachment required' : '' }}</option>@endforeach</select></label>
         <label><span>Starts</span><input type="date" name="start_date" required></label><label><span>Ends</span><input type="date" name="end_date" required></label><label class="full-width"><span>Reason</span><textarea name="reason" minlength="10" maxlength="1000" rows="4" required></textarea></label><label class="full-width"><span>Supporting documents</span><input type="file" name="attachments[]" accept=".pdf,.jpg,.jpeg,.png" multiple><small>PDF, JPG, or PNG. Up to 5 files, 5 MB each.</small></label>
     </div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit">Submit request</button></div></form></div></div></div>
+
+    @if($canManageLeaveTypes)
+        <div class="modal fade" id="leaveTypeModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content schedule-modal-content"><form method="POST" action="{{ route('leave-types.store') }}">@csrf<div class="modal-header"><div><p class="panel-kicker">Leave policy</p><h2 class="modal-title">Add leave type</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body schedule-form-grid">
+            <label><span>Code</span><input type="text" name="code" maxlength="30" value="{{ old('code') }}" placeholder="BEREAVEMENT" required><small>Uppercase letters, numbers, and dashes only.</small></label>
+            <label><span>Leave type name</span><input type="text" name="name" maxlength="100" value="{{ old('name') }}" placeholder="Bereavement Leave" required></label>
+            <label class="full-width"><span>Description</span><textarea name="description" rows="3" maxlength="1000" placeholder="Who can use this leave type and any conditions">{{ old('description') }}</textarea></label>
+            <label><span>Annual entitlement (days)</span><input type="number" name="annual_entitlement" min="0" max="366" step="0.5" value="{{ old('annual_entitlement', 0) }}" required></label>
+            <label><span>Maximum carry-over (days)</span><input type="number" name="max_carry_over" min="0" max="366" step="0.5" value="{{ old('max_carry_over', 0) }}" required></label>
+            <label><span>Color</span><input type="color" name="color" value="{{ old('color', '#176B43') }}" required></label>
+            <label><span>Status</span><select name="is_active" required><option value="1" @selected(old('is_active', '1') === '1')>Active</option><option value="0" @selected(old('is_active') === '0')>Inactive</option></select></label>
+            <label class="full-width"><span><input type="hidden" name="requires_attachment" value="0"><input type="checkbox" name="requires_attachment" value="1" @checked(old('requires_attachment'))> Require supporting document when this leave type is requested</span></label>
+        </div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit">Create leave type</button></div></form></div></div></div>
+    @endif
 @endsection

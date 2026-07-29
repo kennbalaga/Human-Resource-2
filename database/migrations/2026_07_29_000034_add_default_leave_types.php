@@ -1,20 +1,20 @@
 <?php
 
-namespace Database\Seeders;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
-use App\Models\Employee;
-use App\Models\LeaveBalance;
-use App\Models\LeaveType;
-use Illuminate\Database\Seeder;
-
-class LeaveManagementSeeder extends Seeder
+return new class extends Migration
 {
-    public function run(): void
+    public function up(): void
     {
+        Schema::table('leave_types', function (Blueprint $table): void {
+            $table->text('description')->nullable()->after('name');
+        });
+
+        $now = now();
         $types = [
-            ['code' => 'VAC', 'name' => 'Vacation Leave', 'color' => '#2F80ED', 'annual_entitlement' => 15, 'max_carry_over' => 5, 'requires_attachment' => false],
-            ['code' => 'SICK', 'name' => 'Sick Leave', 'color' => '#D6455D', 'annual_entitlement' => 15, 'max_carry_over' => 5, 'requires_attachment' => true],
-            ['code' => 'EMER', 'name' => 'Emergency Leave', 'color' => '#D98B14', 'annual_entitlement' => 5, 'max_carry_over' => 0, 'requires_attachment' => false],
             ['code' => 'MATERNITY', 'name' => 'Maternity Leave', 'description' => 'Para sa babaeng empleyadong manganganak. Saklaw ng mga umiiral na batas at SSS benefits.', 'color' => '#DB2777', 'annual_entitlement' => 105, 'max_carry_over' => 0, 'requires_attachment' => true],
             ['code' => 'PATERNITY', 'name' => 'Paternity Leave', 'description' => 'Para sa lalaking empleyado na may asawang nanganak. Saklaw ng Philippine law kung qualified.', 'color' => '#2563EB', 'annual_entitlement' => 7, 'max_carry_over' => 0, 'requires_attachment' => true],
             ['code' => 'SPECIAL-PRIVILEGE', 'name' => 'Special Leave (Special Privilege Leave)', 'description' => 'Para sa personal matters, birthdays, relocation, at iba pang pinapayagan ng kumpanya.', 'color' => '#7C3AED', 'annual_entitlement' => 3, 'max_carry_over' => 0, 'requires_attachment' => false],
@@ -24,14 +24,19 @@ class LeaveManagementSeeder extends Seeder
             ['code' => 'COMP-OFF', 'name' => 'Compensatory Leave (Comp-Off)', 'description' => 'Kapalit ng approved overtime o work during holidays/rest days, kung pinapayagan ng policy.', 'color' => '#059669', 'annual_entitlement' => 366, 'max_carry_over' => 0, 'requires_attachment' => true],
         ];
 
-        foreach ($types as $data) {
-            $type = LeaveType::query()->updateOrCreate(['code' => $data['code']], $data + ['is_active' => true]);
-            Employee::query()->where('employment_status', 'active')->each(function (Employee $employee) use ($type): void {
-                LeaveBalance::query()->updateOrCreate(
-                    ['employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => now()->year],
-                    ['entitled_days' => $type->annual_entitlement],
-                );
-            });
+        foreach ($types as $type) {
+            DB::table('leave_types')->insertOrIgnore($type + [
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
         }
     }
-}
+
+    public function down(): void
+    {
+        Schema::table('leave_types', function (Blueprint $table): void {
+            $table->dropColumn('description');
+        });
+    }
+};

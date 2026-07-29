@@ -14,7 +14,7 @@ class OrganizationStructureTest extends TestCase
         $this->seed();
 
         $this->assertDatabaseCount('roles', 4);
-        $this->assertDatabaseCount('departments', 6);
+        $this->assertDatabaseCount('departments', 38);
         $this->assertDatabaseCount('positions', 4);
         $this->assertDatabaseCount('users', 4);
         $this->assertDatabaseCount('employees', 4);

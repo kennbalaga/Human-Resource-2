@@ -110,26 +110,27 @@ class OrganizationManagementTest extends TestCase
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
 
         $this->actingAs($manager)->post(route('departments.store'), [
-            'code' => 'lab',
-            'name' => 'Laboratory Services',
+            'code' => 'anatomic-lab',
+            'name' => 'Anatomic Laboratory Services',
+            'category' => 'clinical',
             'description' => 'Diagnostic laboratory operations.',
             'is_active' => '1',
         ])->assertRedirect();
 
-        $department = Department::query()->where('code', 'LAB')->firstOrFail();
+        $department = Department::query()->where('code', 'ANATOMIC-LAB')->firstOrFail();
 
         $this->actingAs($manager)->post(route('positions.store'), [
             'department_id' => $department->id,
-            'code' => 'lab-tech',
+            'code' => 'anatomic-tech',
             'title' => 'Medical Laboratory Technician',
             'description' => 'Performs diagnostic laboratory procedures.',
             'is_active' => '1',
         ])->assertRedirect();
 
-        $position = Position::query()->where('code', 'LAB-TECH')->firstOrFail();
+        $position = Position::query()->where('code', 'ANATOMIC-TECH')->firstOrFail();
 
         $response = $this->actingAs($manager)->post(route('employees.store'), [
-            'employee_number' => 'lab-0001',
+            'employee_number' => 'anatomic-lab-0001',
             'email' => 'new.lab@hrms.local',
             'first_name' => 'Jamie',
             'last_name' => 'Santos',
@@ -140,7 +141,7 @@ class OrganizationManagementTest extends TestCase
             'contact_number' => '+63 917 000 0000',
         ]);
 
-        $employee = Employee::query()->where('employee_number', 'LAB-2026-0001')->firstOrFail();
+        $employee = Employee::query()->where('employee_number', 'ANATOMIC-LAB-2026-0001')->firstOrFail();
         $newUser = User::query()->where('email', 'new.lab@hrms.local')->firstOrFail();
 
         $response->assertRedirect(route('employees.show', $employee));

@@ -180,6 +180,35 @@
     gap: 1rem;
 }
 
+.organization-category-group {
+    margin-bottom: 1.5rem;
+}
+
+.organization-category-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 1rem;
+    padding: 0 .15rem .65rem;
+    border-bottom: 1px solid var(--hr-border);
+}
+
+.organization-category-heading .eyebrow {
+    margin: 0 0 .15rem;
+}
+
+.organization-category-heading h2 {
+    margin: 0;
+    color: #203129;
+    font-size: 1rem;
+}
+
+.organization-category-heading > span {
+    color: #718078;
+    font-size: .7rem;
+    font-weight: 700;
+}
+
 .organization-card {
     display: grid;
     min-height: 12rem;
@@ -527,6 +556,7 @@ html[data-theme-resolved='dark'] .organization-field input[readonly] {
 }
 
 html[data-theme-resolved='dark'] .organization-card h2,
+html[data-theme-resolved='dark'] .organization-category-heading h2,
 html[data-theme-resolved='dark'] .organization-profile-header h2,
 html[data-theme-resolved='dark'] .organization-card-counts strong,
 html[data-theme-resolved='dark'] .organization-checkbox strong,

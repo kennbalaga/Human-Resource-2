@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Leave\LeaveFilterRequest;
 use App\Http\Requests\Leave\StoreLeaveRequest;
+use App\Http\Requests\Leave\StoreLeaveTypeRequest;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveAttachment;
@@ -82,6 +83,7 @@ class LeaveController extends Controller
             'focusDate' => $focusDate,
             'filters' => $filters,
             'canManage' => $canManage,
+            'canManageLeaveTypes' => $this->canManageLeaveTypes($request),
             'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
             'notifications' => collect(),
         ]);
@@ -124,6 +126,13 @@ class LeaveController extends Controller
         $this->notifyEmployee($leave, 'submitted', $notifications);
 
         return back()->with('success', 'Leave request submitted for approval.');
+    }
+
+    public function storeType(StoreLeaveTypeRequest $request): RedirectResponse
+    {
+        LeaveType::query()->create($request->validated());
+
+        return back()->with('success', 'Leave type created successfully. It is now available for leave requests.');
     }
 
     public function approve(
@@ -174,6 +183,11 @@ class LeaveController extends Controller
     private function requireManager(Request $request): void
     {
         abort_unless($this->canManage($request), 403);
+    }
+
+    private function canManageLeaveTypes(Request $request): bool
+    {
+        return $request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists();
     }
 
     private function notifyEmployee(

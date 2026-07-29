@@ -15,13 +15,16 @@ class DepartmentController extends Controller
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
+            'category' => ['nullable', 'in:'.implode(',', array_keys(Department::categories()))],
             'status' => ['nullable', 'in:active,inactive'],
         ]);
         $departments = Department::query()
             ->withCount(['employees', 'positions'])
             ->when($filters['search'] ?? null, fn (Builder $query, string $search) => $query
                 ->where(fn (Builder $nested) => $nested->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%")))
+            ->when($filters['category'] ?? null, fn (Builder $query, string $category) => $query->where('category', $category))
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('is_active', $status === 'active'))
+            ->orderByRaw("case category when 'clinical' then 1 when 'administrative' then 2 when 'support' then 3 else 4 end")
             ->orderBy('name')
             ->paginate(12)
             ->withQueryString();
@@ -29,6 +32,7 @@ class DepartmentController extends Controller
         return view('departments.index', [
             'departments' => $departments,
             'filters' => $filters,
+            'categories' => Department::categories(),
             'canManage' => $this->canManage($request),
             'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
         ]);
@@ -38,7 +42,10 @@ class DepartmentController extends Controller
     {
         $this->requireManager($request);
 
-        return view('departments.create', ['currentRole' => $request->user()->roles()->value('name') ?? 'Employee']);
+        return view('departments.create', [
+            'categories' => Department::categories(),
+            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+        ]);
     }
 
     public function store(SaveDepartmentRequest $request): RedirectResponse
@@ -54,6 +61,7 @@ class DepartmentController extends Controller
 
         return view('departments.edit', [
             'department' => $department->loadCount(['employees', 'positions']),
+            'categories' => Department::categories(),
             'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
         ]);
     }

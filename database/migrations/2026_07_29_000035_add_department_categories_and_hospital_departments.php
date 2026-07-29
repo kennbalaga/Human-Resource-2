@@ -1,18 +1,23 @@
 <?php
 
-namespace Database\Seeders;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
-use App\Models\Department;
-use App\Models\Position;
-use Illuminate\Database\Seeder;
-
-class OrganizationSeeder extends Seeder
+return new class extends Migration
 {
-    public function run(): void
+    public function up(): void
     {
+        Schema::table('departments', function (Blueprint $table): void {
+            $table->string('category', 30)->nullable()->index()->after('description');
+        });
+
+        DB::table('departments')->whereIn('code', ['MED', 'NUR'])->update(['category' => 'clinical']);
+        DB::table('departments')->whereIn('code', ['ADMIN', 'FIN', 'HR', 'IT'])->update(['category' => 'administrative']);
+
+        $now = now();
         $departments = [
-            ['code' => 'MED', 'name' => 'Medical Services', 'category' => 'clinical', 'description' => 'Medical care services and clinical governance.'],
-            ['code' => 'NUR', 'name' => 'Nursing Service', 'category' => 'clinical', 'description' => 'Nursing care, wards, and patient support.'],
             ['code' => 'ER', 'name' => 'Emergency Room', 'category' => 'clinical', 'description' => 'Emergency assessment, stabilization, and treatment.'],
             ['code' => 'ICU', 'name' => 'Intensive Care Unit', 'category' => 'clinical', 'description' => 'Critical care for patients requiring intensive monitoring.'],
             ['code' => 'OR', 'name' => 'Operating Room', 'category' => 'clinical', 'description' => 'Surgical and perioperative services.'],
@@ -32,10 +37,6 @@ class OrganizationSeeder extends Seeder
             ['code' => 'BLOOD-BANK', 'name' => 'Blood Bank', 'category' => 'clinical', 'description' => 'Blood collection, storage, and transfusion support.'],
             ['code' => 'RESP-THERAPY', 'name' => 'Respiratory Therapy', 'category' => 'clinical', 'description' => 'Respiratory assessment and therapy services.'],
             ['code' => 'NUTRITION', 'name' => 'Nutrition and Dietetics', 'category' => 'clinical', 'description' => 'Clinical nutrition and dietetic services.'],
-            ['code' => 'ADMIN', 'name' => 'Administration', 'category' => 'administrative', 'description' => 'Hospital administration and executive support.'],
-            ['code' => 'FIN', 'name' => 'Finance', 'category' => 'administrative', 'description' => 'Financial planning, accounting, and reporting.'],
-            ['code' => 'HR', 'name' => 'Human Resources', 'category' => 'administrative', 'description' => 'Workforce administration and employee services.'],
-            ['code' => 'IT', 'name' => 'Information Technology', 'category' => 'administrative', 'description' => 'Information systems, infrastructure, and user support.'],
             ['code' => 'BILLING', 'name' => 'Billing', 'category' => 'administrative', 'description' => 'Patient billing and account reconciliation.'],
             ['code' => 'ADMISSIONS', 'name' => 'Admissions', 'category' => 'administrative', 'description' => 'Patient registration and admission coordination.'],
             ['code' => 'HIM', 'name' => 'Medical Records and Health Information Management', 'category' => 'administrative', 'description' => 'Health records, privacy, and information management.'],
@@ -52,33 +53,18 @@ class OrganizationSeeder extends Seeder
         ];
 
         foreach ($departments as $department) {
-            Department::query()->updateOrCreate(
-                ['code' => $department['code']],
-                $department + ['is_active' => true],
-            );
-        }
-
-        $positions = [
-            ['department' => 'IT', 'code' => 'SYS-ADMIN', 'title' => 'System Administrator'],
-            ['department' => 'HR', 'code' => 'HR-MGR', 'title' => 'HR Manager'],
-            ['department' => 'HR', 'code' => 'HR-OFFICER', 'title' => 'HR Officer'],
-            ['department' => 'NUR', 'code' => 'NUR-HEAD', 'title' => 'Nursing Department Head'],
-        ];
-
-        foreach ($positions as $position) {
-            $departmentId = Department::query()
-                ->where('code', $position['department'])
-                ->firstOrFail()
-                ->id;
-
-            Position::query()->updateOrCreate(
-                ['code' => $position['code']],
-                [
-                    'department_id' => $departmentId,
-                    'title' => $position['title'],
-                    'is_active' => true,
-                ],
-            );
+            DB::table('departments')->insertOrIgnore($department + [
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
         }
     }
-}
+
+    public function down(): void
+    {
+        Schema::table('departments', function (Blueprint $table): void {
+            $table->dropColumn('category');
+        });
+    }
+};

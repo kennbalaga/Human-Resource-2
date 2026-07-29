@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Tests\TestCase;
 
 class LeaveWorkflowTest extends TestCase
@@ -114,6 +115,57 @@ class LeaveWorkflowTest extends TestCase
             'end_date' => '2027-08-02',
             'reason' => 'Medical rest advised by physician.',
         ])->assertSessionHasErrors('attachments');
+    }
+
+    public function test_hr_manager_can_manually_add_a_leave_type(): void
+    {
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+        app(EnableTwoFactorAuthentication::class)($manager);
+        $manager->forceFill(['two_factor_confirmed_at' => now()])->save();
+
+        $this->actingAs($manager)->post(route('leave-types.store'), [
+            'code' => 'FAMILY-RESPITE',
+            'name' => 'Family Respite Leave',
+            'color' => '#5B21B6',
+            'annual_entitlement' => 5,
+            'max_carry_over' => 0,
+            'requires_attachment' => '1',
+            'is_active' => '1',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('leave_types', [
+            'code' => 'FAMILY-RESPITE',
+            'name' => 'Family Respite Leave',
+            'requires_attachment' => true,
+            'is_active' => true,
+        ]);
+
+    }
+
+    public function test_regular_employee_cannot_add_a_leave_type(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+
+        $this->actingAs($employee)->post(route('leave-types.store'), [
+            'code' => 'BEREAVEMENT',
+            'name' => 'Bereavement Leave',
+            'color' => '#5B21B6',
+            'annual_entitlement' => 5,
+            'max_carry_over' => 0,
+            'is_active' => '1',
+        ])->assertForbidden();
+    }
+
+    public function test_requested_default_leave_types_are_available(): void
+    {
+        $this->assertDatabaseCount('leave_types', 10);
+        $this->assertDatabaseHas('leave_types', ['code' => 'MATERNITY', 'name' => 'Maternity Leave', 'annual_entitlement' => 105]);
+        $this->assertDatabaseHas('leave_types', ['code' => 'PATERNITY', 'name' => 'Paternity Leave', 'annual_entitlement' => 7]);
+        $this->assertDatabaseHas('leave_types', ['code' => 'SPECIAL-PRIVILEGE', 'name' => 'Special Leave (Special Privilege Leave)']);
+        $this->assertDatabaseHas('leave_types', ['code' => 'BEREAVEMENT', 'name' => 'Bereavement Leave']);
+        $this->assertDatabaseHas('leave_types', ['code' => 'STUDY', 'name' => 'Study Leave']);
+        $this->assertDatabaseHas('leave_types', ['code' => 'UNPAID', 'name' => 'Unpaid Leave (Leave Without Pay)']);
+        $this->assertDatabaseHas('leave_types', ['code' => 'COMP-OFF', 'name' => 'Compensatory Leave (Comp-Off)']);
     }
 
     private function submitVacation(User $employee): LeaveRequest
