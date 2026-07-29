@@ -102,8 +102,7 @@ class EmployeeController extends Controller
                 'password' => $temporaryPassword,
                 'is_active' => $this->accountIsActive($data['employment_status']),
             ]);
-            $role = Role::query()->where('slug', 'employee')->firstOrFail();
-            $user->roles()->attach($role);
+            $this->syncRoleForPosition($user, (int) $data['position_id']);
 
             return Employee::query()->create($this->employeeData($data) + ['user_id' => $user->id]);
         });
@@ -146,8 +145,6 @@ class EmployeeController extends Controller
                     'password' => $this->initialEmployeePassword(),
                     'is_active' => $this->accountIsActive($data['employment_status']),
                 ]);
-                $role = Role::query()->where('slug', 'employee')->firstOrFail();
-                $user->roles()->attach($role);
                 $employee->user()->associate($user);
             } else {
                 $emailChanged = $user->email !== $data['email'];
@@ -160,6 +157,7 @@ class EmployeeController extends Controller
             }
 
             $employee->fill($this->employeeData($data))->save();
+            $this->syncRoleForPosition($user, (int) $data['position_id']);
         });
 
         return redirect()->route('employees.show', $employee)->with('success', 'Employee profile updated successfully.');
@@ -203,6 +201,20 @@ class EmployeeController extends Controller
     private function accountIsActive(string $status): bool
     {
         return in_array($status, ['active', 'on_leave'], true);
+    }
+
+    private function syncRoleForPosition(User $user, int $positionId): void
+    {
+        $positionCode = Position::query()->whereKey($positionId)->value('code');
+        $roleSlug = match ($positionCode) {
+            'SYS-ADMIN' => 'system-administrator',
+            'HR-MGR' => 'hr-manager',
+            'NUR-HEAD' => 'department-head',
+            default => 'employee',
+        };
+
+        $role = Role::query()->where('slug', $roleSlug)->firstOrFail();
+        $user->roles()->sync([$role->id]);
     }
 
     private function sendPasswordSetupLink(User $user): bool

@@ -199,4 +199,30 @@ class OrganizationManagementTest extends TestCase
         $this->assertFalse($employee->user->fresh()->is_active);
         $this->assertSame('terminated', $employee->fresh()->employment_status);
     }
+
+    public function test_system_administrator_position_assigns_the_system_administrator_role(): void
+    {
+        $this->seed();
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+        $employee = Employee::query()->with('user')->where('employee_number', 'HR-2026-0002')->firstOrFail();
+        $systemAdministratorPosition = Position::query()->where('code', 'SYS-ADMIN')->firstOrFail();
+
+        $this->actingAs($manager)->put(route('employees.update', $employee), [
+            'email' => $employee->user->email,
+            'first_name' => $employee->first_name,
+            'middle_name' => $employee->middle_name,
+            'last_name' => $employee->last_name,
+            'suffix' => $employee->suffix,
+            'department_id' => $systemAdministratorPosition->department_id,
+            'position_id' => $systemAdministratorPosition->id,
+            'supervisor_id' => null,
+            'employment_status' => 'active',
+            'hire_date' => $employee->hire_date?->format('Y-m-d'),
+            'contact_number' => $employee->contact_number,
+            'address' => $employee->address,
+        ])->assertRedirect(route('employees.show', $employee));
+
+        $this->assertTrue($employee->user->fresh()->hasRole('system-administrator'));
+        $this->assertFalse($employee->user->fresh()->hasRole('employee'));
+    }
 }
