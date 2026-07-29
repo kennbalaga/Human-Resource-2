@@ -55,7 +55,7 @@ class SaveEmployeeRequest extends FormRequest
             'position_id' => ['required', 'integer', $positionExists],
             'supervisor_id' => ['nullable', 'integer', Rule::exists('employees', 'id')->where('employment_status', 'active'), Rule::notIn(array_filter([$employee?->id]))],
             'employment_status' => ['required', Rule::in(['active', 'inactive', 'on_leave', 'terminated'])],
-            'hire_date' => ['nullable', 'date'],
+            'hire_date' => ['required', 'date'],
             'contact_number' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string', 'max:1000'],
         ];

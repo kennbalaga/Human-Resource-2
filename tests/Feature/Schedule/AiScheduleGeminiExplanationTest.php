@@ -30,7 +30,7 @@ class AiScheduleGeminiExplanationTest extends TestCase
         $this->seed();
         Http::preventStrayRequests();
         $this->manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
-        $this->employee = Employee::query()->where('employee_number', 'HR-0002')->firstOrFail();
+        $this->employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
         $this->payload = [
             'department_id' => Department::query()->where('code', 'HR')->firstOrFail()->id,
             'position_id' => Position::query()->where('code', 'HR-OFFICER')->firstOrFail()->id,

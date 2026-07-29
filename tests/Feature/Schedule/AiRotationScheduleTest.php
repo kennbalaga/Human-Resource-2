@@ -30,7 +30,7 @@ class AiRotationScheduleTest extends TestCase
         parent::setUp();
         $this->seed();
         $this->manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
-        $this->employee = Employee::query()->where('employee_number', 'HR-0002')->firstOrFail();
+        $this->employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
         $this->shiftIds = Shift::query()->whereIn('code', ['AM-0700', 'DAY-0800'])->orderBy('start_time')->pluck('id')->all();
     }
 

@@ -21,7 +21,7 @@
             <main class="login-container">
                 <div class="login-header">
                     <h1>Welcome Back</h1>
-                    <p>Enter your employee ID and password to access your account.</p>
+                    <p>Enter your employee ID or work email and password to access your account.</p>
                 </div>
 
                 <form id="loginForm" method="POST" action="{{ route('login') }}">
@@ -40,13 +40,14 @@
                     @endif
 
                     <div class="input-group">
-                        <label for="employee_id">Employee Id</label>
+                        <label for="employee_id">Employee ID or Email Address</label>
                         <input
                             type="text"
                             id="employee_id"
                             name="employee_id"
                             value="{{ old('employee_id', $rememberedEmployeeId) }}"
                             autocomplete="username"
+                            placeholder="ABC-2026-0001 or name@example.com"
                             required
                             autofocus
                         >

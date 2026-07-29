@@ -37,7 +37,7 @@
                     <form method="POST" action="{{ route('settings.employee-numbers.update') }}" class="profile-settings-form">
                         @csrf @method('PATCH')
                         <div class="settings-toggle-list">
-                            <label class="settings-toggle"><span><strong>Automatically generate employee IDs</strong><small>New employees receive the next department-based ID, such as HR-0003 or NUR-0002.</small></span><input type="checkbox" name="auto_generate" value="1" @checked(old('auto_generate', $employeeNumberAutoGenerate))><i aria-hidden="true"></i></label>
+                            <label class="settings-toggle"><span><strong>Automatically generate employee IDs</strong><small>New employees receive the next department- and hire-year-based ID, such as HR-2026-0003 or NUR-2026-0002.</small></span><input type="checkbox" name="auto_generate" value="1" @checked(old('auto_generate', $employeeNumberAutoGenerate))><i aria-hidden="true"></i></label>
                         </div>
                         <div class="settings-security-note"><x-icon name="shield" /><p>Generated IDs are concurrency-safe, never reuse deleted employee IDs, and remain permanent when an employee changes department.</p></div>
                         <small>

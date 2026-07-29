@@ -28,10 +28,10 @@ class ShiftScheduleSeeder extends Seeder
 
         $weekStart = now(config('schedule.timezone'))->startOfWeek(Carbon::MONDAY);
         $seedAssignments = [
-            ['employee' => 'SYS-0001', 'shift' => 'AM-0700'],
-            ['employee' => 'HR-0001', 'shift' => 'DAY-0800'],
-            ['employee' => 'HR-0002', 'shift' => 'DAY-0800'],
-            ['employee' => 'NUR-0001', 'shift' => 'NIGHT-2300'],
+            ['employee' => 'SYS-2026-0001', 'shift' => 'AM-0700'],
+            ['employee' => 'HR-2026-0001', 'shift' => 'DAY-0800'],
+            ['employee' => 'HR-2026-0002', 'shift' => 'DAY-0800'],
+            ['employee' => 'NUR-2026-0001', 'shift' => 'NIGHT-2300'],
         ];
 
         foreach ($seedAssignments as $assignment) {

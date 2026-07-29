@@ -3,6 +3,7 @@ const initializePositionFiltering = () => {
         const department = form.querySelector('[data-department-select]');
         const position = form.querySelector('[data-position-select]');
         const generatedEmployeeNumber = form.querySelector('[data-generated-employee-number]');
+        const hireDate = form.querySelector('[data-hire-date]');
 
         if (!department || !position) return;
 
@@ -25,8 +26,9 @@ const initializePositionFiltering = () => {
             if (!generatedEmployeeNumber) return;
 
             const departmentCode = department.selectedOptions[0]?.dataset.departmentCode;
+            const hireYear = hireDate?.value?.slice(0, 4) || new Date().getFullYear();
             generatedEmployeeNumber.value = departmentCode
-                ? `${departmentCode}-[next]`
+                ? `${departmentCode}-${hireYear}-[next]`
                 : 'Select a department first';
         };
 
@@ -36,6 +38,7 @@ const initializePositionFiltering = () => {
             filterPositions(true);
             previewEmployeeNumber();
         });
+        hireDate?.addEventListener('change', previewEmployeeNumber);
     });
 };
 

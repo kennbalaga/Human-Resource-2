@@ -28,7 +28,7 @@ class AuthenticationTest extends TestCase
     public function test_employee_can_authenticate_with_employee_id(): void
     {
         $response = $this->post('/login', [
-            'employee_id' => 'hr-0001',
+            'employee_id' => 'hr-2026-0001',
             'password' => 'ChangeMe123!',
         ]);
 
@@ -37,10 +37,21 @@ class AuthenticationTest extends TestCase
         $this->assertNotNull(auth()->user()->last_login_at);
     }
 
+    public function test_employee_can_authenticate_with_work_email(): void
+    {
+        $response = $this->post('/login', [
+            'employee_id' => 'hr.manager@hrms.local',
+            'password' => 'ChangeMe123!',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect('/dashboard');
+    }
+
     public function test_employee_cannot_authenticate_with_invalid_password(): void
     {
         $response = $this->from('/login')->post('/login', [
-            'employee_id' => 'HR-0001',
+            'employee_id' => 'HR-2026-0001',
             'password' => 'incorrect-password',
         ]);
 
@@ -52,11 +63,11 @@ class AuthenticationTest extends TestCase
     public function test_inactive_employee_cannot_authenticate(): void
     {
         Employee::query()
-            ->where('employee_number', 'HR-0001')
+            ->where('employee_number', 'HR-2026-0001')
             ->update(['employment_status' => 'inactive']);
 
         $this->post('/login', [
-            'employee_id' => 'HR-0001',
+            'employee_id' => 'HR-2026-0001',
             'password' => 'ChangeMe123!',
         ]);
 
@@ -66,7 +77,7 @@ class AuthenticationTest extends TestCase
     public function test_authenticated_employee_can_log_out(): void
     {
         $this->post('/login', [
-            'employee_id' => 'HR-0001',
+            'employee_id' => 'HR-2026-0001',
             'password' => 'ChangeMe123!',
         ]);
 
@@ -79,14 +90,14 @@ class AuthenticationTest extends TestCase
     public function test_remember_me_saves_identity_without_creating_persistent_authentication(): void
     {
         $response = $this->post('/login', [
-            'employee_id' => 'HR-0001',
+            'employee_id' => 'HR-2026-0001',
             'password' => 'ChangeMe123!',
             'remember' => '1',
         ]);
 
         $recallerName = Auth::guard('web')->getRecallerName();
         $response
-            ->assertCookie('hrms_remembered_employee', 'HR-0001')
+            ->assertCookie('hrms_remembered_employee', 'HR-2026-0001')
             ->assertCookieExpired($recallerName);
         $rememberedEmployee = $response->getCookie('hrms_remembered_employee')?->getValue();
         $this->flushSession();
@@ -101,40 +112,40 @@ class AuthenticationTest extends TestCase
         $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
             ->get('/login')
             ->assertOk()
-            ->assertSee('value="HR-0001"', false)
+            ->assertSee('value="HR-2026-0001"', false)
             ->assertDontSee('value="ChangeMe123!"', false);
     }
 
     public function test_logout_keeps_only_the_opted_in_employee_id_for_the_unchanged_login_form(): void
     {
         $login = $this->post('/login', [
-            'employee_id' => 'HR-0001',
+            'employee_id' => 'HR-2026-0001',
             'password' => 'ChangeMe123!',
             'remember' => '1',
         ]);
 
-        $login->assertCookie('hrms_remembered_employee', 'HR-0001');
+        $login->assertCookie('hrms_remembered_employee', 'HR-2026-0001');
         $rememberedEmployee = $login->getCookie('hrms_remembered_employee')?->getValue();
 
         $this->post('/logout')
             ->assertRedirect('/login')
-            ->assertCookie('hrms_remembered_employee', 'HR-0001');
+            ->assertCookie('hrms_remembered_employee', 'HR-2026-0001');
 
         Auth::forgetGuards();
 
         $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
             ->get('/login')
             ->assertOk()
-            ->assertSee('value="HR-0001"', false)
+            ->assertSee('value="HR-2026-0001"', false)
             ->assertSee('id="remember" name="remember" value="1" checked', false)
             ->assertDontSee('value="ChangeMe123!"', false);
     }
 
     public function test_signing_in_without_remember_me_removes_a_previously_saved_employee_id(): void
     {
-        $this->withCookie('hrms_remembered_employee', 'HR-0001')
+        $this->withCookie('hrms_remembered_employee', 'HR-2026-0001')
             ->post('/login', [
-                'employee_id' => 'HR-0001',
+                'employee_id' => 'HR-2026-0001',
                 'password' => 'ChangeMe123!',
                 'remember' => '0',
             ])
@@ -143,7 +154,7 @@ class AuthenticationTest extends TestCase
 
     public function test_legacy_persistent_auth_cookie_is_rejected_and_migrated_to_identity_only(): void
     {
-        $user = $this->userForEmployee('HR-0001');
+        $user = $this->userForEmployee('HR-2026-0001');
         $token = Str::random(60);
         $user->forceFill(['remember_token' => $token])->save();
         $guard = Auth::guard('web');
@@ -161,14 +172,14 @@ class AuthenticationTest extends TestCase
             ->get('/dashboard')
             ->assertRedirect('/login')
             ->assertCookieExpired($recallerName)
-            ->assertCookie('hrms_remembered_employee', 'HR-0001');
+            ->assertCookie('hrms_remembered_employee', 'HR-2026-0001');
 
         $this->assertGuest();
     }
 
     public function test_keep_alive_and_json_logout_support_the_inactivity_timer(): void
     {
-        $user = $this->userForEmployee('HR-0001');
+        $user = $this->userForEmployee('HR-2026-0001');
 
         $this->actingAs($user)
             ->getJson(route('session.keep-alive'))

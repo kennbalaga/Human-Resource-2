@@ -30,7 +30,7 @@ class DashboardTest extends TestCase
             ->assertSee('Total employees')
             ->assertSee('Recently added employees')
             ->assertSee('Workforce by department')
-            ->assertSee('HR-0001')
+            ->assertSee('HR-2026-0001')
             ->assertSee('data-sidebar-collapse', false)
             ->assertSee('data-sidebar-label="Collapse sidebar"', false)
             ->assertSee('aria-label="Collapse sidebar"', false)
@@ -55,7 +55,7 @@ class DashboardTest extends TestCase
             ->assertSee('Are you still working?')
             ->assertSee('data-session-login', false);
 
-        $employee = Employee::query()->where('employee_number', 'HR-0002')->firstOrFail();
+        $employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
 
         $this->assertSame(5, substr_count($response->getContent(), 'data-dashboard-action-menu'));
         $response

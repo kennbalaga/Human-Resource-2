@@ -20,7 +20,7 @@ class OrganizationStructureTest extends TestCase
         $this->assertDatabaseCount('employees', 4);
 
         $this->assertDatabaseHas('employees', [
-            'employee_number' => 'HR-0001',
+            'employee_number' => 'HR-2026-0001',
             'employment_status' => 'active',
         ]);
     }

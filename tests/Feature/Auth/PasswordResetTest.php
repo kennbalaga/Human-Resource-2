@@ -33,10 +33,10 @@ class PasswordResetTest extends TestCase
     public function test_active_employee_can_request_a_password_reset_link(): void
     {
         Notification::fake();
-        $user = $this->userForEmployee('HR-0001');
+        $user = $this->userForEmployee('HR-2026-0001');
 
         $response = $this->from('/forgot-password')->post('/forgot-password', [
-            'employee_id' => 'hr-0001',
+            'employee_id' => 'hr-2026-0001',
             'email' => $user->email,
         ]);
 
@@ -48,10 +48,10 @@ class PasswordResetTest extends TestCase
     public function test_unknown_or_mismatched_account_receives_the_same_generic_response(): void
     {
         Notification::fake();
-        $user = $this->userForEmployee('HR-0001');
+        $user = $this->userForEmployee('HR-2026-0001');
 
         $valid = $this->post('/forgot-password', [
-            'employee_id' => 'HR-0001',
+            'employee_id' => 'HR-2026-0001',
             'email' => $user->email,
         ]);
 
@@ -67,11 +67,11 @@ class PasswordResetTest extends TestCase
     public function test_inactive_employee_cannot_receive_a_reset_link(): void
     {
         Notification::fake();
-        $user = $this->userForEmployee('HR-0001');
+        $user = $this->userForEmployee('HR-2026-0001');
         $user->employee()->update(['employment_status' => 'inactive']);
 
         $this->post('/forgot-password', [
-            'employee_id' => 'HR-0001',
+            'employee_id' => 'HR-2026-0001',
             'email' => $user->email,
         ])->assertSessionHas('status');
 
@@ -80,7 +80,7 @@ class PasswordResetTest extends TestCase
 
     public function test_password_can_be_reset_and_existing_api_tokens_are_revoked(): void
     {
-        $user = $this->userForEmployee('HR-0001');
+        $user = $this->userForEmployee('HR-2026-0001');
         $originalRememberToken = $user->remember_token;
         $user->createToken('mobile');
         $token = Password::createToken($user);
@@ -102,7 +102,7 @@ class PasswordResetTest extends TestCase
 
     public function test_reset_token_is_single_use(): void
     {
-        $user = $this->userForEmployee('HR-0001');
+        $user = $this->userForEmployee('HR-2026-0001');
         $token = Password::createToken($user);
         $payload = [
             'token' => $token,
@@ -120,7 +120,7 @@ class PasswordResetTest extends TestCase
 
     public function test_password_reset_does_not_bypass_or_remove_two_factor_authentication(): void
     {
-        $user = $this->userForEmployee('HR-0001');
+        $user = $this->userForEmployee('HR-2026-0001');
         app(EnableTwoFactorAuthentication::class)($user);
         $user->forceFill(['two_factor_confirmed_at' => now()])->save();
         $originalSecret = $user->two_factor_secret;
@@ -138,7 +138,7 @@ class PasswordResetTest extends TestCase
         $this->assertTrue($user->hasEnabledTwoFactorAuthentication());
 
         $this->post('/login', [
-            'employee_id' => 'HR-0001',
+            'employee_id' => 'HR-2026-0001',
             'password' => 'NewSecurePass456!',
         ])->assertRedirect(route('two-factor.login'));
         $this->assertGuest();
@@ -146,7 +146,7 @@ class PasswordResetTest extends TestCase
 
     public function test_reset_password_requires_the_strong_password_policy(): void
     {
-        $user = $this->userForEmployee('HR-0001');
+        $user = $this->userForEmployee('HR-2026-0001');
         $token = Password::createToken($user);
 
         $this->post('/reset-password', [
@@ -159,7 +159,7 @@ class PasswordResetTest extends TestCase
 
     public function test_an_existing_browser_session_is_invalidated_after_the_password_changes(): void
     {
-        $user = $this->userForEmployee('HR-0001');
+        $user = $this->userForEmployee('HR-2026-0001');
 
         $this->actingAs($user)->get('/dashboard')->assertOk();
         $user->update(['password' => 'ChangedOutsideThisSession456!']);

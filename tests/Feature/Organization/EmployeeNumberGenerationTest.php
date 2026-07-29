@@ -43,7 +43,7 @@ class EmployeeNumberGenerationTest extends TestCase
         $employee = Employee::query()->whereHas('user', fn ($query) => $query->where('email', 'generated.hr@hrms.local'))->firstOrFail();
 
         $response->assertRedirect(route('employees.show', $employee));
-        $this->assertSame('HR-0003', $employee->employee_number);
+        $this->assertSame('HR-2026-0003', $employee->employee_number);
         Notification::assertSentTo($employee->user, ResetPassword::class);
     }
 
@@ -54,7 +54,7 @@ class EmployeeNumberGenerationTest extends TestCase
         Employee::query()->create([
             'department_id' => $department->id,
             'position_id' => $position->id,
-            'employee_number' => 'NUR-0009',
+            'employee_number' => 'NUR-2026-0009',
             'first_name' => 'Historical',
             'last_name' => 'Employee',
             'employment_status' => 'terminated',
@@ -67,7 +67,23 @@ class EmployeeNumberGenerationTest extends TestCase
         ))->assertRedirect();
 
         $this->assertDatabaseHas('employees', [
-            'employee_number' => 'NUR-0010',
+            'employee_number' => 'NUR-2026-0010',
+            'department_id' => $department->id,
+        ]);
+    }
+
+    public function test_employee_id_uses_the_employee_hire_year(): void
+    {
+        $department = Department::query()->where('code', 'HR')->firstOrFail();
+        $position = Position::query()->where('department_id', $department->id)->firstOrFail();
+
+        $this->actingAs($this->manager())->post(route('employees.store'), array_merge(
+            $this->employeePayload($department, $position, 'hired.2025@hrms.local'),
+            ['hire_date' => '2025-04-15'],
+        ))->assertRedirect();
+
+        $this->assertDatabaseHas('employees', [
+            'employee_number' => 'HR-2025-0001',
             'department_id' => $department->id,
         ]);
     }
@@ -127,7 +143,7 @@ class EmployeeNumberGenerationTest extends TestCase
 
     public function test_existing_employee_id_is_immutable_even_when_the_request_is_tampered(): void
     {
-        $employee = Employee::query()->with('user')->where('employee_number', 'HR-0002')->firstOrFail();
+        $employee = Employee::query()->with('user')->where('employee_number', 'HR-2026-0002')->firstOrFail();
 
         $this->actingAs($this->manager())->put(route('employees.update', $employee), [
             'employee_number' => 'TAMPERED-0001',
@@ -140,10 +156,10 @@ class EmployeeNumberGenerationTest extends TestCase
             'hire_date' => $employee->hire_date?->toDateString(),
         ])->assertRedirect(route('employees.show', $employee));
 
-        $this->assertSame('HR-0002', $employee->fresh()->employee_number);
+        $this->assertSame('HR-2026-0002', $employee->fresh()->employee_number);
         $this->actingAs($this->manager())->get(route('employees.edit', $employee))
             ->assertOk()
-            ->assertSee('value="HR-0002" readonly', false)
+            ->assertSee('value="HR-2026-0002" readonly', false)
             ->assertDontSee('name="employee_number"', false);
     }
 

@@ -31,7 +31,7 @@ class ProfileSettingsTest extends TestCase
         $this->actingAs($user)->get('/profile')
             ->assertOk()
             ->assertSee('My Profile')
-            ->assertSee('HR-0002')
+            ->assertSee('HR-2026-0002')
             ->assertSee(route('settings.edit'), false);
 
         $this->actingAs($user)->get('/dashboard')
@@ -60,7 +60,7 @@ class ProfileSettingsTest extends TestCase
 
         $this->assertDatabaseHas('employees', [
             'id' => $user->employee->id,
-            'employee_number' => 'HR-0002',
+            'employee_number' => 'HR-2026-0002',
             'contact_number' => '+63 917 123 4567',
             'address' => '123 Workforce Avenue, Quezon City',
         ]);

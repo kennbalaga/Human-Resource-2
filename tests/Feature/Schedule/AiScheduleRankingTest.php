@@ -24,7 +24,7 @@ class AiScheduleRankingTest extends TestCase
         $position = Position::query()->where('code', 'HR-OFFICER')->firstOrFail();
         $day = Shift::query()->where('code', 'DAY-0800')->firstOrFail();
         $night = Shift::query()->where('code', 'NIGHT-2300')->firstOrFail();
-        $existing = Employee::query()->where('employee_number', 'HR-0002')->firstOrFail();
+        $existing = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
         $light = $this->employee($department, $position, 'HR-0100', 'Light');
         $heavy = $this->employee($department, $position, 'HR-0200', 'Heavy');
 

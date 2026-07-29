@@ -22,21 +22,31 @@ class ApiAuthenticationTest extends TestCase
     public function test_employee_id_and_password_create_a_sanctum_token(): void
     {
         $this->postJson('/api/v1/auth/token', [
-            'employee_id' => 'HR-0001',
+            'employee_id' => 'HR-2026-0001',
             'password' => 'ChangeMe123!',
             'device_name' => 'Postman tests',
         ])->assertCreated()
             ->assertJsonPath('data.token_type', 'Bearer')
-            ->assertJsonPath('data.user.employee_number', 'HR-0001')
+            ->assertJsonPath('data.user.employee_number', 'HR-2026-0001')
             ->assertJsonStructure(['data' => ['token', 'abilities', 'user']]);
 
         $this->assertDatabaseCount('personal_access_tokens', 1);
     }
 
+    public function test_work_email_and_password_create_a_sanctum_token(): void
+    {
+        $this->postJson('/api/v1/auth/token', [
+            'employee_id' => 'hr.manager@hrms.local',
+            'password' => 'ChangeMe123!',
+            'device_name' => 'Postman tests',
+        ])->assertCreated()
+            ->assertJsonPath('data.user.employee_number', 'HR-2026-0001');
+    }
+
     public function test_invalid_api_credentials_are_rejected(): void
     {
         $this->postJson('/api/v1/auth/token', [
-            'employee_id' => 'HR-0001',
+            'employee_id' => 'HR-2026-0001',
             'password' => 'wrong-password',
             'device_name' => 'Postman tests',
         ])->assertUnprocessable()
@@ -45,10 +55,10 @@ class ApiAuthenticationTest extends TestCase
 
     public function test_inactive_employee_cannot_create_an_api_token(): void
     {
-        $this->userForEmployee('HR-0001')->employee()->update(['employment_status' => 'inactive']);
+        $this->userForEmployee('HR-2026-0001')->employee()->update(['employment_status' => 'inactive']);
 
         $this->postJson('/api/v1/auth/token', [
-            'employee_id' => 'HR-0001',
+            'employee_id' => 'HR-2026-0001',
             'password' => 'ChangeMe123!',
             'device_name' => 'Postman tests',
         ])->assertUnprocessable()
@@ -62,19 +72,19 @@ class ApiAuthenticationTest extends TestCase
 
     public function test_manager_can_list_employees_and_security_headers_are_present(): void
     {
-        $manager = $this->userForEmployee('HR-0001');
+        $manager = $this->userForEmployee('HR-2026-0001');
         Sanctum::actingAs($manager, ['workforce:read', 'workforce:write']);
 
         $this->getJson('/api/v1/employees')
             ->assertOk()
-            ->assertJsonFragment(['employee_number' => 'HR-0002'])
+            ->assertJsonFragment(['employee_number' => 'HR-2026-0002'])
             ->assertHeader('X-Content-Type-Options', 'nosniff')
             ->assertHeader('X-Frame-Options', 'DENY');
     }
 
     public function test_regular_employee_cannot_list_the_full_employee_directory(): void
     {
-        $employee = $this->userForEmployee('HR-0002');
+        $employee = $this->userForEmployee('HR-2026-0002');
         Sanctum::actingAs($employee, ['workforce:read', 'leave:write', 'timesheet:write']);
 
         $this->getJson('/api/v1/employees')->assertForbidden();
@@ -82,11 +92,11 @@ class ApiAuthenticationTest extends TestCase
 
     public function test_read_only_manager_token_cannot_create_a_schedule(): void
     {
-        $manager = $this->userForEmployee('HR-0001');
+        $manager = $this->userForEmployee('HR-2026-0001');
         Sanctum::actingAs($manager, ['workforce:read']);
 
         $this->postJson('/api/v1/schedules', [
-            'employee_id' => $this->userForEmployee('HR-0002')->employee->id,
+            'employee_id' => $this->userForEmployee('HR-2026-0002')->employee->id,
             'shift_id' => 1,
             'work_date' => now()->addMonth()->toDateString(),
         ])->assertForbidden();
@@ -95,7 +105,7 @@ class ApiAuthenticationTest extends TestCase
     public function test_production_api_validation_errors_remain_422_responses(): void
     {
         config(['app.debug' => false]);
-        $manager = $this->userForEmployee('HR-0001');
+        $manager = $this->userForEmployee('HR-2026-0001');
         Sanctum::actingAs($manager, ['workforce:read', 'workforce:write', 'analytics:read']);
 
         $this->getJson('/api/v1/analytics')->assertUnprocessable()
@@ -104,7 +114,7 @@ class ApiAuthenticationTest extends TestCase
 
     public function test_authenticated_write_requests_are_audited_without_sensitive_values(): void
     {
-        $manager = $this->userForEmployee('HR-0001');
+        $manager = $this->userForEmployee('HR-2026-0001');
         Sanctum::actingAs($manager, ['workforce:read', 'workforce:write']);
 
         $this->deleteJson('/api/v1/auth/token')->assertOk();

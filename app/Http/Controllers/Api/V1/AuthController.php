@@ -18,14 +18,19 @@ class AuthController extends Controller
     public function token(Request $request, TwoFactorSecurityService $twoFactor): JsonResponse
     {
         $validated = $request->validate([
-            'employee_id' => ['required', 'string', 'max:50'],
+            'employee_id' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
             'device_name' => ['required', 'string', 'max:100'],
             'two_factor_code' => ['nullable', 'string', 'max:30'],
             'recovery_code' => ['nullable', 'string', 'max:50'],
         ]);
+        $identifier = trim((string) $validated['employee_id']);
         $user = User::query()->with(['employee.department', 'employee.position', 'roles'])
-            ->whereHas('employee', fn ($query) => $query->where('employee_number', strtoupper($validated['employee_id'])))
+            ->where(function ($query) use ($identifier): void {
+                $query->whereRaw('LOWER(email) = ?', [Str::lower($identifier)])
+                    ->orWhereHas('employee', fn ($employeeQuery) => $employeeQuery
+                        ->where('employee_number', Str::upper($identifier)));
+            })
             ->first();
 
         if (! $user || ! $user->is_active || $user->employee?->employment_status !== 'active' || ! Hash::check($validated['password'], $user->password)) {

@@ -37,7 +37,7 @@ class AttendanceServiceTest extends TestCase
             'break_minutes' => 60,
         ]);
 
-        $employee = Employee::query()->where('employee_number', 'HR-0001')->firstOrFail();
+        $employee = Employee::query()->where('employee_number', 'HR-2026-0001')->firstOrFail();
         $service = app(AttendanceService::class);
 
         Carbon::setTestNow(Carbon::parse('2026-07-15 08:20:00', 'Asia/Manila'));

@@ -23,7 +23,7 @@ class InitialUserSeeder extends Seeder
 
         $accounts = [
             [
-                'employee_number' => 'SYS-0001',
+                'employee_number' => 'SYS-2026-0001',
                 'first_name' => 'System',
                 'last_name' => 'Administrator',
                 'email' => 'admin@hrms.local',
@@ -32,7 +32,7 @@ class InitialUserSeeder extends Seeder
                 'position' => 'SYS-ADMIN',
             ],
             [
-                'employee_number' => 'HR-0001',
+                'employee_number' => 'HR-2026-0001',
                 'first_name' => 'HR',
                 'last_name' => 'Manager',
                 'email' => 'hr.manager@hrms.local',
@@ -41,7 +41,7 @@ class InitialUserSeeder extends Seeder
                 'position' => 'HR-MGR',
             ],
             [
-                'employee_number' => 'NUR-0001',
+                'employee_number' => 'NUR-2026-0001',
                 'first_name' => 'Nursing',
                 'last_name' => 'Department Head',
                 'email' => 'nursing.head@hrms.local',
@@ -50,14 +50,14 @@ class InitialUserSeeder extends Seeder
                 'position' => 'NUR-HEAD',
             ],
             [
-                'employee_number' => 'HR-0002',
+                'employee_number' => 'HR-2026-0002',
                 'first_name' => 'HR',
                 'last_name' => 'Employee',
                 'email' => 'employee@hrms.local',
                 'role' => 'employee',
                 'department' => 'HR',
                 'position' => 'HR-OFFICER',
-                'supervisor' => 'HR-0001',
+                'supervisor' => 'HR-2026-0001',
             ],
         ];
 

@@ -25,10 +25,10 @@ Open `http://127.0.0.1:8000`. Seeded accounts use the password configured in `IN
 
 | Role | Employee ID |
 |---|---|
-| System administrator | `SYS-0001` |
-| HR manager | `HR-0001` |
-| Department head | `NUR-0001` |
-| Employee | `HR-0002` |
+| System administrator | `SYS-2026-0001` |
+| HR manager | `HR-2026-0001` |
+| Department head | `NUR-2026-0001` |
+| Employee | `HR-2026-0002` |
 
 ## Development services
 

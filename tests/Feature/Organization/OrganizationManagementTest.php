@@ -140,7 +140,7 @@ class OrganizationManagementTest extends TestCase
             'contact_number' => '+63 917 000 0000',
         ]);
 
-        $employee = Employee::query()->where('employee_number', 'LAB-0001')->firstOrFail();
+        $employee = Employee::query()->where('employee_number', 'LAB-2026-0001')->firstOrFail();
         $newUser = User::query()->where('email', 'new.lab@hrms.local')->firstOrFail();
 
         $response->assertRedirect(route('employees.show', $employee));
@@ -177,7 +177,7 @@ class OrganizationManagementTest extends TestCase
     {
         $this->seed();
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
-        $employee = Employee::query()->whereNotNull('user_id')->where('employee_number', 'HR-0002')->firstOrFail();
+        $employee = Employee::query()->whereNotNull('user_id')->where('employee_number', 'HR-2026-0002')->firstOrFail();
 
         $this->actingAs($manager)->put(route('employees.update', $employee), [
             'employee_number' => $employee->employee_number,

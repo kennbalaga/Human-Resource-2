@@ -26,7 +26,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id' => ['required', 'string', 'max:50'],
+            'employee_id' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
         ];
     }
@@ -35,10 +35,15 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $employeeNumber = Str::upper(trim((string) $this->input('employee_id')));
+        $identifier = trim((string) $this->input('employee_id'));
+        $employeeNumber = Str::upper($identifier);
+        $email = Str::lower($identifier);
         $employee = Employee::query()
             ->with('user')
-            ->where('employee_number', $employeeNumber)
+            ->where(function ($query) use ($employeeNumber, $email): void {
+                $query->where('employee_number', $employeeNumber)
+                    ->orWhereHas('user', fn ($userQuery) => $userQuery->whereRaw('LOWER(email) = ?', [$email]));
+            })
             ->first();
 
         $user = $employee?->user;
