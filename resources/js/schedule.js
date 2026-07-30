@@ -188,8 +188,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const bulkReviewButton = bulkForm?.querySelector('[data-bulk-review-button]');
     const bulkSelectedCount = bulkForm?.querySelector('[data-bulk-selected-count]');
     const rotationPreview = bulkForm?.querySelector('[data-rotation-preview]');
+    const bulkApproval = bulkForm?.querySelector('[data-bulk-approval]');
+    const bulkApprovalWrap = bulkForm?.querySelector('[data-bulk-approval-wrap]');
     const bulkEmployeeOptions = [...(bulkForm?.querySelectorAll('[data-bulk-employee-list] .bulk-employee-option') ?? [])];
-    const isRotationSchedule = () => bulkForm?.elements.schedule_method?.value === 'rotation';
+    const isAiSchedule = () => ['rotation', 'custom'].includes(bulkForm?.elements.schedule_method?.value);
 
     const updateBulkReview = (title, message, state = 'idle', skipped = []) => {
         if (!bulkReview) return;
@@ -226,34 +228,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const invalidateBulkReview = () => {
         if (!bulkForm) return;
         bulkSaveButton.disabled = true;
+        if (bulkApproval) bulkApproval.checked = false;
+        if (bulkApprovalWrap) bulkApprovalWrap.hidden = true;
         if (rotationPreview) {
             rotationPreview.hidden = true;
             rotationPreview.replaceChildren();
         }
         updateBulkReview(
             'Review before saving',
-            isRotationSchedule()
-                ? 'Select employees and at least two rotation shifts, then generate the balanced schedule.'
+            isAiSchedule()
+                ? 'Select employees and at least two shifts, then generate the AI recommendation.'
                 : 'Select employees, a shift, and dates, then review availability.',
         );
     };
 
     const syncScheduleMethod = () => {
         if (!bulkForm || !bulkForm.elements.schedule_method) return;
-        const rotation = isRotationSchedule();
+        const aiSchedule = isAiSchedule();
+        const method = bulkForm.elements.schedule_method.value;
         const fixedField = bulkForm.querySelector('[data-fixed-shift]');
         const rotationField = bulkForm.querySelector('[data-rotation-shifts]');
         const weekendField = bulkForm.querySelector('.bulk-weekend-toggle');
-        fixedField.hidden = rotation;
-        fixedField.querySelector('select').disabled = rotation;
-        fixedField.querySelector('select').required = !rotation;
-        rotationField.hidden = !rotation;
-        rotationField.querySelectorAll('input').forEach((input) => { input.disabled = !rotation; });
-        weekendField.hidden = rotation;
-        bulkForm.elements.include_weekends.checked = rotation;
-        bulkForm.action = rotation ? bulkForm.dataset.rotationStoreUrl : bulkForm.dataset.storeUrl;
-        bulkReviewButton.textContent = rotation ? 'Generate AI rotation' : 'Review assignments';
-        bulkSaveButton.textContent = rotation ? 'Save generated schedule' : 'Save valid assignments';
+        fixedField.hidden = aiSchedule;
+        fixedField.querySelector('select').disabled = aiSchedule;
+        fixedField.querySelector('select').required = !aiSchedule;
+        rotationField.hidden = !aiSchedule;
+        rotationField.querySelectorAll('input').forEach((input) => { input.disabled = !aiSchedule; });
+        weekendField.hidden = aiSchedule;
+        bulkForm.elements.include_weekends.checked = aiSchedule;
+        bulkForm.action = aiSchedule ? bulkForm.dataset.rotationStoreUrl : bulkForm.dataset.storeUrl;
+        const help = bulkForm.querySelector('[data-shift-pool-help]');
+        if (help) help.textContent = method === 'custom'
+            ? 'Select at least two shifts. The assistant creates a stable custom mix across employees while balancing coverage.'
+            : 'Select at least two shifts. The assistant balances coverage and rotates employees weekly.';
+        bulkReviewButton.textContent = aiSchedule ? 'Generate AI recommendation' : 'Validate bulk schedule';
+        bulkSaveButton.textContent = 'Approve & publish';
         invalidateBulkReview();
     };
 
@@ -325,60 +334,164 @@ document.addEventListener('DOMContentLoaded', () => {
             : 'Select a department to load active employees.';
     };
 
-    const renderRotationPreview = (result) => {
-        if (!rotationPreview) return;
-        rotationPreview.replaceChildren();
-        const heading = document.createElement('div');
-        heading.className = 'rotation-preview-heading';
-        const title = document.createElement('strong');
-        title.textContent = 'Generated weekly rotation';
-        const caption = document.createElement('span');
-        caption.textContent = `${result.assignment_count} shifts · ${result.day_off_count} new day offs · ${result.skipped_count} skipped`;
-        heading.append(title, caption);
-        rotationPreview.append(heading);
+    const syncEmployeeScope = () => {
+        if (!bulkForm) return;
+        const scope = bulkForm.elements.employee_scope?.value ?? 'specific';
+        const allStaff = scope === 'all';
+        const departmentId = bulkForm.elements.department_id.value;
+        const positionFilter = bulkForm.querySelector('[data-bulk-position-filter]');
+        const search = bulkForm.querySelector('[data-bulk-employee-search]');
+        const selectAll = bulkForm.querySelector('[data-bulk-select-all]');
+        positionFilter.disabled = allStaff;
+        search.disabled = allStaff;
+        selectAll.hidden = allStaff;
 
-        const rows = document.createElement('div');
-        rows.className = 'rotation-preview-rows';
-        result.rows.forEach((row) => {
-            const employee = document.createElement('article');
-            employee.className = 'rotation-preview-employee';
-            const identity = document.createElement('div');
-            identity.className = 'rotation-preview-identity';
-            const name = document.createElement('strong');
-            name.textContent = row.employee;
-            const number = document.createElement('small');
-            number.textContent = row.employee_number;
-            identity.append(name, number);
-            employee.append(identity);
-
-            const weeks = document.createElement('div');
-            weeks.className = 'rotation-preview-weeks';
-            row.weeks.forEach((week) => {
-                const card = document.createElement('div');
-                card.className = 'rotation-preview-week';
-                card.style.setProperty('--rotation-color', week.color);
-                const period = document.createElement('small');
-                period.textContent = `${formatScheduleDate(week.start_date)} – ${formatScheduleDate(week.end_date)}`;
-                const shift = document.createElement('strong');
-                shift.textContent = `${week.shift} · ${week.shift_time}`;
-                const dayOff = document.createElement('span');
-                dayOff.textContent = week.day_off ? `Day off: ${formatScheduleDate(week.day_off)}` : 'No safe day off available';
-                const counts = document.createElement('small');
-                counts.textContent = `${week.assignments} assignments${week.skipped ? ` · ${week.skipped} skipped` : ''}`;
-                card.append(period, shift, dayOff, counts);
-                weeks.append(card);
+        if (allStaff) {
+            positionFilter.value = '';
+            search.value = '';
+            bulkEmployeeOptions.forEach((option) => {
+                option.querySelector('input').checked = Boolean(departmentId) && option.dataset.departmentId === departmentId;
             });
-            employee.append(weeks);
-            rows.append(employee);
+        }
+
+        filterBulkEmployees();
+        updateBulkSelectedCount();
+        invalidateBulkReview();
+    };
+
+    const appendValidationDetails = (result) => {
+        const reviewCopy = bulkReview?.querySelector('div');
+        if (!reviewCopy) return;
+        const summaries = Object.entries(result.validation_summary ?? {});
+        const staffingGaps = result.staffing_gaps ?? [];
+        if (!summaries.length && !staffingGaps.length) return;
+
+        const panel = document.createElement('section');
+        panel.className = 'bulk-review-validation';
+        const heading = document.createElement('div');
+        heading.className = 'bulk-validation-heading';
+        const title = document.createElement('strong');
+        title.textContent = summaries.length || staffingGaps.length ? 'Conflicts and suggestions' : 'Validation passed';
+        heading.append(title);
+        panel.append(heading);
+
+        const list = document.createElement('ul');
+        summaries.forEach(([reason, count]) => {
+            const item = document.createElement('li');
+            item.textContent = `${count} blocked: ${reason}. The assistant will skip these assignments.`;
+            list.append(item);
         });
-        rotationPreview.append(rows);
-        rotationPreview.hidden = false;
+        staffingGaps.slice(0, 10).forEach((gap) => {
+            const item = document.createElement('li');
+            item.textContent = `${formatScheduleDate(gap.date)} · ${gap.shift}: ${gap.available}/${gap.required} staff. ${gap.suggestion}`;
+            list.append(item);
+        });
+        panel.append(list);
+        reviewCopy.append(panel);
+    };
+
+    const renderRotationPreview = (result) => {
+        const reviewCopy = bulkReview?.querySelector('div');
+        if (!reviewCopy) return;
+        if (rotationPreview) {
+            rotationPreview.replaceChildren();
+            rotationPreview.hidden = true;
+        }
+
+        const panel = document.createElement('section');
+        panel.className = 'bulk-review-schedule';
+        panel.setAttribute('aria-label', 'AI-generated employee schedule');
+        const heading = document.createElement('header');
+        heading.className = 'bulk-review-schedule-heading';
+        const title = document.createElement('strong');
+        title.textContent = 'Schedule preview — review before approval';
+        const caption = document.createElement('span');
+        caption.textContent = 'Employee · date · day · shift · time · status';
+        heading.append(title, caption);
+        panel.append(heading);
+
+        const tableWrap = document.createElement('div');
+        tableWrap.className = 'bulk-review-schedule-table-wrap';
+        const table = document.createElement('table');
+        table.className = 'bulk-review-schedule-table';
+        const head = document.createElement('thead');
+        const headRow = document.createElement('tr');
+        ['Employee', 'Date', 'Day', 'Assigned shift', 'Time', 'Status'].forEach((label) => {
+            const cell = document.createElement('th');
+            cell.scope = 'col';
+            cell.textContent = label;
+            headRow.append(cell);
+        });
+        head.append(headRow);
+        const body = document.createElement('tbody');
+        const recommendationRows = Array.isArray(result.rows) ? result.rows : [];
+
+        recommendationRows.forEach((row) => {
+            row.weeks.forEach((week) => {
+                (week.days ?? []).forEach((day) => {
+                    const tableRow = document.createElement('tr');
+                    tableRow.className = `bulk-review-schedule-day is-${day.status}`;
+                    const employee = document.createElement('td');
+                    const employeeName = document.createElement('strong');
+                    employeeName.textContent = row.employee;
+                    const employeeNumber = document.createElement('small');
+                    employeeNumber.textContent = row.employee_number;
+                    employee.append(employeeName, employeeNumber);
+                    const date = document.createElement('td');
+                    date.textContent = formatScheduleDate(day.date);
+                    const weekday = document.createElement('td');
+                    weekday.textContent = parseScheduleDate(day.date).toLocaleDateString('en-PH', { weekday: 'long' });
+                    const shift = document.createElement('td');
+                    shift.textContent = day.status === 'day_off' ? 'Day off' : (day.shift ?? 'No assignment');
+                    const time = document.createElement('td');
+                    time.textContent = day.shift_time ?? '—';
+                    const resultCell = document.createElement('td');
+                    const status = document.createElement('span');
+                    status.className = `bulk-review-schedule-status is-${day.status}`;
+                    status.textContent = day.status === 'scheduled'
+                        ? 'Ready'
+                        : (day.status === 'day_off' ? 'Day off' : `Skipped · ${day.reason}`);
+                    resultCell.append(status);
+                    tableRow.append(employee, date, weekday, shift, time, resultCell);
+                    body.append(tableRow);
+                });
+            });
+        });
+
+        if (!recommendationRows.length) {
+            const emptyRow = document.createElement('tr');
+            const empty = document.createElement('td');
+            empty.colSpan = 6;
+            empty.className = 'bulk-review-schedule-empty';
+            empty.textContent = 'No employee schedule rows were returned. Generate the recommendation again.';
+            emptyRow.append(empty);
+            body.append(emptyRow);
+        }
+
+        table.append(head, body);
+        tableWrap.append(table);
+        panel.append(tableWrap);
+        reviewCopy.append(panel);
+        appendValidationDetails(result);
+        const schedulePanel = panel.closest('.bulk-schedule-form');
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+            if (schedulePanel) {
+                const targetTop = panel.getBoundingClientRect().top
+                    - schedulePanel.getBoundingClientRect().top
+                    + schedulePanel.scrollTop
+                    - 12;
+                schedulePanel.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+            }
+            else {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }));
     };
 
     const reviewBulkAssignments = async () => {
         if (!bulkForm) return;
         const employeeIds = selectedBulkEmployees();
-        const rotation = isRotationSchedule();
+        const rotation = isAiSchedule();
         const shiftId = bulkForm.elements.shift_id?.value;
         const shiftIds = [...bulkForm.querySelectorAll('input[name="shift_ids[]"]:checked')].map((input) => Number(input.value));
         const startDate = bulkForm.elements.start_date.value;
@@ -405,8 +518,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 period_month: bulkForm.elements.period_month.value,
                 start_date: startDate,
                 end_date: endDate,
+                days_off_per_week: Number(bulkForm.elements.days_off_per_week.value),
+                max_hours_per_week: Number(bulkForm.elements.max_hours_per_week.value),
+                night_shift_limit: Number(bulkForm.elements.night_shift_limit.value),
+                minimum_staff_per_shift: Number(bulkForm.elements.minimum_staff_per_shift.value),
+                overtime_allowed: bulkForm.elements.overtime_allowed.checked,
+                holiday_dates_csv: bulkForm.elements.holiday_dates_csv.value,
             };
-            if (rotation) body.shift_ids = shiftIds;
+            if (rotation) {
+                body.shift_ids = shiftIds;
+                body.schedule_method = bulkForm.elements.schedule_method.value;
+            }
             else {
                 body.shift_id = Number(shiftId);
                 body.include_weekends = bulkForm.elements.include_weekends.checked;
@@ -428,21 +550,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = rotation ? payload.data : payload;
 
             if (rotation) {
-                renderRotationPreview(result);
-                const summary = `${result.assignment_count} work assignments and ${result.day_off_count} new day offs are ready. ${result.skipped_count} conflicts will be skipped.`;
+                const gapCount = result.staffing_gaps?.length ?? 0;
+                const summary = `${result.assignment_count} work assignments and ${result.day_off_count} new days off are ready. ${result.skipped_count} conflicts will be skipped.${gapCount ? ` ${gapCount} staffing gap(s) need HR review.` : ''}`;
                 updateBulkReview(
-                    result.assignment_count ? 'AI rotation ready for HR review' : 'No assignments can be created',
-                    summary,
+                    result.assignment_count ? 'AI recommendation ready for HR review' : 'No assignments can be created',
+                    `${summary} The complete employee-by-employee schedule is shown below.`,
                     result.assignment_count === 0 ? 'no-ready' : (result.skipped_count ? 'has-skips' : 'idle'),
                     result.skipped,
                 );
-                bulkSaveButton.disabled = result.assignment_count === 0;
+                renderRotationPreview(result);
+                if (bulkApprovalWrap) bulkApprovalWrap.hidden = result.assignment_count === 0;
                 return;
             }
 
+            const fixedGapCount = result.staffing_gaps?.length ?? 0;
             const summary = result.skipped_count
-                ? `${result.ready_count} ready to save; ${result.skipped_count} will be skipped. Existing schedules will not be changed.`
-                : `${result.ready_count} assignments are ready to save. No conflicts or approved leave found.`;
+                ? `${result.ready_count} ready to publish; ${result.skipped_count} will be skipped. Existing schedules will not be changed.${fixedGapCount ? ` ${fixedGapCount} staffing gap(s) need HR review.` : ''}`
+                : `${result.ready_count} assignments are ready to publish.${fixedGapCount ? ` ${fixedGapCount} staffing gap(s) need HR review.` : ' No conflicts or approved leave found.'}`;
             const state = result.ready_count === 0 ? 'no-ready' : (result.skipped_count ? 'has-skips' : 'idle');
             updateBulkReview(
                 result.ready_count === 0 ? 'No assignments can be created' : 'Review complete',
@@ -450,7 +574,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 state,
                 result.skipped,
             );
-            bulkSaveButton.disabled = result.ready_count === 0;
+            if (rotationPreview) rotationPreview.hidden = true;
+            appendValidationDetails(result);
+            if (bulkApprovalWrap) bulkApprovalWrap.hidden = result.ready_count === 0;
         } catch (error) {
             updateBulkReview('Review unavailable', error.message, 'no-ready');
         } finally {
@@ -458,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    bulkForm?.querySelectorAll('select[name="shift_id"], input[name="start_date"], input[name="end_date"], input[name="include_weekends"], input[name="employee_ids[]"]').forEach((field) => {
+    bulkForm?.querySelectorAll('select[name="shift_id"], input[name="start_date"], input[name="end_date"], input[name="include_weekends"], input[name="employee_ids[]"], select[name="days_off_per_week"], input[name="max_hours_per_week"], input[name="night_shift_limit"], input[name="minimum_staff_per_shift"], input[name="overtime_allowed"], input[name="holiday_dates_csv"]').forEach((field) => {
         field.addEventListener('change', () => {
             updateBulkSelectedCount();
             invalidateBulkReview();
@@ -486,8 +612,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 invalidateBulkReview();
             }
             filterBulkEmployees();
+            if (field.matches('[data-bulk-department-filter]') && bulkForm.elements.employee_scope?.value === 'all') {
+                syncEmployeeScope();
+            }
         });
     });
+    bulkForm?.querySelector('[data-bulk-employee-scope]')?.addEventListener('change', syncEmployeeScope);
     bulkForm?.querySelector('[data-bulk-select-all]')?.addEventListener('click', () => {
         const visible = bulkEmployeeOptions.filter((option) => !option.hidden);
         const shouldSelect = visible.some((option) => !option.querySelector('input').checked);
@@ -500,17 +630,40 @@ document.addEventListener('DOMContentLoaded', () => {
     bulkForm?.querySelector('[data-bulk-period-previous]')?.addEventListener('click', () => moveBulkPeriod(-1));
     bulkForm?.querySelector('[data-bulk-period-next]')?.addEventListener('click', () => moveBulkPeriod(1));
     bulkReviewButton?.addEventListener('click', reviewBulkAssignments);
+    bulkApproval?.addEventListener('change', () => {
+        bulkSaveButton.disabled = !bulkApproval.checked;
+    });
+    bulkForm?.addEventListener('submit', (event) => {
+        if (!bulkApproval?.checked) {
+            event.preventDefault();
+            updateBulkReview('Approval required', 'Review the generated recommendation and confirm HR approval before publishing.', 'no-ready');
+        }
+    });
+    bulkModalElement?.addEventListener('shown.bs.modal', () => {
+        const modalBody = bulkForm.querySelector('.bulk-schedule-form');
+        const employeePicker = bulkForm.querySelector('.bulk-employee-picker');
+        const scheduleDetails = bulkForm.querySelector('.bulk-schedule-details');
+        if (modalBody && employeePicker && scheduleDetails) {
+            modalBody.insertBefore(employeePicker, scheduleDetails);
+            employeePicker.hidden = false;
+            employeePicker.style.removeProperty('display');
+        }
+        if (modalBody) modalBody.scrollTop = 0;
+        bulkForm.elements.department_id?.focus({ preventScroll: true });
+    });
     bulkModalElement?.addEventListener('hidden.bs.modal', () => {
         bulkForm.reset();
         syncScheduleMethod();
         syncBulkPeriod();
         filterBulkEmployees();
+        syncEmployeeScope();
         updateBulkSelectedCount();
         invalidateBulkReview();
     });
     syncScheduleMethod();
     syncBulkPeriod();
     filterBulkEmployees();
+    syncEmployeeScope();
     updateBulkSelectedCount();
 
     const shiftModalElement = document.querySelector('#shiftTemplateModal');
@@ -524,9 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
         shiftForm.querySelector('[data-method-field]').value = shift ? 'PUT' : 'POST';
         shiftForm.querySelector('.modal-title').textContent = shift ? 'Edit shift template' : 'New shift template';
         shiftForm.querySelector('button[type="submit"]').textContent = shift ? 'Update template' : 'Save template';
-        shiftForm.querySelector('[data-shift-code-preview]').textContent = shift
-            ? shift.code
-            : 'Generated automatically after saving';
+        shiftForm.querySelector('[data-shift-code-preview]').value = shift ? shift.code : '';
 
         if (!shift) return;
         shiftForm.elements.name.value = shift.name;

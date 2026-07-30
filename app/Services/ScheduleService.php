@@ -73,7 +73,10 @@ class ScheduleService
             ->with('shift')
             ->whereIn('employee_id', $employeeIds)
             ->where('status', 'scheduled')
-            ->whereBetween('work_date', [$start->copy()->subDay()->toDateString(), $end->copy()->addDay()->toDateString()])
+            ->whereBetween('work_date', [
+                $start->copy()->startOfWeek()->subDay()->toDateString(),
+                $end->copy()->endOfWeek()->addDay()->toDateString(),
+            ])
             ->get()
             ->groupBy('employee_id');
         $leavesByEmployee = LeaveRequest::query()
@@ -92,14 +95,16 @@ class ScheduleService
         $skipped = collect();
 
         foreach ($employees as $employee) {
+            $employeeAssignments = $assignmentsByEmployee->get($employee->id, collect());
             foreach ($dates as $date) {
                 $reason = $this->bulkAssignmentBlockReason(
                     $employee,
                     $shift,
                     $date,
-                    $assignmentsByEmployee->get($employee->id, collect()),
+                    $employeeAssignments,
                     $leavesByEmployee->get($employee->id, collect()),
                     $dayOffsByEmployee->get($employee->id, collect()),
+                    $data,
                 );
 
                 if ($reason !== null) {
@@ -113,10 +118,36 @@ class ScheduleService
                 }
 
                 $ready->push(['employee' => $employee, 'date' => $date]);
+                $plannedAssignment = new ScheduleAssignment([
+                    'employee_id' => $employee->id,
+                    'shift_id' => $shift->id,
+                    'work_date' => $date->toDateString(),
+                    'status' => 'scheduled',
+                ]);
+                $plannedAssignment->setRelation('shift', $shift);
+                $employeeAssignments->push($plannedAssignment);
             }
         }
 
-        return compact('ready', 'skipped');
+        $minimumStaff = (int) ($data['minimum_staff_per_shift'] ?? 1);
+        $staffingGaps = $dates
+            ->map(function (Carbon $date) use ($ready, $shift, $minimumStaff) {
+                $available = $ready
+                    ->filter(fn (array $item) => $item['date']->toDateString() === $date->toDateString())
+                    ->count();
+
+                return $available < $minimumStaff ? [
+                    'date' => $date->toDateString(),
+                    'shift' => $shift->name,
+                    'available' => $available,
+                    'required' => $minimumStaff,
+                    'suggestion' => 'Select more eligible employees or lower the minimum staffing rule.',
+                ] : null;
+            })
+            ->filter()
+            ->values();
+
+        return compact('ready', 'skipped', 'staffingGaps');
     }
 
     /**
@@ -392,9 +423,14 @@ class ScheduleService
         Collection $assignments,
         Collection $leaves,
         Collection $dayOffs,
+        array $rules = [],
     ): ?string {
         if ($employee->employment_status !== 'active') {
             return 'Inactive employee';
+        }
+
+        if (in_array($date->toDateString(), $rules['holiday_dates'] ?? [], true)) {
+            return 'Holiday or closure date';
         }
 
         if ($leaves->contains(fn (LeaveRequest $leave) => $date->toDateString() >= $leave->start_date->toDateString()
@@ -432,7 +468,35 @@ class ScheduleService
             return 'Minimum rest period not met';
         }
 
+        $weekStart = $date->copy()->startOfWeek();
+        $weekEnd = $date->copy()->endOfWeek();
+        $weeklyAssignments = $assignments->filter(fn (ScheduleAssignment $assignment) => $assignment->work_date->betweenIncluded($weekStart, $weekEnd));
+        $daysOffPerWeek = (int) ($rules['days_off_per_week'] ?? 0);
+        if ($daysOffPerWeek > 0 && $weeklyAssignments->pluck('work_date')->map->toDateString()->unique()->count() >= 7 - $daysOffPerWeek) {
+            return 'Days-off rule would be exceeded';
+        }
+
+        $overtimeAllowed = (bool) ($rules['overtime_allowed'] ?? false);
+        $maximumHours = (int) ($rules['max_hours_per_week'] ?? 168);
+        $scheduledMinutes = $weeklyAssignments->sum(fn (ScheduleAssignment $assignment) => $assignment->shift->duration_minutes);
+        if (! $overtimeAllowed && $scheduledMinutes + $shift->duration_minutes > $maximumHours * 60) {
+            return 'Maximum weekly hours exceeded';
+        }
+
+        $nightShiftLimit = (int) ($rules['night_shift_limit'] ?? 6);
+        if ($this->isNightShift($shift)
+            && $weeklyAssignments->filter(fn (ScheduleAssignment $assignment) => $this->isNightShift($assignment->shift))->count() >= $nightShiftLimit) {
+            return 'Night shift limit exceeded';
+        }
+
         return null;
+    }
+
+    private function isNightShift(Shift $shift): bool
+    {
+        $hour = (int) Carbon::parse($shift->start_time)->format('G');
+
+        return $shift->crosses_midnight || $hour >= 18 || $hour < 6;
     }
 
     private function ensureNoDayOff(Employee $employee, string $workDate): void

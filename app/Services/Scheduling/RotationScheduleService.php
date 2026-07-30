@@ -54,7 +54,10 @@ class RotationScheduleService
             ->with('shift')
             ->whereIn('employee_id', $employeeIds)
             ->where('status', 'scheduled')
-            ->whereBetween('work_date', [$start->copy()->subDay()->toDateString(), $end->copy()->addDay()->toDateString()])
+            ->whereBetween('work_date', [
+                $start->copy()->startOfWeek()->subDay()->toDateString(),
+                $end->copy()->endOfWeek()->addDay()->toDateString(),
+            ])
             ->get()
             ->groupBy('employee_id');
         $existingDayOffs = ScheduleDayOff::query()
@@ -78,7 +81,8 @@ class RotationScheduleService
             ->get()
             ->groupBy('employee_id')
             ->map(fn (Collection $items) => (int) $items->first()->shift_id);
-        $rotationMatrix = $this->rotationMatrix($employees, $weeks, $shifts, $previousShiftIds);
+        $scheduleMethod = $data['schedule_method'] ?? 'rotation';
+        $rotationMatrix = $this->rotationMatrix($employees, $weeks, $shifts, $previousShiftIds, $scheduleMethod);
         $readyAssignments = collect();
         $readyDayOffs = collect();
         $skipped = collect();
@@ -93,39 +97,54 @@ class RotationScheduleService
 
             foreach ($weeks as $weekIndex => $weekDates) {
                 $shift = $rotationMatrix[$weekIndex][$employee->id];
-                $existingDayOff = $employeeDayOffs->first(fn (ScheduleDayOff $dayOff) => $weekDates->contains(
+                $existingWeekDayOffs = $employeeDayOffs->filter(fn (ScheduleDayOff $dayOff) => $weekDates->contains(
                     fn (Carbon $date) => $date->toDateString() === $dayOff->work_date->toDateString(),
                 ));
-                $dayOffDate = $existingDayOff?->work_date->copy();
-
-                if ($dayOffDate === null) {
-                    $dayOffDate = $this->chooseDayOff(
-                        $weekDates,
-                        $dayOffOffset,
-                        $shift,
-                        $employeeAssignments,
-                        $employeeLeaves,
-                    );
-                    if ($dayOffDate !== null) {
-                        $readyDayOffs->push(['employee' => $employee, 'date' => $dayOffDate]);
-                    } else {
-                        $skipped->push([
-                            'employee' => $employee->full_name,
-                            'date' => $weekDates->first()->toDateString(),
-                            'reason' => 'No safe day-off date is available in this week',
-                        ]);
-                    }
+                $dayOffDates = $existingWeekDayOffs
+                    ->map(fn (ScheduleDayOff $dayOff) => $dayOff->work_date->copy())
+                    ->values();
+                $requiredDaysOff = min((int) ($data['days_off_per_week'] ?? 1), max(0, $weekDates->count() - 1));
+                $newDayOffs = $this->chooseDayOffs(
+                    $weekDates,
+                    $dayOffOffset,
+                    $shift,
+                    $employeeAssignments,
+                    $employeeLeaves,
+                    max(0, $requiredDaysOff - $dayOffDates->count()),
+                    $dayOffDates,
+                    $data['holiday_dates'] ?? [],
+                );
+                foreach ($newDayOffs as $dayOffDate) {
+                    $dayOffDates->push($dayOffDate);
+                    $readyDayOffs->push(['employee' => $employee, 'date' => $dayOffDate]);
                 }
-                if ($dayOffDate !== null) {
+                if ($dayOffDates->count() < $requiredDaysOff) {
+                    $skipped->push([
+                        'employee' => $employee->full_name,
+                        'date' => $weekDates->first()->toDateString(),
+                        'reason' => 'No safe day-off date is available in this week',
+                    ]);
+                }
+                if ($dayOffDates->isNotEmpty()) {
                     $dayOffOffset = (int) $weekDates->search(
-                        fn (Carbon $date) => $date->toDateString() === $dayOffDate->toDateString(),
+                        fn (Carbon $date) => $date->toDateString() === $dayOffDates->first()->toDateString(),
                     );
                 }
 
                 $weekReady = 0;
                 $weekSkipped = 0;
+                $dailySchedule = collect();
                 foreach ($weekDates as $date) {
-                    if ($dayOffDate?->toDateString() === $date->toDateString()) {
+                    if ($dayOffDates->contains(fn (Carbon $dayOff) => $dayOff->toDateString() === $date->toDateString())) {
+                        $dailySchedule->push([
+                            'date' => $date->toDateString(),
+                            'status' => 'day_off',
+                            'shift' => null,
+                            'shift_time' => null,
+                            'color' => null,
+                            'reason' => 'Protected day off',
+                        ]);
+
                         continue;
                     }
 
@@ -136,6 +155,7 @@ class RotationScheduleService
                         $employeeAssignments,
                         $employeeDayOffs,
                         $employeeLeaves,
+                        $data,
                     );
                     if ($reason !== null) {
                         $skipped->push([
@@ -144,12 +164,28 @@ class RotationScheduleService
                             'shift' => $shift->name,
                             'reason' => $reason,
                         ]);
+                        $dailySchedule->push([
+                            'date' => $date->toDateString(),
+                            'status' => 'skipped',
+                            'shift' => $shift->name,
+                            'shift_time' => $shift->formatted_time,
+                            'color' => $shift->color,
+                            'reason' => $reason,
+                        ]);
                         $weekSkipped++;
 
                         continue;
                     }
 
                     $readyAssignments->push(['employee' => $employee, 'shift' => $shift, 'date' => $date]);
+                    $dailySchedule->push([
+                        'date' => $date->toDateString(),
+                        'status' => 'scheduled',
+                        'shift' => $shift->name,
+                        'shift_time' => $shift->formatted_time,
+                        'color' => $shift->color,
+                        'reason' => 'Ready to publish',
+                    ]);
                     $plannedAssignment = new ScheduleAssignment([
                         'employee_id' => $employee->id,
                         'shift_id' => $shift->id,
@@ -168,9 +204,11 @@ class RotationScheduleService
                     'shift' => $shift->name,
                     'shift_time' => $shift->formatted_time,
                     'color' => $shift->color,
-                    'day_off' => $dayOffDate?->toDateString(),
+                    'day_off' => $dayOffDates->first()?->toDateString(),
+                    'day_offs' => $dayOffDates->map->toDateString()->values(),
                     'assignments' => $weekReady,
                     'skipped' => $weekSkipped,
+                    'days' => $dailySchedule,
                 ]);
             }
 
@@ -178,9 +216,34 @@ class RotationScheduleService
                 'employee_id' => $employee->id,
                 'employee' => $employee->full_name,
                 'employee_number' => $employee->employee_number,
+                'department' => $employee->department?->name,
+                'position' => $employee->position?->title,
                 'weeks' => $employeeWeeks,
             ]);
         }
+
+        $minimumStaff = (int) ($data['minimum_staff_per_shift'] ?? 1);
+        $staffingGaps = collect(CarbonPeriod::create($start, $end))
+            ->flatMap(function ($date) use ($shifts, $readyAssignments, $minimumStaff) {
+                $dateString = Carbon::instance($date)->toDateString();
+
+                return $shifts->map(function (Shift $shift) use ($readyAssignments, $minimumStaff, $dateString) {
+                    $available = $readyAssignments
+                        ->filter(fn (array $item) => $item['date']->toDateString() === $dateString && $item['shift']->id === $shift->id)
+                        ->count();
+
+                    return $available < $minimumStaff ? [
+                        'date' => $dateString,
+                        'shift' => $shift->name,
+                        'available' => $available,
+                        'required' => $minimumStaff,
+                        'suggestion' => 'Add eligible staff, choose fewer shifts, or lower the minimum staffing rule.',
+                    ] : null;
+                })->filter();
+            })
+            ->values();
+
+        $patternLabel = $scheduleMethod === 'custom' ? 'Custom AI mix' : 'Balanced rotation';
 
         return [
             'rows' => $rows,
@@ -190,7 +253,8 @@ class RotationScheduleService
             'assignment_count' => $readyAssignments->count(),
             'day_off_count' => $readyDayOffs->count(),
             'skipped_count' => $skipped->count(),
-            'notice' => 'Balanced rotation keeps one shift per employee per 7-day block, assigns one day off, and rotates away from the previous week where possible.',
+            'staffing_gaps' => $staffingGaps,
+            'notice' => "{$patternLabel} applies the selected days-off, maximum-hours, night-shift, overtime, leave, and rest rules before HR approval.",
         ];
     }
 
@@ -223,19 +287,24 @@ class RotationScheduleService
         });
     }
 
-    private function rotationMatrix(Collection $employees, Collection $weeks, Collection $shifts, Collection $previousShiftIds): array
-    {
+    private function rotationMatrix(
+        Collection $employees,
+        Collection $weeks,
+        Collection $shifts,
+        Collection $previousShiftIds,
+        string $scheduleMethod,
+    ): array {
         $matrix = [];
         $lastShiftIds = $previousShiftIds;
 
         foreach ($weeks as $weekIndex => $weekDates) {
             $counts = $shifts->mapWithKeys(fn (Shift $shift) => [$shift->id => 0]);
             foreach ($employees->values() as $employeeIndex => $employee) {
-                $preferredIndex = ($employeeIndex + $weekIndex) % $shifts->count();
+                $preferredIndex = ($employeeIndex + ($scheduleMethod === 'rotation' ? $weekIndex : 0)) % $shifts->count();
                 $lastShiftId = $lastShiftIds->get($employee->id);
-                $shift = $shifts->sortBy(function (Shift $candidate, int $index) use ($counts, $lastShiftId, $preferredIndex, $shifts) {
+                $shift = $shifts->sortBy(function (Shift $candidate, int $index) use ($counts, $lastShiftId, $preferredIndex, $shifts, $scheduleMethod) {
                     $balancePenalty = $counts[$candidate->id] * 100;
-                    $repeatPenalty = $candidate->id === $lastShiftId ? 25 : 0;
+                    $repeatPenalty = $scheduleMethod === 'rotation' && $candidate->id === $lastShiftId ? 25 : 0;
                     $preferenceDistance = ($index - $preferredIndex + $shifts->count()) % $shifts->count();
 
                     return $balancePenalty + $repeatPenalty + $preferenceDistance;
@@ -249,30 +318,43 @@ class RotationScheduleService
         return $matrix;
     }
 
-    private function chooseDayOff(
+    private function chooseDayOffs(
         Collection $dates,
         int $preferredOffset,
         Shift $shift,
         Collection $assignments,
         Collection $leaves,
-    ): ?Carbon {
+        int $count,
+        Collection $alreadySelected,
+        array $holidayDates,
+    ): Collection {
+        if ($count === 0) {
+            return collect();
+        }
+
         $available = $dates->filter(fn (Carbon $date) => ! $this->hasLeave($leaves, $date)
+            && ! in_array($date->toDateString(), $holidayDates, true)
             && ! $assignments->contains(fn (ScheduleAssignment $assignment) => $assignment->work_date->toDateString() === $date->toDateString()))
+            ->reject(fn (Carbon $date) => $alreadySelected->contains(
+                fn (Carbon $selected) => $selected->toDateString() === $date->toDateString(),
+            ))
             ->values();
         if ($available->isEmpty()) {
-            return null;
+            return collect();
         }
 
         $restRecoveryDate = $available->first(fn (Carbon $date) => $this->hasRestViolation($shift, $date, $assignments));
-        if ($restRecoveryDate) {
-            return $restRecoveryDate->copy();
-        }
+        $ordered = $available->sortBy(function (Carbon $date) use ($dates, $preferredOffset, $restRecoveryDate) {
+            if ($restRecoveryDate?->toDateString() === $date->toDateString()) {
+                return -1;
+            }
 
-        $preferredDate = $dates->get(min($preferredOffset, $dates->count() - 1));
-        $selected = $available->first(fn (Carbon $date) => $date->toDateString() === $preferredDate?->toDateString())
-            ?? $available->first();
+            $index = (int) $dates->search(fn (Carbon $candidate) => $candidate->toDateString() === $date->toDateString());
 
-        return $selected->copy();
+            return ($index - $preferredOffset + $dates->count()) % $dates->count();
+        })->values();
+
+        return $ordered->take($count)->map(fn (Carbon $date) => $date->copy())->values();
     }
 
     private function assignmentBlockReason(
@@ -282,9 +364,13 @@ class RotationScheduleService
         Collection $assignments,
         Collection $dayOffs,
         Collection $leaves,
+        array $rules = [],
     ): ?string {
         if ($employee->employment_status !== 'active') {
             return 'Inactive employee';
+        }
+        if (in_array($date->toDateString(), $rules['holiday_dates'] ?? [], true)) {
+            return 'Holiday or closure date';
         }
         if ($this->hasLeave($leaves, $date)) {
             return 'Approved leave';
@@ -307,7 +393,30 @@ class RotationScheduleService
             return 'Minimum rest period not met';
         }
 
+        $weekStart = $date->copy()->startOfWeek();
+        $weekEnd = $date->copy()->endOfWeek();
+        $weeklyAssignments = $assignments->filter(fn (ScheduleAssignment $assignment) => $assignment->work_date->betweenIncluded($weekStart, $weekEnd));
+        $overtimeAllowed = (bool) ($rules['overtime_allowed'] ?? false);
+        $maximumHours = (int) ($rules['max_hours_per_week'] ?? 168);
+        $scheduledMinutes = $weeklyAssignments->sum(fn (ScheduleAssignment $assignment) => $assignment->shift->duration_minutes);
+        if (! $overtimeAllowed && $scheduledMinutes + $shift->duration_minutes > $maximumHours * 60) {
+            return 'Maximum weekly hours exceeded';
+        }
+
+        $nightShiftLimit = (int) ($rules['night_shift_limit'] ?? 6);
+        if ($this->isNightShift($shift)
+            && $weeklyAssignments->filter(fn (ScheduleAssignment $assignment) => $this->isNightShift($assignment->shift))->count() >= $nightShiftLimit) {
+            return 'Night shift limit exceeded';
+        }
+
         return null;
+    }
+
+    private function isNightShift(Shift $shift): bool
+    {
+        $hour = (int) Carbon::parse($shift->start_time)->format('G');
+
+        return $shift->crosses_midnight || $hour >= 18 || $hour < 6;
     }
 
     private function hasRestViolation(Shift $shift, Carbon $date, Collection $assignments): bool

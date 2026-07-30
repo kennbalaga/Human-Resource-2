@@ -81,7 +81,7 @@
                 <input type="hidden" name="_method" value="POST" data-method-field>
                 <div class="modal-header"><div><p class="panel-kicker">Reusable work pattern</p><h2 class="modal-title" id="shiftTemplateModalLabel">New shift template</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                 <div class="modal-body schedule-form-grid">
-                    <div class="shift-code-preview"><span>Shift code</span><strong data-shift-code-preview>Generated automatically after saving</strong></div>
+                    <label class="shift-code-field"><span>Shift code</span><input type="text" data-shift-code-preview value="" placeholder="Generated after saving" readonly aria-label="Shift code, generated automatically after saving"></label>
                     <label><span>Shift name</span><input type="text" name="name" maxlength="100" placeholder="Day Shift" required></label>
                     <label><span>Start time</span><input type="time" name="start_time" required></label>
                     <label><span>End time</span><input type="time" name="end_time" required></label>

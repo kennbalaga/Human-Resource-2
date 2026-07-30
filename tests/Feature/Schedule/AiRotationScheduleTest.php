@@ -51,11 +51,14 @@ class AiRotationScheduleTest extends TestCase
             ->assertJsonPath('data.assignment_count', 6)
             ->assertJsonPath('data.day_off_count', 1)
             ->assertJsonPath('data.skipped_count', 0)
-            ->assertJsonPath('data.rows.0.weeks.0.assignments', 6);
+            ->assertJsonPath('data.rows.0.weeks.0.assignments', 6)
+            ->assertJsonCount(7, 'data.rows.0.weeks.0.days');
 
         $week = $response->json('data.rows.0.weeks.0');
         $this->assertNotEmpty($week['day_off']);
         $this->assertContains($week['shift_id'], $this->shiftIds);
+        $this->assertCount(6, collect($week['days'])->where('status', 'scheduled'));
+        $this->assertCount(1, collect($week['days'])->where('status', 'day_off'));
         $this->assertDatabaseCount('schedule_day_offs', 0);
     }
 
@@ -73,6 +76,54 @@ class AiRotationScheduleTest extends TestCase
         $this->assertCount(2, $weeks);
         $this->assertNotSame($weeks[0]['shift_id'], $weeks[1]['shift_id']);
         $this->assertSame(7.0, Carbon::parse($weeks[0]['day_off'])->diffInDays(Carbon::parse($weeks[1]['day_off'])));
+    }
+
+    public function test_custom_ai_mix_keeps_a_stable_shift_while_applying_two_days_off(): void
+    {
+        config(['ai_workforce_scheduling.enabled' => true]);
+        $payload = $this->payload('two_weeks');
+        $payload['schedule_method'] = 'custom';
+        $payload['days_off_per_week'] = 2;
+
+        $response = $this->actingAs($this->manager)
+            ->postJson(route('schedules.rotation-preview'), $payload)
+            ->assertOk()
+            ->assertJsonPath('data.assignment_count', 10)
+            ->assertJsonPath('data.day_off_count', 4);
+
+        $weeks = $response->json('data.rows.0.weeks');
+        $this->assertSame($weeks[0]['shift_id'], $weeks[1]['shift_id']);
+        $this->assertCount(2, $weeks[0]['day_offs']);
+        $this->assertCount(2, $weeks[1]['day_offs']);
+    }
+
+    public function test_ai_preview_blocks_assignments_over_the_weekly_hours_rule(): void
+    {
+        config(['ai_workforce_scheduling.enabled' => true]);
+        $payload = $this->payload();
+        $payload['max_hours_per_week'] = 16;
+        $payload['overtime_allowed'] = false;
+
+        $this->actingAs($this->manager)
+            ->postJson(route('schedules.rotation-preview'), $payload)
+            ->assertOk()
+            ->assertJsonPath('data.assignment_count', 2)
+            ->assertJsonPath('data.skipped_count', 4)
+            ->assertJsonPath('data.validation_summary.Maximum weekly hours exceeded', 4);
+    }
+
+    public function test_ai_preview_protects_holiday_dates_separately_from_days_off(): void
+    {
+        config(['ai_workforce_scheduling.enabled' => true]);
+        $payload = $this->payload();
+        $payload['holiday_dates_csv'] = '2027-11-02';
+
+        $this->actingAs($this->manager)
+            ->postJson(route('schedules.rotation-preview'), $payload)
+            ->assertOk()
+            ->assertJsonPath('data.assignment_count', 5)
+            ->assertJsonPath('data.day_off_count', 1)
+            ->assertJsonPath('data.validation_summary.Holiday or closure date', 1);
     }
 
     public function test_rotation_balances_department_coverage_and_avoids_repeating_when_possible(): void

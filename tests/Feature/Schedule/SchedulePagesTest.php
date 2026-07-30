@@ -38,14 +38,18 @@ class SchedulePagesTest extends TestCase
             ->assertSee('Shift &amp; Schedule Management', false)
             ->assertSee('Recurring schedule')
             ->assertSee('Department schedule')
-            ->assertSee('Assign shift');
+            ->assertSee('Single assignment');
 
         $this->actingAs($manager)
             ->get('/shifts')
             ->assertOk()
             ->assertSee('Shift templates')
             ->assertSee('Morning Shift')
-            ->assertSee('Night Shift');
+            ->assertSee('Night Shift')
+            ->assertSee('shift-code-field')
+            ->assertSee('Generated after saving')
+            ->assertSee('Calendar color')
+            ->assertSee('Active template');
     }
 
     public function test_standard_employee_sees_own_schedule_without_management_controls(): void

@@ -27,6 +27,8 @@ class AiRotationScheduleController extends Controller
             'day_off_count' => $plan['day_off_count'],
             'skipped_count' => $plan['skipped_count'],
             'skipped' => $plan['skipped']->take(10)->values(),
+            'staffing_gaps' => $plan['staffing_gaps']->take(10)->values(),
+            'validation_summary' => $plan['skipped']->countBy('reason'),
             'notice' => $plan['notice'],
         ]]);
     }

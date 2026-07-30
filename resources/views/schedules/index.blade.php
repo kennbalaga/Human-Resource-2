@@ -22,8 +22,8 @@
             <div class="schedule-heading-actions">
                 <a class="btn btn-outline-primary dashboard-action" href="{{ route('shifts.index') }}"><x-icon name="repeat" /> Shift templates</a>
                 <button class="btn btn-outline-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#recurringScheduleModal"><x-icon name="repeat" /> Recurring schedule</button>
-                <button class="btn btn-outline-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#bulkScheduleModal"><x-icon name="users" /> Department schedule</button>
-                <button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#scheduleAssignmentModal"><x-icon name="plus" /> Assign shift</button>
+                <button class="btn btn-outline-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#scheduleAssignmentModal"><x-icon name="plus" /> Single assignment</button>
+                <button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#bulkScheduleModal"><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'users'" /> {{ $aiSchedulingEnabled ? 'AI bulk schedule' : 'Department schedule' }}</button>
             </div>
         @endif
     </section>
@@ -250,38 +250,23 @@
         </div>
 
         <div class="modal fade" id="bulkScheduleModal" tabindex="-1" aria-labelledby="bulkScheduleModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content schedule-modal-content">
+            <div class="modal-dialog modal-dialog-centered bulk-schedule-dialog"><div class="modal-content schedule-modal-content">
                 <form method="POST" action="{{ route('schedules.bulk-store') }}" id="bulkScheduleForm" data-preview-url="{{ route('schedules.bulk-preview') }}" data-store-url="{{ route('schedules.bulk-store') }}" @if($aiSchedulingEnabled) data-rotation-preview-url="{{ route('schedules.rotation-preview') }}" data-rotation-store-url="{{ route('schedules.rotation-store') }}" @endif>@csrf
-                    <div class="modal-header"><div><p class="panel-kicker">Department scheduling</p><h2 class="modal-title" id="bulkScheduleModalLabel">Create a department schedule</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                    <div class="modal-header bulk-schedule-header"><span class="bulk-ai-icon"><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'users'" /></span><div><p class="panel-kicker">{{ $aiSchedulingEnabled ? 'AI Scheduling Assistant' : 'Department scheduling' }}</p><h2 class="modal-title" id="bulkScheduleModalLabel">Generate a bulk schedule</h2><small>Build, validate, approve, and publish one department schedule.</small></div><span class="ai-scheduling-advisory">HR approval required</span><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body bulk-schedule-form">
-                        <p class="bulk-schedule-intro">Plan a fixed department shift or let the AI assistant build a balanced weekly rotation with one explicit day off per employee. Every result must be reviewed before saving.</p>
+                        <ol class="bulk-flow-steps" aria-label="Bulk scheduling workflow"><li class="active"><span>1</span><strong>Department & staff</strong></li><li><span>2</span><strong>Period & pattern</strong></li><li><span>3</span><strong>Rules</strong></li><li><span>4</span><strong>{{ $aiSchedulingEnabled ? 'AI validation' : 'System validation' }}</strong></li><li><span>5</span><strong>Approve & publish</strong></li></ol>
+                        <p class="bulk-schedule-intro">Choose a department, then select specific employees or include all active staff. {{ $aiSchedulingEnabled ? 'The assistant generates one reviewed recommendation' : 'The system generates one reviewed bulk plan' }} and never publishes automatically.</p>
                         <div class="schedule-form-grid bulk-schedule-details">
-                            @if($aiSchedulingEnabled)
-                                <label><span>Scheduling method</span><select name="schedule_method" data-schedule-method><option value="fixed">Fixed shift</option><option value="rotation">AI balanced rotation</option></select></label>
-                            @endif
-                            <label @class(['full-width' => ! $aiSchedulingEnabled]) data-fixed-shift><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
-                            @if($aiSchedulingEnabled)
-                                <fieldset class="rotation-shift-picker full-width" data-rotation-shifts hidden><legend>Shifts to rotate</legend><p>Select at least two shifts. Each employee keeps one shift for the week, then rotates the following week.</p><div>@foreach($shifts as $shift)<label><input type="checkbox" name="shift_ids[]" value="{{ $shift->id }}" disabled><span class="shift-color" style="background:{{ $shift->color }}"></span><span><strong>{{ $shift->name }}</strong><small>{{ $shift->formatted_time }}</small></span></label>@endforeach</div></fieldset>
-                            @endif
-                            <label><span>Schedule period</span><select name="schedule_period" data-schedule-period><option value="weekly">Weekly · 7 days</option><option value="two_weeks">Two weeks · 14 days</option><option value="monthly">Monthly · calendar month</option></select></label>
-                            <label data-period-start><span>Schedule starts</span><input type="date" name="period_start" value="{{ $focusDate->toDateString() }}" required></label>
-                            <label data-period-month hidden><span>Schedule month</span><input type="month" name="period_month" value="{{ $focusDate->format('Y-m') }}"></label>
-                            <input type="hidden" name="start_date" value="{{ $focusDate->toDateString() }}">
-                            <input type="hidden" name="end_date" value="{{ $focusDate->copy()->addDays(6)->toDateString() }}">
-                            <div class="bulk-period-range full-width"><button type="button" class="icon-button subtle" data-bulk-period-previous aria-label="Previous schedule period"><x-icon name="chevron-right" class="flip-horizontal" /></button><strong data-bulk-period-range>Weekly period</strong><button type="button" class="icon-button subtle" data-bulk-period-next aria-label="Next schedule period"><x-icon name="chevron-right" /></button></div>
-                            <label class="bulk-weekend-toggle full-width"><input type="checkbox" name="include_weekends" value="1"><span><strong>Include weekends</strong><small>Weekdays are scheduled by default.</small></span></label>
-                        </div>
-
-                        <section class="bulk-employee-picker" aria-labelledby="bulkEmployeePickerTitle">
-                            <div class="bulk-employee-picker-header"><div><p class="panel-kicker">Employees</p><h3 id="bulkEmployeePickerTitle">Choose who to schedule</h3></div><span data-bulk-selected-count>0 selected</span></div>
-                            <div class="bulk-employee-filters">
-                                <select name="department_id" data-bulk-department-filter aria-label="Select department" required><option value="">Select department</option>@foreach($departments as $department)<option value="{{ $department->id }}">{{ $department->name }}</option>@endforeach</select>
-                                <select data-bulk-position-filter aria-label="Filter employees by position"><option value="">All positions</option>@foreach($positions as $position)<option value="{{ $position->id }}">{{ $position->title }}</option>@endforeach</select>
-                                <input type="search" data-bulk-employee-search placeholder="Search employees" aria-label="Search employees">
-                                <button class="btn btn-light" type="button" data-bulk-select-all>Select visible</button>
+                            <div class="bulk-inline-step-heading full-width">
+                                <div><p>Step 1 · Department and staff</p><h3>Choose who to schedule</h3></div>
+                                <span data-bulk-selected-count>0 selected</span>
                             </div>
-                            <div class="bulk-employee-list" data-bulk-employee-list>
-                                <p class="bulk-employee-empty" data-bulk-employee-empty>Select a department to load active employees.</p>
+                            <label><span>Department</span><select name="department_id" data-bulk-department-filter required><option value="">Select department</option>@foreach($departments as $department)<option value="{{ $department->id }}">{{ $department->name }}</option>@endforeach</select></label>
+                            <label><span>Staff selection</span><select name="employee_scope" data-bulk-employee-scope><option value="specific">Specific staff</option><option value="all">All active staff</option></select></label>
+                            <label><span>Position filter</span><select data-bulk-position-filter><option value="">All positions</option>@foreach($positions as $position)<option value="{{ $position->id }}">{{ $position->title }}</option>@endforeach</select></label>
+                            <label><span>Find staff</span><input type="search" data-bulk-employee-search placeholder="Search employee name or ID"></label>
+                            <div class="bulk-inline-employee-list full-width" data-bulk-employee-list>
+                                <p class="bulk-employee-empty" data-bulk-employee-empty>Select a department to show its active employees.</p>
                                 @foreach($employees as $employee)
                                     <label class="bulk-employee-option" data-department-id="{{ $employee->department_id }}" data-position-id="{{ $employee->position_id }}" data-search="{{ strtolower($employee->employee_number.' '.$employee->full_name.' '.$employee->department?->name.' '.$employee->position?->title) }}">
                                         <input type="checkbox" name="employee_ids[]" value="{{ $employee->id }}">
@@ -290,12 +275,42 @@
                                     </label>
                                 @endforeach
                             </div>
-                        </section>
+                            <div class="bulk-inline-employee-actions full-width"><span>Select the employees to include in this schedule.</span><button class="btn btn-light" type="button" data-bulk-select-all>Select visible staff</button></div>
+                            <div class="bulk-pattern-step-heading full-width"><span>Step 2 · Period and shift pattern</span></div>
+                            @if($aiSchedulingEnabled)
+                                <label><span>Shift pattern</span><select name="schedule_method" data-schedule-method><option value="rotation">Rotating · AI balanced</option><option value="custom">Custom · AI optimized mix</option><option value="fixed">Fixed · same shift</option></select></label>
+                            @endif
+                            <label @class(['full-width' => ! $aiSchedulingEnabled]) data-fixed-shift><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
+                            @if($aiSchedulingEnabled)
+                                <fieldset class="rotation-shift-picker full-width" data-rotation-shifts><legend>Shift pool for AI recommendation</legend><p data-shift-pool-help>Select at least two shifts. The assistant balances coverage and rotates employees weekly.</p><div>@foreach($shifts as $shift)<label><input type="checkbox" name="shift_ids[]" value="{{ $shift->id }}"><span class="shift-color" style="background:{{ $shift->color }}"></span><span><strong>{{ $shift->name }}</strong><small>{{ $shift->formatted_time }}</small></span></label>@endforeach</div></fieldset>
+                            @endif
+                            <label><span>Schedule period</span><select name="schedule_period" data-schedule-period><option value="weekly">Weekly · 7 days</option><option value="two_weeks">Two weeks · 14 days</option><option value="monthly">Monthly · calendar month</option></select></label>
+                            <label data-period-start><span>Schedule starts</span><input type="date" name="period_start" value="{{ $focusDate->toDateString() }}" required></label>
+                            <label data-period-month hidden><span>Schedule month</span><input type="month" name="period_month" value="{{ $focusDate->format('Y-m') }}"></label>
+                            <input type="hidden" name="start_date" value="{{ $focusDate->toDateString() }}">
+                            <input type="hidden" name="end_date" value="{{ $focusDate->copy()->addDays(6)->toDateString() }}">
+                            <div class="bulk-period-range full-width"><button type="button" class="icon-button subtle" data-bulk-period-previous aria-label="Previous schedule period"><x-icon name="chevron-right" class="flip-horizontal" /></button><strong data-bulk-period-range>Weekly period</strong><button type="button" class="icon-button subtle" data-bulk-period-next aria-label="Next schedule period"><x-icon name="chevron-right" /></button></div>
+                            <label class="bulk-weekend-toggle full-width"><input type="checkbox" name="include_weekends" value="1"><span><strong>Include weekends</strong><small>Weekdays are scheduled by default for a fixed pattern.</small></span></label>
+                        </div>
+
+                        <fieldset class="bulk-rule-panel">
+                            <legend>Step 3 · Scheduling rules</legend>
+                            <div class="bulk-rule-grid">
+                                <label><span>Days off / week</span><select name="days_off_per_week"><option value="1">1 day</option><option value="2">2 days</option><option value="0">No automatic day off</option></select></label>
+                                <label><span>Maximum hours / week</span><input type="number" name="max_hours_per_week" value="48" min="1" max="168"></label>
+                                <label><span>Night shift limit / week</span><input type="number" name="night_shift_limit" value="6" min="0" max="7"></label>
+                                <label><span>Minimum staff / shift</span><input type="number" name="minimum_staff_per_shift" value="1" min="1" max="100"></label>
+                                <label class="bulk-rule-holidays"><span>Holiday / closure dates</span><input type="text" name="holiday_dates_csv" placeholder="2026-12-25, 2026-12-30"><small>Comma-separated dates are protected from assignment.</small></label>
+                            </div>
+                            <label class="bulk-weekend-toggle bulk-overtime-toggle"><input type="checkbox" name="overtime_allowed" value="1"><span><strong>Allow overtime recommendations</strong><small>When off, recommendations exceeding maximum weekly hours are blocked.</small></span></label>
+                            <p class="bulk-protected-rules"><x-icon name="shield" /> Approved leave, holidays, existing days off, overlapping shifts, and the configured minimum rest period are always protected.</p>
+                        </fieldset>
                         <label class="bulk-schedule-notes"><span>Notes</span><textarea name="notes" rows="2" maxlength="500" placeholder="Optional note for all created assignments"></textarea></label>
-                        <section class="bulk-schedule-review" data-bulk-review aria-live="polite"><x-icon name="shield" /><div><strong>Review before saving</strong><span>Select employees, a shift, and dates, then review availability.</span></div></section>
+                        <section class="bulk-schedule-review" data-bulk-review aria-live="polite"><x-icon name="shield" /><div><strong>Generate before publishing</strong><span>{{ $aiSchedulingEnabled ? 'The assistant' : 'The system' }} will check leave, double shifts, rest, maximum hours, night limits, and department staffing.</span></div></section>
                         @if($aiSchedulingEnabled)<section class="rotation-preview" data-rotation-preview hidden aria-live="polite"></section>@endif
+                        <label class="bulk-approval" data-bulk-approval-wrap hidden><input type="checkbox" data-bulk-approval><span><strong>I reviewed and approve this bulk schedule</strong><small>Publishing creates only the valid assignments shown above and notifies affected employees.</small></span></label>
                     </div>
-                    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-outline-primary" data-bulk-review-button>Review assignments</button><button type="submit" class="btn btn-primary" data-bulk-save disabled>Save valid assignments</button></div>
+                    <div class="modal-footer"><p class="schedule-save-note"><x-icon name="shield" /> {{ $aiSchedulingEnabled ? 'AI recommendations' : 'Bulk plans' }} never publish automatically.</p><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-outline-primary" data-bulk-review-button><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'shield'" /> {{ $aiSchedulingEnabled ? 'Generate AI recommendation' : 'Validate bulk schedule' }}</button><button type="submit" class="btn btn-primary" data-bulk-save disabled>Approve & publish</button></div>
                 </form>
             </div></div>
         </div>

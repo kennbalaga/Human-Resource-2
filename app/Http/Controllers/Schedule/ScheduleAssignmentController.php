@@ -47,6 +47,8 @@ class ScheduleAssignmentController extends Controller
             'skipped_count' => $plan['skipped']->count(),
             'requested_count' => $plan['ready']->count() + $plan['skipped']->count(),
             'skipped' => $plan['skipped']->take(10)->values(),
+            'staffing_gaps' => $plan['staffingGaps']->take(10)->values(),
+            'validation_summary' => $plan['skipped']->countBy('reason'),
         ]);
     }
 
