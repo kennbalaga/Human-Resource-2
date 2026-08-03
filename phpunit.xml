@@ -19,6 +19,12 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!-- The test harness builds request URLs with url(), which falls back to
+             config('app.url') because no request is bound. A local APP_URL that
+             includes a path (for example a subdirectory install) would leak that
+             path into every generated URL and 404 the whole suite, so pin a bare
+             origin here and keep tests independent of each developer's .env. -->
+        <env name="APP_URL" value="http://localhost" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

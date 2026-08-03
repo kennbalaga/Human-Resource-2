@@ -1,11 +1,11 @@
 <?php
 
+// CSP host sources accept only letters, digits, hyphens and dots in the host
+// part, so a bracketed IPv6 literal such as http://[::1]:* is not valid and is
+// silently discarded by browsers. vite.config.js therefore pins the dev server
+// to 127.0.0.1, which these entries do cover.
 $viteDevelopmentOrigins = (string) env('APP_ENV') === 'local'
-    ? ' http://localhost:* http://127.0.0.1:* http://[::1]:*'
-    : '';
-
-$viteDevelopmentConnectOrigins = (string) env('APP_ENV') === 'local'
-    ? ' http://[::1]:* ws://[::1]:*'
+    ? ' http://localhost:* http://127.0.0.1:*'
     : '';
 
 return [
@@ -30,7 +30,7 @@ return [
             "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com{$viteDevelopmentOrigins}",
             "font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com",
             "img-src 'self' data: blob:",
-            "connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*{$viteDevelopmentConnectOrigins}",
+            "connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*",
             "media-src 'self'",
             "worker-src 'self' blob:",
             "manifest-src 'self'",

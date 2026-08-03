@@ -22,6 +22,11 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
+        // Bind to 127.0.0.1 rather than the default [::1]. Content Security
+        // Policy host sources cannot express bracketed IPv6 literals, so a
+        // dev server on [::1] can never be whitelisted and is blocked once
+        // CSP_MODE is enforced. See config/security.php.
+        host: '127.0.0.1',
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },
