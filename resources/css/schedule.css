@@ -681,6 +681,13 @@
     font-size: .82rem;
 }
 
+.shift-template-hint {
+    margin: 0;
+    padding: 0 1.25rem 1rem;
+    color: #7b8799;
+    font-size: .72rem;
+}
+
 .shift-template-table-wrap {
     overflow-x: auto;
     padding: 0 1.25rem 1.25rem;

@@ -44,6 +44,15 @@ class ShiftController extends Controller
         return back()->with('success', 'Shift template updated.');
     }
 
+    public function toggleActive(Request $request, Shift $shift): RedirectResponse
+    {
+        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists(), 403);
+
+        $shift->update(['is_active' => ! $shift->is_active]);
+
+        return back()->with('success', $shift->is_active ? 'Shift template activated.' : 'Shift template deactivated.');
+    }
+
     public function destroy(Request $request, Shift $shift): RedirectResponse
     {
         abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists(), 403);

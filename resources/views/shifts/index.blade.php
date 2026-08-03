@@ -35,6 +35,8 @@
             <span class="history-caption">{{ $shifts->sum('assignments_count') }} schedule assignments</span>
         </div>
 
+        <p class="shift-template-hint">Every template can be edited or deactivated. Templates already used in a schedule can't be deleted &mdash; deactivate them instead to hide them from future assignments while keeping existing schedule history intact.</p>
+
         <div class="shift-template-table-wrap">
             <table class="shift-template-table">
                 <thead><tr><th>Shift</th><th>Working hours</th><th>Paid duration</th><th>Usage</th><th>Status</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
@@ -60,6 +62,10 @@
                                         data-bs-toggle="modal"
                                         data-bs-target="#shiftTemplateModal"
                                     ><x-icon name="edit" /></button>
+                                    <form method="POST" action="{{ route('shifts.toggle-active', $shift) }}">
+                                        @csrf @method('PATCH')
+                                        <button class="icon-button subtle" type="submit" aria-label="{{ $shift->is_active ? 'Deactivate' : 'Activate' }} {{ $shift->name }}" title="{{ $shift->is_active ? 'Deactivate' : 'Activate' }}"><x-icon :name="$shift->is_active ? 'circle' : 'check-circle'" /></button>
+                                    </form>
                                     @if ($shift->assignments_count === 0)
                                         <form method="POST" action="{{ route('shifts.destroy', $shift) }}" onsubmit="return confirm('Delete this unused shift template?')">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Delete {{ $shift->name }}"><x-icon name="trash" /></button></form>
                                     @endif
