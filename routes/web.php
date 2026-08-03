@@ -72,6 +72,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::patch('/notifications/{notification}/toggle-read', [NotificationController::class, 'toggleRead'])->name('notifications.toggle-read');
     Route::get('/notifications/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
 
     Route::get('/schedules', [ScheduleCalendarController::class, 'index'])->name('schedules.index');

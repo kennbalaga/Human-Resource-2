@@ -130,6 +130,57 @@ class NotificationCenterTest extends TestCase
         return $matches[0];
     }
 
+    public function test_notification_toggle_read_marks_read_then_unread_without_deleting(): void
+    {
+        $user = $this->user('employee@hrms.local');
+        $this->enableInAppScheduleUpdates($user);
+        $this->storeScheduleNotification($user);
+        $notification = $user->notifications()->firstOrFail();
+
+        $this->assertNull($notification->read_at);
+
+        $this->actingAs($user)
+            ->patch(route('notifications.toggle-read', $notification->id))
+            ->assertRedirect();
+
+        $this->assertNotNull($notification->fresh()->read_at);
+        $this->assertSame(1, $user->notifications()->count());
+
+        $this->actingAs($user)
+            ->patch(route('notifications.toggle-read', $notification->id))
+            ->assertRedirect();
+
+        $this->assertNull($notification->fresh()->read_at);
+        $this->assertSame(1, $user->notifications()->count());
+    }
+
+    public function test_user_cannot_toggle_another_users_notification(): void
+    {
+        $owner = $this->user('employee@hrms.local');
+        $otherUser = $this->user('hr.manager@hrms.local');
+        $this->enableInAppScheduleUpdates($owner);
+        $this->storeScheduleNotification($owner);
+        $notification = $owner->unreadNotifications()->firstOrFail();
+
+        $this->actingAs($otherUser)
+            ->patch(route('notifications.toggle-read', $notification->id))
+            ->assertNotFound();
+
+        $this->assertNull($notification->fresh()->read_at);
+    }
+
+    public function test_category_filter_tabs_are_always_available_even_when_empty(): void
+    {
+        $user = $this->user('employee@hrms.local');
+
+        $this->actingAs($user)->get(route('notifications.index'))
+            ->assertOk()
+            ->assertSee('Attendance')
+            ->assertSee('Schedule')
+            ->assertSee('Leave')
+            ->assertSee('Security');
+    }
+
     public function test_empty_dropdown_uses_clear_copy_and_working_footer_link(): void
     {
         $user = $this->user('employee@hrms.local');

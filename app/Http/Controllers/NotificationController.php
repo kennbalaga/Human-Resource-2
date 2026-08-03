@@ -70,6 +70,15 @@ class NotificationController extends Controller
         return back()->with('success', 'All notifications marked as read.');
     }
 
+    public function toggleRead(Request $request, string $notification): RedirectResponse
+    {
+        $item = $request->user()->notifications()->findOrFail($notification);
+
+        $item->read_at ? $item->markAsUnread() : $item->markAsRead();
+
+        return back();
+    }
+
     private function isSafeApplicationUrl(Request $request, string $url): bool
     {
         if (str_starts_with($url, '/')) {

@@ -37,12 +37,14 @@
             All <span class="notification-filter-count">{{ $totalCount }}</span>
         </a>
         @foreach($categoryMeta as $key => $meta)
-            @continue($categoryCounts[$key] === 0 && $activeCategory !== $key)
+            @continue($key === 'general' && $categoryCounts[$key] === 0 && $activeCategory !== $key)
             <a class="notification-filter-tab {{ $activeCategory === $key ? 'is-active' : '' }}" href="{{ route('notifications.index', ['category' => $key]) }}">
                 {{ $meta['label'] }} <span class="notification-filter-count">{{ $categoryCounts[$key] }}</span>
             </a>
         @endforeach
     </nav>
+
+    <p class="notification-retention-note">Notifications are kept for 7 days, then cleared automatically. Use the circle button on each item to mark it as read or unread.</p>
 
     <section class="panel notification-center-panel">
         @forelse($notificationPage as $notification)
@@ -59,18 +61,26 @@
                     };
                 }
             @endphp
-            <a class="notification-center-item {{ $notification->read_at ? '' : 'is-unread' }}" href="{{ route('notifications.open', $notification->id) }}">
-                <span class="notification-icon notification-{{ $tone }}"><x-icon :name="$icon" /></span>
-                <span class="notification-center-copy">
-                    <span class="notification-category-row">
-                        <strong>{{ data_get($notification->data, 'title', 'HRMS update') }}</strong>
-                        <span class="status-badge status-{{ $categoryMeta[$category]['tone'] }}"><span class="status-dot"></span>{{ $categoryMeta[$category]['label'] }}</span>
+            <div class="notification-center-item {{ $notification->read_at ? '' : 'is-unread' }}">
+                <a class="notification-center-link" href="{{ route('notifications.open', $notification->id) }}">
+                    <span class="notification-icon notification-{{ $tone }}"><x-icon :name="$icon" /></span>
+                    <span class="notification-center-copy">
+                        <span class="notification-category-row">
+                            <strong>{{ data_get($notification->data, 'title', 'HRMS update') }}</strong>
+                            <span class="status-badge status-{{ $categoryMeta[$category]['tone'] }}"><span class="status-dot"></span>{{ $categoryMeta[$category]['label'] }}</span>
+                        </span>
+                        <span>{{ data_get($notification->data, 'message', 'You have a new workforce update.') }}</span>
+                        <time datetime="{{ $notification->created_at->toIso8601String() }}">{{ $notification->created_at->diffForHumans() }}</time>
                     </span>
-                    <span>{{ data_get($notification->data, 'message', 'You have a new workforce update.') }}</span>
-                    <time datetime="{{ $notification->created_at->toIso8601String() }}">{{ $notification->created_at->diffForHumans() }}</time>
-                </span>
+                </a>
                 @if(!$notification->read_at)<span class="notification-unread-dot" aria-label="Unread"></span>@endif
-            </a>
+                <form method="POST" action="{{ route('notifications.toggle-read', $notification->id) }}" class="notification-read-toggle">
+                    @csrf @method('PATCH')
+                    <button type="submit" title="{{ $notification->read_at ? 'Mark as unread' : 'Mark as read' }}" aria-label="{{ $notification->read_at ? 'Mark as unread' : 'Mark as read' }}">
+                        <x-icon :name="$notification->read_at ? 'circle' : 'check-circle'" />
+                    </button>
+                </form>
+            </div>
         @empty
             <div class="notification-center-empty">
                 <span class="notification-icon notification-success"><x-icon name="check-circle" /></span>
