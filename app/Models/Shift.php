@@ -21,6 +21,7 @@ class Shift extends Model
         'break_minutes',
         'color',
         'is_active',
+        'is_system',
         'created_by',
     ];
 
@@ -28,6 +29,7 @@ class Shift extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_system' => 'boolean',
         ];
     }
 

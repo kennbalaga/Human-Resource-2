@@ -80,6 +80,11 @@ class PreferenceNotificationService
                         'schedule_updates' => 'calendar',
                         default => 'leave',
                     },
+                    'category' => match ($preference) {
+                        'attendance_reminders' => 'attendance',
+                        'schedule_updates' => 'schedule',
+                        default => 'leave',
+                    },
                 ],
             ]);
 

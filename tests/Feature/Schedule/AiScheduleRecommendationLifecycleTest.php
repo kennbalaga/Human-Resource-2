@@ -40,7 +40,7 @@ class AiScheduleRecommendationLifecycleTest extends TestCase
         $this->employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
         $this->department = Department::query()->where('code', 'HR')->firstOrFail();
         $this->position = Position::query()->where('code', 'HR-OFFICER')->firstOrFail();
-        $this->shift = Shift::query()->where('code', 'DAY-0800')->firstOrFail();
+        $this->shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
     }
 
     public function test_generation_creates_ai_audit_record_without_saving_a_schedule(): void

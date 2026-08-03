@@ -49,6 +49,24 @@
                 </article>
             @endif
 
+            @if($canManageTwoFactorEnforcement)
+                <article class="panel settings-panel" id="two-factor-enforcement">
+                    <div class="panel-header"><div><p class="panel-kicker">Security policy</p><h2>Two-factor enforcement</h2></div><x-status-badge :status="$twoFactorEnforcementEnabled ? 'active' : 'inactive'" /></div>
+                    <form method="POST" action="{{ route('settings.two-factor-enforcement.update') }}" class="profile-settings-form">
+                        @csrf @method('PATCH')
+                        <div class="settings-toggle-list">
+                            <label class="settings-toggle"><span><strong>Require two-factor authentication</strong><small>When enabled, System Administrator, HR Manager, and Department Head accounts must enroll in two-factor authentication before using the app.</small></span><input type="checkbox" name="enabled" value="1" @checked(old('enabled', $twoFactorEnforcementEnabled))><i aria-hidden="true"></i></label>
+                        </div>
+                        <div class="settings-security-note"><x-icon name="shield" /><p>Disabling this does not remove two-factor authentication already enrolled on individual accounts &mdash; it only pauses the requirement to enroll. Re-enable before deployment.</p></div>
+                        <small>
+                            {{ $twoFactorEnforcementEnabled ? 'Currently enforced' : 'Currently disabled system-wide' }}
+                            @if($twoFactorEnforcementUpdatedBy) · Last changed by {{ $twoFactorEnforcementUpdatedBy }}@endif
+                        </small>
+                        <button class="btn btn-primary" type="submit"><x-icon name="check-circle" /> Save system setting</button>
+                    </form>
+                </article>
+            @endif
+
             @if($canManageAttendanceSettings)
                 <article
                     class="panel settings-panel"

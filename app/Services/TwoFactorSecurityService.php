@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Services\Organization\TwoFactorEnforcementSettings;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -14,14 +15,24 @@ class TwoFactorSecurityService
 {
     public function __construct(
         private readonly TwoFactorAuthenticationProvider $provider,
+        private readonly TwoFactorEnforcementSettings $enforcementSettings,
     ) {}
 
     public function isRequiredFor(User $user): bool
     {
+        if (! $this->enforcementSettings->enabled()) {
+            return false;
+        }
+
         $requiredRoles = config('security.two_factor.required_roles', []);
 
         return $requiredRoles !== []
             && $user->roles()->whereIn('slug', $requiredRoles)->exists();
+    }
+
+    public function challengeRequiredFor(User $user): bool
+    {
+        return $this->enforcementSettings->enabled() && $user->hasEnabledTwoFactorAuthentication();
     }
 
     public function confirmCurrentPassword(User $user, string $password, string $field = 'current_password'): void

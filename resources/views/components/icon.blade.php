@@ -70,6 +70,9 @@
             <circle cx="12" cy="12" r="9" />
             <path d="m8 12 2.5 2.5L16 9" />
             @break
+        @case('circle')
+            <circle cx="12" cy="12" r="9" />
+            @break
         @case('arrow-up')
             <path d="m18 15-6-6-6 6" />
             @break

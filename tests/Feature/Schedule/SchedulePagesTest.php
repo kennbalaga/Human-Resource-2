@@ -93,7 +93,7 @@ class SchedulePagesTest extends TestCase
             ->where('department_id', $manager->employee->department_id)
             ->whereKeyNot($manager->employee->id)
             ->firstOrFail();
-        $shift = Shift::query()->where('code', 'DAY-0800')->firstOrFail();
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $date = '2027-04-05';
 
         $this->actingAs($manager)->post('/schedules', [
@@ -135,7 +135,7 @@ class SchedulePagesTest extends TestCase
     {
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
         $employee = Employee::query()->where('employment_status', 'active')->firstOrFail();
-        $shift = Shift::query()->where('code', 'DAY-0800')->firstOrFail();
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $date = '2027-04-06';
         LeaveRequest::query()->create([
             'uuid' => (string) Str::uuid(),
@@ -164,7 +164,7 @@ class SchedulePagesTest extends TestCase
     {
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
         $employee = Employee::query()->where('employment_status', 'active')->firstOrFail();
-        $shift = Shift::query()->where('code', 'DAY-0800')->firstOrFail();
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $base = ['department_id' => $employee->department_id, 'employee_ids' => [$employee->id], 'shift_id' => $shift->id, 'include_weekends' => true];
 
         $this->actingAs($manager)->postJson('/schedules/bulk-preview', $base + [
@@ -229,5 +229,57 @@ class SchedulePagesTest extends TestCase
             'break_minutes' => 45,
             'is_active' => false,
         ]);
+    }
+
+    public function test_hr_manager_can_toggle_shift_active_status_without_deleting_it(): void
+    {
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
+        $this->assertTrue($shift->is_active);
+
+        $this->actingAs($manager)
+            ->patch("/shifts/{$shift->id}/toggle-active")
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Shift template deactivated.');
+
+        $this->assertDatabaseHas('shifts', ['id' => $shift->id, 'is_active' => false]);
+
+        $this->actingAs($manager)
+            ->patch("/shifts/{$shift->id}/toggle-active")
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Shift template activated.');
+
+        $this->assertDatabaseHas('shifts', ['id' => $shift->id, 'is_active' => true]);
+    }
+
+    public function test_standard_employee_cannot_toggle_shift_active_status(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $shift = Shift::query()->firstOrFail();
+
+        $this->actingAs($employee)
+            ->patch("/shifts/{$shift->id}/toggle-active")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('shifts', ['id' => $shift->id, 'is_active' => true]);
+    }
+
+    public function test_shift_with_schedule_history_cannot_be_deleted_but_can_be_deactivated(): void
+    {
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
+        $this->assertTrue($shift->assignments()->exists());
+
+        $this->actingAs($manager)
+            ->delete("/shifts/{$shift->id}")
+            ->assertSessionHasErrors('shift');
+
+        $this->assertDatabaseHas('shifts', ['id' => $shift->id]);
+
+        $this->actingAs($manager)
+            ->patch("/shifts/{$shift->id}/toggle-active")
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('shifts', ['id' => $shift->id, 'is_active' => false]);
     }
 }

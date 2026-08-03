@@ -44,9 +44,24 @@ class ShiftController extends Controller
         return back()->with('success', 'Shift template updated.');
     }
 
+    public function toggleActive(Request $request, Shift $shift): RedirectResponse
+    {
+        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists(), 403);
+
+        $shift->update(['is_active' => ! $shift->is_active]);
+
+        return back()->with('success', $shift->is_active ? 'Shift template activated.' : 'Shift template deactivated.');
+    }
+
     public function destroy(Request $request, Shift $shift): RedirectResponse
     {
         abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists(), 403);
+
+        if ($shift->is_system) {
+            throw ValidationException::withMessages([
+                'shift' => 'This is a protected system shift template and cannot be deleted. You can still edit or deactivate it.',
+            ]);
+        }
 
         if ($shift->assignments()->exists()) {
             throw ValidationException::withMessages([

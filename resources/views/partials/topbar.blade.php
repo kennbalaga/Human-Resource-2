@@ -56,17 +56,39 @@
                 </div>
 
                 <div class="notification-list">
+                    @php
+                        $notificationCategoryMeta = [
+                            'attendance' => ['label' => 'Attendance', 'tone' => 'warning'],
+                            'schedule' => ['label' => 'Schedule', 'tone' => 'primary'],
+                            'leave' => ['label' => 'Leave', 'tone' => 'success'],
+                            'security' => ['label' => 'Security', 'tone' => 'danger'],
+                            'general' => ['label' => 'General', 'tone' => 'secondary'],
+                        ];
+                    @endphp
                     @forelse ($notificationItems as $notification)
                         @php
                             $tone = in_array(data_get($notification->data, 'tone'), ['success', 'primary', 'warning'], true) ? data_get($notification->data, 'tone') : 'primary';
                             $icon = in_array(data_get($notification->data, 'icon'), ['clock', 'calendar', 'leave', 'shield'], true) ? data_get($notification->data, 'icon') : 'bell';
+                            $category = data_get($notification->data, 'category');
+                            if (! array_key_exists($category, $notificationCategoryMeta)) {
+                                $category = match ($icon) {
+                                    'clock' => 'attendance',
+                                    'calendar' => 'schedule',
+                                    'leave' => 'leave',
+                                    'shield' => 'security',
+                                    default => 'general',
+                                };
+                            }
                         @endphp
                         <a class="notification-item" href="{{ route('notifications.open', $notification->id) }}">
                             <span class="notification-icon notification-{{ $tone }}">
                                 <x-icon :name="$icon" />
                             </span>
                             <div>
-                                <strong>{{ data_get($notification->data, 'title', 'HRMS update') }}</strong>
+                                <span class="notification-category-row">
+                                    <strong>{{ data_get($notification->data, 'title', 'HRMS update') }}</strong>
+                                    <span class="status-badge status-{{ $notificationCategoryMeta[$category]['tone'] }}"><span class="status-dot"></span>{{ $notificationCategoryMeta[$category]['label'] }}</span>
+                                </span>
                                 <p>{{ data_get($notification->data, 'message', 'You have a new workforce update.') }}</p>
                                 <time datetime="{{ $notification->created_at->toIso8601String() }}">{{ $notification->created_at->diffForHumans() }}</time>
                             </div>

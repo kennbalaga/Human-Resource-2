@@ -33,7 +33,7 @@ class ScheduleServiceTest extends TestCase
 
     public function test_it_creates_a_non_conflicting_assignment(): void
     {
-        $shift = Shift::query()->where('code', 'DAY-0800')->firstOrFail();
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
 
         $assignment = $this->service->createAssignment([
             'employee_id' => $this->employee->id,
@@ -53,7 +53,7 @@ class ScheduleServiceTest extends TestCase
 
     public function test_it_rejects_overlapping_shifts(): void
     {
-        $dayShift = Shift::query()->where('code', 'DAY-0800')->firstOrFail();
+        $dayShift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $overlapShift = Shift::query()->create([
             'code' => 'MID-1200',
             'name' => 'Mid Shift',
@@ -81,8 +81,8 @@ class ScheduleServiceTest extends TestCase
 
     public function test_overnight_shift_conflicts_with_next_morning(): void
     {
-        $nightShift = Shift::query()->where('code', 'NIGHT-2300')->firstOrFail();
-        $morningShift = Shift::query()->where('code', 'AM-0700')->firstOrFail();
+        $nightShift = Shift::query()->where('code', 'NIGHT-2200')->firstOrFail();
+        $morningShift = Shift::query()->where('code', 'MORNING-0600')->firstOrFail();
 
         $this->service->createAssignment([
             'employee_id' => $this->employee->id,
@@ -104,10 +104,10 @@ class ScheduleServiceTest extends TestCase
         ), 'Back-to-back shifts must still be flagged by the configurable minimum-rest rule.');
 
         $overlapShift = Shift::query()->create([
-            'code' => 'EARLY-0600',
+            'code' => 'EARLY-0500',
             'name' => 'Early Shift',
-            'start_time' => '06:00',
-            'end_time' => '14:00',
+            'start_time' => '05:00',
+            'end_time' => '13:00',
             'break_minutes' => 60,
             'color' => '#0F766E',
             'is_active' => true,
@@ -118,7 +118,7 @@ class ScheduleServiceTest extends TestCase
 
     public function test_weekly_recurrence_expands_only_selected_weekdays(): void
     {
-        $shift = Shift::query()->where('code', 'DAY-0800')->firstOrFail();
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
 
         $series = $this->service->createRecurringSchedule([
             'employee_id' => $this->employee->id,
@@ -146,7 +146,7 @@ class ScheduleServiceTest extends TestCase
 
     public function test_recurring_creation_is_atomic_when_one_date_conflicts(): void
     {
-        $shift = Shift::query()->where('code', 'DAY-0800')->firstOrFail();
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $this->service->createAssignment([
             'employee_id' => $this->employee->id,
             'shift_id' => $shift->id,

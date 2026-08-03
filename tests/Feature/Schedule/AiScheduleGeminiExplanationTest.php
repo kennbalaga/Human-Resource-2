@@ -34,7 +34,7 @@ class AiScheduleGeminiExplanationTest extends TestCase
         $this->payload = [
             'department_id' => Department::query()->where('code', 'HR')->firstOrFail()->id,
             'position_id' => Position::query()->where('code', 'HR-OFFICER')->firstOrFail()->id,
-            'shift_id' => Shift::query()->where('code', 'DAY-0800')->firstOrFail()->id,
+            'shift_id' => Shift::query()->where('code', 'ADMIN-0800')->firstOrFail()->id,
             'work_date' => '2027-10-01',
         ];
         config([
