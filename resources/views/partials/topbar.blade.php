@@ -1,9 +1,4 @@
 @php
-    $userInitials = collect(explode(' ', auth()->user()->name))
-        ->filter()
-        ->take(2)
-        ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
-        ->implode('');
     $displayTimezone = config('workforce.timezone', 'Asia/Manila');
     $displayNow = now($displayTimezone);
 @endphp
@@ -14,12 +9,6 @@
             <x-icon name="menu" />
             <span class="visually-hidden">Open navigation</span>
         </button>
-
-        <form class="global-search" method="GET" action="{{ route('search.index') }}" role="search">
-            <x-icon name="search" />
-            <span class="visually-hidden">Search HRMS</span>
-            <input type="search" name="q" value="{{ request('q') }}" placeholder="Search employees, departments..." aria-label="Search employees and departments" autocomplete="off">
-        </form>
     </div>
 
     <div class="topbar-actions">
@@ -38,10 +27,11 @@
             </span>
         </time>
 
-        <button class="icon-button theme-toggle" type="button" data-theme-toggle data-theme-update-url="{{ route('settings.theme.update') }}" aria-label="Switch color theme" title="Switch color theme">
-            <span class="theme-icon theme-icon-moon"><x-icon name="moon" /></span>
-            <span class="theme-icon theme-icon-sun"><x-icon name="sun" /></span>
-        </button>
+        <form class="global-search" method="GET" action="{{ route('search.index') }}" role="search">
+            <x-icon name="search" />
+            <span class="visually-hidden">Search HRMS</span>
+            <input type="search" name="q" value="{{ request('q') }}" placeholder="Search employees, departments..." aria-label="Search employees and departments" autocomplete="off">
+        </form>
 
         <div class="dropdown">
             <button class="icon-button notification-button" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open notifications">
@@ -91,37 +81,6 @@
                 </div>
 
                 <a class="notification-footer" href="{{ route('notifications.index') }}">View all notifications</a>
-            </div>
-        </div>
-
-        <span class="topbar-divider"></span>
-
-        <div class="dropdown">
-            <button class="profile-menu-button" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <span class="avatar">{{ $userInitials }}</span>
-                <span class="profile-menu-copy d-none d-sm-flex">
-                    <strong>{{ auth()->user()->name }}</strong>
-                    <small>{{ $currentRole ?? 'Employee' }}</small>
-                </span>
-                <x-icon name="chevron-down" class="d-none d-sm-block" />
-            </button>
-
-            <div class="dropdown-menu dropdown-menu-end profile-dropdown">
-                <div class="profile-dropdown-header">
-                    <span class="avatar">{{ $userInitials }}</span>
-                    <div>
-                        <strong>{{ auth()->user()->name }}</strong>
-                        <span>{{ auth()->user()->email }}</span>
-                    </div>
-                </div>
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="{{ route('profile.show') }}"><x-icon name="users" /> My profile</a>
-                <a class="dropdown-item" href="{{ route('settings.edit') }}"><x-icon name="settings" /> Account settings</a>
-                <div class="dropdown-divider"></div>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button class="dropdown-item text-danger" type="submit"><x-icon name="logout" /> Log out</button>
-                </form>
             </div>
         </div>
     </div>

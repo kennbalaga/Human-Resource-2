@@ -1,9 +1,3 @@
-.theme-toggle { position:relative; }
-.theme-toggle .theme-icon { display:grid; place-items:center; }
-.theme-toggle .theme-icon-sun { display:none; }
-html[data-theme-resolved='dark'] .theme-toggle .theme-icon-moon { display:none; }
-html[data-theme-resolved='dark'] .theme-toggle .theme-icon-sun { display:grid; }
-
 html[data-theme-resolved='dark'] {
     color-scheme: dark;
     --hr-primary: #53c98b;
@@ -28,16 +22,16 @@ html[data-theme-resolved='dark'] {
 }
 
 html[data-theme-resolved='dark'] body.app-body { color:var(--hr-text); background:var(--hr-bg); }
-html[data-theme-resolved='dark'] .app-sidebar { background:radial-gradient(circle at 18% 10%,rgba(76,190,131,.14),transparent 28%),linear-gradient(175deg,var(--hr-sidebar) 0%,var(--hr-sidebar-deep) 100%); }
+html[data-theme-resolved='dark'] .app-sidebar { background:linear-gradient(175deg,var(--hr-sidebar) 0%,var(--hr-sidebar-deep) 100%); }
 html[data-theme-resolved='dark'] .app-topbar { border-color:var(--hr-border); background:rgba(16,28,22,.95); box-shadow:0 3px 16px rgba(0,0,0,.22); }
+html[data-theme-resolved='dark'] .sidebar-brand-toggle { color:#a9b8b0; }
+html[data-theme-resolved='dark'] .sidebar-brand-toggle:hover { color:var(--hr-text); background:#1b2c23; }
 html[data-theme-resolved='dark'] .app-footer { color:#8fa096; border-color:var(--hr-border); background:#0f1b16; }
 html[data-theme-resolved='dark'] .page-heading h1,
 html[data-theme-resolved='dark'] .panel-header h2,
-html[data-theme-resolved='dark'] .profile-menu-button,
 html[data-theme-resolved='dark'] .profile-hero-copy h2 { color:var(--hr-text); }
 html[data-theme-resolved='dark'] .page-heading>div>p:last-child,
-html[data-theme-resolved='dark'] .history-caption,
-html[data-theme-resolved='dark'] .profile-menu-copy small { color:var(--hr-muted); }
+html[data-theme-resolved='dark'] .history-caption { color:var(--hr-muted); }
 
 html[data-theme-resolved='dark'] .panel,
 html[data-theme-resolved='dark'] .stat-card,
@@ -66,7 +60,6 @@ html[data-theme-resolved='dark'] .icon-button:hover,
 html[data-theme-resolved='dark'] .mobile-menu-button:hover { color:var(--hr-primary); border-color:#3b5748; background:#1b2c23; }
 html[data-theme-resolved='dark'] .global-search input { color:var(--hr-text); }
 html[data-theme-resolved='dark'] .global-search input::placeholder { color:#a9b8b0; }
-html[data-theme-resolved='dark'] .profile-menu-button:hover { background:#18261f; }
 html[data-theme-resolved='dark'] .avatar { color:#d9f5e6; border-color:#315442; background:linear-gradient(145deg,#24533b,#173c2b); }
 
 html[data-theme-resolved='dark'] .dropdown-menu,

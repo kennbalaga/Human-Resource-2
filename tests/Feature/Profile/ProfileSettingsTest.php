@@ -98,7 +98,7 @@ class ProfileSettingsTest extends TestCase
             ->assertDontSee('Display timezone');
     }
 
-    public function test_topbar_theme_toggle_endpoint_persists_a_valid_theme(): void
+    public function test_sidebar_theme_switch_endpoint_persists_a_valid_theme(): void
     {
         $user = $this->employeeUser();
 
@@ -110,7 +110,7 @@ class ProfileSettingsTest extends TestCase
         $this->actingAs($user)->get('/dashboard')
             ->assertOk()
             ->assertSee('data-theme="dark"', false)
-            ->assertSee('data-theme-toggle', false);
+            ->assertSee('data-theme-set="dark"', false);
     }
 
     public function test_invalid_theme_is_rejected(): void

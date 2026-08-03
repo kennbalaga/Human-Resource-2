@@ -5,19 +5,16 @@ function resolveTheme(theme) {
     return theme === 'system' ? (systemTheme.matches ? 'dark' : 'light') : theme;
 }
 
-function updateToggleLabels() {
-    document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
-        const next = root.dataset.themeResolved === 'dark' ? 'light' : 'dark';
-        const label = `Switch to ${next} mode`;
-        button.setAttribute('aria-label', label);
-        button.setAttribute('title', label);
+function updateThemeOptions() {
+    document.querySelectorAll('[data-theme-set]').forEach((button) => {
+        button.setAttribute('aria-pressed', root.dataset.themeResolved === button.dataset.themeSet ? 'true' : 'false');
     });
 }
 
 function applyTheme(theme) {
     root.dataset.theme = theme;
     root.dataset.themeResolved = resolveTheme(theme);
-    updateToggleLabels();
+    updateThemeOptions();
 }
 
 async function persistTheme(button, theme) {
@@ -36,10 +33,15 @@ async function persistTheme(button, theme) {
     }
 }
 
-document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+document.querySelectorAll('[data-theme-set]').forEach((button) => {
     button.addEventListener('click', async () => {
         const previous = root.dataset.theme || 'system';
-        const next = root.dataset.themeResolved === 'dark' ? 'light' : 'dark';
+        const next = button.dataset.themeSet;
+
+        if (root.dataset.themeResolved === next) {
+            return;
+        }
+
         applyTheme(next);
         button.disabled = true;
 
@@ -66,4 +68,4 @@ systemTheme.addEventListener('change', () => {
     }
 });
 
-updateToggleLabels();
+updateThemeOptions();

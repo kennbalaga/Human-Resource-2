@@ -48,6 +48,17 @@
         @case('chevron-right')
             <path d="m9 18 6-6-6-6" />
             @break
+        @case('chevron-up-down')
+            <path d="m8 9 4-4 4 4M16 15l-4 4-4-4" />
+            @break
+        @case('chevrons-left')
+            <path d="m11 17-5-5 5-5M18 17l-5-5 5-5" />
+            @break
+        @case('more-vertical')
+            <circle cx="12" cy="5" r="1" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none" />
+            @break
         @case('logout')
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
             @break
