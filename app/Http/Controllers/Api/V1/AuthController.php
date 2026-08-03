@@ -54,7 +54,7 @@ class AuthController extends Controller
             ]);
         }
 
-        if ($user->hasEnabledTwoFactorAuthentication()) {
+        if ($twoFactor->challengeRequiredFor($user)) {
             $verificationCode = (string) ($validated['two_factor_code'] ?? $validated['recovery_code'] ?? '');
 
             if ($verificationCode === '' || ! $twoFactor->verify($user, $verificationCode)) {

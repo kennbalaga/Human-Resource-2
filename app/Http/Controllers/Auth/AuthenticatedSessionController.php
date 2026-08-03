@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\RememberedLoginService;
+use App\Services\TwoFactorSecurityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,11 +25,11 @@ class AuthenticatedSessionController extends Controller
         ]);
     }
 
-    public function store(LoginRequest $request, RememberedLoginService $rememberedLogin): RedirectResponse
+    public function store(LoginRequest $request, RememberedLoginService $rememberedLogin, TwoFactorSecurityService $twoFactor): RedirectResponse
     {
         $user = $request->authenticate();
 
-        if ($user->hasEnabledTwoFactorAuthentication()) {
+        if ($twoFactor->challengeRequiredFor($user)) {
             $request->session()->put([
                 'login.id' => $user->getKey(),
                 'login.remember' => $request->boolean('remember'),

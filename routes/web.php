@@ -61,6 +61,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/preferences', [SettingsController::class, 'updatePreferences'])->name('settings.preferences.update');
     Route::patch('/settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.theme.update');
     Route::patch('/settings/system/employee-numbers', [SettingsController::class, 'updateEmployeeNumberSettings'])->name('settings.employee-numbers.update');
+    Route::patch('/settings/system/two-factor-enforcement', [SettingsController::class, 'updateTwoFactorEnforcementSettings'])->name('settings.two-factor-enforcement.update');
     Route::patch('/settings/system/attendance-capture', [SettingsController::class, 'updateAttendanceCaptureSettings'])->name('settings.attendance-capture.update');
     Route::post('/settings/system/biometric-simulator', [BiometricSimulatorController::class, 'store'])->name('settings.biometric-simulator.store');
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
