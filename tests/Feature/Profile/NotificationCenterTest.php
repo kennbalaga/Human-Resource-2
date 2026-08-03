@@ -90,21 +90,30 @@ class NotificationCenterTest extends TestCase
         $this->enableInAppScheduleUpdates($user);
         $this->storeScheduleNotification($user);
         $this->storeLeaveNotification($user);
+        $this->storeAttendanceNotification($user);
 
         // Note: assertions are scoped to the notification-center panel, not the
         // whole page — the header bell dropdown always lists all unread
         // notifications regardless of this page's category filter.
+        $attendancePanel = $this->notificationCenterPanel($user, ['category' => 'attendance']);
+        $this->assertStringContainsString('Attendance reminder', $attendancePanel);
+        $this->assertStringNotContainsString('Work schedule updated', $attendancePanel);
+        $this->assertStringNotContainsString('Leave request approved', $attendancePanel);
+
         $schedulePanel = $this->notificationCenterPanel($user, ['category' => 'schedule']);
         $this->assertStringContainsString('Work schedule updated', $schedulePanel);
         $this->assertStringNotContainsString('Leave request approved', $schedulePanel);
+        $this->assertStringNotContainsString('Attendance reminder', $schedulePanel);
 
         $leavePanel = $this->notificationCenterPanel($user, ['category' => 'leave']);
         $this->assertStringContainsString('Leave request approved', $leavePanel);
         $this->assertStringNotContainsString('Work schedule updated', $leavePanel);
+        $this->assertStringNotContainsString('Attendance reminder', $leavePanel);
 
         $allPanel = $this->notificationCenterPanel($user);
         $this->assertStringContainsString('Work schedule updated', $allPanel);
         $this->assertStringContainsString('Leave request approved', $allPanel);
+        $this->assertStringContainsString('Attendance reminder', $allPanel);
     }
 
     /** @param array<string, string> $query */
@@ -156,6 +165,20 @@ class NotificationCenterTest extends TestCase
                 ['Your leave request was approved.'],
                 'View Leave',
                 route('leaves.index'),
+            ),
+        );
+    }
+
+    private function storeAttendanceNotification(User $user): void
+    {
+        app(PreferenceNotificationService::class)->send(
+            $user,
+            'attendance_reminders',
+            new PreferenceMailNotification(
+                'Attendance reminder',
+                ['You have not clocked in for your shift.'],
+                'View Attendance',
+                route('attendance.index'),
             ),
         );
     }
