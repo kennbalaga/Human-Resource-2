@@ -84,6 +84,43 @@ class NotificationCenterTest extends TestCase
         $this->assertNull($notification->fresh()->read_at);
     }
 
+    public function test_notification_center_filters_by_category(): void
+    {
+        $user = $this->user('employee@hrms.local');
+        $this->enableInAppScheduleUpdates($user);
+        $this->storeScheduleNotification($user);
+        $this->storeLeaveNotification($user);
+
+        // Note: assertions are scoped to the notification-center panel, not the
+        // whole page — the header bell dropdown always lists all unread
+        // notifications regardless of this page's category filter.
+        $schedulePanel = $this->notificationCenterPanel($user, ['category' => 'schedule']);
+        $this->assertStringContainsString('Work schedule updated', $schedulePanel);
+        $this->assertStringNotContainsString('Leave request approved', $schedulePanel);
+
+        $leavePanel = $this->notificationCenterPanel($user, ['category' => 'leave']);
+        $this->assertStringContainsString('Leave request approved', $leavePanel);
+        $this->assertStringNotContainsString('Work schedule updated', $leavePanel);
+
+        $allPanel = $this->notificationCenterPanel($user);
+        $this->assertStringContainsString('Work schedule updated', $allPanel);
+        $this->assertStringContainsString('Leave request approved', $allPanel);
+    }
+
+    /** @param array<string, string> $query */
+    private function notificationCenterPanel(User $user, array $query = []): string
+    {
+        $html = $this->actingAs($user)->get(route('notifications.index', $query))
+            ->assertOk()
+            ->getContent();
+
+        preg_match('/<section class="panel notification-center-panel">.*?<\/section>/s', $html, $matches);
+
+        $this->assertNotEmpty($matches, 'Notification center panel markup was not found.');
+
+        return $matches[0];
+    }
+
     public function test_empty_dropdown_uses_clear_copy_and_working_footer_link(): void
     {
         $user = $this->user('employee@hrms.local');
@@ -105,6 +142,20 @@ class NotificationCenterTest extends TestCase
                 ['Your Day Shift schedule was updated.'],
                 'View My Schedule',
                 route('schedules.index'),
+            ),
+        );
+    }
+
+    private function storeLeaveNotification(User $user): void
+    {
+        app(PreferenceNotificationService::class)->send(
+            $user,
+            'leave_updates',
+            new PreferenceMailNotification(
+                'Leave request approved',
+                ['Your leave request was approved.'],
+                'View Leave',
+                route('leaves.index'),
             ),
         );
     }

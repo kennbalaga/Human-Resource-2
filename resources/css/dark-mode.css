@@ -295,6 +295,12 @@ html[data-theme-resolved='dark'] .status-success { color:#86e4ad; background:#17
 html[data-theme-resolved='dark'] .status-danger { color:#f4a0aa; background:#3c2025; }
 html[data-theme-resolved='dark'] .status-warning { color:#efc16f; background:#392d16; }
 html[data-theme-resolved='dark'] .status-secondary { color:#c1cec7; background:#26372e; }
+html[data-theme-resolved='dark'] .status-primary { color:#8fb8ef; background:#182a42; }
+html[data-theme-resolved='dark'] .notification-filter-tab { color:#b5c3bb; border-color:var(--hr-border); background:#15231c; }
+html[data-theme-resolved='dark'] .notification-filter-tab:hover,
+html[data-theme-resolved='dark'] .notification-filter-tab:focus-visible { color:var(--hr-text); background:#1a2c23; }
+html[data-theme-resolved='dark'] .notification-filter-tab.is-active { color:#86e4ad; border-color:#438b63; background:#14291f; }
+html[data-theme-resolved='dark'] .notification-filter-count { background:rgba(255,255,255,0.08); }
 html[data-theme-resolved='dark'] .report-pagination .page-link { color:#b9dcca; border-color:var(--hr-border); background:#15231c; }
 html[data-theme-resolved='dark'] .report-pagination .disabled>.page-link { color:#718279; background:#101c17; }
 

@@ -21,16 +21,51 @@
         <div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>
     @endif
 
+    @php
+        $categoryMeta = [
+            'attendance' => ['label' => 'Attendance', 'tone' => 'warning'],
+            'schedule' => ['label' => 'Schedule', 'tone' => 'primary'],
+            'leave' => ['label' => 'Leave', 'tone' => 'success'],
+            'security' => ['label' => 'Security', 'tone' => 'danger'],
+            'general' => ['label' => 'General', 'tone' => 'secondary'],
+        ];
+        $totalCount = array_sum($categoryCounts);
+    @endphp
+
+    <nav class="notification-filter-tabs" aria-label="Filter notifications by category">
+        <a class="notification-filter-tab {{ $activeCategory === null ? 'is-active' : '' }}" href="{{ route('notifications.index') }}">
+            All <span class="notification-filter-count">{{ $totalCount }}</span>
+        </a>
+        @foreach($categoryMeta as $key => $meta)
+            @continue($categoryCounts[$key] === 0 && $activeCategory !== $key)
+            <a class="notification-filter-tab {{ $activeCategory === $key ? 'is-active' : '' }}" href="{{ route('notifications.index', ['category' => $key]) }}">
+                {{ $meta['label'] }} <span class="notification-filter-count">{{ $categoryCounts[$key] }}</span>
+            </a>
+        @endforeach
+    </nav>
+
     <section class="panel notification-center-panel">
         @forelse($notificationPage as $notification)
             @php
                 $tone = in_array(data_get($notification->data, 'tone'), ['success', 'primary', 'warning'], true) ? data_get($notification->data, 'tone') : 'primary';
                 $icon = in_array(data_get($notification->data, 'icon'), ['clock', 'calendar', 'leave'], true) ? data_get($notification->data, 'icon') : 'bell';
+                $category = data_get($notification->data, 'category');
+                if (! array_key_exists($category, $categoryMeta)) {
+                    $category = match ($icon) {
+                        'clock' => 'attendance',
+                        'calendar' => 'schedule',
+                        'leave' => 'leave',
+                        default => 'general',
+                    };
+                }
             @endphp
             <a class="notification-center-item {{ $notification->read_at ? '' : 'is-unread' }}" href="{{ route('notifications.open', $notification->id) }}">
                 <span class="notification-icon notification-{{ $tone }}"><x-icon :name="$icon" /></span>
                 <span class="notification-center-copy">
-                    <strong>{{ data_get($notification->data, 'title', 'HRMS update') }}</strong>
+                    <span class="notification-category-row">
+                        <strong>{{ data_get($notification->data, 'title', 'HRMS update') }}</strong>
+                        <span class="status-badge status-{{ $categoryMeta[$category]['tone'] }}"><span class="status-dot"></span>{{ $categoryMeta[$category]['label'] }}</span>
+                    </span>
                     <span>{{ data_get($notification->data, 'message', 'You have a new workforce update.') }}</span>
                     <time datetime="{{ $notification->created_at->toIso8601String() }}">{{ $notification->created_at->diffForHumans() }}</time>
                 </span>
@@ -39,8 +74,8 @@
         @empty
             <div class="notification-center-empty">
                 <span class="notification-icon notification-success"><x-icon name="check-circle" /></span>
-                <strong>No notifications yet</strong>
-                <p>Attendance, schedule, and leave updates will appear here.</p>
+                <strong>{{ $activeCategory ? 'No '.strtolower($categoryMeta[$activeCategory]['label']).' notifications' : 'No notifications yet' }}</strong>
+                <p>{{ $activeCategory ? 'Nothing in this category right now.' : 'Attendance, schedule, and leave updates will appear here.' }}</p>
             </div>
         @endforelse
     </section>
