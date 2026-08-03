@@ -21,26 +21,71 @@
         <div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>
     @endif
 
+    @php
+        $categoryMeta = [
+            'attendance' => ['label' => 'Attendance', 'tone' => 'warning'],
+            'schedule' => ['label' => 'Schedule', 'tone' => 'primary'],
+            'leave' => ['label' => 'Leave', 'tone' => 'success'],
+            'security' => ['label' => 'Security', 'tone' => 'danger'],
+            'general' => ['label' => 'General', 'tone' => 'secondary'],
+        ];
+        $totalCount = array_sum($categoryCounts);
+    @endphp
+
+    <nav class="notification-filter-tabs" aria-label="Filter notifications by category">
+        <a class="notification-filter-tab {{ $activeCategory === null ? 'is-active' : '' }}" href="{{ route('notifications.index') }}">
+            All <span class="notification-filter-count">{{ $totalCount }}</span>
+        </a>
+        @foreach($categoryMeta as $key => $meta)
+            @continue($key === 'general' && $categoryCounts[$key] === 0 && $activeCategory !== $key)
+            <a class="notification-filter-tab {{ $activeCategory === $key ? 'is-active' : '' }}" href="{{ route('notifications.index', ['category' => $key]) }}">
+                {{ $meta['label'] }} <span class="notification-filter-count">{{ $categoryCounts[$key] }}</span>
+            </a>
+        @endforeach
+    </nav>
+
+    <p class="notification-retention-note">Notifications are kept for 7 days, then cleared automatically. Use the circle button on each item to mark it as read or unread.</p>
+
     <section class="panel notification-center-panel">
         @forelse($notificationPage as $notification)
             @php
                 $tone = in_array(data_get($notification->data, 'tone'), ['success', 'primary', 'warning'], true) ? data_get($notification->data, 'tone') : 'primary';
                 $icon = in_array(data_get($notification->data, 'icon'), ['clock', 'calendar', 'leave'], true) ? data_get($notification->data, 'icon') : 'bell';
+                $category = data_get($notification->data, 'category');
+                if (! array_key_exists($category, $categoryMeta)) {
+                    $category = match ($icon) {
+                        'clock' => 'attendance',
+                        'calendar' => 'schedule',
+                        'leave' => 'leave',
+                        default => 'general',
+                    };
+                }
             @endphp
-            <a class="notification-center-item {{ $notification->read_at ? '' : 'is-unread' }}" href="{{ route('notifications.open', $notification->id) }}">
-                <span class="notification-icon notification-{{ $tone }}"><x-icon :name="$icon" /></span>
-                <span class="notification-center-copy">
-                    <strong>{{ data_get($notification->data, 'title', 'HRMS update') }}</strong>
-                    <span>{{ data_get($notification->data, 'message', 'You have a new workforce update.') }}</span>
-                    <time datetime="{{ $notification->created_at->toIso8601String() }}">{{ $notification->created_at->diffForHumans() }}</time>
-                </span>
+            <div class="notification-center-item {{ $notification->read_at ? '' : 'is-unread' }}">
+                <a class="notification-center-link" href="{{ route('notifications.open', $notification->id) }}">
+                    <span class="notification-icon notification-{{ $tone }}"><x-icon :name="$icon" /></span>
+                    <span class="notification-center-copy">
+                        <span class="notification-category-row">
+                            <strong>{{ data_get($notification->data, 'title', 'HRMS update') }}</strong>
+                            <span class="status-badge status-{{ $categoryMeta[$category]['tone'] }}"><span class="status-dot"></span>{{ $categoryMeta[$category]['label'] }}</span>
+                        </span>
+                        <span>{{ data_get($notification->data, 'message', 'You have a new workforce update.') }}</span>
+                        <time datetime="{{ $notification->created_at->toIso8601String() }}">{{ $notification->created_at->diffForHumans() }}</time>
+                    </span>
+                </a>
                 @if(!$notification->read_at)<span class="notification-unread-dot" aria-label="Unread"></span>@endif
-            </a>
+                <form method="POST" action="{{ route('notifications.toggle-read', $notification->id) }}" class="notification-read-toggle">
+                    @csrf @method('PATCH')
+                    <button type="submit" title="{{ $notification->read_at ? 'Mark as unread' : 'Mark as read' }}" aria-label="{{ $notification->read_at ? 'Mark as unread' : 'Mark as read' }}">
+                        <x-icon :name="$notification->read_at ? 'circle' : 'check-circle'" />
+                    </button>
+                </form>
+            </div>
         @empty
             <div class="notification-center-empty">
                 <span class="notification-icon notification-success"><x-icon name="check-circle" /></span>
-                <strong>No notifications yet</strong>
-                <p>Attendance, schedule, and leave updates will appear here.</p>
+                <strong>{{ $activeCategory ? 'No '.strtolower($categoryMeta[$activeCategory]['label']).' notifications' : 'No notifications yet' }}</strong>
+                <p>{{ $activeCategory ? 'Nothing in this category right now.' : 'Attendance, schedule, and leave updates will appear here.' }}</p>
             </div>
         @endforelse
     </section>

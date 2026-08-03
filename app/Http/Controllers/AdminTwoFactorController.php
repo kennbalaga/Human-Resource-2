@@ -59,6 +59,7 @@ class AdminTwoFactorController extends Controller
                     'action_url' => route('settings.edit').'#two-factor',
                     'tone' => 'warning',
                     'icon' => 'shield',
+                    'category' => 'security',
                 ],
             ]);
         } catch (Throwable $exception) {

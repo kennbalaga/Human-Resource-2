@@ -2,18 +2,52 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class NotificationController extends Controller
 {
+    /** @var array<int, string> */
+    private const CATEGORIES = ['attendance', 'schedule', 'leave', 'security', 'general'];
+
     public function index(Request $request): View
     {
-        return view('notifications.index', [
-            'notificationPage' => $request->user()->notifications()->latest()->paginate(15),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+        $validated = $request->validate([
+            'category' => ['nullable', 'string', 'in:'.implode(',', self::CATEGORIES)],
         ]);
+
+        $activeCategory = $validated['category'] ?? null;
+
+        $query = $request->user()->notifications()->latest();
+
+        if ($activeCategory === 'general') {
+            $query->whereNull('data->category');
+        } elseif ($activeCategory !== null) {
+            $query->where('data->category', $activeCategory);
+        }
+
+        return view('notifications.index', [
+            'notificationPage' => $query->paginate(15)->withQueryString(),
+            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'activeCategory' => $activeCategory,
+            'categoryCounts' => $this->categoryCounts($request->user()),
+        ]);
+    }
+
+    /** @return array<string, int> */
+    private function categoryCounts(User $user): array
+    {
+        $counts = [];
+
+        foreach (self::CATEGORIES as $category) {
+            $counts[$category] = $category === 'general'
+                ? $user->notifications()->whereNull('data->category')->count()
+                : $user->notifications()->where('data->category', $category)->count();
+        }
+
+        return $counts;
     }
 
     public function open(Request $request, string $notification): RedirectResponse
@@ -34,6 +68,15 @@ class NotificationController extends Controller
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
 
         return back()->with('success', 'All notifications marked as read.');
+    }
+
+    public function toggleRead(Request $request, string $notification): RedirectResponse
+    {
+        $item = $request->user()->notifications()->findOrFail($notification);
+
+        $item->read_at ? $item->markAsUnread() : $item->markAsRead();
+
+        return back();
     }
 
     private function isSafeApplicationUrl(Request $request, string $url): bool

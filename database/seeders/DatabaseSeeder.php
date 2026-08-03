@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             AttendanceSeeder::class,
             ShiftScheduleSeeder::class,
             LeaveManagementSeeder::class,
+            NursingStaffSeeder::class,
         ]);
     }
 }

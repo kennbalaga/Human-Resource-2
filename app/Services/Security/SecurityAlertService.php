@@ -50,6 +50,7 @@ class SecurityAlertService
                         'action_url' => url('/audit-logs'),
                         'tone' => in_array($severity, ['critical', 'danger'], true) ? 'danger' : 'warning',
                         'icon' => 'shield',
+                        'category' => 'security',
                         'security_event' => $event,
                     ],
                 ]);
