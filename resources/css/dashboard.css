@@ -942,9 +942,9 @@ input {
 
 .stats-grid {
     display: grid;
-    margin-bottom: 22px;
+    margin-bottom: 18px;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
+    gap: 12px;
 }
 
 .stat-card,
@@ -957,8 +957,8 @@ input {
 
 .stat-card {
     min-width: 0;
-    padding: 18px 18px 17px;
-    border-radius: 14px;
+    padding: 13px 13px 12px;
+    border-radius: 12px;
     color: inherit;
     text-decoration: none;
     transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
@@ -980,30 +980,30 @@ input {
 
 .stat-card-top {
     display: flex;
-    margin-bottom: 17px;
+    margin-bottom: 11px;
     align-items: center;
     justify-content: space-between;
 }
 
 .stat-icon {
     display: grid;
-    width: 40px;
-    height: 40px;
-    border-radius: 11px;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
     place-items: center;
 }
 
 .stat-icon .ui-icon {
-    width: 19px;
-    height: 19px;
+    width: 16px;
+    height: 16px;
 }
 
 .stat-card-link-icon {
     display: grid;
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
     border: 1px solid var(--hr-border);
-    border-radius: 9px;
+    border-radius: 8px;
     color: var(--hr-muted);
     background: var(--hr-surface);
     place-items: center;
@@ -1011,8 +1011,8 @@ input {
 }
 
 .stat-card-link-icon .ui-icon {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
 }
 
 .stat-card:hover .stat-card-link-icon,
@@ -1044,9 +1044,9 @@ input {
 }
 
 .stat-title {
-    margin: 0 0 4px;
+    margin: 0 0 3px;
     color: var(--hr-muted);
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 520;
 }
 
@@ -1060,7 +1060,7 @@ input {
 
 .stat-value {
     color: #16251e;
-    font-size: 1.65rem;
+    font-size: 1.3rem;
     font-weight: 700;
     letter-spacing: -0.04em;
 }
@@ -1071,15 +1071,15 @@ input {
     color: var(--hr-success);
     align-items: center;
     gap: 2px;
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .stat-detail .ui-icon {
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
 }
 
 .dashboard-grid {
