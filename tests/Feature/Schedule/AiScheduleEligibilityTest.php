@@ -38,7 +38,7 @@ class AiScheduleEligibilityTest extends TestCase
         $this->employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
         $this->department = Department::query()->where('code', 'HR')->firstOrFail();
         $this->position = Position::query()->where('code', 'HR-OFFICER')->firstOrFail();
-        $this->dayShift = Shift::query()->where('code', 'DAY-0800')->firstOrFail();
+        $this->dayShift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
     }
 
     public function test_feature_is_disabled_by_default(): void
@@ -111,7 +111,7 @@ class AiScheduleEligibilityTest extends TestCase
     public function test_overnight_shift_checks_leave_on_the_following_day(): void
     {
         config(['ai_workforce_scheduling.enabled' => true]);
-        $night = Shift::query()->where('code', 'NIGHT-2300')->firstOrFail();
+        $night = Shift::query()->where('code', 'NIGHT-2200')->firstOrFail();
         $this->leave('2027-10-06', '2027-10-06', 'approved');
 
         $response = $this->actingAs($this->manager)->postJson(route('schedules.ai-recommendations.store'), $this->payload('2027-10-05', $night))->assertOk();

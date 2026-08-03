@@ -35,7 +35,7 @@ class PreferenceNotificationsTest extends TestCase
     {
         $manager = $this->user('hr.manager@hrms.local');
         $employee = $this->user('employee@hrms.local');
-        $shift = Shift::query()->where('code', 'DAY-0800')->firstOrFail();
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $this->setPreferences($employee, email: true, schedule: true);
 
         $this->actingAs($manager)->post('/schedules', [

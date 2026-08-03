@@ -57,6 +57,12 @@ class ShiftController extends Controller
     {
         abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists(), 403);
 
+        if ($shift->is_system) {
+            throw ValidationException::withMessages([
+                'shift' => 'This is a protected system shift template and cannot be deleted. You can still edit or deactivate it.',
+            ]);
+        }
+
         if ($shift->assignments()->exists()) {
             throw ValidationException::withMessages([
                 'shift' => 'This shift has schedule history and cannot be deleted. Mark it inactive instead.',

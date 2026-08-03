@@ -35,7 +35,7 @@
             <span class="history-caption">{{ $shifts->sum('assignments_count') }} schedule assignments</span>
         </div>
 
-        <p class="shift-template-hint">Every template can be edited or deactivated. Templates already used in a schedule can't be deleted &mdash; deactivate them instead to hide them from future assignments while keeping existing schedule history intact.</p>
+        <p class="shift-template-hint">Every template can be edited or deactivated. Templates already used in a schedule can't be deleted &mdash; deactivate them instead to hide them from future assignments while keeping existing schedule history intact. System templates are always editable but can never be deleted.</p>
 
         <div class="shift-template-table-wrap">
             <table class="shift-template-table">
@@ -46,7 +46,7 @@
                             $shiftPayload = ['id' => $shift->id, 'code' => $shift->code, 'name' => $shift->name, 'start_time' => substr($shift->start_time, 0, 5), 'end_time' => substr($shift->end_time, 0, 5), 'break_minutes' => $shift->break_minutes, 'color' => $shift->color, 'is_active' => $shift->is_active];
                         @endphp
                         <tr>
-                            <td><div class="shift-identity"><span class="shift-color" style="background: {{ $shift->color }}"></span><div><strong>{{ $shift->name }}</strong><small>{{ $shift->code }}</small></div></div></td>
+                            <td><div class="shift-identity"><span class="shift-color" style="background: {{ $shift->color }}"></span><div><strong>{{ $shift->name }}</strong> @if($shift->is_system)<x-status-badge status="System" />@endif<br><small>{{ $shift->code }}</small></div></div></td>
                             <td><div class="shift-hours"><strong>{{ $shift->formatted_time }}</strong><small>{{ $shift->break_minutes }}-minute break @if($shift->crosses_midnight) · Overnight @endif</small></div></td>
                             <td>{{ number_format($shift->duration_minutes / 60, 1) }} hours</td>
                             <td>{{ number_format($shift->assignments_count) }} assignments</td>
@@ -66,7 +66,7 @@
                                         @csrf @method('PATCH')
                                         <button class="icon-button subtle" type="submit" aria-label="{{ $shift->is_active ? 'Deactivate' : 'Activate' }} {{ $shift->name }}" title="{{ $shift->is_active ? 'Deactivate' : 'Activate' }}"><x-icon :name="$shift->is_active ? 'circle' : 'check-circle'" /></button>
                                     </form>
-                                    @if ($shift->assignments_count === 0)
+                                    @if (! $shift->is_system && $shift->assignments_count === 0)
                                         <form method="POST" action="{{ route('shifts.destroy', $shift) }}" onsubmit="return confirm('Delete this unused shift template?')">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Delete {{ $shift->name }}"><x-icon name="trash" /></button></form>
                                     @endif
                                 </div>
