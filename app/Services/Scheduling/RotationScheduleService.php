@@ -2,6 +2,7 @@
 
 namespace App\Services\Scheduling;
 
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\ScheduleAssignment;
@@ -17,7 +18,10 @@ use Illuminate\Validation\ValidationException;
 
 class RotationScheduleService
 {
-    public function __construct(private readonly ScheduleService $scheduleService) {}
+    public function __construct(
+        private readonly ScheduleService $scheduleService,
+        private readonly StaffingRequirementService $staffingRequirements,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -40,6 +44,20 @@ class RotationScheduleService
 
         if ($shifts->count() !== count($data['shift_ids'])) {
             throw ValidationException::withMessages(['shift_ids' => 'Every rotation shift must be active.']);
+        }
+
+        // Coverage is resolved before anyone is placed, so the rotation can aim at
+        // what each shift needs instead of splitting the team evenly and reporting
+        // the shortfall afterwards.
+        $department = Department::query()->with('shiftRequirements')->findOrFail($data['department_id']);
+        $requirements = $this->staffingRequirements->forShifts($department, $shifts);
+
+        if (isset($data['minimum_staff_per_shift']) || isset($data['minimum_senior_per_shift'])) {
+            $requirements = $requirements->map(fn (array $requirement): array => [
+                'staff' => (int) ($data['minimum_staff_per_shift'] ?? $requirement['staff']),
+                'senior' => (int) ($data['minimum_senior_per_shift'] ?? $requirement['senior']),
+                'source' => 'roster form',
+            ]);
         }
 
         $start = Carbon::parse($data['start_date'], config('schedule.timezone'))->startOfDay();
@@ -82,7 +100,16 @@ class RotationScheduleService
             ->groupBy('employee_id')
             ->map(fn (Collection $items) => (int) $items->first()->shift_id);
         $scheduleMethod = $data['schedule_method'] ?? 'rotation';
-        $rotationMatrix = $this->rotationMatrix($employees, $weeks, $shifts, $previousShiftIds, $scheduleMethod);
+        $seniorRankThreshold = (int) ($data['senior_rank_threshold'] ?? ScheduleService::DEFAULT_SENIOR_RANK_THRESHOLD);
+        $rotationMatrix = $this->rotationMatrix(
+            $employees,
+            $weeks,
+            $shifts,
+            $previousShiftIds,
+            $scheduleMethod,
+            $requirements,
+            $seniorRankThreshold,
+        );
         $readyAssignments = collect();
         $readyDayOffs = collect();
         $skipped = collect();
@@ -222,24 +249,52 @@ class RotationScheduleService
             ]);
         }
 
-        $minimumStaff = (int) ($data['minimum_staff_per_shift'] ?? 1);
+        $seniorRank = (int) ($data['senior_rank_threshold'] ?? ScheduleService::DEFAULT_SENIOR_RANK_THRESHOLD);
+
         $staffingGaps = collect(CarbonPeriod::create($start, $end))
-            ->flatMap(function ($date) use ($shifts, $readyAssignments, $minimumStaff) {
+            ->flatMap(function ($date) use ($shifts, $readyAssignments, $requirements, $seniorRank) {
                 $dateString = Carbon::instance($date)->toDateString();
 
-                return $shifts->map(function (Shift $shift) use ($readyAssignments, $minimumStaff, $dateString) {
-                    $available = $readyAssignments
-                        ->filter(fn (array $item) => $item['date']->toDateString() === $dateString && $item['shift']->id === $shift->id)
-                        ->count();
+                return $shifts->flatMap(function (Shift $shift) use ($readyAssignments, $requirements, $seniorRank, $dateString) {
+                    $onShift = $readyAssignments
+                        ->filter(fn (array $item) => $item['date']->toDateString() === $dateString && $item['shift']->id === $shift->id);
+                    $requirement = $requirements->get($shift->id);
+                    $minimumStaff = $requirement['staff'];
+                    $minimumSenior = $requirement['senior'];
+                    $gaps = collect();
 
-                    return $available < $minimumStaff ? [
-                        'date' => $dateString,
-                        'shift' => $shift->name,
-                        'available' => $available,
-                        'required' => $minimumStaff,
-                        'suggestion' => 'Add eligible staff, choose fewer shifts, or lower the minimum staffing rule.',
-                    ] : null;
-                })->filter();
+                    if ($onShift->count() < $minimumStaff) {
+                        $gaps->push([
+                            'date' => $dateString,
+                            'shift' => $shift->name,
+                            'label' => 'staff',
+                            'available' => $onShift->count(),
+                            'required' => $minimumStaff,
+                            'suggestion' => 'Required by the '.$requirement['source'].'. Add eligible staff or revise the unit standard.',
+                        ]);
+                    }
+
+                    // A rotation can spread the senior staff thin, leaving a shift
+                    // with nobody able to take charge even when the count is met.
+                    if ($minimumSenior > 0) {
+                        $seniorsOnShift = $onShift
+                            ->filter(fn (array $item) => (int) ($item['employee']->position?->seniority_rank ?? 1) >= $seniorRank)
+                            ->count();
+
+                        if ($seniorsOnShift < $minimumSenior) {
+                            $gaps->push([
+                                'date' => $dateString,
+                                'shift' => $shift->name,
+                                'label' => 'senior staff (rank '.$seniorRank.'+)',
+                                'available' => $seniorsOnShift,
+                                'required' => $minimumSenior,
+                                'suggestion' => 'Add a senior or charge-level employee to this shift so it is not covered by entry-level staff alone.',
+                            ]);
+                        }
+                    }
+
+                    return $gaps;
+                });
             })
             ->values();
 
@@ -254,7 +309,8 @@ class RotationScheduleService
             'day_off_count' => $readyDayOffs->count(),
             'skipped_count' => $skipped->count(),
             'staffing_gaps' => $staffingGaps,
-            'notice' => "{$patternLabel} applies the selected days-off, maximum-hours, night-shift, overtime, leave, and rest rules before HR approval.",
+            'notice' => "{$patternLabel} fills each shift towards {$department->name}'s recorded coverage standard, then applies the selected days-off, maximum-hours, night-shift, overtime, leave, and rest rules before HR approval.",
+            'coverage_standard' => $this->staffingRequirements->derivationSummary($department),
         ];
     }
 
@@ -287,30 +343,71 @@ class RotationScheduleService
         });
     }
 
+    /**
+     * Decide which shift each employee works in each week.
+     *
+     * Shifts are filled towards their own requirement rather than given an equal
+     * share of the team: a unit needing four on mornings and two on nights should
+     * not receive three and three. Seniors are steered towards shifts that still
+     * have nobody able to take charge.
+     *
+     * @param  Collection<int, array{staff: int, senior: int, source: string}>  $requirements
+     * @return array<int, array<int, Shift>>
+     */
     private function rotationMatrix(
         Collection $employees,
         Collection $weeks,
         Collection $shifts,
         Collection $previousShiftIds,
         string $scheduleMethod,
+        Collection $requirements,
+        int $seniorRankThreshold,
     ): array {
         $matrix = [];
         $lastShiftIds = $previousShiftIds;
 
         foreach ($weeks as $weekIndex => $weekDates) {
             $counts = $shifts->mapWithKeys(fn (Shift $shift) => [$shift->id => 0]);
-            foreach ($employees->values() as $employeeIndex => $employee) {
+            $seniorCounts = $shifts->mapWithKeys(fn (Shift $shift) => [$shift->id => 0]);
+
+            // Seniors are placed first so the charge cover lands where it is needed
+            // before the remaining places are filled.
+            $ordered = $employees->values()
+                ->sortByDesc(fn (Employee $employee) => (int) ($employee->position?->seniority_rank ?? 1))
+                ->values();
+
+            foreach ($ordered as $employee) {
+                $employeeIndex = $employees->values()->search(fn (Employee $candidate) => $candidate->id === $employee->id);
                 $preferredIndex = ($employeeIndex + ($scheduleMethod === 'rotation' ? $weekIndex : 0)) % $shifts->count();
                 $lastShiftId = $lastShiftIds->get($employee->id);
-                $shift = $shifts->sortBy(function (Shift $candidate, int $index) use ($counts, $lastShiftId, $preferredIndex, $shifts, $scheduleMethod) {
-                    $balancePenalty = $counts[$candidate->id] * 100;
+                $isSenior = (int) ($employee->position?->seniority_rank ?? 1) >= $seniorRankThreshold;
+
+                $shift = $shifts->sortBy(function (Shift $candidate, int $index) use (
+                    $counts, $seniorCounts, $requirements, $lastShiftId, $preferredIndex, $shifts, $scheduleMethod, $isSenior
+                ) {
+                    $requirement = $requirements->get($candidate->id, ['staff' => 1, 'senior' => 0]);
+
+                    // Shifts still short of their requirement sort first; once a
+                    // shift is satisfied its surplus keeps pushing it down.
+                    $shortfall = max(0, $requirement['staff'] - $counts[$candidate->id]);
+                    $needPenalty = $shortfall > 0 ? -($shortfall * 1000) : $counts[$candidate->id] * 100;
+
+                    $seniorShortfall = max(0, $requirement['senior'] - $seniorCounts[$candidate->id]);
+                    $seniorPenalty = $isSenior && $seniorShortfall > 0 ? -($seniorShortfall * 5000) : 0;
+
                     $repeatPenalty = $scheduleMethod === 'rotation' && $candidate->id === $lastShiftId ? 25 : 0;
                     $preferenceDistance = ($index - $preferredIndex + $shifts->count()) % $shifts->count();
 
-                    return $balancePenalty + $repeatPenalty + $preferenceDistance;
+                    return $seniorPenalty + $needPenalty + $repeatPenalty + $preferenceDistance;
                 })->first();
+
                 $matrix[$weekIndex][$employee->id] = $shift;
                 $counts->put($shift->id, $counts->get($shift->id) + 1);
+
+                if ($isSenior) {
+                    $seniorCounts->put($shift->id, $seniorCounts->get($shift->id) + 1);
+                }
+
                 $lastShiftIds->put($employee->id, $shift->id);
             }
         }

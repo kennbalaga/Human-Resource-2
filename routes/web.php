@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('employees', EmployeeController::class)->except('destroy');
     Route::post('/employees/{employee}/two-factor/reset', [AdminTwoFactorController::class, 'reset'])->name('employees.two-factor.reset');
     Route::resource('departments', DepartmentController::class)->except(['show', 'destroy']);
+    Route::put('/departments/{department}/shift-coverage', [DepartmentController::class, 'updateShiftRequirements'])->name('departments.shift-coverage.update');
     Route::resource('positions', PositionController::class)->except(['show', 'destroy']);
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');

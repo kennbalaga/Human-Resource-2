@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Organization\SaveDepartmentRequest;
+use App\Http\Requests\Organization\SaveShiftRequirementsRequest;
 use App\Models\Department;
+use App\Models\Shift;
+use App\Services\Scheduling\StaffingRequirementService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -62,6 +65,10 @@ class DepartmentController extends Controller
         return view('departments.edit', [
             'department' => $department->loadCount(['employees', 'positions']),
             'categories' => Department::categories(),
+            'shifts' => Shift::query()->where('is_active', true)->orderBy('start_time')->get(),
+            'requirements' => $department->shiftRequirements()->get()->keyBy('shift_id'),
+            'derivedMinimum' => $department->derivedMinimumStaffPerShift(),
+            'derivationSummary' => app(StaffingRequirementService::class)->derivationSummary($department),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }
@@ -71,6 +78,27 @@ class DepartmentController extends Controller
         $department->update($request->validated());
 
         return back()->with('success', 'Department updated successfully.');
+    }
+
+    /**
+     * Record what each shift of this unit must be staffed to. Saved apart from the
+     * department details so a coverage change reads as its own decision.
+     */
+    public function updateShiftRequirements(SaveShiftRequirementsRequest $request, Department $department): RedirectResponse
+    {
+        foreach ($request->validated()['requirements'] as $shiftId => $requirement) {
+            $minimumStaff = $requirement['minimum_staff'] ?? null;
+
+            $department->shiftRequirements()->updateOrCreate(
+                ['shift_id' => $shiftId],
+                [
+                    'minimum_staff' => $minimumStaff === '' ? null : $minimumStaff,
+                    'minimum_senior' => (int) ($requirement['minimum_senior'] ?? 0),
+                ],
+            );
+        }
+
+        return back()->with('success', 'Shift coverage standard updated.');
     }
 
     private function canManage(Request $request): bool

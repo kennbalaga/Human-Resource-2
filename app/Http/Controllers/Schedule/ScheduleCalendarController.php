@@ -120,6 +120,12 @@ class ScheduleCalendarController extends Controller
             : collect();
 
         return view('schedules.index', [
+            // Rank 1 is entry level, so it can never satisfy a "must have a senior
+            // on duty" rule and is left out of the threshold choices.
+            'seniorRankOptions' => collect(Position::SENIORITY_RANK_LABELS)
+                ->filter(fn (string $label, int $rank) => $rank >= 2)
+                ->all(),
+            'defaultSeniorRank' => ScheduleService::DEFAULT_SENIOR_RANK_THRESHOLD,
             'calendarView' => $view,
             'focusDate' => $focusDate,
             'rangeStart' => $rangeStart,

@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         staffingGaps.slice(0, 10).forEach((gap) => {
             const item = document.createElement('li');
-            item.textContent = `${formatScheduleDate(gap.date)} · ${gap.shift}: ${gap.available}/${gap.required} staff. ${gap.suggestion}`;
+            item.textContent = `${formatScheduleDate(gap.date)} · ${gap.shift}: ${gap.available}/${gap.required} ${gap.label ?? 'staff'}. ${gap.suggestion}`;
             list.append(item);
         });
         panel.append(list);
@@ -552,9 +552,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (rotation) {
                 const gapCount = result.staffing_gaps?.length ?? 0;
                 const summary = `${result.assignment_count} work assignments and ${result.day_off_count} new days off are ready. ${result.skipped_count} conflicts will be skipped.${gapCount ? ` ${gapCount} staffing gap(s) need HR review.` : ''}`;
+                // Shows the standard the roster was built against, so a reviewer can
+                // see where the per-shift target came from.
+                const standard = result.coverage_standard ? ` ${result.coverage_standard}` : '';
                 updateBulkReview(
                     result.assignment_count ? 'AI recommendation ready for HR review' : 'No assignments can be created',
-                    `${summary} The complete employee-by-employee schedule is shown below.`,
+                    `${summary}${standard} The complete employee-by-employee schedule is shown below.`,
                     result.assignment_count === 0 ? 'no-ready' : (result.skipped_count ? 'has-skips' : 'idle'),
                     result.skipped,
                 );

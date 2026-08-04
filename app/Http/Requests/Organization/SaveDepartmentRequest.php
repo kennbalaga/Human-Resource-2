@@ -31,6 +31,8 @@ class SaveDepartmentRequest extends FormRequest
             'code' => ['required', 'string', 'max:20', 'regex:/^[A-Z0-9-]+$/', Rule::unique('departments', 'code')->ignore($department?->id)],
             'name' => ['required', 'string', 'max:255', Rule::unique('departments', 'name')->ignore($department?->id)],
             'category' => ['required', Rule::in(array_keys(Department::categories()))],
+            'bed_capacity' => ['nullable', 'integer', 'between:0,9999'],
+            'nurse_patient_ratio' => ['nullable', 'integer', 'between:1,100'],
             'description' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['required', 'boolean'],
         ];

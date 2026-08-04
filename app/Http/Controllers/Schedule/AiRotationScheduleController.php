@@ -30,6 +30,7 @@ class AiRotationScheduleController extends Controller
             'staffing_gaps' => $plan['staffing_gaps']->take(10)->values(),
             'validation_summary' => $plan['skipped']->countBy('reason'),
             'notice' => $plan['notice'],
+            'coverage_standard' => $plan['coverage_standard'],
         ]]);
     }
 

@@ -17,10 +17,18 @@ class Department extends Model
 
     public const CATEGORY_SUPPORT = 'support';
 
+    /**
+     * The DOH general-ward standard of one nurse to twelve patients, used when a
+     * bedded unit has not been given a ratio of its own.
+     */
+    public const DEFAULT_NURSE_PATIENT_RATIO = 12;
+
     protected $fillable = [
         'code',
         'name',
         'category',
+        'bed_capacity',
+        'nurse_patient_ratio',
         'description',
         'is_active',
     ];
@@ -29,12 +37,35 @@ class Department extends Model
     {
         return [
             'is_active' => 'boolean',
+            'bed_capacity' => 'integer',
+            'nurse_patient_ratio' => 'integer',
         ];
+    }
+
+    /**
+     * Nurses this unit must have on duty for any one shift, worked out from its
+     * beds and ratio. Null when the unit has no beds and therefore no ratio-based
+     * requirement to derive.
+     */
+    public function derivedMinimumStaffPerShift(): ?int
+    {
+        if ($this->bed_capacity === null || $this->bed_capacity < 1) {
+            return null;
+        }
+
+        $ratio = $this->nurse_patient_ratio ?: self::DEFAULT_NURSE_PATIENT_RATIO;
+
+        return (int) ceil($this->bed_capacity / max(1, $ratio));
     }
 
     public function positions(): HasMany
     {
         return $this->hasMany(Position::class);
+    }
+
+    public function shiftRequirements(): HasMany
+    {
+        return $this->hasMany(DepartmentShiftRequirement::class);
     }
 
     public function employees(): HasMany

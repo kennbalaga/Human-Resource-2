@@ -15,9 +15,15 @@ class OrganizationStructureTest extends TestCase
 
         $this->assertDatabaseCount('roles', 4);
         $this->assertDatabaseCount('departments', 38);
-        $this->assertDatabaseCount('positions', 4);
-        $this->assertDatabaseCount('users', 4);
-        $this->assertDatabaseCount('employees', 4);
+
+        // Four core positions from the organization seeder plus the Staff Nurse
+        // role the nursing roster is built on.
+        $this->assertDatabaseCount('positions', 5);
+
+        // Four founding accounts (administrator, HR manager, nursing head, HR
+        // employee) plus the twenty seeded nursing staff.
+        $this->assertDatabaseCount('users', 24);
+        $this->assertDatabaseCount('employees', 24);
 
         $this->assertDatabaseHas('employees', [
             'employee_number' => 'HR-2026-0001',
