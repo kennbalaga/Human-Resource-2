@@ -26,10 +26,16 @@
         <article class="report-stat"><span class="report-stat-icon report-stat-violet"><x-icon name="paperclip" /></span><div><span>With documents</span><strong>{{ $summary['attachments'] }}</strong></div></article>
     </section>
 
-    <section class="leave-balance-grid">
-        @foreach($balances as $balance)
-            <article class="leave-balance-card" style="--leave-color: {{ $balance->leaveType->color }}"><span class="leave-balance-color"></span><div><span>{{ $balance->leaveType->name }}</span><strong>{{ number_format($balance->available_days, 1) }} days</strong><small>{{ number_format((float)$balance->used_days, 1) }} used · {{ number_format((float)$balance->pending_days, 1) }} pending</small></div></article>
-        @endforeach
+    <section class="leave-balance-section">
+        <div class="leave-balance-heading">
+            <h2>Your leave balances</h2>
+            <span>{{ $employee->full_name }} · {{ $filters['year'] }} — your personal remaining days, not company-wide totals.</span>
+        </div>
+        <div class="leave-balance-grid">
+            @foreach($balances as $balance)
+                <article class="leave-balance-card" style="--leave-color: {{ $balance->leaveType->color }}"><span class="leave-balance-color"></span><div><span title="{{ $balance->leaveType->name }}">{{ $balance->leaveType->name }}</span><strong>{{ number_format($balance->available_days, 1) }} days</strong><small>{{ number_format((float)$balance->used_days, 1) }} used · {{ number_format((float)$balance->pending_days, 1) }} pending</small></div></article>
+            @endforeach
+        </div>
     </section>
 
     <section class="panel workforce-filter-panel">
