@@ -18,7 +18,9 @@ class TwoFactorEnforcementSettings
 
     private const TABLE_CACHE_KEY = 'security.two_factor.enforcement_table_exists';
 
-    private const CACHE_TTL_SECONDS = 600;
+    // Kept short: the cache is per machine, so this is how long another user's
+    // toggle takes to reach everyone else.
+    private const CACHE_TTL_SECONDS = 60;
 
     private bool $loaded = false;
 
