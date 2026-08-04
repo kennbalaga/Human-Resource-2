@@ -34,7 +34,7 @@ class TimesheetController extends Controller
             'canManage' => $canManage,
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'employees' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);
     }
@@ -94,7 +94,7 @@ class TimesheetController extends Controller
 
     private function canManage(Request $request): bool
     {
-        return $request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists();
+        return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
     }
 
     private function requireManager(Request $request): void

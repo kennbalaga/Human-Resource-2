@@ -42,9 +42,7 @@ class BulkScheduleAssignmentRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->roles()
-            ->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])
-            ->exists() ?? false;
+        return $this->user()?->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty() ?? false;
     }
 
     public function rules(): array

@@ -34,7 +34,7 @@ class DepartmentController extends Controller
             'filters' => $filters,
             'categories' => Department::categories(),
             'canManage' => $this->canManage($request),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }
 
@@ -44,7 +44,7 @@ class DepartmentController extends Controller
 
         return view('departments.create', [
             'categories' => Department::categories(),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }
 
@@ -62,7 +62,7 @@ class DepartmentController extends Controller
         return view('departments.edit', [
             'department' => $department->loadCount(['employees', 'positions']),
             'categories' => Department::categories(),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }
 
@@ -75,7 +75,7 @@ class DepartmentController extends Controller
 
     private function canManage(Request $request): bool
     {
-        return $request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists();
+        return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
     }
 
     private function requireManager(Request $request): void

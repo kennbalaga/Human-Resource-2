@@ -55,7 +55,7 @@ class EmployeeController extends Controller
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'filters' => $filters,
             'canManage' => $this->canManage($request),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }
 
@@ -71,7 +71,7 @@ class EmployeeController extends Controller
                 && $employee->user !== null
                 && ! $employee->user->is($request->user())
                 && $employee->user->two_factor_secret !== null,
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }
 
@@ -178,7 +178,7 @@ class EmployeeController extends Controller
                 ->get(),
             'supervisors' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
             'employeeNumberAutoGenerate' => $this->employeeNumberSettings->autoGenerateEnabled(),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ];
     }
 
@@ -252,7 +252,7 @@ class EmployeeController extends Controller
 
     private function canManage(Request $request): bool
     {
-        return $request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists();
+        return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
     }
 
     private function requireManager(Request $request): void

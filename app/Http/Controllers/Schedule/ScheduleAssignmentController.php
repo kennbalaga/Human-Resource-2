@@ -78,7 +78,7 @@ class ScheduleAssignmentController extends Controller
         ScheduleAssignment $scheduleAssignment,
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
-        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists(), 403);
+        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty(), 403);
 
         $scheduleAssignment->loadMissing(['employee.user.preference', 'shift']);
         $scheduleAssignment->delete();

@@ -43,7 +43,7 @@ class NotificationController extends Controller
 
         return view('notifications.index', [
             'notificationPage' => $query->paginate(15)->withQueryString(),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'activeCategory' => $activeCategory,
             'categoryCounts' => $this->categoryCounts($request->user()),
         ]);

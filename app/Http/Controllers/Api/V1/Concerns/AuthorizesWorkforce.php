@@ -8,7 +8,7 @@ trait AuthorizesWorkforce
 {
     protected function canManage(User $user): bool
     {
-        return $user->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists();
+        return $user->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
     }
 
     protected function requireManager(User $user): void

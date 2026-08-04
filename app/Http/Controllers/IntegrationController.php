@@ -34,7 +34,7 @@ class IntegrationController extends Controller
                 'updated_by' => $aiSettings->updatedBy()?->name,
             ],
             'canManageAiScheduling' => $request->user()->hasRole('system-administrator'),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);
     }
@@ -71,6 +71,6 @@ class IntegrationController extends Controller
 
     private function authorizeIntegrationAdmin(Request $request): void
     {
-        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists(), 403);
+        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty(), 403);
     }
 }

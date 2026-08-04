@@ -61,6 +61,11 @@ return [
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                \PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
+                // Native prepares cost two round trips (PREPARE then EXECUTE) per
+                // query, which doubles latency against a remote database. Emulating
+                // them sends each query in one trip; PDO still binds parameters.
+                \PDO::ATTR_EMULATE_PREPARES => env('DB_EMULATE_PREPARES', true),
             ]) : [],
         ],
 

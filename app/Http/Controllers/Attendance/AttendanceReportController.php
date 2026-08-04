@@ -54,7 +54,7 @@ class AttendanceReportController extends Controller
             'filters' => $filters,
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'employees' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);
     }
@@ -62,7 +62,7 @@ class AttendanceReportController extends Controller
     public function export(AttendanceReportRequest $request): StreamedResponse
     {
         $filters = $request->validated();
-        $records = $this->reportQuery($filters)->latest('attendance_date')->cursor();
+        $records = $this->reportQuery($filters)->latest('attendance_date')->lazy();
         $filename = "attendance-{$filters['date_from']}-to-{$filters['date_to']}.csv";
 
         return response()->streamDownload(function () use ($records): void {

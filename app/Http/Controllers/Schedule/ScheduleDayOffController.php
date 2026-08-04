@@ -11,7 +11,7 @@ class ScheduleDayOffController extends Controller
 {
     public function destroy(Request $request, ScheduleDayOff $scheduleDayOff): RedirectResponse
     {
-        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists(), 403);
+        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty(), 403);
         $scheduleDayOff->delete();
 
         return back()->with('success', 'Day off removed.');

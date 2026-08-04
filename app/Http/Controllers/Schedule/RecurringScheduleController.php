@@ -30,7 +30,7 @@ class RecurringScheduleController extends Controller
         RecurringSchedule $recurringSchedule,
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
-        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists(), 403);
+        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty(), 403);
 
         $recurringSchedule->loadMissing(['employee.user.preference', 'shift']);
         DB::transaction(function () use ($recurringSchedule): void {

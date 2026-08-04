@@ -18,7 +18,7 @@
                 <h1>Time & Attendance</h1>
                 <p>Record your daily attendance and keep track of your work hours.</p>
             </div>
-            @if (auth()->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists())
+            @if (auth()->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty())
                 <a class="btn btn-outline-primary dashboard-action" href="{{ route('attendance.reports.index') }}">
                     <x-icon name="report" /> View reports
                 </a>
