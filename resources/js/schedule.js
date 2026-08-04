@@ -354,10 +354,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-    bulkForm?.querySelectorAll('select[name="shift_id"], input[name="start_date"], input[name="end_date"], input[name="include_weekends"], input[name="employee_ids[]"], select[name="days_off_per_week"], input[name="max_hours_per_week"], input[name="night_shift_limit"], input[name="minimum_staff_per_shift"], input[name="overtime_allowed"], input[name="holiday_dates_csv"]').forEach((field) => {
+    bulkForm?.querySelectorAll('select[name="shift_id"], input[name="start_date"], input[name="end_date"], input[name="include_weekends"], select[name="days_off_per_week"], input[name="max_hours_per_week"], input[name="night_shift_limit"], input[name="minimum_staff_per_shift"], input[name="overtime_allowed"], input[name="holiday_dates_csv"]').forEach((field) => {
         field.addEventListener('change', () => {
             updateBulkSelectedCount();
             invalidateBulkReview();
+        });
+    });
+
+    // Ticking a name only changes who the fill buttons and the per-shift pickers
+    // can draw from; the roster itself is untouched. Tearing the review panel down
+    // on every tick resized the page under the person doing the ticking.
+    bulkForm?.querySelectorAll('input[name="employee_ids[]"]').forEach((field) => {
+        field.addEventListener('change', () => {
+            updateBulkSelectedCount();
+            refreshRosterPickers();
         });
     });
     bulkForm?.querySelectorAll('select[name="schedule_method"], input[name="shift_ids[]"]').forEach((field) => {
@@ -502,16 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const picker = document.createElement('select');
             picker.className = 'roster-add';
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = 'Add someone to this shift…';
-            picker.append(placeholder);
-            selectedEmployees().forEach((employee) => {
-                const option = document.createElement('option');
-                option.value = String(employee.id);
-                option.textContent = employee.name;
-                picker.append(option);
-            });
+            rosterPickerOptions(picker);
             picker.addEventListener('change', () => {
                 if (!picker.value) return;
                 addRosterEntry(Number(picker.value), shift.shift_id, day.date);
@@ -531,10 +532,41 @@ document.addEventListener('DOMContentLoaded', () => {
         return article;
     };
 
+    const rosterPickerOptions = (picker) => {
+        const current = picker.value;
+        picker.replaceChildren();
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Add someone to this shift…';
+        picker.append(placeholder);
+        selectedEmployees().forEach((employee) => {
+            const option = document.createElement('option');
+            option.value = String(employee.id);
+            option.textContent = employee.name;
+            picker.append(option);
+        });
+        picker.value = current;
+    };
+
+    /**
+     * Bring the per-shift pickers in line with the current selection without
+     * rebuilding the board, so the page does not resize while someone is working.
+     */
+    const refreshRosterPickers = () => {
+        rosterDays?.querySelectorAll('.roster-add').forEach(rosterPickerOptions);
+    };
+
     const renderRoster = (evaluation) => {
         if (!rosterDays) return;
+
+        // Redrawing the board changes its height; holding the scroll position
+        // keeps whatever the reviewer was reading in place.
+        const scroller = bulkForm.querySelector('.bulk-schedule-form');
+        const previousScroll = scroller?.scrollTop ?? 0;
+
         rosterDays.replaceChildren();
         evaluation.days.forEach((day) => rosterDays.append(renderRosterDay(day)));
+        if (scroller) scroller.scrollTop = previousScroll;
 
         if (rosterSummary) {
             const { assignments, day_offs: rest, blocked, shifts_short: short } = evaluation.summary;
