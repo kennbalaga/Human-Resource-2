@@ -38,40 +38,7 @@ class ScheduleAssignmentController extends Controller
         return back()->with('success', 'Schedule assignment updated successfully.');
     }
 
-    public function bulkPreview(BulkScheduleAssignmentRequest $request, ScheduleService $scheduleService): JsonResponse
-    {
-        $plan = $scheduleService->bulkAssignmentPlan($request->validated());
 
-        return response()->json([
-            'ready_count' => $plan['ready']->count(),
-            'skipped_count' => $plan['skipped']->count(),
-            'requested_count' => $plan['ready']->count() + $plan['skipped']->count(),
-            'skipped' => $plan['skipped']->take(10)->values(),
-            'staffing_gaps' => $plan['staffingGaps']->take(10)->values(),
-            'validation_summary' => $plan['skipped']->countBy('reason'),
-        ]);
-    }
-
-    public function bulkStore(
-        BulkScheduleAssignmentRequest $request,
-        ScheduleService $scheduleService,
-        PreferenceNotificationService $notifications,
-    ): RedirectResponse {
-        $result = $scheduleService->createBulkAssignments($request->validated(), $request->user());
-
-        foreach ($result['assignments'] as $assignment) {
-            $this->notifyEmployee($assignment, 'assigned', $notifications);
-        }
-
-        $created = $result['assignments']->count();
-        $skipped = $result['skipped']->count();
-        $message = "{$created} ".str('assignment')->plural($created).' created.';
-        if ($skipped > 0) {
-            $message .= " {$skipped} skipped because of conflicts, leave, or inactive employees.";
-        }
-
-        return back()->with('success', $message);
-    }
 
     public function destroy(
         Request $request,

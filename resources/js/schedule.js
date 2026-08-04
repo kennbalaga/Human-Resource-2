@@ -185,9 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bulkForm = document.querySelector('#bulkScheduleForm');
     const bulkReview = bulkForm?.querySelector('[data-bulk-review]');
     const bulkSaveButton = bulkForm?.querySelector('[data-bulk-save]');
-    const bulkReviewButton = bulkForm?.querySelector('[data-bulk-review-button]');
     const bulkSelectedCount = bulkForm?.querySelector('[data-bulk-selected-count]');
-    const rotationPreview = bulkForm?.querySelector('[data-rotation-preview]');
     const bulkApproval = bulkForm?.querySelector('[data-bulk-approval]');
     const bulkApprovalWrap = bulkForm?.querySelector('[data-bulk-approval-wrap]');
     const bulkEmployeeOptions = [...(bulkForm?.querySelectorAll('[data-bulk-employee-list] .bulk-employee-option') ?? [])];
@@ -230,15 +228,11 @@ document.addEventListener('DOMContentLoaded', () => {
         bulkSaveButton.disabled = true;
         if (bulkApproval) bulkApproval.checked = false;
         if (bulkApprovalWrap) bulkApprovalWrap.hidden = true;
-        if (rotationPreview) {
-            rotationPreview.hidden = true;
-            rotationPreview.replaceChildren();
-        }
         updateBulkReview(
-            'Review before saving',
+            'Build the roster below, then publish',
             isAiSchedule()
-                ? 'Select employees and at least two shifts, then generate the AI recommendation.'
-                : 'Select employees, a shift, and dates, then review availability.',
+                ? 'Select employees and at least two shifts, then let the assistant rotate them.'
+                : 'Select employees, a shift, and dates, then fill the roster.',
         );
     };
 
@@ -256,12 +250,10 @@ document.addEventListener('DOMContentLoaded', () => {
         rotationField.querySelectorAll('input').forEach((input) => { input.disabled = !aiSchedule; });
         weekendField.hidden = aiSchedule;
         bulkForm.elements.include_weekends.checked = aiSchedule;
-        bulkForm.action = aiSchedule ? bulkForm.dataset.rotationStoreUrl : bulkForm.dataset.storeUrl;
         const help = bulkForm.querySelector('[data-shift-pool-help]');
         if (help) help.textContent = method === 'custom'
             ? 'Select at least two shifts. The assistant creates a stable custom mix across employees while balancing coverage.'
             : 'Select at least two shifts. The assistant balances coverage and rotates employees weekly.';
-        bulkReviewButton.textContent = aiSchedule ? 'Generate AI recommendation' : 'Validate bulk schedule';
         bulkSaveButton.textContent = 'Approve & publish';
         invalidateBulkReview();
     };
@@ -359,233 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
         invalidateBulkReview();
     };
 
-    const appendValidationDetails = (result) => {
-        const reviewCopy = bulkReview?.querySelector('div');
-        if (!reviewCopy) return;
-        const summaries = Object.entries(result.validation_summary ?? {});
-        const staffingGaps = result.staffing_gaps ?? [];
-        if (!summaries.length && !staffingGaps.length) return;
 
-        const panel = document.createElement('section');
-        panel.className = 'bulk-review-validation';
-        const heading = document.createElement('div');
-        heading.className = 'bulk-validation-heading';
-        const title = document.createElement('strong');
-        title.textContent = summaries.length || staffingGaps.length ? 'Conflicts and suggestions' : 'Validation passed';
-        heading.append(title);
-        panel.append(heading);
 
-        const list = document.createElement('ul');
-        summaries.forEach(([reason, count]) => {
-            const item = document.createElement('li');
-            item.textContent = `${count} blocked: ${reason}. The assistant will skip these assignments.`;
-            list.append(item);
-        });
-        staffingGaps.slice(0, 10).forEach((gap) => {
-            const item = document.createElement('li');
-            item.textContent = `${formatScheduleDate(gap.date)} · ${gap.shift}: ${gap.available}/${gap.required} ${gap.label ?? 'staff'}. ${gap.suggestion}`;
-            list.append(item);
-        });
-        panel.append(list);
-        reviewCopy.append(panel);
-    };
-
-    const renderRotationPreview = (result) => {
-        const reviewCopy = bulkReview?.querySelector('div');
-        if (!reviewCopy) return;
-        if (rotationPreview) {
-            rotationPreview.replaceChildren();
-            rotationPreview.hidden = true;
-        }
-
-        const panel = document.createElement('section');
-        panel.className = 'bulk-review-schedule';
-        panel.setAttribute('aria-label', 'AI-generated employee schedule');
-        const heading = document.createElement('header');
-        heading.className = 'bulk-review-schedule-heading';
-        const title = document.createElement('strong');
-        title.textContent = 'Schedule preview — review before approval';
-        const caption = document.createElement('span');
-        caption.textContent = 'Employee · date · day · shift · time · status';
-        heading.append(title, caption);
-        panel.append(heading);
-
-        const tableWrap = document.createElement('div');
-        tableWrap.className = 'bulk-review-schedule-table-wrap';
-        const table = document.createElement('table');
-        table.className = 'bulk-review-schedule-table';
-        const head = document.createElement('thead');
-        const headRow = document.createElement('tr');
-        ['Employee', 'Date', 'Day', 'Assigned shift', 'Time', 'Status'].forEach((label) => {
-            const cell = document.createElement('th');
-            cell.scope = 'col';
-            cell.textContent = label;
-            headRow.append(cell);
-        });
-        head.append(headRow);
-        const body = document.createElement('tbody');
-        const recommendationRows = Array.isArray(result.rows) ? result.rows : [];
-
-        recommendationRows.forEach((row) => {
-            row.weeks.forEach((week) => {
-                (week.days ?? []).forEach((day) => {
-                    const tableRow = document.createElement('tr');
-                    tableRow.className = `bulk-review-schedule-day is-${day.status}`;
-                    const employee = document.createElement('td');
-                    const employeeName = document.createElement('strong');
-                    employeeName.textContent = row.employee;
-                    const employeeNumber = document.createElement('small');
-                    employeeNumber.textContent = row.employee_number;
-                    employee.append(employeeName, employeeNumber);
-                    const date = document.createElement('td');
-                    date.textContent = formatScheduleDate(day.date);
-                    const weekday = document.createElement('td');
-                    weekday.textContent = parseScheduleDate(day.date).toLocaleDateString('en-PH', { weekday: 'long' });
-                    const shift = document.createElement('td');
-                    shift.textContent = day.status === 'day_off' ? 'Day off' : (day.shift ?? 'No assignment');
-                    const time = document.createElement('td');
-                    time.textContent = day.shift_time ?? '—';
-                    const resultCell = document.createElement('td');
-                    const status = document.createElement('span');
-                    status.className = `bulk-review-schedule-status is-${day.status}`;
-                    status.textContent = day.status === 'scheduled'
-                        ? 'Ready'
-                        : (day.status === 'day_off' ? 'Day off' : `Skipped · ${day.reason}`);
-                    resultCell.append(status);
-                    tableRow.append(employee, date, weekday, shift, time, resultCell);
-                    body.append(tableRow);
-                });
-            });
-        });
-
-        if (!recommendationRows.length) {
-            const emptyRow = document.createElement('tr');
-            const empty = document.createElement('td');
-            empty.colSpan = 6;
-            empty.className = 'bulk-review-schedule-empty';
-            empty.textContent = 'No employee schedule rows were returned. Generate the recommendation again.';
-            emptyRow.append(empty);
-            body.append(emptyRow);
-        }
-
-        table.append(head, body);
-        tableWrap.append(table);
-        panel.append(tableWrap);
-        reviewCopy.append(panel);
-        appendValidationDetails(result);
-        const schedulePanel = panel.closest('.bulk-schedule-form');
-        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-            if (schedulePanel) {
-                const targetTop = panel.getBoundingClientRect().top
-                    - schedulePanel.getBoundingClientRect().top
-                    + schedulePanel.scrollTop
-                    - 12;
-                schedulePanel.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
-            }
-            else {
-                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }));
-    };
-
-    const reviewBulkAssignments = async () => {
-        if (!bulkForm) return;
-        const employeeIds = selectedBulkEmployees();
-        const rotation = isAiSchedule();
-        const shiftId = bulkForm.elements.shift_id?.value;
-        const shiftIds = [...bulkForm.querySelectorAll('input[name="shift_ids[]"]:checked')].map((input) => Number(input.value));
-        const startDate = bulkForm.elements.start_date.value;
-        const endDate = bulkForm.elements.end_date.value;
-        if (!employeeIds.length || (!rotation && !shiftId) || (rotation && shiftIds.length < 2) || !startDate || !endDate) {
-            updateBulkReview(
-                'Review unavailable',
-                rotation
-                    ? 'Select at least one employee and at least two shifts for the rotation.'
-                    : 'Select at least one employee, a shift, and a date range first.',
-                'no-ready',
-            );
-            return;
-        }
-
-        bulkReviewButton.disabled = true;
-        updateBulkReview('Checking availability', 'Reviewing schedules and approved leave…');
-        try {
-            const body = {
-                department_id: Number(bulkForm.elements.department_id.value),
-                employee_ids: employeeIds,
-                schedule_period: bulkForm.elements.schedule_period.value,
-                period_start: bulkForm.elements.period_start.value,
-                period_month: bulkForm.elements.period_month.value,
-                start_date: startDate,
-                end_date: endDate,
-                days_off_per_week: Number(bulkForm.elements.days_off_per_week.value),
-                max_hours_per_week: Number(bulkForm.elements.max_hours_per_week.value),
-                night_shift_limit: Number(bulkForm.elements.night_shift_limit.value),
-                minimum_staff_per_shift: Number(bulkForm.elements.minimum_staff_per_shift.value),
-                overtime_allowed: bulkForm.elements.overtime_allowed.checked,
-                holiday_dates_csv: bulkForm.elements.holiday_dates_csv.value,
-            };
-            if (rotation) {
-                body.shift_ids = shiftIds;
-                body.schedule_method = bulkForm.elements.schedule_method.value;
-            }
-            else {
-                body.shift_id = Number(shiftId);
-                body.include_weekends = bulkForm.elements.include_weekends.checked;
-            }
-            const response = await fetch(rotation ? bulkForm.dataset.rotationPreviewUrl : bulkForm.dataset.previewUrl, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken(),
-                },
-                body: JSON.stringify(body),
-            });
-            const payload = await response.json();
-            if (!response.ok) {
-                const message = Object.values(payload.errors ?? {}).flat()[0] ?? 'Unable to review assignments.';
-                throw new Error(message);
-            }
-            const result = rotation ? payload.data : payload;
-
-            if (rotation) {
-                const gapCount = result.staffing_gaps?.length ?? 0;
-                const summary = `${result.assignment_count} work assignments and ${result.day_off_count} new days off are ready. ${result.skipped_count} conflicts will be skipped.${gapCount ? ` ${gapCount} staffing gap(s) need HR review.` : ''}`;
-                // Shows the standard the roster was built against, so a reviewer can
-                // see where the per-shift target came from.
-                const standard = result.coverage_standard ? ` ${result.coverage_standard}` : '';
-                updateBulkReview(
-                    result.assignment_count ? 'AI recommendation ready for HR review' : 'No assignments can be created',
-                    `${summary}${standard} The complete employee-by-employee schedule is shown below.`,
-                    result.assignment_count === 0 ? 'no-ready' : (result.skipped_count ? 'has-skips' : 'idle'),
-                    result.skipped,
-                );
-                renderRotationPreview(result);
-                if (bulkApprovalWrap) bulkApprovalWrap.hidden = result.assignment_count === 0;
-                return;
-            }
-
-            const fixedGapCount = result.staffing_gaps?.length ?? 0;
-            const summary = result.skipped_count
-                ? `${result.ready_count} ready to publish; ${result.skipped_count} will be skipped. Existing schedules will not be changed.${fixedGapCount ? ` ${fixedGapCount} staffing gap(s) need HR review.` : ''}`
-                : `${result.ready_count} assignments are ready to publish.${fixedGapCount ? ` ${fixedGapCount} staffing gap(s) need HR review.` : ' No conflicts or approved leave found.'}`;
-            const state = result.ready_count === 0 ? 'no-ready' : (result.skipped_count ? 'has-skips' : 'idle');
-            updateBulkReview(
-                result.ready_count === 0 ? 'No assignments can be created' : 'Review complete',
-                summary,
-                state,
-                result.skipped,
-            );
-            if (rotationPreview) rotationPreview.hidden = true;
-            appendValidationDetails(result);
-            if (bulkApprovalWrap) bulkApprovalWrap.hidden = result.ready_count === 0;
-        } catch (error) {
-            updateBulkReview('Review unavailable', error.message, 'no-ready');
-        } finally {
-            bulkReviewButton.disabled = false;
-        }
-    };
 
     bulkForm?.querySelectorAll('select[name="shift_id"], input[name="start_date"], input[name="end_date"], input[name="include_weekends"], input[name="employee_ids[]"], select[name="days_off_per_week"], input[name="max_hours_per_week"], input[name="night_shift_limit"], input[name="minimum_staff_per_shift"], input[name="overtime_allowed"], input[name="holiday_dates_csv"]').forEach((field) => {
         field.addEventListener('change', () => {
@@ -632,7 +399,223 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     bulkForm?.querySelector('[data-bulk-period-previous]')?.addEventListener('click', () => moveBulkPeriod(-1));
     bulkForm?.querySelector('[data-bulk-period-next]')?.addEventListener('click', () => moveBulkPeriod(1));
-    bulkReviewButton?.addEventListener('click', reviewBulkAssignments);
+    // ---------------------------------------------------------------------
+    // Roster board
+    //
+    // The roster the nursing office is actually looking at: grouped by day and
+    // shift, editable, and published exactly as left. The assistant fills it in
+    // as a starting point rather than deciding it.
+    // ---------------------------------------------------------------------
+    const rosterBoard = bulkForm?.querySelector('[data-roster-board]');
+    const rosterDays = rosterBoard?.querySelector('[data-roster-days]');
+    const rosterSummary = rosterBoard?.querySelector('[data-roster-summary]');
+    const rosterFillButton = rosterBoard?.querySelector('[data-roster-fill]');
+    const rosterFillShiftButton = rosterBoard?.querySelector('[data-roster-fill-shift]');
+    const rosterClearButton = rosterBoard?.querySelector('[data-roster-clear]');
+    let rosterEntries = [];
+    let rosterEvaluateTimer = null;
+
+    const rosterKey = (entry) => `${entry.employee_id}|${entry.work_date}`;
+
+    const selectedEmployees = () => bulkEmployeeOptions
+        .filter((option) => option.querySelector('input').checked)
+        .map((option) => ({
+            id: Number(option.querySelector('input').value),
+            name: option.querySelector('strong').textContent,
+        }));
+
+    const rosterRangePayload = () => ({
+        department_id: bulkForm.elements.department_id?.value,
+        start_date: bulkForm.elements.start_date?.value,
+        end_date: bulkForm.elements.end_date?.value,
+    });
+
+    const setRosterEntries = (entries) => {
+        rosterEntries = entries;
+        scheduleRosterEvaluate();
+    };
+
+    const removeRosterEntry = (employeeId, date) => {
+        rosterEntries = rosterEntries.filter((entry) => rosterKey(entry) !== `${employeeId}|${date}`);
+        scheduleRosterEvaluate();
+    };
+
+    const addRosterEntry = (employeeId, shiftId, date) => {
+        // One placement per person per day: adding to a shift moves them there.
+        rosterEntries = rosterEntries.filter((entry) => rosterKey(entry) !== `${employeeId}|${date}`);
+        rosterEntries.push({ employee_id: employeeId, shift_id: shiftId, work_date: date });
+        scheduleRosterEvaluate();
+    };
+
+    const renderRosterDay = (day) => {
+        const article = document.createElement('article');
+        article.className = `roster-day${day.fully_covered ? '' : ' is-short'}`;
+
+        const heading = document.createElement('header');
+        const dayTitle = document.createElement('strong');
+        dayTitle.textContent = `${formatScheduleDate(day.date)} · ${day.weekday}`;
+        heading.append(dayTitle);
+        article.append(heading);
+
+        day.shifts.forEach((shift) => {
+            const block = document.createElement('section');
+            block.className = `roster-shift${shift.meets_requirement ? '' : ' is-short'}`;
+
+            const shiftHeading = document.createElement('header');
+            const shiftName = document.createElement('strong');
+            shiftName.textContent = shift.shift;
+            const shiftTime = document.createElement('small');
+            shiftTime.textContent = shift.time ?? '';
+            const coverage = document.createElement('span');
+            coverage.className = 'roster-coverage';
+            const seniorNote = shift.senior_required
+                ? ` · ${shift.senior_count}/${shift.senior_required} senior`
+                : '';
+            coverage.textContent = `${shift.count}/${shift.required} staff${seniorNote}`;
+            coverage.title = `Required by the ${shift.requirement_source}.`;
+            shiftHeading.append(shiftName, shiftTime, coverage);
+            block.append(shiftHeading);
+
+            const list = document.createElement('ul');
+            list.className = 'roster-people';
+            shift.assigned.forEach((person) => {
+                const item = document.createElement('li');
+                if (person.blocked) item.classList.add('is-blocked');
+                const label = document.createElement('span');
+                label.textContent = person.name;
+                if (person.is_senior) {
+                    const badge = document.createElement('em');
+                    badge.textContent = 'senior';
+                    label.append(' ', badge);
+                }
+                const number = document.createElement('small');
+                number.textContent = person.employee_number ?? '';
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'roster-remove';
+                remove.textContent = 'Remove';
+                remove.addEventListener('click', () => removeRosterEntry(person.employee_id, day.date));
+                item.append(label, number, remove);
+                list.append(item);
+            });
+            block.append(list);
+
+            const picker = document.createElement('select');
+            picker.className = 'roster-add';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Add someone to this shift…';
+            picker.append(placeholder);
+            selectedEmployees().forEach((employee) => {
+                const option = document.createElement('option');
+                option.value = String(employee.id);
+                option.textContent = employee.name;
+                picker.append(option);
+            });
+            picker.addEventListener('change', () => {
+                if (!picker.value) return;
+                addRosterEntry(Number(picker.value), shift.shift_id, day.date);
+            });
+            block.append(picker);
+
+            article.append(block);
+        });
+
+        if (day.day_offs.length) {
+            const rest = document.createElement('p');
+            rest.className = 'roster-rest';
+            rest.textContent = `Rest day: ${day.day_offs.map((person) => person.name).join(', ')}`;
+            article.append(rest);
+        }
+
+        return article;
+    };
+
+    const renderRoster = (evaluation) => {
+        if (!rosterDays) return;
+        rosterDays.replaceChildren();
+        evaluation.days.forEach((day) => rosterDays.append(renderRosterDay(day)));
+
+        if (rosterSummary) {
+            const { assignments, day_offs: rest, blocked, shifts_short: short } = evaluation.summary;
+            const parts = [`${assignments} assignment(s)`, `${rest} rest day(s)`];
+            if (blocked) parts.push(`${blocked} cannot be scheduled`);
+            parts.push(short ? `${short} shift(s) below the required cover` : 'every shift meets its requirement');
+            rosterSummary.textContent = `${parts.join(' · ')}.${evaluation.coverage_standard ? ` ${evaluation.coverage_standard}` : ''}`;
+        }
+
+        if (bulkApprovalWrap) bulkApprovalWrap.hidden = evaluation.summary.assignments === 0;
+        rosterBoard.hidden = false;
+    };
+
+    const evaluateRoster = async () => {
+        const range = rosterRangePayload();
+        if (!range.department_id || !range.start_date || !range.end_date) return;
+
+        try {
+            const response = await fetch(bulkForm.dataset.rosterEvaluateUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
+                body: JSON.stringify({ ...range, entries: rosterEntries }),
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(Object.values(payload.errors ?? {}).flat()[0] ?? 'Unable to check the roster.');
+            renderRoster(payload.data);
+        } catch (error) {
+            if (rosterSummary) rosterSummary.textContent = error.message;
+        }
+    };
+
+    const scheduleRosterEvaluate = () => {
+        window.clearTimeout(rosterEvaluateTimer);
+        rosterEvaluateTimer = window.setTimeout(evaluateRoster, 250);
+    };
+
+    // Both fill buttons only propose: they replace what is on the board, and
+    // nothing reaches the database until the roster is published.
+    const fillRosterFrom = async (button, url, busyLabel, failure) => {
+        const original = button.textContent;
+        button.disabled = true;
+        button.textContent = busyLabel;
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
+                body: new FormData(bulkForm),
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(Object.values(payload.errors ?? {}).flat()[0] ?? failure);
+            rosterEntries = payload.data.entries;
+            renderRoster(payload.data.evaluation);
+        } catch (error) {
+            if (rosterSummary) rosterSummary.textContent = error.message;
+        } finally {
+            button.disabled = false;
+            button.textContent = original;
+        }
+    };
+
+    rosterFillButton?.addEventListener('click', () => fillRosterFrom(
+        rosterFillButton,
+        bulkForm.dataset.rosterSuggestUrl,
+        'Rotating…',
+        'The assistant could not build a roster.',
+    ));
+
+    rosterFillShiftButton?.addEventListener('click', () => fillRosterFrom(
+        rosterFillShiftButton,
+        bulkForm.dataset.rosterFillUrl,
+        'Filling…',
+        'That shift could not be filled.',
+    ));
+
+    rosterClearButton?.addEventListener('click', () => setRosterEntries([]));
+
+    // The board appears as soon as there is a unit and a date range to roster.
+    bulkForm?.querySelectorAll('select[name="department_id"], input[name="start_date"], input[name="end_date"], input[name="period_start"], input[name="period_month"], [data-schedule-period]').forEach((field) => {
+        field.addEventListener('change', () => window.setTimeout(scheduleRosterEvaluate, 0));
+    });
+
     bulkApproval?.addEventListener('change', () => {
         bulkSaveButton.disabled = !bulkApproval.checked;
     });
@@ -640,6 +623,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!bulkApproval?.checked) {
             event.preventDefault();
             updateBulkReview('Approval required', 'Review the generated recommendation and confirm HR approval before publishing.', 'no-ready');
+
+            return;
+        }
+
+        // Publish exactly what is on screen.
+        if (rosterEntries.length) {
+            bulkForm.querySelectorAll('[data-roster-entry-input]').forEach((input) => input.remove());
+            rosterEntries.forEach((entry, index) => {
+                Object.entries({
+                    employee_id: entry.employee_id,
+                    shift_id: entry.shift_id ?? '',
+                    work_date: entry.work_date,
+                }).forEach(([field, value]) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = `entries[${index}][${field}]`;
+                    input.value = value;
+                    input.setAttribute('data-roster-entry-input', '');
+                    bulkForm.append(input);
+                });
+            });
         }
     });
     bulkModalElement?.addEventListener('shown.bs.modal', () => {
@@ -656,6 +660,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     bulkModalElement?.addEventListener('hidden.bs.modal', () => {
         bulkForm.reset();
+        bulkForm.action = bulkForm.dataset.rosterPublishUrl;
+        bulkForm.querySelectorAll('[data-roster-entry-input]').forEach((input) => input.remove());
+        rosterEntries = [];
+        if (rosterDays) rosterDays.replaceChildren();
+        if (rosterBoard) rosterBoard.hidden = true;
         syncScheduleMethod();
         syncBulkPeriod();
         filterBulkEmployees();

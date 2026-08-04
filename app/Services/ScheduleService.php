@@ -208,26 +208,6 @@ class ScheduleService
         return compact('ready', 'skipped', 'staffingGaps');
     }
 
-    /**
-     * @param  array{employee_ids: array<int>, shift_id: int, start_date: string, end_date: string, include_weekends?: bool, notes?: string|null}  $data
-     * @return array{assignments: Collection<int, ScheduleAssignment>, skipped: Collection<int, array{employee: string, date: string, reason: string}>}
-     */
-    public function createBulkAssignments(array $data, User $creator): array
-    {
-        return DB::transaction(function () use ($data, $creator) {
-            $plan = $this->bulkAssignmentPlan($data);
-            $assignments = $plan['ready']->map(fn (array $item) => ScheduleAssignment::query()->create([
-                'employee_id' => $item['employee']->id,
-                'shift_id' => $data['shift_id'],
-                'work_date' => $item['date']->toDateString(),
-                'status' => 'scheduled',
-                'notes' => $data['notes'] ?? null,
-                'created_by' => $creator->id,
-            ]));
-
-            return ['assignments' => $assignments, 'skipped' => $plan['skipped']];
-        });
-    }
 
     /**
      * @param  array{employee_id: int, shift_id: int, work_date: string, notes?: string|null}  $data
@@ -474,7 +454,17 @@ class ScheduleService
      * @param  Collection<int, LeaveRequest>  $leaves
      * @param  Collection<int, ScheduleDayOff>  $dayOffs
      */
-    private function bulkAssignmentBlockReason(
+    /**
+     * Why this employee cannot work this shift on this date, or null when nothing
+     * stands in the way. Public so a hand-edited roster is held to exactly the
+     * same rules as a generated one.
+     *
+     * @param  Collection<int, ScheduleAssignment>  $assignments
+     * @param  Collection<int, LeaveRequest>  $leaves
+     * @param  Collection<int, ScheduleDayOff>  $dayOffs
+     * @param  array<string, mixed>  $rules
+     */
+    public function bulkAssignmentBlockReason(
         Employee $employee,
         Shift $shift,
         Carbon $date,

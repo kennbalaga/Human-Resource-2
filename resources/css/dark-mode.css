@@ -568,3 +568,16 @@ html[data-theme-resolved='dark'] .global-search-result:hover,
 html[data-theme-resolved='dark'] .global-search-result:focus-visible { background:#172a21; }
 html[data-theme-resolved='dark'] .global-search-result > svg { color:#a9b8b0; }
 html[data-theme-resolved='dark'] .global-search-department-code { color:#86e4ad; background:#173a29; }
+
+html[data-theme-resolved='dark'] .roster-board { background: #16202c; }
+html[data-theme-resolved='dark'] .roster-board-heading span,
+html[data-theme-resolved='dark'] .roster-people small,
+html[data-theme-resolved='dark'] .roster-shift > header small,
+html[data-theme-resolved='dark'] .roster-rest { color: #93a3b8; }
+html[data-theme-resolved='dark'] .roster-day { background: #1b2735; border-color: #2c3a4b; }
+html[data-theme-resolved='dark'] .roster-shift { background: #223041; }
+html[data-theme-resolved='dark'] .roster-shift.is-short { background: #33291a; }
+html[data-theme-resolved='dark'] .roster-people li { background: #1b2735; }
+html[data-theme-resolved='dark'] .roster-people li.is-blocked { background: #3a2220; color: #f0a79c; }
+html[data-theme-resolved='dark'] .roster-people em { background: #1d4034; color: #7fd3ab; }
+html[data-theme-resolved='dark'] .roster-add { background: #1b2735; border-color: #38475b; color: inherit; }

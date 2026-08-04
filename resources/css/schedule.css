@@ -2151,3 +2151,159 @@
         flex-direction: column;
     }
 }
+
+/* Roster board — the day-by-shift view the nursing office edits before publishing. */
+.roster-board {
+    display: grid;
+    gap: .75rem;
+    padding: .85rem;
+    background: #f5f7fa;
+    border-radius: .75rem;
+}
+
+.roster-board-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.roster-board-heading > div:first-child {
+    display: grid;
+    gap: .15rem;
+}
+
+.roster-board-heading span {
+    font-size: .82rem;
+    color: #536178;
+}
+
+.roster-board-actions {
+    display: flex;
+    gap: .4rem;
+    flex-wrap: wrap;
+}
+
+.roster-board-days {
+    display: grid;
+    gap: .65rem;
+    max-height: 26rem;
+    overflow-y: auto;
+}
+
+.roster-day {
+    display: grid;
+    gap: .5rem;
+    padding: .7rem;
+    background: #fff;
+    border: 1px solid #e3e8ef;
+    border-left: 3px solid #19704b;
+    border-radius: .6rem;
+}
+
+.roster-day.is-short {
+    border-left-color: #c9821b;
+}
+
+.roster-day > header strong {
+    font-size: .9rem;
+}
+
+.roster-shift {
+    display: grid;
+    gap: .4rem;
+    padding: .55rem;
+    background: #f8fafc;
+    border-radius: .5rem;
+}
+
+.roster-shift.is-short {
+    background: #fdf6ec;
+}
+
+.roster-shift > header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    align-items: baseline;
+}
+
+.roster-shift > header small {
+    color: #7a8699;
+    font-size: .75rem;
+}
+
+.roster-coverage {
+    margin-left: auto;
+    font-size: .78rem;
+    font-weight: 600;
+    color: #19704b;
+}
+
+.roster-shift.is-short .roster-coverage {
+    color: #9a6410;
+}
+
+.roster-people {
+    display: grid;
+    gap: .25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.roster-people li {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .3rem .45rem;
+    font-size: .84rem;
+    background: #fff;
+    border-radius: .4rem;
+}
+
+.roster-people li.is-blocked {
+    color: #a13b2f;
+    text-decoration: line-through;
+    background: #fdecea;
+}
+
+.roster-people small {
+    color: #7a8699;
+    font-size: .72rem;
+}
+
+.roster-people em {
+    padding: .05rem .35rem;
+    font-size: .68rem;
+    font-style: normal;
+    color: #19704b;
+    background: #e6f4ec;
+    border-radius: .3rem;
+}
+
+.roster-remove {
+    margin-left: auto;
+    padding: 0;
+    font-size: .75rem;
+    color: #a13b2f;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+.roster-add {
+    width: 100%;
+    padding: .3rem .45rem;
+    font-size: .8rem;
+    border: 1px dashed #c4cdd9;
+    border-radius: .4rem;
+    background: #fff;
+}
+
+.roster-rest {
+    margin: 0;
+    font-size: .78rem;
+    color: #536178;
+}
