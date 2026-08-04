@@ -34,8 +34,9 @@ class DashboardController extends Controller
         $recentEmployees = Employee::query()
             ->with(['user', 'department', 'position'])
             ->latest()
-            ->limit(6)
-            ->get();
+            ->paginate(5, ['*'], 'employees_page')
+            ->withQueryString()
+            ->fragment('employee-overview');
 
         $departments = Department::query()
             ->withCount([

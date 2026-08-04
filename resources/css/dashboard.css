@@ -59,7 +59,7 @@ input {
     display: flex;
     width: var(--sidebar-width);
     min-height: 100vh;
-    padding: 0 16px 18px;
+    padding: 18px 16px;
     overflow: visible;
     color: rgba(255, 255, 255, 0.86);
     background: linear-gradient(175deg, var(--hr-sidebar) 0%, var(--hr-sidebar-deep) 100%);
@@ -76,8 +76,10 @@ input {
 .sidebar-brand {
     display: flex;
     align-items: center;
-    min-height: var(--topbar-height);
+    min-height: calc(var(--topbar-height) - 18px);
     margin: 0 4px 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     gap: 12px;
 }
 
@@ -101,7 +103,7 @@ input {
 
 .sidebar-brand-toggle {
     position: absolute;
-    top: calc(var(--topbar-height) / 2);
+    top: calc(18px + (var(--topbar-height) - 32px) / 2);
     left: 100%;
     z-index: 1;
     display: grid;
@@ -203,7 +205,6 @@ input {
 .sidebar-link.active {
     color: #fff;
     background: linear-gradient(90deg, rgba(67, 178, 119, 0.28), rgba(67, 178, 119, 0.12));
-    box-shadow: inset 3px 0 #65c994;
 }
 
 .sidebar-link-icon {
@@ -1286,6 +1287,17 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
     gap: 20px;
 }
 
+.dashboard-grid > .panel {
+    display: flex;
+    overflow: hidden;
+    flex-direction: column;
+}
+
+.dashboard-grid .table-responsive,
+.dashboard-grid .department-list {
+    flex: 1;
+}
+
 .panel {
     min-width: 0;
     border-radius: 15px;
@@ -1311,7 +1323,8 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
 }
 
 .panel-link,
-.department-footer-link {
+.department-footer-link,
+.panel-footer-link {
     display: inline-flex;
     color: var(--hr-primary);
     text-decoration: none;
@@ -1322,7 +1335,8 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
 }
 
 .panel-link .ui-icon,
-.department-footer-link .ui-icon {
+.department-footer-link .ui-icon,
+.panel-footer-link .ui-icon {
     width: 14px;
     height: 14px;
 }
@@ -1370,6 +1384,23 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
 
 .dashboard-table tbody tr:hover td {
     background: #fcfefd;
+}
+
+/* Fits every column inside the panel so the table never needs a horizontal slider. */
+.dashboard-table-fit {
+    min-width: 0;
+    table-layout: fixed;
+}
+
+.dashboard-table-fit th,
+.dashboard-table-fit td:not(.empty-table-cell) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dashboard-table-fit .employee-cell {
+    min-width: 0;
 }
 
 .employee-cell {
@@ -1556,7 +1587,8 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
     background: linear-gradient(90deg, var(--hr-primary), #54b980);
 }
 
-.department-footer-link {
+.department-footer-link,
+.panel-footer-link {
     display: flex;
     min-height: 45px;
     padding: 0 20px;

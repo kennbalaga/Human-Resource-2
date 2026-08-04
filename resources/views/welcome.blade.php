@@ -4,9 +4,10 @@
 
 @section('content')
     @php
+        $greetingNow = now(config('workforce.timezone', 'Asia/Manila'));
         $greeting = match (true) {
-            now()->hour < 12 => 'Good morning',
-            now()->hour < 18 => 'Good afternoon',
+            $greetingNow->hour < 12 => 'Good morning',
+            $greetingNow->hour < 18 => 'Good afternoon',
             default => 'Good evening',
         };
     @endphp
@@ -14,7 +15,7 @@
     <section class="page-heading">
         <div>
             <p class="eyebrow">HRMS Overview</p>
-            <h1>{{ $greeting }}, {{ str(auth()->user()->name)->before(' ') }}.</h1>
+            <h1>{{ $greeting }}, {{ auth()->user()->name }}.</h1>
             <p>Here’s what’s happening across your hospital workforce today.</p>
         </div>
         @if ($canManageWorkforce)
@@ -67,11 +68,18 @@
                     <p class="panel-kicker">Employee directory</p>
                     <h2>Recently added employees</h2>
                 </div>
-                <a href="{{ route('employees.index') }}" class="panel-link">View all <x-icon name="chevron-right" /></a>
             </div>
 
             <div class="table-responsive">
-                <table class="dashboard-table">
+                <table class="dashboard-table dashboard-table-fit">
+                    <colgroup>
+                        <col style="width: 30%">
+                        <col style="width: 16%">
+                        <col style="width: 18%">
+                        <col style="width: 16%">
+                        <col style="width: 12%">
+                        <col style="width: 8%">
+                    </colgroup>
                     <thead>
                         <tr>
                             <th>Employee</th>
@@ -128,6 +136,12 @@
                     </tbody>
                 </table>
             </div>
+
+            @if ($recentEmployees->hasPages())
+                <div class="report-pagination panel-pagination">{{ $recentEmployees->onEachSide(1)->links('pagination::bootstrap-5') }}</div>
+            @endif
+
+            <a href="{{ route('employees.index') }}" class="panel-footer-link">View all employees <x-icon name="chevron-right" /></a>
         </section>
 
         <aside class="panel department-panel" id="department-overview">

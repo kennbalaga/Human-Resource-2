@@ -57,7 +57,15 @@ class DashboardTest extends TestCase
 
         $employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
 
-        $this->assertSame(5, substr_count($response->getContent(), 'data-dashboard-action-menu'));
+        $recentEmployees = $response->viewData('recentEmployees');
+        $this->assertSame(5, $recentEmployees->perPage());
+        $this->assertSame(Employee::query()->count(), $recentEmployees->total());
+
+        // One action menu per listed employee, plus the department panel menu.
+        $this->assertSame(
+            $recentEmployees->count() + 1,
+            substr_count($response->getContent(), 'data-dashboard-action-menu')
+        );
         $response
             ->assertSee(route('employees.index'), false)
             ->assertSee(route('attendance.reports.index'), false)
@@ -66,6 +74,25 @@ class DashboardTest extends TestCase
             ->assertSee(route('schedules.index', ['employee_id' => $employee->id]), false)
             ->assertSee(route('attendance.reports.index', ['employee_id' => $employee->id]), false)
             ->assertSee(route('leaves.index', ['employee_id' => $employee->id]), false);
+    }
+
+    public function test_recently_added_employees_panel_shows_five_per_page(): void
+    {
+        $this->seed();
+
+        $user = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+        $this->assertGreaterThan(5, Employee::query()->count());
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response->assertOk()->assertSee('employees_page=2', false);
+        $this->assertSame(5, $response->viewData('recentEmployees')->count());
+
+        $secondPage = $this->actingAs($user)->get('/dashboard?employees_page=2');
+
+        $secondPage->assertOk();
+        $this->assertSame(2, $secondPage->viewData('recentEmployees')->currentPage());
+        $this->assertGreaterThan(0, $secondPage->viewData('recentEmployees')->count());
     }
 
     public function test_standard_employee_dashboard_actions_use_non_manager_pages(): void
@@ -83,6 +110,9 @@ class DashboardTest extends TestCase
             ->assertDontSee('Open attendance reports')
             ->assertDontSee('Open shift templates');
 
-        $this->assertSame(5, substr_count($response->getContent(), 'data-dashboard-action-menu'));
+        $this->assertSame(
+            $response->viewData('recentEmployees')->count() + 1,
+            substr_count($response->getContent(), 'data-dashboard-action-menu')
+        );
     }
 }
