@@ -715,6 +715,10 @@
     font-size: .78rem;
 }
 
+.shift-template-table tbody tr:hover {
+    background: #f8fafb;
+}
+
 .shift-identity,
 .shift-row-actions,
 .shift-active-toggle {
@@ -729,11 +733,23 @@
 .shift-color {
     width: .45rem;
     height: 2.25rem;
+    border-radius: 3px;
 }
 
-.shift-identity > div,
 .shift-hours {
     display: grid;
+}
+
+.shift-identity-body {
+    display: grid;
+    gap: .35rem;
+}
+
+.shift-identity-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5rem;
 }
 
 .shift-identity strong,
@@ -742,18 +758,39 @@
     font-size: .82rem;
 }
 
-.shift-identity small,
 .shift-hours small {
     color: #7b8799;
     font-size: .67rem;
 }
 
+.shift-code-chip {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: .12rem .5rem;
+    border: 1px solid #e4e9f1;
+    border-radius: 6px;
+    background: #f7f9fb;
+    color: #6b7688;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .64rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+}
+
 .shift-status {
     display: inline-flex;
-    padding: .28rem .55rem;
+    align-items: center;
+    gap: .3rem;
+    padding: .28rem .6rem;
     border-radius: 99px;
     font-size: .65rem;
     font-weight: 800;
+}
+
+.shift-status .ui-icon {
+    width: 12px;
+    height: 12px;
 }
 
 .shift-status.active {
@@ -768,11 +805,54 @@
 
 .shift-row-actions {
     justify-content: flex-end;
-    gap: .2rem;
+    gap: .35rem;
+    flex-wrap: wrap;
 }
 
 .shift-row-actions form {
     display: inline-flex;
+}
+
+.shift-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    height: 32px;
+    padding: 0 .65rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.shift-toggle-btn .ui-icon {
+    width: 15px;
+    height: 15px;
+}
+
+.shift-toggle-btn-deactivate {
+    color: #ad6c0a;
+    border-color: #f5e2bb;
+    background: #fff8ec;
+}
+
+.shift-toggle-btn-deactivate:hover {
+    border-color: #ecc888;
+    background: #fef1d9;
+}
+
+.shift-toggle-btn-activate {
+    color: #19704b;
+    border-color: #bfe6d2;
+    background: #eefaf3;
+}
+
+.shift-toggle-btn-activate:hover {
+    border-color: #9ad8bb;
+    background: #e2f6ea;
 }
 
 .shift-code-field input[readonly] {

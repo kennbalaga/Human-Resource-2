@@ -42,4 +42,26 @@ const initializePositionFiltering = () => {
     });
 };
 
-document.addEventListener('DOMContentLoaded', initializePositionFiltering);
+const initializeLiveOrganizationFilters = () => {
+    document.querySelectorAll('form.organization-filters').forEach((form) => {
+        const submit = () => (form.requestSubmit ? form.requestSubmit() : form.submit());
+
+        form.querySelectorAll('select').forEach((select) => {
+            select.addEventListener('change', submit);
+        });
+
+        const search = form.querySelector('input[type="search"]');
+        if (!search) return;
+
+        let debounceTimer;
+        search.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(submit, 400);
+        });
+    });
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    initializePositionFiltering();
+    initializeLiveOrganizationFilters();
+});

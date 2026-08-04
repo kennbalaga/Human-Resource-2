@@ -156,6 +156,12 @@
 
 .organization-table {
     min-width: 980px;
+    table-layout: fixed;
+}
+
+.organization-table th,
+.organization-table td {
+    overflow-wrap: break-word;
 }
 
 .organization-secondary {

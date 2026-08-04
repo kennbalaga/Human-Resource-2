@@ -1,4 +1,4 @@
-.analytics-filters label { max-width:15rem; }
+.analytics-filters .analytics-date-field { max-width:15rem; }
 .analytics-metric-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; margin-bottom:1.25rem; }
 .analytics-metric { display:flex; align-items:center; gap:.85rem; padding:1rem; border:1px solid #e3e9f0; border-radius:.85rem; background:#fff; box-shadow:var(--hr-shadow); }
 .analytics-metric-icon { display:grid; width:2.7rem; height:2.7rem; border-radius:.75rem; place-items:center; }
@@ -34,4 +34,4 @@
 .rate-cell { display:grid; grid-template-columns:minmax(6rem,1fr) 3rem; align-items:center; gap:.5rem; min-width:9rem; }
 .rate-cell strong { color:#344258; font-size:.7rem; text-align:right; }
 @media(max-width:1000px){.analytics-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:760px){.analytics-grid{grid-template-columns:1fr}.analytics-wide{grid-column:auto}.analytics-metric-grid{grid-template-columns:1fr}.analytics-filters label{max-width:none}.attendance-bar-chart{min-width:42rem}}
+@media(max-width:760px){.analytics-grid{grid-template-columns:1fr}.analytics-wide{grid-column:auto}.analytics-metric-grid{grid-template-columns:1fr}.analytics-filters .analytics-date-field{max-width:none}.attendance-bar-chart{min-width:42rem}}

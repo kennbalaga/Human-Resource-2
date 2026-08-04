@@ -8,10 +8,10 @@
     @include('partials.organization-tabs')
     @include('partials.organization-feedback')
     <form class="panel organization-filters" method="GET" action="{{ route('departments.index') }}">
-        <label><span>Search departments</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Department name or code"></label>
+        <label><span>Search departments</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Department name or code" @if(!empty($filters['search'])) autofocus @endif></label>
             <label><span>Department group</span><select name="category"><option value="">All groups</option>@foreach($categories as $value => $label)<option value="{{ $value }}" @selected(($filters['category'] ?? null) === $value)>{{ $label }}</option>@endforeach</select></label>
             <label><span>Status</span><select name="status"><option value="">All statuses</option><option value="active" @selected(($filters['status'] ?? null) === 'active')>Active</option><option value="inactive" @selected(($filters['status'] ?? null) === 'inactive')>Inactive</option></select></label>
-            <div class="organization-filter-actions"><button class="btn btn-primary" type="submit">Filter</button>@if(request()->hasAny(['search', 'category', 'status']))<a class="btn btn-light" href="{{ route('departments.index') }}">Clear</a>@endif</div>
+            @if(request()->hasAny(['search', 'category', 'status']))<div class="organization-filter-actions"><a class="btn btn-light" href="{{ route('departments.index') }}">Clear</a></div>@endif
     </form>
     @forelse($departments->groupBy('category_label') as $category => $departmentGroup)
         <section class="organization-category-group">

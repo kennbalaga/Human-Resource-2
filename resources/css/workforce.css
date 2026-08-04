@@ -19,12 +19,16 @@
 .timesheet-entry-grid article { display:grid; gap:.2rem; padding:.75rem; border:1px solid #e5eaf1; border-radius:.65rem; background:#fff; }
 .timesheet-entry-grid span,.timesheet-entry-grid small { color:#778398; font-size:.66rem; }
 .timesheet-entry-grid strong { color:#27354c; font-size:.82rem; }
-.leave-balance-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; margin-bottom:1.25rem; }
-.leave-balance-card { display:flex; align-items:center; gap:.75rem; padding:1rem; border:1px solid #e4e9f1; border-radius:.85rem; background:#fff; box-shadow:var(--hr-shadow); }
-.leave-balance-color { width:.4rem; height:3.2rem; border-radius:99px; background:var(--leave-color); }
-.leave-balance-card div { display:grid; }
-.leave-balance-card span:not(.leave-balance-color),.leave-balance-card small { color:#748097; font-size:.7rem; }
-.leave-balance-card strong { color:#26354c; font-size:1.15rem; }
+.leave-balance-section { margin-bottom: 1.25rem; }
+.leave-balance-heading { display:flex; align-items:baseline; flex-wrap:wrap; gap:.4rem; margin-bottom:.6rem; }
+.leave-balance-heading h2 { margin:0; color:#26354c; font-size:.85rem; font-weight:800; }
+.leave-balance-heading span { color:#778398; font-size:.68rem; }
+.leave-balance-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(11.5rem,1fr)); gap:.6rem; }
+.leave-balance-card { display:flex; align-items:center; gap:.55rem; min-width:0; padding:.6rem .7rem; border:1px solid #e4e9f1; border-radius:.65rem; background:#fff; box-shadow:var(--hr-shadow); }
+.leave-balance-color { width:.32rem; height:2.1rem; border-radius:99px; background:var(--leave-color); flex-shrink:0; }
+.leave-balance-card div { display:grid; gap:.05rem; min-width:0; }
+.leave-balance-card span:not(.leave-balance-color),.leave-balance-card small { overflow:hidden; color:#748097; font-size:.63rem; text-overflow:ellipsis; white-space:nowrap; }
+.leave-balance-card strong { color:#26354c; font-size:.92rem; }
 .leave-calendar-event,.schedule-leave-event { display:flex; align-items:center; gap:.35rem; min-width:0; padding:.35rem .4rem; border-radius:.45rem; color:#37445a; background:color-mix(in srgb,var(--leave-color) 11%,white); font-size:.66rem; }
 .leave-calendar-event i { width:.35rem; height:1.8rem; border-radius:99px; background:var(--leave-color); }
 .leave-calendar-event>span,.schedule-leave-event>span { display:grid; min-width:0; }

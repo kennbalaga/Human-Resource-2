@@ -76,6 +76,7 @@ class LeaveController extends Controller
                 'attachments' => (clone $summaryQuery)->whereHas('attachments')->count(),
             ],
             'balances' => $balances,
+            'employee' => $employee,
             'types' => $types,
             'employees' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),

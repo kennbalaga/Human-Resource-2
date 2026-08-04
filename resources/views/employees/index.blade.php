@@ -19,10 +19,10 @@
     @include('partials.organization-feedback')
 
     <form class="panel organization-filters" method="GET" action="{{ route('employees.index') }}">
-        <label><span>Search employees</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Name, employee ID, or email"></label>
+        <label><span>Search employees</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Name, employee ID, or email" @if(!empty($filters['search'])) autofocus @endif></label>
         <label><span>Department</span><select name="department_id"><option value="">All departments</option>@foreach($departments as $department)<option value="{{ $department->id }}" @selected(($filters['department_id'] ?? null) == $department->id)>{{ $department->name }}</option>@endforeach</select></label>
         <label><span>Status</span><select name="status"><option value="">All statuses</option>@foreach(['active' => 'Active', 'on_leave' => 'On leave', 'inactive' => 'Inactive', 'terminated' => 'Terminated'] as $value => $label)<option value="{{ $value }}" @selected(($filters['status'] ?? null) === $value)>{{ $label }}</option>@endforeach</select></label>
-        <div class="organization-filter-actions"><button class="btn btn-primary" type="submit">Filter</button>@if(request()->hasAny(['search', 'department_id', 'status']))<a class="btn btn-light" href="{{ route('employees.index') }}">Clear</a>@endif</div>
+        @if(request()->hasAny(['search', 'department_id', 'status']))<div class="organization-filter-actions"><a class="btn btn-light" href="{{ route('employees.index') }}">Clear</a></div>@endif
     </form>
 
     <section class="panel organization-table-panel">
@@ -31,6 +31,7 @@
         </div>
         <div class="table-responsive">
             <table class="dashboard-table organization-table">
+                <colgroup><col style="width: 24%"><col style="width: 13%"><col style="width: 14%"><col style="width: 14%"><col style="width: 14%"><col style="width: 11%"><col style="width: 10%"></colgroup>
                 <thead><tr><th>Employee</th><th>Employee ID</th><th>Department</th><th>Position</th><th>Supervisor</th><th>Status</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
                 <tbody>
                     @forelse ($employees as $employee)

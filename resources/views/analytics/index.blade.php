@@ -14,8 +14,8 @@
 
     <section class="panel workforce-filter-panel">
         <form method="GET" action="{{ route('analytics.index') }}" class="workforce-filters analytics-filters">
-            <label><span>From</span><input type="date" name="date_from" value="{{ $filters['date_from'] }}"></label>
-            <label><span>To</span><input type="date" name="date_to" value="{{ $filters['date_to'] }}"></label>
+            <label class="analytics-date-field"><span>From</span><input type="date" name="date_from" value="{{ $filters['date_from'] }}"></label>
+            <label class="analytics-date-field"><span>To</span><input type="date" name="date_to" value="{{ $filters['date_to'] }}"></label>
             <label><span>Department</span><select name="department_id"><option value="">All departments</option>@foreach($departments as $department)<option value="{{ $department->id }}" @selected(($filters['department_id'] ?? '') == $department->id)>{{ $department->name }}</option>@endforeach</select></label>
             <button class="btn btn-primary" type="submit">Update analytics</button>
         </form>

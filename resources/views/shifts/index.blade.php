@@ -46,28 +46,59 @@
                             $shiftPayload = ['id' => $shift->id, 'code' => $shift->code, 'name' => $shift->name, 'start_time' => substr($shift->start_time, 0, 5), 'end_time' => substr($shift->end_time, 0, 5), 'break_minutes' => $shift->break_minutes, 'color' => $shift->color, 'is_active' => $shift->is_active];
                         @endphp
                         <tr>
-                            <td><div class="shift-identity"><span class="shift-color" style="background: {{ $shift->color }}"></span><div><strong>{{ $shift->name }}</strong> @if($shift->is_system)<x-status-badge status="System" />@endif<br><small>{{ $shift->code }}</small></div></div></td>
+                            <td>
+                                <div class="shift-identity">
+                                    <span class="shift-color" style="background: {{ $shift->color }}"></span>
+                                    <div class="shift-identity-body">
+                                        <div class="shift-identity-title">
+                                            <strong>{{ $shift->name }}</strong>
+                                            @if($shift->is_system)
+                                                <x-status-badge status="System" />
+                                            @endif
+                                        </div>
+                                        <span class="shift-code-chip">{{ $shift->code }}</span>
+                                    </div>
+                                </div>
+                            </td>
                             <td><div class="shift-hours"><strong>{{ $shift->formatted_time }}</strong><small>{{ $shift->break_minutes }}-minute break @if($shift->crosses_midnight) · Overnight @endif</small></div></td>
                             <td>{{ number_format($shift->duration_minutes / 60, 1) }} hours</td>
                             <td>{{ number_format($shift->assignments_count) }} assignments</td>
-                            <td><span @class(['shift-status', 'active' => $shift->is_active, 'inactive' => ! $shift->is_active])>{{ $shift->is_active ? 'Active' : 'Inactive' }}</span></td>
+                            <td>
+                                <span @class(['shift-status', 'active' => $shift->is_active, 'inactive' => ! $shift->is_active])>
+                                    <x-icon :name="$shift->is_active ? 'check-circle' : 'circle'" />
+                                    {{ $shift->is_active ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
                             <td>
                                 <div class="shift-row-actions">
                                     <button
                                         class="icon-button subtle"
                                         type="button"
                                         aria-label="Edit {{ $shift->name }}"
+                                        title="Edit"
                                         data-edit-shift
                                         data-shift='{{ json_encode($shiftPayload, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG) }}'
                                         data-bs-toggle="modal"
                                         data-bs-target="#shiftTemplateModal"
                                     ><x-icon name="edit" /></button>
-                                    <form method="POST" action="{{ route('shifts.toggle-active', $shift) }}">
+                                    <form
+                                        method="POST"
+                                        action="{{ route('shifts.toggle-active', $shift) }}"
+                                        @if ($shift->is_active) onsubmit="return confirm('Deactivate this shift template? It will be hidden from new schedule assignments, but existing schedules keep this shift.')" @endif
+                                    >
                                         @csrf @method('PATCH')
-                                        <button class="icon-button subtle" type="submit" aria-label="{{ $shift->is_active ? 'Deactivate' : 'Activate' }} {{ $shift->name }}" title="{{ $shift->is_active ? 'Deactivate' : 'Activate' }}"><x-icon :name="$shift->is_active ? 'circle' : 'check-circle'" /></button>
+                                        <button
+                                            class="shift-toggle-btn {{ $shift->is_active ? 'shift-toggle-btn-deactivate' : 'shift-toggle-btn-activate' }}"
+                                            type="submit"
+                                            aria-label="{{ $shift->is_active ? 'Deactivate' : 'Activate' }} {{ $shift->name }}"
+                                            title="{{ $shift->is_active ? 'Hide from future assignments' : 'Make available for assignments' }}"
+                                        >
+                                            <x-icon :name="$shift->is_active ? 'circle' : 'check-circle'" />
+                                            {{ $shift->is_active ? 'Deactivate' : 'Activate' }}
+                                        </button>
                                     </form>
                                     @if (! $shift->is_system && $shift->assignments_count === 0)
-                                        <form method="POST" action="{{ route('shifts.destroy', $shift) }}" onsubmit="return confirm('Delete this unused shift template?')">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Delete {{ $shift->name }}"><x-icon name="trash" /></button></form>
+                                        <form method="POST" action="{{ route('shifts.destroy', $shift) }}" onsubmit="return confirm('Delete this unused shift template?')">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Delete {{ $shift->name }}" title="Delete"><x-icon name="trash" /></button></form>
                                     @endif
                                 </div>
                             </td>
