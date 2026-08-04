@@ -13,9 +13,16 @@
             <h1>Attendance Reports</h1>
             <p>Review work hours, late arrivals, undertime, and overtime records.</p>
         </div>
-        <a class="btn btn-primary dashboard-action" href="{{ route('attendance.reports.export', request()->query()) }}">
-            <x-icon name="download" /> Export CSV
-        </a>
+        <div class="dropdown dashboard-action-menu">
+            <button class="btn btn-primary dashboard-action dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <x-icon name="download" /> Export
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{{ route('attendance.reports.export', request()->query()) }}"><x-icon name="report" /> <span>Export as CSV</span></a></li>
+                <li><a class="dropdown-item" href="{{ route('attendance.reports.export-excel', request()->query()) }}"><x-icon name="report" /> <span>Export as Excel</span></a></li>
+                <li><a class="dropdown-item" href="{{ route('attendance.reports.export-pdf', request()->query()) }}"><x-icon name="report" /> <span>Export as PDF</span></a></li>
+            </ul>
+        </div>
     </section>
 
     @if ($errors->any())

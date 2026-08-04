@@ -7,12 +7,23 @@ use App\Http\Requests\Attendance\AttendanceReportRequest;
 use App\Models\AttendanceRecord;
 use App\Models\Department;
 use App\Models\Employee;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceReportController extends Controller
 {
+    private const EXPORT_COLUMNS = [
+        'Date', 'Employee ID', 'Employee', 'Department', 'Check In', 'Check Out',
+        'Check In Source', 'Check In Device', 'Check Out Source', 'Check Out Device',
+        'Status', 'Late Minutes', 'Worked Minutes', 'Undertime Minutes', 'Overtime Minutes',
+    ];
+
     public function index(AttendanceReportRequest $request): View
     {
         $filters = $request->validated();
@@ -56,34 +67,81 @@ class AttendanceReportController extends Controller
 
         return response()->streamDownload(function () use ($records): void {
             $output = fopen('php://output', 'w');
-            fputcsv($output, [
-                'Date', 'Employee ID', 'Employee', 'Department', 'Check In', 'Check Out',
-                'Check In Source', 'Check In Device', 'Check Out Source', 'Check Out Device',
-                'Status', 'Late Minutes', 'Worked Minutes', 'Undertime Minutes', 'Overtime Minutes',
-            ]);
+            fputcsv($output, self::EXPORT_COLUMNS);
 
             foreach ($records as $record) {
-                fputcsv($output, [
-                    $record->attendance_date->toDateString(),
-                    $record->employee->employee_number,
-                    $record->employee->full_name,
-                    $record->employee->department?->name,
-                    $record->check_in_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('Y-m-d H:i:s'),
-                    $record->check_out_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('Y-m-d H:i:s'),
-                    $record->check_in_method,
-                    $record->checkInBiometricDevice?->name,
-                    $record->check_out_method,
-                    $record->checkOutBiometricDevice?->name,
-                    $record->status,
-                    $record->late_minutes,
-                    $record->worked_minutes,
-                    $record->undertime_minutes,
-                    $record->overtime_minutes,
-                ]);
+                fputcsv($output, $this->recordRow($record));
             }
 
             fclose($output);
         }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    public function exportExcel(AttendanceReportRequest $request): StreamedResponse
+    {
+        $filters = $request->validated();
+        $records = $this->reportQuery($filters)->latest('attendance_date')->latest('check_in_at')->get();
+        $filename = "attendance-{$filters['date_from']}-to-{$filters['date_to']}.xlsx";
+        $lastColumn = Coordinate::stringFromColumnIndex(count(self::EXPORT_COLUMNS));
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Attendance');
+        $sheet->fromArray(self::EXPORT_COLUMNS, null, 'A1');
+        $sheet->getStyle("A1:{$lastColumn}1")->getFont()->setBold(true);
+        $sheet->freezePane('A2');
+
+        $row = 2;
+        foreach ($records as $record) {
+            $sheet->fromArray($this->recordRow($record), null, "A{$row}");
+            $row++;
+        }
+
+        foreach (range('A', $lastColumn) as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        return response()->streamDownload(function () use ($spreadsheet): void {
+            (new Xlsx($spreadsheet))->save('php://output');
+        }, $filename, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    public function exportPdf(AttendanceReportRequest $request): Response
+    {
+        $filters = $request->validated();
+        $records = $this->reportQuery($filters)->latest('attendance_date')->latest('check_in_at')->get();
+        $filename = "attendance-{$filters['date_from']}-to-{$filters['date_to']}.pdf";
+
+        $pdf = Pdf::loadView('attendance.reports.pdf', [
+            'records' => $records,
+            'filters' => $filters,
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function recordRow(AttendanceRecord $record): array
+    {
+        return [
+            $record->attendance_date->toDateString(),
+            $record->employee->employee_number,
+            $record->employee->full_name,
+            $record->employee->department?->name,
+            $record->check_in_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('Y-m-d H:i:s'),
+            $record->check_out_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('Y-m-d H:i:s'),
+            $record->check_in_method,
+            $record->checkInBiometricDevice?->name,
+            $record->check_out_method,
+            $record->checkOutBiometricDevice?->name,
+            $record->status,
+            $record->late_minutes,
+            $record->worked_minutes,
+            $record->undertime_minutes,
+            $record->overtime_minutes,
+        ];
     }
 
     /**

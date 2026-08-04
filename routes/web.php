@@ -42,6 +42,8 @@ Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(func
     Route::post('/check-out', [AttendanceController::class, 'checkOut'])->name('check-out');
     Route::get('/reports', [AttendanceReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export', [AttendanceReportController::class, 'export'])->name('reports.export');
+    Route::get('/reports/export-pdf', [AttendanceReportController::class, 'exportPdf'])->name('reports.export-pdf');
+    Route::get('/reports/export-excel', [AttendanceReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::post('/records/{attendanceRecord}/approve', [AttendanceApprovalController::class, 'approve'])->name('records.approve');
     Route::post('/records/{attendanceRecord}/reject', [AttendanceApprovalController::class, 'reject'])->name('records.reject');
 });
