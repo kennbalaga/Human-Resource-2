@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\RecurringSchedule;
@@ -9,6 +10,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Scheduling\StaffingRequirementService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
@@ -18,6 +20,12 @@ use Illuminate\Validation\ValidationException;
 
 class ScheduleService
 {
+    /**
+     * Rank 3 is the charge/senior rung, the lowest grade a hospital roster treats
+     * as able to take charge of a shift.
+     */
+    public const DEFAULT_SENIOR_RANK_THRESHOLD = 3;
+
     /**
      * @param  array{employee_id: int, shift_id: int, work_date: string, notes?: string|null}  $data
      */
@@ -41,12 +49,33 @@ class ScheduleService
     }
 
     /**
+     * Resolve the coverage this shift must reach, preferring the unit's recorded
+     * standard over a bare default.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{staff: int, senior: int, source: string}
+     */
+    private function staffingRequirementFor(array $data, Shift $shift): array
+    {
+        $department = isset($data['department_id'])
+            ? Department::query()->with('shiftRequirements')->find($data['department_id'])
+            : null;
+
+        if ($department === null) {
+            return ['staff' => StaffingRequirementService::FALLBACK_MINIMUM_STAFF, 'senior' => 0, 'source' => 'default minimum'];
+        }
+
+        return app(StaffingRequirementService::class)->forShift($department, $shift);
+    }
+
+    /**
      * @param  array{employee_ids: array<int>, shift_id: int, start_date: string, end_date: string, include_weekends?: bool, notes?: string|null}  $data
      * @return array{ready: Collection<int, array{employee: Employee, date: Carbon}>, skipped: Collection<int, array{employee: string, date: string, reason: string}>}
      */
     public function bulkAssignmentPlan(array $data): array
     {
         $employees = Employee::query()
+            ->with('position')
             ->whereKey($data['employee_ids'])
             ->orderBy('last_name')
             ->get()
@@ -129,47 +158,56 @@ class ScheduleService
             }
         }
 
-        $minimumStaff = (int) ($data['minimum_staff_per_shift'] ?? 1);
-        $staffingGaps = $dates
-            ->map(function (Carbon $date) use ($ready, $shift, $minimumStaff) {
-                $available = $ready
-                    ->filter(fn (array $item) => $item['date']->toDateString() === $date->toDateString())
-                    ->count();
+        // The unit's standing requirement is the default; a figure typed into the
+        // roster form only ever overrides it for that one run.
+        $standard = $this->staffingRequirementFor($data, $shift);
+        $minimumStaff = (int) ($data['minimum_staff_per_shift'] ?? $standard['staff']);
+        $minimumSenior = (int) ($data['minimum_senior_per_shift'] ?? $standard['senior']);
+        $seniorRank = (int) ($data['senior_rank_threshold'] ?? self::DEFAULT_SENIOR_RANK_THRESHOLD);
+        $requirementSource = isset($data['minimum_staff_per_shift']) ? 'roster form' : $standard['source'];
 
-                return $available < $minimumStaff ? [
-                    'date' => $date->toDateString(),
-                    'shift' => $shift->name,
-                    'available' => $available,
-                    'required' => $minimumStaff,
-                    'suggestion' => 'Select more eligible employees or lower the minimum staffing rule.',
-                ] : null;
+        $staffingGaps = $dates
+            ->flatMap(function (Carbon $date) use ($ready, $shift, $minimumStaff, $minimumSenior, $seniorRank, $requirementSource) {
+                $onDate = $ready->filter(fn (array $item) => $item['date']->toDateString() === $date->toDateString());
+                $gaps = collect();
+
+                if ($onDate->count() < $minimumStaff) {
+                    $gaps->push([
+                        'date' => $date->toDateString(),
+                        'shift' => $shift->name,
+                        'label' => 'staff',
+                        'available' => $onDate->count(),
+                        'required' => $minimumStaff,
+                        'suggestion' => 'Required by the '.$requirementSource.'. Select more eligible employees or revise the unit standard.',
+                    ]);
+                }
+
+                // Head count alone can hide a shift with nobody senior enough to
+                // take charge, which is the gap a hospital roster is reviewed for.
+                if ($minimumSenior > 0) {
+                    $seniorsOnDate = $onDate
+                        ->filter(fn (array $item) => (int) ($item['employee']->position?->seniority_rank ?? 1) >= $seniorRank)
+                        ->count();
+
+                    if ($seniorsOnDate < $minimumSenior) {
+                        $gaps->push([
+                            'date' => $date->toDateString(),
+                            'shift' => $shift->name,
+                            'label' => 'senior staff (rank '.$seniorRank.'+)',
+                            'available' => $seniorsOnDate,
+                            'required' => $minimumSenior,
+                            'suggestion' => 'Add a senior or charge-level employee to this shift so it is not covered by entry-level staff alone.',
+                        ]);
+                    }
+                }
+
+                return $gaps;
             })
-            ->filter()
             ->values();
 
         return compact('ready', 'skipped', 'staffingGaps');
     }
 
-    /**
-     * @param  array{employee_ids: array<int>, shift_id: int, start_date: string, end_date: string, include_weekends?: bool, notes?: string|null}  $data
-     * @return array{assignments: Collection<int, ScheduleAssignment>, skipped: Collection<int, array{employee: string, date: string, reason: string}>}
-     */
-    public function createBulkAssignments(array $data, User $creator): array
-    {
-        return DB::transaction(function () use ($data, $creator) {
-            $plan = $this->bulkAssignmentPlan($data);
-            $assignments = $plan['ready']->map(fn (array $item) => ScheduleAssignment::query()->create([
-                'employee_id' => $item['employee']->id,
-                'shift_id' => $data['shift_id'],
-                'work_date' => $item['date']->toDateString(),
-                'status' => 'scheduled',
-                'notes' => $data['notes'] ?? null,
-                'created_by' => $creator->id,
-            ]));
-
-            return ['assignments' => $assignments, 'skipped' => $plan['skipped']];
-        });
-    }
 
     /**
      * @param  array{employee_id: int, shift_id: int, work_date: string, notes?: string|null}  $data
@@ -416,7 +454,17 @@ class ScheduleService
      * @param  Collection<int, LeaveRequest>  $leaves
      * @param  Collection<int, ScheduleDayOff>  $dayOffs
      */
-    private function bulkAssignmentBlockReason(
+    /**
+     * Why this employee cannot work this shift on this date, or null when nothing
+     * stands in the way. Public so a hand-edited roster is held to exactly the
+     * same rules as a generated one.
+     *
+     * @param  Collection<int, ScheduleAssignment>  $assignments
+     * @param  Collection<int, LeaveRequest>  $leaves
+     * @param  Collection<int, ScheduleDayOff>  $dayOffs
+     * @param  array<string, mixed>  $rules
+     */
+    public function bulkAssignmentBlockReason(
         Employee $employee,
         Shift $shift,
         Carbon $date,

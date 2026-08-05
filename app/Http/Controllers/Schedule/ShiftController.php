@@ -15,11 +15,11 @@ class ShiftController extends Controller
 {
     public function index(Request $request): View
     {
-        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists(), 403);
+        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty(), 403);
 
         return view('shifts.index', [
             'shifts' => Shift::query()->withCount('assignments')->orderBy('start_time')->get(),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);
     }
@@ -46,7 +46,7 @@ class ShiftController extends Controller
 
     public function toggleActive(Request $request, Shift $shift): RedirectResponse
     {
-        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists(), 403);
+        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty(), 403);
 
         $shift->update(['is_active' => ! $shift->is_active]);
 
@@ -55,7 +55,7 @@ class ShiftController extends Controller
 
     public function destroy(Request $request, Shift $shift): RedirectResponse
     {
-        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists(), 403);
+        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty(), 403);
 
         if ($shift->is_system) {
             throw ValidationException::withMessages([

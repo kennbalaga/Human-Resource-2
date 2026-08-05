@@ -29,6 +29,6 @@ class AttendanceApprovalController extends Controller
 
     private function authorizeManager(Request $request): void
     {
-        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists(), 403);
+        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty(), 403);
     }
 }

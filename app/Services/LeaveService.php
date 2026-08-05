@@ -9,6 +9,8 @@ use App\Models\LeaveType;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -155,6 +157,59 @@ class LeaveService
         return ($lock ? $query->lockForUpdate() : $query)->firstOrFail();
     }
 
+    /**
+     * Resolve the balance for every supplied leave type at once, creating any
+     * that do not exist yet. Asking for them one type at a time costs a pair of
+     * queries each, which dominates the leave screen against a remote database.
+     *
+     * @param  Collection<int, LeaveType>  $types
+     * @return EloquentCollection<int, LeaveBalance>
+     */
+    public function balancesFor(Employee $employee, Collection $types, int $year): EloquentCollection
+    {
+        $existing = $this->loadBalances($employee, $types, $year);
+        $missing = $types->reject(fn (LeaveType $type) => $existing->has($type->id));
+
+        if ($missing->isNotEmpty()) {
+            LeaveBalance::query()->insertOrIgnore($missing->map(fn (LeaveType $type) => [
+                'employee_id' => $employee->id,
+                'leave_type_id' => $type->id,
+                'year' => $year,
+                'entitled_days' => $type->annual_entitlement,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ])->values()->all());
+
+            $existing = $this->loadBalances($employee, $types, $year);
+        }
+
+        $balances = $types
+            ->map(function (LeaveType $type) use ($existing): ?LeaveBalance {
+                // The type is already in memory, so hand it over rather than
+                // letting the view lazy-load the relation back out of the database.
+                return $existing->get($type->id)?->setRelation('leaveType', $type);
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        return new EloquentCollection($balances);
+    }
+
+    /**
+     * @param  Collection<int, LeaveType>  $types
+     * @return Collection<int, LeaveBalance>
+     */
+    private function loadBalances(Employee $employee, Collection $types, int $year): Collection
+    {
+        return LeaveBalance::query()
+            ->where('employee_id', $employee->id)
+            ->where('year', $year)
+            ->whereIn('leave_type_id', $types->pluck('id'))
+            ->get()
+            ->keyBy('leave_type_id');
+    }
+
     private function ensurePending(LeaveRequest $request): void
     {
         if ($request->status !== 'pending') {
@@ -164,6 +219,6 @@ class LeaveService
 
     private function canManage(User $user): bool
     {
-        return $user->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists();
+        return $user->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
     }
 }

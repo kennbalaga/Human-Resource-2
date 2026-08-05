@@ -16,9 +16,9 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Schedule\AiRotationScheduleController;
 use App\Http\Controllers\Schedule\AiScheduleRecommendationController;
 use App\Http\Controllers\Schedule\RecurringScheduleController;
+use App\Http\Controllers\Schedule\RosterDraftController;
 use App\Http\Controllers\Schedule\ScheduleAssignmentController;
 use App\Http\Controllers\Schedule\ScheduleCalendarController;
 use App\Http\Controllers\Schedule\ScheduleDayOffController;
@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('employees', EmployeeController::class)->except('destroy');
     Route::post('/employees/{employee}/two-factor/reset', [AdminTwoFactorController::class, 'reset'])->name('employees.two-factor.reset');
     Route::resource('departments', DepartmentController::class)->except(['show', 'destroy']);
+    Route::put('/departments/{department}/shift-coverage', [DepartmentController::class, 'updateShiftRequirements'])->name('departments.shift-coverage.update');
     Route::resource('positions', PositionController::class)->except(['show', 'destroy']);
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
@@ -81,14 +82,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/schedules', [ScheduleCalendarController::class, 'index'])->name('schedules.index');
     Route::get('/schedules/events', [ScheduleCalendarController::class, 'events'])->name('schedules.events');
     Route::post('/schedules/conflicts', [ScheduleCalendarController::class, 'conflicts'])->name('schedules.conflicts');
-    Route::post('/schedules/bulk-preview', [ScheduleAssignmentController::class, 'bulkPreview'])->name('schedules.bulk-preview');
-    Route::post('/schedules/rotation-preview', [AiRotationScheduleController::class, 'preview'])->middleware('throttle:10,1')->name('schedules.rotation-preview');
+    Route::post('/schedules/roster/evaluate', [RosterDraftController::class, 'evaluate'])->name('schedules.roster.evaluate');
+    Route::post('/schedules/roster/fill', [RosterDraftController::class, 'fill'])->name('schedules.roster.fill');
+    Route::post('/schedules/roster/suggest', [RosterDraftController::class, 'suggest'])->middleware('throttle:10,1')->name('schedules.roster.suggest');
+    Route::post('/schedules/roster/publish', [RosterDraftController::class, 'publish'])->name('schedules.roster.publish');
     Route::post('/schedules/ai-recommendations', [AiScheduleRecommendationController::class, 'store'])->middleware('throttle:10,1')->name('schedules.ai-recommendations.store');
     Route::post('/schedules/ai-recommendations/{scheduleRecommendation}/apply', [AiScheduleRecommendationController::class, 'apply'])->middleware('throttle:20,1')->name('schedules.ai-recommendations.apply');
     Route::post('/schedules/ai-recommendations/{scheduleRecommendation}/decision', [AiScheduleRecommendationController::class, 'decision'])->middleware('throttle:20,1')->name('schedules.ai-recommendations.decision');
     Route::post('/schedules', [ScheduleAssignmentController::class, 'store'])->name('schedules.store');
-    Route::post('/schedules/bulk', [ScheduleAssignmentController::class, 'bulkStore'])->name('schedules.bulk-store');
-    Route::post('/schedules/rotation', [AiRotationScheduleController::class, 'store'])->middleware('throttle:10,1')->name('schedules.rotation-store');
     Route::put('/schedules/{scheduleAssignment}', [ScheduleAssignmentController::class, 'update'])->name('schedules.update');
     Route::delete('/schedules/{scheduleAssignment}', [ScheduleAssignmentController::class, 'destroy'])->name('schedules.destroy');
     Route::delete('/schedule-day-offs/{scheduleDayOff}', [ScheduleDayOffController::class, 'destroy'])->name('schedule-day-offs.destroy');

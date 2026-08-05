@@ -27,7 +27,7 @@ class TwoFactorSecurityService
         $requiredRoles = config('security.two_factor.required_roles', []);
 
         return $requiredRoles !== []
-            && $user->roles()->whereIn('slug', $requiredRoles)->exists();
+            && $user->roles->pluck('slug')->intersect($requiredRoles)->isNotEmpty();
     }
 
     public function challengeRequiredFor(User $user): bool

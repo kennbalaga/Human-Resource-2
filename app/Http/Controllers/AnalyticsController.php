@@ -28,7 +28,7 @@ class AnalyticsController extends Controller
         return view('analytics.index', $data + [
             'filters' => $request->validated(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
             'aiInsight' => Cache::get($this->insightCacheKey($request->user()->id, $request->validated())),
         ]);
@@ -121,8 +121,13 @@ class AnalyticsController extends Controller
             ->when($departmentId, fn (Builder $query) => $query->whereKey($departmentId))
             ->orderBy('name')
             ->get();
-        $departmentMetrics = $departments->map(function (Department $department) use ($attendance, $leaves, $workdays) {
-            $departmentEmployeeIds = Employee::query()->where('department_id', $department->id)->where('employment_status', 'active')->pluck('id');
+        // The active employees are already in memory from the query above, so the
+        // per-department roster is grouped here rather than re-queried once per
+        // department -- that loop was one round trip per row of this table.
+        $employeeIdsByDepartment = $employees->groupBy('department_id')->map->pluck('id');
+
+        $departmentMetrics = $departments->map(function (Department $department) use ($attendance, $leaves, $workdays, $employeeIdsByDepartment) {
+            $departmentEmployeeIds = $employeeIdsByDepartment->get($department->id) ?? collect();
             $departmentAttendance = $attendance->whereIn('employee_id', $departmentEmployeeIds);
             $possible = max(1, $departmentEmployeeIds->count() * $workdays);
 

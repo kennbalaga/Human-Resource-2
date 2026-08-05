@@ -25,7 +25,7 @@ class AuditLogController extends Controller
             'logs' => $this->query($filters)->latest('created_at')->paginate(25)->withQueryString(),
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(),
             'filters' => $filters,
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);
     }
@@ -63,6 +63,6 @@ class AuditLogController extends Controller
 
     private function authorizeAuditAccess(Request $request): void
     {
-        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists(), 403);
+        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty(), 403);
     }
 }

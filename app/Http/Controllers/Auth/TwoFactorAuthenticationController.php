@@ -116,7 +116,7 @@ class TwoFactorAuthenticationController extends Controller
 
     public function reset(Request $request, Employee $employee): RedirectResponse
     {
-        abort_unless($request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists(), 403);
+        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty(), 403);
         $request->validate(['identity_verified' => ['accepted']]);
         $target = $employee->user;
         abort_unless($target, 404);

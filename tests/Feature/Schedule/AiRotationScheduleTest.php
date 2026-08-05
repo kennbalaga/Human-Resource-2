@@ -37,7 +37,7 @@ class AiRotationScheduleTest extends TestCase
     public function test_rotation_generator_is_protected_by_the_ai_feature_setting(): void
     {
         $this->actingAs($this->manager)
-            ->postJson(route('schedules.rotation-preview'), $this->payload())
+            ->postJson(route('schedules.roster.suggest'), $this->payload())
             ->assertNotFound();
     }
 
@@ -46,7 +46,7 @@ class AiRotationScheduleTest extends TestCase
         config(['ai_workforce_scheduling.enabled' => true]);
 
         $response = $this->actingAs($this->manager)
-            ->postJson(route('schedules.rotation-preview'), $this->payload())
+            ->postJson(route('schedules.roster.suggest'), $this->payload())
             ->assertOk()
             ->assertJsonPath('data.assignment_count', 6)
             ->assertJsonPath('data.day_off_count', 1)
@@ -67,7 +67,7 @@ class AiRotationScheduleTest extends TestCase
         config(['ai_workforce_scheduling.enabled' => true]);
 
         $response = $this->actingAs($this->manager)
-            ->postJson(route('schedules.rotation-preview'), $this->payload('two_weeks'))
+            ->postJson(route('schedules.roster.suggest'), $this->payload('two_weeks'))
             ->assertOk()
             ->assertJsonPath('data.assignment_count', 12)
             ->assertJsonPath('data.day_off_count', 2);
@@ -86,7 +86,7 @@ class AiRotationScheduleTest extends TestCase
         $payload['days_off_per_week'] = 2;
 
         $response = $this->actingAs($this->manager)
-            ->postJson(route('schedules.rotation-preview'), $payload)
+            ->postJson(route('schedules.roster.suggest'), $payload)
             ->assertOk()
             ->assertJsonPath('data.assignment_count', 10)
             ->assertJsonPath('data.day_off_count', 4);
@@ -105,7 +105,7 @@ class AiRotationScheduleTest extends TestCase
         $payload['overtime_allowed'] = false;
 
         $this->actingAs($this->manager)
-            ->postJson(route('schedules.rotation-preview'), $payload)
+            ->postJson(route('schedules.roster.suggest'), $payload)
             ->assertOk()
             ->assertJsonPath('data.assignment_count', 2)
             ->assertJsonPath('data.skipped_count', 4)
@@ -119,7 +119,7 @@ class AiRotationScheduleTest extends TestCase
         $payload['holiday_dates_csv'] = '2027-11-02';
 
         $this->actingAs($this->manager)
-            ->postJson(route('schedules.rotation-preview'), $payload)
+            ->postJson(route('schedules.roster.suggest'), $payload)
             ->assertOk()
             ->assertJsonPath('data.assignment_count', 5)
             ->assertJsonPath('data.day_off_count', 1)
@@ -139,7 +139,7 @@ class AiRotationScheduleTest extends TestCase
         $payload['employee_ids'] = $employees->pluck('id')->all();
 
         $response = $this->actingAs($this->manager)
-            ->postJson(route('schedules.rotation-preview'), $payload)
+            ->postJson(route('schedules.roster.suggest'), $payload)
             ->assertOk();
         $rows = $response->json('data.rows');
 
@@ -156,7 +156,7 @@ class AiRotationScheduleTest extends TestCase
         $payload['period_start'] = '2027-11-03';
 
         $this->actingAs($this->manager)
-            ->postJson(route('schedules.rotation-preview'), $payload)
+            ->postJson(route('schedules.roster.suggest'), $payload)
             ->assertOk()
             ->assertJsonCount(1, 'data.rows.0.weeks')
             ->assertJsonPath('data.assignment_count', 6)
@@ -167,8 +167,24 @@ class AiRotationScheduleTest extends TestCase
     {
         config(['ai_workforce_scheduling.enabled' => true]);
 
+        $payload = $this->payload('two_weeks');
+
+        // The reviewer publishes the roster the assistant proposed, rather than
+        // the server rebuilding it at save time.
+        $suggested = $this->actingAs($this->manager)
+            ->postJson(route('schedules.roster.suggest'), $payload)
+            ->assertOk();
+
+        $entries = $suggested->json('data.entries');
+        $dates = collect($entries)->pluck('work_date');
+
         $this->actingAs($this->manager)
-            ->post(route('schedules.rotation-store'), $this->payload('two_weeks'))
+            ->post(route('schedules.roster.publish'), [
+                'department_id' => $payload['department_id'],
+                'start_date' => $dates->min(),
+                'end_date' => $dates->max(),
+                'entries' => $entries,
+            ])
             ->assertSessionHasNoErrors();
 
         $this->assertSame(12, ScheduleAssignment::query()
@@ -215,7 +231,7 @@ class AiRotationScheduleTest extends TestCase
         ]);
 
         $this->actingAs($this->manager)
-            ->postJson(route('schedules.rotation-preview'), $this->payload())
+            ->postJson(route('schedules.roster.suggest'), $this->payload())
             ->assertOk()
             ->assertJsonPath('data.assignment_count', 5)
             ->assertJsonPath('data.day_off_count', 1)

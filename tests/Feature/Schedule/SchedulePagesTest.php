@@ -76,7 +76,7 @@ class SchedulePagesTest extends TestCase
             'work_date' => '2027-04-01',
         ])->assertForbidden();
 
-        $this->actingAs($employee)->post('/schedules/bulk-preview', [
+        $this->actingAs($employee)->post(route('schedules.roster.fill'), [
             'department_id' => $employee->employee->department_id,
             'employee_ids' => [$employee->employee->id],
             'shift_id' => $shift->id,
@@ -110,14 +110,21 @@ class SchedulePagesTest extends TestCase
             'end_date' => $date,
         ];
 
-        $this->actingAs($manager)->postJson('/schedules/bulk-preview', $payload)
+        $fill = $this->actingAs($manager)->postJson(route('schedules.roster.fill'), $payload)
             ->assertOk()
-            ->assertJsonPath('ready_count', 1)
-            ->assertJsonPath('skipped_count', 1);
+            ->assertJsonPath('data.ready_count', 1)
+            ->assertJsonPath('data.skipped_count', 1);
 
-        $this->actingAs($manager)->post('/schedules/bulk', $payload)
+        // Publishing sends the roster the fill produced, which is what the
+        // reviewer would have had in front of them.
+        $this->actingAs($manager)->post(route('schedules.roster.publish'), [
+            'department_id' => $payload['department_id'],
+            'start_date' => $payload['start_date'],
+            'end_date' => $payload['end_date'],
+            'entries' => $fill->json('data.entries'),
+        ])
             ->assertSessionHasNoErrors()
-            ->assertSessionHas('success', '1 assignment created. 1 skipped because of conflicts, leave, or inactive employees.');
+            ->assertSessionHas('success', '1 assignment and 0 rest days published.');
 
         $this->assertDatabaseHas('schedule_assignments', [
             'employee_id' => $otherEmployee->id,
@@ -148,16 +155,16 @@ class SchedulePagesTest extends TestCase
             'status' => 'approved',
         ]);
 
-        $this->actingAs($manager)->postJson('/schedules/bulk-preview', [
+        $this->actingAs($manager)->postJson(route('schedules.roster.fill'), [
             'department_id' => $employee->department_id,
             'employee_ids' => [$employee->id],
             'shift_id' => $shift->id,
             'start_date' => $date,
             'end_date' => $date,
         ])->assertOk()
-            ->assertJsonPath('ready_count', 0)
-            ->assertJsonPath('skipped_count', 1)
-            ->assertJsonPath('skipped.0.reason', 'Approved leave');
+            ->assertJsonPath('data.ready_count', 0)
+            ->assertJsonPath('data.skipped_count', 1)
+            ->assertJsonPath('data.skipped.0.reason', 'Approved leave');
     }
 
     public function test_bulk_periods_generate_weekly_biweekly_and_monthly_date_ranges(): void
@@ -167,20 +174,20 @@ class SchedulePagesTest extends TestCase
         $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $base = ['department_id' => $employee->department_id, 'employee_ids' => [$employee->id], 'shift_id' => $shift->id, 'include_weekends' => true];
 
-        $this->actingAs($manager)->postJson('/schedules/bulk-preview', $base + [
+        $this->actingAs($manager)->postJson(route('schedules.roster.fill'), $base + [
             'schedule_period' => 'weekly',
             'period_start' => '2027-04-04',
-        ])->assertOk()->assertJsonPath('requested_count', 7);
+        ])->assertOk()->assertJsonPath('data.requested_count', 7);
 
-        $this->actingAs($manager)->postJson('/schedules/bulk-preview', $base + [
+        $this->actingAs($manager)->postJson(route('schedules.roster.fill'), $base + [
             'schedule_period' => 'two_weeks',
             'period_start' => '2027-04-04',
-        ])->assertOk()->assertJsonPath('requested_count', 14);
+        ])->assertOk()->assertJsonPath('data.requested_count', 14);
 
-        $this->actingAs($manager)->postJson('/schedules/bulk-preview', $base + [
+        $this->actingAs($manager)->postJson(route('schedules.roster.fill'), $base + [
             'schedule_period' => 'monthly',
             'period_month' => '2028-02',
-        ])->assertOk()->assertJsonPath('requested_count', 29);
+        ])->assertOk()->assertJsonPath('data.requested_count', 29);
     }
 
     public function test_conflict_endpoint_reports_an_overlap(): void

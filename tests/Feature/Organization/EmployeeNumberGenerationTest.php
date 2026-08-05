@@ -51,10 +51,14 @@ class EmployeeNumberGenerationTest extends TestCase
     {
         $department = Department::query()->where('code', 'NUR')->firstOrFail();
         $position = Position::query()->where('department_id', $department->id)->firstOrFail();
+
+        // Sit the retired number above every seeded nurse so the assertion tracks
+        // the generator's behaviour rather than the size of the seeded roster.
+        $retiredSequence = $this->highestNursingSequence() + 5;
         Employee::query()->create([
             'department_id' => $department->id,
             'position_id' => $position->id,
-            'employee_number' => 'NUR-2026-0009',
+            'employee_number' => $this->nursingNumber($retiredSequence),
             'first_name' => 'Historical',
             'last_name' => 'Employee',
             'employment_status' => 'terminated',
@@ -67,7 +71,7 @@ class EmployeeNumberGenerationTest extends TestCase
         ))->assertRedirect();
 
         $this->assertDatabaseHas('employees', [
-            'employee_number' => 'NUR-2026-0010',
+            'employee_number' => $this->nursingNumber($retiredSequence + 1),
             'department_id' => $department->id,
         ]);
     }
@@ -161,6 +165,21 @@ class EmployeeNumberGenerationTest extends TestCase
             ->assertOk()
             ->assertSee('value="HR-2026-0002" readonly', false)
             ->assertDontSee('name="employee_number"', false);
+    }
+
+    private function highestNursingSequence(): int
+    {
+        return (int) Employee::query()
+            ->withTrashed()
+            ->where('employee_number', 'like', 'NUR-2026-%')
+            ->pluck('employee_number')
+            ->map(fn (string $number): int => (int) substr($number, -4))
+            ->max();
+    }
+
+    private function nursingNumber(int $sequence): string
+    {
+        return sprintf('NUR-2026-%04d', $sequence);
     }
 
     /** @return array<string, mixed> */

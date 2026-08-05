@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Organization;
 
+use App\Models\Position;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,9 +10,7 @@ class SavePositionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->roles()
-            ->whereIn('slug', ['system-administrator', 'hr-manager'])
-            ->exists() ?? false;
+        return $this->user()?->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty() ?? false;
     }
 
     protected function prepareForValidation(): void
@@ -19,6 +18,11 @@ class SavePositionRequest extends FormRequest
         $this->merge([
             'code' => str($this->input('code'))->trim()->upper()->toString(),
             'title' => str($this->input('title'))->trim()->toString(),
+            // Callers that predate the seniority ladder keep the rank they have,
+            // and new positions start at entry level rather than being rejected.
+            'seniority_rank' => $this->input('seniority_rank')
+                ?? $this->route('position')?->seniority_rank
+                ?? 1,
             'is_active' => $this->boolean('is_active'),
         ]);
     }
@@ -36,6 +40,7 @@ class SavePositionRequest extends FormRequest
             'department_id' => ['required', 'integer', $departmentExists],
             'code' => ['required', 'string', 'max:30', 'regex:/^[A-Z0-9-]+$/', Rule::unique('positions', 'code')->ignore($position?->id)],
             'title' => ['required', 'string', 'max:255'],
+            'seniority_rank' => ['required', 'integer', 'between:1,'.Position::MAX_SENIORITY_RANK],
             'description' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['required', 'boolean'],
         ];

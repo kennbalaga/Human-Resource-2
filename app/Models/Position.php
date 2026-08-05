@@ -12,10 +12,31 @@ class Position extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * The highest rung on the seniority ladder a position may occupy. Mirrors the
+     * Nurse I-V grades hospital rosters are built around.
+     */
+    public const MAX_SENIORITY_RANK = 5;
+
+    /**
+     * Plain-language names for each rung, so the roster screens read the way the
+     * nursing office talks rather than showing a bare number.
+     *
+     * @var array<int, string>
+     */
+    public const SENIORITY_RANK_LABELS = [
+        1 => 'Entry level / staff',
+        2 => 'Experienced staff',
+        3 => 'Senior / charge',
+        4 => 'Supervisor / head',
+        5 => 'Chief / director',
+    ];
+
     protected $fillable = [
         'department_id',
         'code',
         'title',
+        'seniority_rank',
         'description',
         'is_active',
     ];
@@ -24,6 +45,7 @@ class Position extends Model
     {
         return [
             'is_active' => 'boolean',
+            'seniority_rank' => 'integer',
         ];
     }
 

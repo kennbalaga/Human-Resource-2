@@ -50,9 +50,27 @@ class AppServiceProvider extends ServiceProvider
         View::composer('partials.topbar', function ($view): void {
             $user = auth()->user();
 
+            if ($user === null) {
+                $view->with(['notificationItems' => collect(), 'notificationUnreadCount' => 0]);
+
+                return;
+            }
+
+            // The topbar renders on every page, so the unread total rides along as
+            // a subselect instead of costing a second round trip to the database.
+            $items = $user->unreadNotifications()
+                ->select('notifications.*')
+                ->selectSub(
+                    $user->unreadNotifications()->getQuery()->selectRaw('count(*)'),
+                    'unread_total',
+                )
+                ->latest()
+                ->limit(5)
+                ->get();
+
             $view->with([
-                'notificationItems' => $user?->unreadNotifications()->latest()->limit(5)->get() ?? collect(),
-                'notificationUnreadCount' => $user?->unreadNotifications()->count() ?? 0,
+                'notificationItems' => $items,
+                'notificationUnreadCount' => (int) ($items->first()->unread_total ?? 0),
             ]);
         });
     }

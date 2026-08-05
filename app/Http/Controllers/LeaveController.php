@@ -20,6 +20,7 @@ use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -42,7 +43,7 @@ class LeaveController extends Controller
             ->when($filters['status'] ?? null, fn (Builder $builder, $status) => $builder->where('status', $status));
 
         $types = LeaveType::query()->where('is_active', true)->orderBy('name')->get();
-        $balances = $types->map(fn (LeaveType $type) => $service->balanceFor($employee, $type, (int) $filters['year']))->load('leaveType');
+        $balances = $service->balancesFor($employee, $types, (int) $filters['year']);
         $focusDate = ! empty($filters['date']) ? Carbon::parse($filters['date']) : now(config('workforce.timezone'));
         $monthStart = $focusDate->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY);
         $monthEnd = $focusDate->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
@@ -67,13 +68,21 @@ class LeaveController extends Controller
 
         $summaryQuery = clone $query;
 
+        // The three headline figures share one filtered query, so they are
+        // gathered as subselects in a single round trip rather than three.
+        $summaryRow = (array) DB::query()
+            ->selectSub((clone $summaryQuery)->where('status', 'pending')->selectRaw('count(*)'), 'pending')
+            ->selectSub((clone $summaryQuery)->where('status', 'approved')->selectRaw('coalesce(sum(requested_days), 0)'), 'approved_days')
+            ->selectSub((clone $summaryQuery)->whereHas('attachments')->selectRaw('count(*)'), 'attachments')
+            ->first();
+
         return view('leaves.index', [
             'requests' => $query->latest()->paginate(15)->withQueryString(),
             'summary' => [
-                'pending' => (clone $summaryQuery)->where('status', 'pending')->count(),
-                'approved_days' => (float) (clone $summaryQuery)->where('status', 'approved')->sum('requested_days'),
+                'pending' => (int) $summaryRow['pending'],
+                'approved_days' => (float) $summaryRow['approved_days'],
                 'available_days' => $balances->sum->available_days,
-                'attachments' => (clone $summaryQuery)->whereHas('attachments')->count(),
+                'attachments' => (int) $summaryRow['attachments'],
             ],
             'balances' => $balances,
             'employee' => $employee,
@@ -85,7 +94,7 @@ class LeaveController extends Controller
             'filters' => $filters,
             'canManage' => $canManage,
             'canManageLeaveTypes' => $this->canManageLeaveTypes($request),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);
     }
@@ -178,7 +187,7 @@ class LeaveController extends Controller
 
     private function canManage(Request $request): bool
     {
-        return $request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists();
+        return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
     }
 
     private function requireManager(Request $request): void
@@ -188,7 +197,7 @@ class LeaveController extends Controller
 
     private function canManageLeaveTypes(Request $request): bool
     {
-        return $request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists();
+        return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
     }
 
     private function notifyEmployee(

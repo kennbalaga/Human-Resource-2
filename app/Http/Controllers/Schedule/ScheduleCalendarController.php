@@ -120,6 +120,12 @@ class ScheduleCalendarController extends Controller
             : collect();
 
         return view('schedules.index', [
+            // Rank 1 is entry level, so it can never satisfy a "must have a senior
+            // on duty" rule and is left out of the threshold choices.
+            'seniorRankOptions' => collect(Position::SENIORITY_RANK_LABELS)
+                ->filter(fn (string $label, int $rank) => $rank >= 2)
+                ->all(),
+            'defaultSeniorRank' => ScheduleService::DEFAULT_SENIOR_RANK_THRESHOLD,
             'calendarView' => $view,
             'focusDate' => $focusDate,
             'rangeStart' => $rangeStart,
@@ -151,7 +157,7 @@ class ScheduleCalendarController extends Controller
                 'hours' => round($assignments->sum(fn ($assignment) => $assignment->shift->duration_minutes) / 60, 1),
                 'overnight' => $assignments->filter(fn ($assignment) => $assignment->shift->crosses_midnight)->count(),
             ],
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);
     }
@@ -233,9 +239,7 @@ class ScheduleCalendarController extends Controller
 
     private function canManage(Request $request): bool
     {
-        return $request->user()->roles()
-            ->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])
-            ->exists();
+        return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
     }
 
     private function focusDate(?string $date): Carbon

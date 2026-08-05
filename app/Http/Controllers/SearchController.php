@@ -49,7 +49,7 @@ class SearchController extends Controller
             'query' => $query,
             'employees' => $employees,
             'departments' => $departments,
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }
 }

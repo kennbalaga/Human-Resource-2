@@ -43,7 +43,7 @@
         <x-sidebar-link :href="route('schedules.index')" icon="calendar" :active="request()->routeIs('schedules.*')">
             Schedules
         </x-sidebar-link>
-        @if (auth()->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists())
+        @if (auth()->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty())
             <x-sidebar-link :href="route('shifts.index')" icon="repeat" :active="request()->routeIs('shifts.*')">
                 Shift templates
             </x-sidebar-link>
@@ -51,7 +51,7 @@
         <x-sidebar-link :href="route('attendance.index')" icon="clock" :active="request()->routeIs('attendance.index')">
             Attendance
         </x-sidebar-link>
-        @if (auth()->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists())
+        @if (auth()->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty())
             <x-sidebar-link :href="route('attendance.reports.index')" icon="report" :active="request()->routeIs('attendance.reports.*')">
                 Reports
             </x-sidebar-link>
@@ -62,7 +62,7 @@
         <x-sidebar-link :href="route('leaves.index')" icon="leave" :active="request()->routeIs('leaves.*') || request()->routeIs('leave-attachments.*')">
             Leave Management
         </x-sidebar-link>
-        @if (auth()->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])->exists())
+        @if (auth()->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty())
             <x-sidebar-link :href="route('analytics.index')" icon="analytics" :active="request()->routeIs('analytics.*')">
                 Workforce Analytics
             </x-sidebar-link>

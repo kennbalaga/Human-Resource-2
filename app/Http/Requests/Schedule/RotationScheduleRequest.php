@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Schedule;
 
+use App\Models\Position;
 use App\Services\Scheduling\SchedulePeriodService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,9 +33,7 @@ class RotationScheduleRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->roles()
-            ->whereIn('slug', ['system-administrator', 'hr-manager', 'department-head'])
-            ->exists() ?? false;
+        return $this->user()?->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty() ?? false;
     }
 
     public function rules(): array
@@ -56,6 +55,8 @@ class RotationScheduleRequest extends FormRequest
             'night_shift_limit' => ['nullable', 'integer', 'between:0,7'],
             'overtime_allowed' => ['nullable', 'boolean'],
             'minimum_staff_per_shift' => ['nullable', 'integer', 'between:1,100'],
+            'minimum_senior_per_shift' => ['nullable', 'integer', 'between:0,100'],
+            'senior_rank_threshold' => ['nullable', 'integer', 'between:2,'.Position::MAX_SENIORITY_RANK],
             'holiday_dates_csv' => ['nullable', 'string', 'max:500'],
             'holiday_dates' => ['nullable', 'array', 'max:31'],
             'holiday_dates.*' => ['date', 'distinct'],

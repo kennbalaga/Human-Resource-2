@@ -35,7 +35,7 @@ class PositionController extends Controller
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'filters' => $filters,
             'canManage' => $this->canManage($request),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }
 
@@ -77,13 +77,13 @@ class PositionController extends Controller
                 ->where(fn (Builder $query) => $query->where('is_active', true)->when($position, fn (Builder $nested) => $nested->orWhere('id', $position->department_id)))
                 ->orderBy('name')
                 ->get(),
-            'currentRole' => $request->user()->roles()->value('name') ?? 'Employee',
+            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ];
     }
 
     private function canManage(Request $request): bool
     {
-        return $request->user()->roles()->whereIn('slug', ['system-administrator', 'hr-manager'])->exists();
+        return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
     }
 
     private function requireManager(Request $request): void

@@ -251,7 +251,7 @@
 
         <div class="modal fade" id="bulkScheduleModal" tabindex="-1" aria-labelledby="bulkScheduleModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered bulk-schedule-dialog"><div class="modal-content schedule-modal-content">
-                <form method="POST" action="{{ route('schedules.bulk-store') }}" id="bulkScheduleForm" data-preview-url="{{ route('schedules.bulk-preview') }}" data-store-url="{{ route('schedules.bulk-store') }}" @if($aiSchedulingEnabled) data-rotation-preview-url="{{ route('schedules.rotation-preview') }}" data-rotation-store-url="{{ route('schedules.rotation-store') }}" @endif>@csrf
+                <form method="POST" action="{{ route('schedules.roster.publish') }}" id="bulkScheduleForm" data-roster-fill-url="{{ route('schedules.roster.fill') }}" data-roster-evaluate-url="{{ route('schedules.roster.evaluate') }}" data-roster-publish-url="{{ route('schedules.roster.publish') }}" @if($aiSchedulingEnabled) data-roster-suggest-url="{{ route('schedules.roster.suggest') }}" @endif>@csrf
                     <div class="modal-header bulk-schedule-header"><span class="bulk-ai-icon"><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'users'" /></span><div><p class="panel-kicker">{{ $aiSchedulingEnabled ? 'AI Scheduling Assistant' : 'Department scheduling' }}</p><h2 class="modal-title" id="bulkScheduleModalLabel">Generate a bulk schedule</h2><small>Build, validate, approve, and publish one department schedule.</small></div><span class="ai-scheduling-advisory">HR approval required</span><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body bulk-schedule-form">
                         <ol class="bulk-flow-steps" aria-label="Bulk scheduling workflow"><li class="active"><span>1</span><strong>Department & staff</strong></li><li><span>2</span><strong>Period & pattern</strong></li><li><span>3</span><strong>Rules</strong></li><li><span>4</span><strong>{{ $aiSchedulingEnabled ? 'AI validation' : 'System validation' }}</strong></li><li><span>5</span><strong>Approve & publish</strong></li></ol>
@@ -300,17 +300,29 @@
                                 <label><span>Maximum hours / week</span><input type="number" name="max_hours_per_week" value="48" min="1" max="168"></label>
                                 <label><span>Night shift limit / week</span><input type="number" name="night_shift_limit" value="6" min="0" max="7"></label>
                                 <label><span>Minimum staff / shift</span><input type="number" name="minimum_staff_per_shift" value="1" min="1" max="100"></label>
+                                <label><span>Minimum senior / shift</span><input type="number" name="minimum_senior_per_shift" value="1" min="0" max="100"><small>Flags any shift left to entry-level staff alone. Set to 0 to skip the check.</small></label>
+                                <label><span>Counts as senior</span><select name="senior_rank_threshold">@foreach($seniorRankOptions as $rank => $label)<option value="{{ $rank }}" @selected($rank === $defaultSeniorRank)>Rank {{ $rank }}+ — {{ $label }}</option>@endforeach</select></label>
                                 <label class="bulk-rule-holidays"><span>Holiday / closure dates</span><input type="text" name="holiday_dates_csv" placeholder="2026-12-25, 2026-12-30"><small>Comma-separated dates are protected from assignment.</small></label>
                             </div>
                             <label class="bulk-weekend-toggle bulk-overtime-toggle"><input type="checkbox" name="overtime_allowed" value="1"><span><strong>Allow overtime recommendations</strong><small>When off, recommendations exceeding maximum weekly hours are blocked.</small></span></label>
                             <p class="bulk-protected-rules"><x-icon name="shield" /> Approved leave, holidays, existing days off, overlapping shifts, and the configured minimum rest period are always protected.</p>
                         </fieldset>
                         <label class="bulk-schedule-notes"><span>Notes</span><textarea name="notes" rows="2" maxlength="500" placeholder="Optional note for all created assignments"></textarea></label>
-                        <section class="bulk-schedule-review" data-bulk-review aria-live="polite"><x-icon name="shield" /><div><strong>Generate before publishing</strong><span>{{ $aiSchedulingEnabled ? 'The assistant' : 'The system' }} will check leave, double shifts, rest, maximum hours, night limits, and department staffing.</span></div></section>
-                        @if($aiSchedulingEnabled)<section class="rotation-preview" data-rotation-preview hidden aria-live="polite"></section>@endif
-                        <label class="bulk-approval" data-bulk-approval-wrap hidden><input type="checkbox" data-bulk-approval><span><strong>I reviewed and approve this bulk schedule</strong><small>Publishing creates only the valid assignments shown above and notifies affected employees.</small></span></label>
+                        <section class="bulk-schedule-review" data-bulk-review aria-live="polite"><x-icon name="shield" /><div><strong>Build the roster below, then publish</strong><span>Leave, double shifts, rest, maximum hours, night limits, and the unit's coverage standard are checked on every change.</span></div></section>
+                        <section class="roster-board" data-roster-board hidden aria-live="polite">
+                            <header class="roster-board-heading">
+                                <div><strong>Roster — grouped by day and shift</strong><span data-roster-summary>Nobody is rostered yet.</span></div>
+                                <div class="roster-board-actions">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-roster-fill-shift><x-icon name="users" /> Put everyone on the selected shift</button>
+                                    @if($aiSchedulingEnabled)<button type="button" class="btn btn-sm btn-outline-primary" data-roster-fill><x-icon name="ai" /> Let the assistant rotate them</button>@endif
+                                    <button type="button" class="btn btn-sm btn-light" data-roster-clear>Clear</button>
+                                </div>
+                            </header>
+                            <div class="roster-board-days" data-roster-days></div>
+                        </section>
+                                                <label class="bulk-approval" data-bulk-approval-wrap hidden><input type="checkbox" data-bulk-approval><span><strong>I reviewed and approve this bulk schedule</strong><small>Publishing creates only the valid assignments shown above and notifies affected employees.</small></span></label>
                     </div>
-                    <div class="modal-footer"><p class="schedule-save-note"><x-icon name="shield" /> {{ $aiSchedulingEnabled ? 'AI recommendations' : 'Bulk plans' }} never publish automatically.</p><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-outline-primary" data-bulk-review-button><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'shield'" /> {{ $aiSchedulingEnabled ? 'Generate AI recommendation' : 'Validate bulk schedule' }}</button><button type="submit" class="btn btn-primary" data-bulk-save disabled>Approve & publish</button></div>
+                    <div class="modal-footer"><p class="schedule-save-note"><x-icon name="shield" /> {{ $aiSchedulingEnabled ? 'AI recommendations' : 'Bulk plans' }} never publish automatically.</p><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary" data-bulk-save disabled>Approve & publish</button></div>
                 </form>
             </div></div>
         </div>
