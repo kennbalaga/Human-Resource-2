@@ -159,7 +159,7 @@ input {
 .brand-copy small {
     margin-top: 1px;
     overflow: hidden;
-    color: rgba(255, 255, 255, 0.56);
+    color: rgba(255, 255, 255, 0.68);
     font-size: 0.68rem;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -190,7 +190,9 @@ input {
     min-height: 44px;
     padding: 9px 11px;
     border-radius: 10px;
-    color: rgba(255, 255, 255, 0.67);
+    /* Unselected items still need to be scannable, so they sit well above the
+       4.5:1 floor rather than fading into the sidebar gradient. */
+    color: rgba(255, 255, 255, 0.78);
     text-decoration: none;
     align-items: center;
     gap: 11px;
@@ -231,8 +233,8 @@ input {
     padding: 3px 7px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 999px;
-    color: rgba(255, 255, 255, 0.55);
-    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.09);
     font-size: 0.61rem;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -264,7 +266,7 @@ input {
     padding: 0 10px;
     border: 0;
     border-radius: 10px;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.72);
     background: transparent;
     font-size: 0.78rem;
     font-weight: 550;
@@ -352,7 +354,7 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
 
 .sidebar-profile-copy small {
     margin-top: 1px;
-    color: rgba(255, 255, 255, 0.56);
+    color: rgba(255, 255, 255, 0.68);
     font-size: 0.68rem;
 }
 
@@ -360,7 +362,7 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
     width: 16px;
     height: 16px;
     flex: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.72);
     transition: max-width 180ms ease, opacity 150ms ease;
 }
 
