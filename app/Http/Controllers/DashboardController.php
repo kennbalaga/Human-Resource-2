@@ -7,14 +7,21 @@ use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\Position;
 use App\Models\Timesheet;
+use App\Services\AttendanceOverviewService;
+use App\Services\ShiftOverviewService;
+use App\Services\WorkforceAnalyticsPreviewService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): View
-    {
+    public function __invoke(
+        Request $request,
+        AttendanceOverviewService $attendanceOverview,
+        ShiftOverviewService $shiftOverview,
+        WorkforceAnalyticsPreviewService $analyticsPreview,
+    ): View {
         $canManageWorkforce = $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
 
         $counts = $this->summaryCounts();
@@ -79,6 +86,13 @@ class DashboardController extends Controller
             'canManageWorkforce' => $canManageWorkforce,
             'notifications' => $notifications,
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
+            'attendanceOverview' => $attendanceOverview->forRange(
+                (int) $request->integer('attendance_days', AttendanceOverviewService::RANGES[0]),
+            ),
+            'shiftOverview' => $shiftOverview->forToday(),
+            // The analytics module is closed to everyone outside these roles, so the
+            // preview is neither built nor rendered for a viewer who cannot open it.
+            'analyticsPreview' => $canManageWorkforce ? $analyticsPreview->forCurrentMonth() : null,
         ]);
     }
 

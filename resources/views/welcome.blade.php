@@ -61,6 +61,10 @@
         />
     </section>
 
+    <x-shift-overview :overview="$shiftOverview" />
+
+    <x-attendance-overview :overview="$attendanceOverview" :can-manage-workforce="$canManageWorkforce" />
+
     <div class="dashboard-grid">
         <section class="panel panel-wide" id="employee-overview">
             <div class="panel-header">
@@ -194,6 +198,10 @@
             <a href="{{ route('departments.index') }}" class="department-footer-link">{{ $canManageWorkforce ? 'Manage' : 'View' }} departments <x-icon name="chevron-right" /></a>
         </aside>
     </div>
+
+    @if ($analyticsPreview)
+        <x-workforce-analytics-preview :preview="$analyticsPreview" />
+    @endif
 
     <section class="quick-actions" id="position-overview">
         <div class="quick-action-copy">

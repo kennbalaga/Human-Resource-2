@@ -137,5 +137,91 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Attendance overview hover layer. The tooltip only ever enhances: every value
+    // it shows is also in the panel's data table, so nothing is gated behind hover.
+    const attendanceChart = document.querySelector('[data-attendance-chart]');
+
+    if (attendanceChart) {
+        const series = [
+            { key: 'present', fill: 'present', label: 'Present' },
+            { key: 'late', fill: 'late', label: 'Late' },
+            { key: 'onLeave', fill: 'on_leave', label: 'On leave' },
+            { key: 'absent', fill: 'absent', label: 'Absent' },
+        ];
+
+        const tooltip = document.createElement('div');
+        tooltip.className = 'attendance-tooltip';
+        tooltip.setAttribute('aria-hidden', 'true');
+
+        const dayLabel = document.createElement('span');
+        dayLabel.className = 'attendance-tooltip-day';
+        tooltip.append(dayLabel);
+
+        const valueCells = series.map((entry) => {
+            const row = document.createElement('div');
+            row.className = 'attendance-tooltip-row';
+
+            const key = document.createElement('span');
+            key.className = `attendance-tooltip-key attendance-fill-${entry.fill}`;
+
+            const label = document.createElement('span');
+            label.textContent = entry.label;
+
+            const value = document.createElement('b');
+
+            row.append(key, label, value);
+            tooltip.append(row);
+
+            return value;
+        });
+
+        attendanceChart.append(tooltip);
+
+        const clearActive = () => attendanceChart
+            .querySelectorAll('.attendance-column.is-active')
+            .forEach((column) => column.classList.remove('is-active'));
+
+        const hideTooltip = () => {
+            tooltip.dataset.visible = 'false';
+            clearActive();
+        };
+
+        const showTooltip = (column) => {
+            clearActive();
+
+            // Every label here is server data, so it goes in as text, never markup.
+            dayLabel.textContent = column.dataset.day ?? '';
+            series.forEach((entry, index) => {
+                valueCells[index].textContent = column.dataset[entry.key] ?? '0';
+            });
+
+            const host = attendanceChart.getBoundingClientRect();
+            const anchor = (column.querySelector('.attendance-stack') ?? column).getBoundingClientRect();
+            const halfWidth = tooltip.offsetWidth / 2;
+            const centre = anchor.left - host.left + anchor.width / 2;
+
+            // The readout sits beside its column, level with the bar tip, so it never
+            // covers the bar it is describing however tall that bar happens to be.
+            const offset = anchor.width / 2 + halfWidth + 12;
+            const fitsRight = centre + offset + halfWidth <= host.width;
+            const left = centre + (fitsRight ? offset : -offset);
+            const top = anchor.top - host.top;
+
+            tooltip.style.left = `${Math.min(Math.max(left, halfWidth + 4), Math.max(host.width - halfWidth - 4, halfWidth + 4))}px`;
+            tooltip.style.top = `${Math.min(Math.max(top, 4), Math.max(host.height - tooltip.offsetHeight - 4, 4))}px`;
+            tooltip.dataset.visible = 'true';
+            column.classList.add('is-active');
+        };
+
+        attendanceChart.querySelectorAll('[data-attendance-column]').forEach((column) => {
+            column.addEventListener('pointerenter', () => showTooltip(column));
+            column.addEventListener('focus', () => showTooltip(column));
+            column.addEventListener('pointerleave', hideTooltip);
+            column.addEventListener('blur', hideTooltip);
+        });
+
+        attendanceChart.querySelector('.attendance-plot-scroll')?.addEventListener('scroll', hideTooltip);
+    }
+
     syncCollapseButton();
 });
