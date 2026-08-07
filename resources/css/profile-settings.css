@@ -41,7 +41,12 @@
 .settings-section-nav span { display:grid; }
 .settings-section-nav strong { font-size:.74rem; }
 .settings-section-nav small { color:#829088; font-size:.62rem; }
+.settings-nav-group { grid-column:1/-1; margin:.7rem .75rem .2rem; color:#7c8a82; font-size:.58rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.settings-nav-group:first-child { margin-top:.2rem; }
 .settings-panels { display:grid; gap:1.25rem; }
+/* The topbar is fixed, so an anchor jump would otherwise park the panel header
+   underneath it. Stop the scroll a topbar-and-a-bit short of the target. */
+.settings-panel { scroll-margin-top:calc(var(--topbar-height) + 1rem); }
 .settings-account-id { padding:.3rem .55rem; border-radius:99px; color:#4d6558; background:#edf5f1; font-size:.65rem; font-weight:800; }
 .settings-resource-links { display:grid; padding:0 1.25rem 1.25rem; gap:.6rem; }
 .settings-resource-links a { display:grid; grid-template-columns:2.35rem minmax(0,1fr) auto; align-items:center; gap:.7rem; padding:.85rem; border:1px solid #e1e9e4; border-radius:.75rem; color:inherit; background:#fbfcfb; text-decoration:none; transition:border-color .16s ease,background-color .16s ease,transform .16s ease; }

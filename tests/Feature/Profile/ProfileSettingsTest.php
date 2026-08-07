@@ -160,6 +160,52 @@ class ProfileSettingsTest extends TestCase
         $this->assertTrue(Hash::check('ChangeMe123!', $user->fresh()->password));
     }
 
+    /**
+     * The side nav is the only way to reach a panel further down the page, so
+     * every rendered panel must have a link pointing at it.
+     */
+    public function test_every_settings_panel_is_reachable_from_the_section_nav(): void
+    {
+        foreach (['admin@hrms.local', 'hr.manager@hrms.local', 'employee@hrms.local'] as $email) {
+            $this->flushSession();
+            $user = User::query()->where('email', $email)->firstOrFail();
+            $html = $this->actingAs($user)->get('/settings')->assertOk()->getContent();
+
+            // The attendance panel spreads its attributes over several lines, so
+            // the tag is matched loosely rather than as one flat string.
+            preg_match_all('/<article[^>]*class="panel settings-panel"[^>]*id="([a-z-]+)"/', $html, $panels);
+            preg_match_all('/<a href="#([a-z-]+)"/', $html, $links);
+
+            $this->assertNotEmpty($panels[1], "No settings panels rendered for {$email}.");
+            $this->assertEmpty(
+                array_diff($panels[1], $links[1]),
+                "Settings panels without a nav link for {$email}: ".implode(', ', array_diff($panels[1], $links[1])),
+            );
+            $this->assertEmpty(
+                array_diff($links[1], $panels[1]),
+                "Settings nav links pointing nowhere for {$email}: ".implode(', ', array_diff($links[1], $panels[1])),
+            );
+        }
+    }
+
+    public function test_settings_separates_personal_from_system_administration(): void
+    {
+        $admin = User::query()->where('email', 'admin@hrms.local')->firstOrFail();
+        $response = $this->actingAs($admin)->get('/settings')->assertOk();
+
+        // Both nav groups are present, and the panels themselves run personal
+        // first, then system administration.
+        $response->assertSee('Your account')->assertSee('System administration');
+        $response->assertSeeInOrder([
+            'Email address', 'Color theme', 'Change password',
+            'Employee ID generation', 'Two-factor enforcement', 'Attendance capture mode',
+        ], false);
+
+        // A plain employee has no system panels, so that heading must not appear.
+        $this->flushSession();
+        $this->actingAs($this->employeeUser())->get('/settings')->assertOk()->assertDontSee('System administration');
+    }
+
     private function employeeUser(): User
     {
         return User::query()->with('employee')->where('email', 'employee@hrms.local')->firstOrFail();
