@@ -94,7 +94,14 @@ html[data-theme-resolved='dark'] .btn-light { color:var(--hr-text); border-color
 html[data-theme-resolved='dark'] .global-search:focus-within,
 html[data-theme-resolved='dark'] .icon-button:hover,
 html[data-theme-resolved='dark'] .mobile-menu-button:hover { color:var(--hr-primary); border-color:#42594d; background:#232e28; }
-html[data-theme-resolved='dark'] .global-search input { color:var(--hr-text); }
+/*
+ * The blanket `html[dark] input { background; border }` rule below outranks
+ * `.global-search input`'s own transparent reset (two element selectors beat
+ * one class + one element), which was painting a boxed field inside the pill.
+ * These overrides need the matching html[dark]+class specificity to win it back.
+ */
+html[data-theme-resolved='dark'] .global-search input { color:var(--hr-text); background:transparent; border:0; }
+html[data-theme-resolved='dark'] .global-search input:focus { background:transparent; border-color:transparent; box-shadow:none; }
 html[data-theme-resolved='dark'] .global-search input::placeholder { color:#b3c2b9; }
 html[data-theme-resolved='dark'] .global-search-dropdown { border-color:var(--hr-border); background:var(--hr-surface); box-shadow:var(--hr-shadow); }
 html[data-theme-resolved='dark'] .global-search-dropdown-section + .global-search-dropdown-section { border-color:var(--hr-border); }

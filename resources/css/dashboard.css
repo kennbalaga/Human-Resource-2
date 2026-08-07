@@ -582,9 +582,10 @@ input {
 }
 
 /*
- * The pill draws the field, so the input has to stop being a native search box --
- * without this reset the UA paints its own fill, which `color-scheme: dark` turns
- * into a grey slab sitting inside the pill.
+ * The pill draws the field, so this reset (plus using type="text" in the markup
+ * instead of type="search") stops the input from being a native search box --
+ * Chromium paints that widget with its own fill even under appearance:none, and
+ * `color-scheme: dark` turned it into a grey slab sitting inside the pill.
  */
 .global-search input {
     min-width: 0;

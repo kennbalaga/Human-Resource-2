@@ -33,7 +33,7 @@
                 <label class="visually-hidden" for="globalSearchInput">Search employees and departments</label>
                 <input
                     id="globalSearchInput"
-                    type="search"
+                    type="text"
                     name="q"
                     value="{{ request('q') }}"
                     placeholder="Search ..."
