@@ -213,6 +213,75 @@
         </section>
     @endif
 
+    @if ($canLockSchedule)
+        @php
+            $latestReviewByDepartment = $recentComplianceReviews->unique('department_id')->keyBy('department_id');
+        @endphp
+        <section class="panel compliance-lock-panel">
+            <div class="panel-header"><div><p class="panel-kicker">HR final validation</p><h2>Compliance & schedule lock</h2></div></div>
+            <p class="history-caption">Run a compliance check before locking a period, so a rest, hours, or staffing violation is caught before the schedule is frozen.</p>
+
+            <form method="POST" action="{{ route('schedule-compliance-reviews.store') }}" class="workforce-filters">
+                @csrf
+                <label><span>Department</span><select name="department_id" required><option value="">Select department</option>@foreach($departments as $department)<option value="{{ $department->id }}">{{ $department->name }}</option>@endforeach</select></label>
+                <label><span>From</span><input type="date" name="start_date" required></label>
+                <label><span>To</span><input type="date" name="end_date" required></label>
+                <button class="btn btn-outline-primary" type="submit"><x-icon name="shield" /> Run compliance check</button>
+            </form>
+
+            <div class="table-responsive"><table class="dashboard-table workforce-table"><thead><tr><th>Department</th><th>Range</th><th>Status</th><th>Findings</th><th>Checked</th></tr></thead><tbody>
+                @forelse($recentComplianceReviews as $review)
+                    <tr>
+                        <td><strong>{{ $review->department->name }}</strong></td>
+                        <td>{{ $review->start_date->format('M j, Y') }} – {{ $review->end_date->format('M j, Y') }}</td>
+                        <td><x-status-badge :status="$review->status" /></td>
+                        <td>@if(count($review->findings))<span class="truncate-reason" title="{{ collect($review->findings)->pluck('message')->implode(' ') }}">{{ count($review->findings) }} finding(s): {{ collect($review->findings)->first()['message'] }}</span>@else<span>None</span>@endif</td>
+                        <td>{{ $review->created_at->format('M j, Y g:i A') }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5" class="empty-table-cell"><x-icon name="shield" /><strong>No compliance checks yet</strong><span>Run one before locking a period.</span></td></tr>
+                @endforelse
+            </tbody></table></div>
+
+            <p class="history-caption">Lock a department's schedule for a date range once it is finalized, so nobody can change it without deliberately unlocking it first.</p>
+            <form method="POST" action="{{ route('schedule-locks.store') }}" class="workforce-filters" data-lock-form>
+                @csrf
+                <label><span>Department</span><select name="department_id" required data-lock-department>
+                    <option value="">Select department</option>
+                    @foreach($departments as $department)
+                        <option value="{{ $department->id }}" data-latest-review-status="{{ $latestReviewByDepartment->get($department->id)?->status }}">{{ $department->name }}</option>
+                    @endforeach
+                </select></label>
+                <label><span>From</span><input type="date" name="start_date" required></label>
+                <label><span>To</span><input type="date" name="end_date" required></label>
+                <label class="full-width"><span>Notes (optional)</span><input type="text" name="notes" maxlength="500"></label>
+                <p class="history-caption full-width" data-lock-warning hidden><x-icon name="close" /> The latest compliance check for this department failed. Locking is still allowed, but review the findings above first.</p>
+                <button class="btn btn-primary" type="submit" data-lock-submit>Lock period</button>
+            </form>
+            <script>
+                document.querySelector('[data-lock-department]')?.addEventListener('change', (event) => {
+                    const status = event.target.selectedOptions[0]?.dataset.latestReviewStatus;
+                    const warning = document.querySelector('[data-lock-warning]');
+                    if (warning) warning.hidden = status !== 'failed';
+                });
+            </script>
+
+            <div class="table-responsive"><table class="dashboard-table workforce-table"><thead><tr><th>Department</th><th>Locked range</th><th>Locked by</th><th>Locked at</th><th>Actions</th></tr></thead><tbody>
+                @forelse($activeLocks as $lock)
+                    <tr>
+                        <td><strong>{{ $lock->department->name }}</strong></td>
+                        <td>{{ $lock->start_date->format('M j, Y') }} – {{ $lock->end_date->format('M j, Y') }}</td>
+                        <td>{{ $lock->lockedBy?->name ?? '—' }}</td>
+                        <td>{{ $lock->locked_at->format('M j, Y g:i A') }}</td>
+                        <td><form method="POST" action="{{ route('schedule-locks.destroy', $lock) }}" onsubmit="return confirm('Unlock this period?')">@csrf @method('DELETE')<button class="btn btn-sm btn-light" type="submit">Unlock</button></form></td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5" class="empty-table-cell"><x-icon name="shield" /><strong>No locked periods</strong><span>Locked schedules will appear here.</span></td></tr>
+                @endforelse
+            </tbody></table></div>
+        </section>
+    @endif
+
     @if ($canManageData)
         <div class="modal fade" id="scheduleAssignmentModal" tabindex="-1" aria-labelledby="scheduleAssignmentModalLabel" aria-hidden="true">
             <div @class(['modal-dialog modal-dialog-centered', 'schedule-assignment-dialog' => $aiSchedulingEnabled])><div class="modal-content schedule-modal-content">
@@ -251,7 +320,7 @@
 
         <div class="modal fade" id="bulkScheduleModal" tabindex="-1" aria-labelledby="bulkScheduleModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered bulk-schedule-dialog"><div class="modal-content schedule-modal-content">
-                <form method="POST" action="{{ route('schedules.roster.publish') }}" id="bulkScheduleForm" data-roster-fill-url="{{ route('schedules.roster.fill') }}" data-roster-evaluate-url="{{ route('schedules.roster.evaluate') }}" data-roster-publish-url="{{ route('schedules.roster.publish') }}" @if($aiSchedulingEnabled) data-roster-suggest-url="{{ route('schedules.roster.suggest') }}" @endif>@csrf
+                <form method="POST" action="{{ route('schedules.roster.publish') }}" id="bulkScheduleForm" data-roster-fill-url="{{ route('schedules.roster.fill') }}" data-roster-evaluate-url="{{ route('schedules.roster.evaluate') }}" data-roster-publish-url="{{ route('schedules.roster.publish') }}" data-roster-draft-save-url="{{ route('schedules.roster.drafts.save') }}" data-roster-drafts-url="{{ route('schedules.roster.drafts') }}" data-roster-draft-discard-url-template="{{ route('schedules.roster.drafts.discard', ['rosterDraft' => '__ID__']) }}" @if($aiSchedulingEnabled) data-roster-suggest-url="{{ route('schedules.roster.suggest') }}" @endif>@csrf
                     <div class="modal-header bulk-schedule-header"><span class="bulk-ai-icon"><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'users'" /></span><div><p class="panel-kicker">{{ $aiSchedulingEnabled ? 'AI Scheduling Assistant' : 'Department scheduling' }}</p><h2 class="modal-title" id="bulkScheduleModalLabel">Generate a bulk schedule</h2><small>Build, validate, approve, and publish one department schedule.</small></div><span class="ai-scheduling-advisory">HR approval required</span><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body bulk-schedule-form">
                         <ol class="bulk-flow-steps" aria-label="Bulk scheduling workflow"><li class="active"><span>1</span><strong>Department & staff</strong></li><li><span>2</span><strong>Period & pattern</strong></li><li><span>3</span><strong>Rules</strong></li><li><span>4</span><strong>{{ $aiSchedulingEnabled ? 'AI validation' : 'System validation' }}</strong></li><li><span>5</span><strong>Approve & publish</strong></li></ol>
@@ -315,9 +384,11 @@
                                 <div class="roster-board-actions">
                                     <button type="button" class="btn btn-sm btn-outline-primary" data-roster-fill-shift><x-icon name="users" /> Put everyone on the selected shift</button>
                                     @if($aiSchedulingEnabled)<button type="button" class="btn btn-sm btn-outline-primary" data-roster-fill><x-icon name="ai" /> Let the assistant rotate them</button>@endif
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-roster-save-draft>Save draft</button>
                                     <button type="button" class="btn btn-sm btn-light" data-roster-clear>Clear</button>
                                 </div>
                             </header>
+                            <div class="roster-draft-status" data-roster-draft-status hidden></div>
                             <div class="roster-board-days" data-roster-days></div>
                         </section>
                                                 <label class="bulk-approval" data-bulk-approval-wrap hidden><input type="checkbox" data-bulk-approval><span><strong>I reviewed and approve this bulk schedule</strong><small>Publishing creates only the valid assignments shown above and notifies affected employees.</small></span></label>

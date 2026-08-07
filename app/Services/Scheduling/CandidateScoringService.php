@@ -50,6 +50,12 @@ class CandidateScoringService
                     'recent_assignments' => $this->lowerIsBetterBreakdown('Recent assignments', 'assignments', $candidateMetrics['recent_assignments'], $metrics->pluck('recent_assignments'), $weights['recent_assignments']),
                     'overnight_assignments' => $this->lowerIsBetterBreakdown('Recent overnight assignments', 'assignments', $candidateMetrics['overnight_assignments'], $metrics->pluck('overnight_assignments'), $weights['overnight_assignments']),
                     'consecutive_duties' => $this->lowerIsBetterBreakdown('Consecutive scheduled duties', 'days', $candidateMetrics['consecutive_duties'], $metrics->pluck('consecutive_duties'), $weights['consecutive_duties']),
+                    'shift_preference' => [
+                        'label' => 'Matches declared shift preference',
+                        'value' => $candidateMetrics['shift_preference_match'],
+                        'points' => $candidateMetrics['shift_preference_match'] ? (float) $weights['shift_preference'] : 0.0,
+                        'maximum' => (float) $weights['shift_preference'],
+                    ],
                     'rest_time' => $this->higherIsBetterBreakdown('Nearest rest interval', 'hours', $candidateMetrics['rest_hours'], $metrics->pluck('rest_hours'), $weights['rest_time']),
                 ];
                 $score = round((float) collect($breakdown)->sum('points'), 2);
@@ -105,6 +111,7 @@ class CandidateScoringService
             'recent_assignments' => $recentAssignments->count(),
             'overnight_assignments' => $recentAssignments->filter(fn (ScheduleAssignment $assignment) => $assignment->shift->crosses_midnight)->count(),
             'consecutive_duties' => $this->consecutiveDuties($employee, $targetDate),
+            'shift_preference_match' => $employee->preferred_shift_id !== null && $employee->preferred_shift_id === $candidateShift->id,
             'rest_hours' => $this->nearestRestHours($employee, $candidateShift, $workDate),
         ];
     }

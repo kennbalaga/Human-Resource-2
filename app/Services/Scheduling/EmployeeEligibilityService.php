@@ -36,7 +36,7 @@ class EmployeeEligibilityService
             'eligible' => $evaluations->where('eligible', true)->values()->all(),
             'ineligible' => $evaluations->where('eligible', false)->values()->all(),
             'warnings' => [
-                'Skills, certifications, declared availability, official rest days, shift preferences, and holidays are not yet available and were not evaluated.',
+                'Skills, certifications, and declared availability are not yet available and were not evaluated. Declared shift preference is used as a soft ranking signal below, not a hard eligibility filter.',
                 'HR review is required before using any result in the manual scheduling form.',
             ],
         ];

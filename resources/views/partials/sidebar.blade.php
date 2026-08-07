@@ -59,6 +59,12 @@
             <x-sidebar-link :href="route('schedules.index')" icon="calendar" :active="request()->routeIs('schedules.*')">
                 Schedules
             </x-sidebar-link>
+            <x-sidebar-link :href="route('shift-swaps.index')" icon="repeat" :active="request()->routeIs('shift-swaps.*')">
+                Shift Swaps
+            </x-sidebar-link>
+            <x-sidebar-link :href="route('schedule-preferences.index')" icon="clock" :active="request()->routeIs('schedule-preferences.*')">
+                Preferences
+            </x-sidebar-link>
             @if ($sidebarCanManageShifts)
                 <x-sidebar-link :href="route('shifts.index')" icon="repeat" :active="request()->routeIs('shifts.*')">
                     Shift templates

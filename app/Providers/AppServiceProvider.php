@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Services\Security\AttachmentMalwareScanner;
 use App\Services\Security\ClamAvAttachmentScanner;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -31,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->registerAuthorizationGates();
+
         Password::defaults(fn () => Password::min(12)->mixedCase()->numbers()->symbols());
 
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
@@ -73,5 +77,31 @@ class AppServiceProvider extends ServiceProvider
                 'notificationUnreadCount' => (int) ($items->first()->unread_total ?? 0),
             ]);
         });
+    }
+
+    /**
+     * The three role bundles repeated across the workforce/leave/schedule
+     * surfaces, centralized here instead of duplicating
+     * roles->pluck('slug')->intersect([...]) in every controller/request.
+     */
+    private function registerAuthorizationGates(): void
+    {
+        Gate::define('workforce.view', fn (User $user) => $user->hasAnyRole([
+            'system-administrator', 'hr-manager', 'department-head',
+        ]));
+
+        Gate::define('workforce.manage', fn (User $user) => $user->hasAnyRole([
+            'system-administrator', 'hr-manager', 'department-head',
+        ]) && $user->canManageData());
+
+        Gate::define('hr.view', fn (User $user) => $user->hasAnyRole([
+            'system-administrator', 'hr-manager',
+        ]));
+
+        Gate::define('hr.manage', fn (User $user) => $user->hasAnyRole([
+            'system-administrator', 'hr-manager',
+        ]) && $user->canManageData());
+
+        Gate::define('system.manage', fn (User $user) => $user->hasRole('system-administrator'));
     }
 }

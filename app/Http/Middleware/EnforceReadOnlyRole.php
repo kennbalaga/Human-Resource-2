@@ -50,6 +50,12 @@ class EnforceReadOnlyRole
         'notifications.*',
         'leaves.store',
         'leaves.cancel',
+        'shift-swaps.store',
+        'shift-swaps.respond',
+        'shift-swaps.cancel',
+        'schedule-preferences.update-standing',
+        'schedule-preferences.store-day-off',
+        'schedule-preferences.cancel-day-off',
 
         // Read-only endpoints that answer with POST because they take a body.
         'schedules.conflicts',

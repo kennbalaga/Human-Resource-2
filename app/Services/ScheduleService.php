@@ -10,6 +10,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Scheduling\ScheduleLockService;
 use App\Services\Scheduling\StaffingRequirementService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -32,10 +33,11 @@ class ScheduleService
     public function createAssignment(array $data, User $creator): ScheduleAssignment
     {
         return DB::transaction(function () use ($data, $creator) {
-            $employee = Employee::query()->findOrFail($data['employee_id']);
+            $employee = Employee::query()->with('department')->findOrFail($data['employee_id']);
             $shift = Shift::query()->findOrFail($data['shift_id']);
             $this->ensureSchedulable($employee, $shift);
             $this->ensureNoConflicts($employee, $shift, $data['work_date']);
+            $this->ensureUnlocked($employee, $data['work_date']);
 
             return ScheduleAssignment::query()->create([
                 'employee_id' => $employee->id,
@@ -98,13 +100,18 @@ class ScheduleService
             ]);
         }
         $employeeIds = $employees->keys()->all();
+        // The week-based margin keeps the existing hours/night-shift/days-off
+        // checks correct for dates near the range's edges; the extra streak
+        // margin is so the new consecutive-workday check can see a run that
+        // started before this range, not just the current week.
+        $streakMargin = max(1, (int) config('schedule.max_consecutive_workdays'));
         $assignmentsByEmployee = ScheduleAssignment::query()
             ->with('shift')
             ->whereIn('employee_id', $employeeIds)
             ->where('status', 'scheduled')
             ->whereBetween('work_date', [
-                $start->copy()->startOfWeek()->subDay()->toDateString(),
-                $end->copy()->endOfWeek()->addDay()->toDateString(),
+                $start->copy()->startOfWeek()->subDay()->subDays($streakMargin)->toDateString(),
+                $end->copy()->endOfWeek()->addDay()->addDays($streakMargin)->toDateString(),
             ])
             ->get()
             ->groupBy('employee_id');
@@ -215,10 +222,17 @@ class ScheduleService
     public function updateAssignment(ScheduleAssignment $assignment, array $data): ScheduleAssignment
     {
         return DB::transaction(function () use ($assignment, $data) {
-            $employee = Employee::query()->findOrFail($data['employee_id']);
+            // The assignment is leaving its current slot as well as landing in a
+            // new one, so both ends of the move must be open.
+            $originalEmployee = $assignment->employee()->with('department')->first();
+            $employee = Employee::query()->with('department')->findOrFail($data['employee_id']);
             $shift = Shift::query()->findOrFail($data['shift_id']);
             $this->ensureSchedulable($employee, $shift);
             $this->ensureNoConflicts($employee, $shift, $data['work_date'], $assignment->id);
+            $this->ensureUnlocked($employee, $data['work_date']);
+            if ($originalEmployee !== null) {
+                $this->ensureUnlocked($originalEmployee, $assignment->work_date->toDateString());
+            }
 
             $assignment->update([
                 'employee_id' => $employee->id,
@@ -237,7 +251,7 @@ class ScheduleService
     public function createRecurringSchedule(array $data, User $creator): RecurringSchedule
     {
         return DB::transaction(function () use ($data, $creator) {
-            $employee = Employee::query()->findOrFail($data['employee_id']);
+            $employee = Employee::query()->with('department')->findOrFail($data['employee_id']);
             $shift = Shift::query()->findOrFail($data['shift_id']);
             $this->ensureSchedulable($employee, $shift);
 
@@ -256,6 +270,7 @@ class ScheduleService
             }
 
             foreach ($dates as $date) {
+                $this->ensureUnlocked($employee, $date->toDateString());
                 $this->ensureNoDayOff($employee, $date->toDateString());
                 $conflicts = $this->conflictsFor($employee, $shift, $date->toDateString());
                 if ($conflicts->isNotEmpty()) {
@@ -524,6 +539,10 @@ class ScheduleService
             return 'Days-off rule would be exceeded';
         }
 
+        if ($this->consecutiveWorkdaysExceeded($date, $assignments)) {
+            return 'Maximum consecutive workdays exceeded';
+        }
+
         $overtimeAllowed = (bool) ($rules['overtime_allowed'] ?? false);
         $maximumHours = (int) ($rules['max_hours_per_week'] ?? 168);
         $scheduledMinutes = $weeklyAssignments->sum(fn (ScheduleAssignment $assignment) => $assignment->shift->duration_minutes);
@@ -547,6 +566,38 @@ class ScheduleService
         return $shift->crosses_midnight || $hour >= 18 || $hour < 6;
     }
 
+    /**
+     * Unlike the days-off-per-week rule above (which only counts distinct
+     * dates inside one ISO week and misses a run that crosses a week
+     * boundary), this walks the actual streak of consecutive scheduled dates
+     * around the candidate date, in either direction.
+     *
+     * @param  Collection<int, ScheduleAssignment>  $assignments
+     */
+    private function consecutiveWorkdaysExceeded(Carbon $date, Collection $assignments): bool
+    {
+        $maxConsecutive = (int) config('schedule.max_consecutive_workdays');
+        if ($maxConsecutive <= 0) {
+            return false;
+        }
+
+        $scheduledDates = $assignments->pluck('work_date')->map(fn ($workDate) => Carbon::parse($workDate)->toDateString())->unique()->flip();
+
+        $streak = 1;
+        $cursor = $date->copy()->subDay();
+        while ($scheduledDates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor->subDay();
+        }
+        $cursor = $date->copy()->addDay();
+        while ($scheduledDates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor->addDay();
+        }
+
+        return $streak > $maxConsecutive;
+    }
+
     private function ensureNoDayOff(Employee $employee, string $workDate): void
     {
         if ($this->dayOffFor($employee, $workDate)) {
@@ -565,5 +616,17 @@ class ScheduleService
         if (! $shift->is_active) {
             throw ValidationException::withMessages(['shift_id' => 'The selected shift is inactive.']);
         }
+    }
+
+    private function ensureUnlocked(Employee $employee, string $workDate): void
+    {
+        if ($employee->department === null) {
+            return;
+        }
+
+        app(ScheduleLockService::class)->assertUnlocked(
+            $employee->department,
+            Carbon::parse($workDate, config('schedule.timezone')),
+        );
     }
 }

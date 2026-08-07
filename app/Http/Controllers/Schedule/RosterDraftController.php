@@ -7,6 +7,7 @@ use App\Http\Requests\Schedule\BulkScheduleAssignmentRequest;
 use App\Http\Requests\Schedule\RosterDraftRequest;
 use App\Http\Requests\Schedule\RotationScheduleRequest;
 use App\Models\Department;
+use App\Models\RosterDraft;
 use App\Models\ScheduleAssignment;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\PreferenceNotificationService;
@@ -16,6 +17,8 @@ use App\Services\Scheduling\RosterDraftService;
 use App\Services\Scheduling\RotationScheduleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * The reviewed roster: checked while it is being edited, and published as it
@@ -122,6 +125,49 @@ class RosterDraftController extends Controller
         ]);
     }
 
+    /**
+     * Persist the roster board exactly as it stands, so a second reviewer can
+     * resume it later instead of the draft only living in one browser tab.
+     */
+    public function saveDraft(RosterDraftRequest $request, RosterDraftService $drafts): JsonResponse
+    {
+        $data = $request->validated();
+        $department = Department::query()->findOrFail($data['department_id']);
+
+        $draft = $drafts->saveDraft(
+            $department,
+            collect($data['entries']),
+            $data['start_date'],
+            $data['end_date'],
+            $request->user(),
+            $data['notes'] ?? null,
+            $data['draft_uuid'] ?? null,
+        );
+
+        return response()->json(['data' => $draft]);
+    }
+
+    /**
+     * Open drafts for a department, offered as a "resume where you left off"
+     * option when the bulk-schedule modal is reopened.
+     */
+    public function drafts(Request $request, RosterDraftService $drafts): JsonResponse
+    {
+        abort_unless(Gate::forUser($request->user())->allows('workforce.view'), 403);
+        $validated = $request->validate(['department_id' => ['required', 'integer', 'exists:departments,id']]);
+        $department = Department::query()->findOrFail($validated['department_id']);
+
+        return response()->json(['data' => $drafts->openDraftsFor($department)]);
+    }
+
+    public function discardDraft(Request $request, RosterDraft $rosterDraft, RosterDraftService $drafts): JsonResponse
+    {
+        abort_unless(Gate::forUser($request->user())->allows('workforce.view'), 403);
+        $drafts->discardDraft($rosterDraft);
+
+        return response()->json(['data' => ['status' => 'discarded']]);
+    }
+
     public function publish(
         RosterDraftRequest $request,
         RosterDraftService $drafts,
@@ -129,12 +175,14 @@ class RosterDraftController extends Controller
     ): RedirectResponse {
         $data = $request->validated();
         $department = Department::query()->with('shiftRequirements')->findOrFail($data['department_id']);
+        $draft = isset($data['draft_uuid']) ? RosterDraft::query()->where('uuid', $data['draft_uuid'])->first() : null;
 
         $result = $drafts->publish(
             $department,
             collect($data['entries']),
             $request->user(),
             $data['notes'] ?? null,
+            $draft,
         );
 
         foreach ($result['assignments'] as $assignment) {

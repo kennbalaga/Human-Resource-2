@@ -5,8 +5,10 @@ namespace App\Services\Scheduling;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Models\RosterDraft;
 use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
+use App\Models\ScheduleLock;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\ScheduleService;
@@ -14,6 +16,7 @@ use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Works with a roster exactly as it stands on screen.
@@ -185,11 +188,11 @@ class RosterDraftService
      * @param  Collection<int, array{employee_id: int, shift_id: int|null, work_date: string}>  $entries
      * @return array<string, mixed>
      */
-    public function publish(Department $department, Collection $entries, User $creator, ?string $notes = null): array
+    public function publish(Department $department, Collection $entries, User $creator, ?string $notes = null, ?RosterDraft $draft = null): array
     {
-        return DB::transaction(function () use ($department, $entries, $creator, $notes) {
+        return DB::transaction(function () use ($department, $entries, $creator, $notes, $draft) {
             $employeeIds = $entries->pluck('employee_id')->unique()->all();
-            Employee::query()->whereKey($employeeIds)->lockForUpdate()->get();
+            $employees = Employee::query()->whereKey($employeeIds)->lockForUpdate()->get()->keyBy('id');
 
             $dates = $entries->pluck('work_date');
             $evaluation = $this->evaluate($department, $entries, $dates->min(), $dates->max());
@@ -197,11 +200,29 @@ class RosterDraftService
                 ->map(fn (array $issue) => $issue['employee_id'].'|'.$issue['work_date'])
                 ->flip();
 
+            $locks = $this->lockedRangesFor(
+                $department,
+                Carbon::parse($dates->min(), config('schedule.timezone')),
+                Carbon::parse($dates->max(), config('schedule.timezone')),
+            );
+
             $created = collect();
             $dayOffs = collect();
+            $lockSkipped = collect();
 
             foreach ($entries as $entry) {
                 if ($blocked->has($entry['employee_id'].'|'.$entry['work_date'])) {
+                    continue;
+                }
+
+                if ($this->isLocked($locks, $entry['work_date'])) {
+                    $lockSkipped->push($this->issue(
+                        $entry,
+                        $employees->get($entry['employee_id'])?->full_name ?? 'Unknown employee',
+                        $entry['shift_id'] !== null ? Shift::find($entry['shift_id'])?->name : null,
+                        'Schedule locked for this period',
+                    ));
+
                     continue;
                 }
 
@@ -227,12 +248,97 @@ class RosterDraftService
                 ]));
             }
 
+            $draft?->update(['status' => 'published', 'published_at' => now()]);
+
             return [
                 'assignments' => $created,
                 'day_offs' => $dayOffs,
-                'skipped' => collect($evaluation['issues']),
+                'skipped' => collect($evaluation['issues'])
+                    ->merge($lockSkipped->map(fn (array $issue) => collect($issue)->except('key')->all())),
             ];
         });
+    }
+
+    /**
+     * Save the roster board exactly as it stands so a second reviewer can pick
+     * up where the first left off, instead of the draft only living in one
+     * browser tab's in-memory array until the modal is closed.
+     *
+     * @param  Collection<int, array{employee_id: int, shift_id: int|null, work_date: string}>  $entries
+     */
+    public function saveDraft(
+        Department $department,
+        Collection $entries,
+        string $startDate,
+        string $endDate,
+        User $user,
+        ?string $notes,
+        ?string $uuid = null,
+    ): RosterDraft {
+        $draft = $uuid !== null
+            ? RosterDraft::query()->where('uuid', $uuid)->where('status', 'open')->first()
+            : null;
+
+        if ($draft !== null) {
+            $draft->update([
+                'department_id' => $department->id,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'entries' => $entries->values()->all(),
+                'notes' => $notes,
+                'updated_by' => $user->id,
+            ]);
+
+            return $draft->refresh();
+        }
+
+        return RosterDraft::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'department_id' => $department->id,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'entries' => $entries->values()->all(),
+            'status' => 'open',
+            'notes' => $notes,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+    }
+
+    public function discardDraft(RosterDraft $draft): RosterDraft
+    {
+        $draft->update(['status' => 'discarded', 'discarded_at' => now()]);
+
+        return $draft->refresh();
+    }
+
+    /** @return Collection<int, RosterDraft> */
+    public function openDraftsFor(Department $department): Collection
+    {
+        return RosterDraft::query()
+            ->where('department_id', $department->id)
+            ->where('status', 'open')
+            ->latest('updated_at')
+            ->limit(10)
+            ->get();
+    }
+
+    /** @return Collection<int, ScheduleLock> */
+    private function lockedRangesFor(Department $department, Carbon $start, Carbon $end): Collection
+    {
+        return ScheduleLock::query()
+            ->where('department_id', $department->id)
+            ->whereNull('unlocked_at')
+            ->whereDate('start_date', '<=', $end->toDateString())
+            ->whereDate('end_date', '>=', $start->toDateString())
+            ->get();
+    }
+
+    /** @param  Collection<int, ScheduleLock>  $locks */
+    private function isLocked(Collection $locks, string $workDate): bool
+    {
+        return $locks->contains(fn (ScheduleLock $lock) => $workDate >= $lock->start_date->toDateString()
+            && $workDate <= $lock->end_date->toDateString());
     }
 
     /**
@@ -240,14 +346,18 @@ class RosterDraftService
      */
     private function contextFor(array $employeeIds, Carbon $start, Carbon $end): array
     {
+        // Extra margin beyond the week boundary so the consecutive-workday
+        // check can see a streak that started before this range.
+        $streakMargin = max(1, (int) config('schedule.max_consecutive_workdays'));
+
         return [
             'assignments' => ScheduleAssignment::query()
                 ->with('shift')
                 ->whereIn('employee_id', $employeeIds)
                 ->where('status', 'scheduled')
                 ->whereBetween('work_date', [
-                    $start->copy()->startOfWeek()->subDay()->toDateString(),
-                    $end->copy()->endOfWeek()->addDay()->toDateString(),
+                    $start->copy()->startOfWeek()->subDay()->subDays($streakMargin)->toDateString(),
+                    $end->copy()->endOfWeek()->addDay()->addDays($streakMargin)->toDateString(),
                 ])
                 ->get()
                 ->groupBy('employee_id'),

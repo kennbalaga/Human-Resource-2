@@ -5,6 +5,7 @@ namespace App\Http\Requests\Schedule;
 use App\Models\Position;
 use App\Services\Scheduling\SchedulePeriodService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class RotationScheduleRequest extends FormRequest
@@ -33,7 +34,7 @@ class RotationScheduleRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty() ?? false;
+        return $this->user() !== null && Gate::forUser($this->user())->allows('workforce.view');
     }
 
     public function rules(): array

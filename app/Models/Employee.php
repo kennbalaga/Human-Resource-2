@@ -26,12 +26,15 @@ class Employee extends Model
         'hire_date',
         'contact_number',
         'address',
+        'preferred_shift_id',
+        'preferred_weekly_off_day',
     ];
 
     protected function casts(): array
     {
         return [
             'hire_date' => 'date',
+            'preferred_weekly_off_day' => 'integer',
         ];
     }
 
@@ -53,6 +56,11 @@ class Employee extends Model
     public function supervisor(): BelongsTo
     {
         return $this->belongsTo(self::class, 'supervisor_id');
+    }
+
+    public function preferredShift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class, 'preferred_shift_id');
     }
 
     public function directReports(): HasMany
@@ -83,6 +91,11 @@ class Employee extends Model
     public function scheduleDayOffs(): HasMany
     {
         return $this->hasMany(ScheduleDayOff::class);
+    }
+
+    public function preferredDayOffs(): HasMany
+    {
+        return $this->hasMany(PreferredDayOff::class);
     }
 
     public function timesheets(): HasMany

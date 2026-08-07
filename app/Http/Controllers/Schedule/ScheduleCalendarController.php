@@ -10,7 +10,9 @@ use App\Models\LeaveRequest;
 use App\Models\Position;
 use App\Models\RecurringSchedule;
 use App\Models\ScheduleAssignment;
+use App\Models\ScheduleComplianceReview;
 use App\Models\ScheduleDayOff;
+use App\Models\ScheduleLock;
 use App\Models\Shift;
 use App\Services\ScheduleService;
 use App\Services\Scheduling\AiSchedulingFeatureSettings;
@@ -19,6 +21,7 @@ use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class ScheduleCalendarController extends Controller
@@ -152,6 +155,13 @@ class ScheduleCalendarController extends Controller
             'filters' => $filters,
             'canManage' => $canManage,
             'canManageData' => $canManage && $request->user()->canManageData(),
+            'canLockSchedule' => Gate::forUser($request->user())->allows('hr.manage'),
+            'activeLocks' => Gate::forUser($request->user())->allows('hr.manage')
+                ? ScheduleLock::query()->with('department')->whereNull('unlocked_at')->orderBy('start_date')->get()
+                : collect(),
+            'recentComplianceReviews' => Gate::forUser($request->user())->allows('hr.manage')
+                ? ScheduleComplianceReview::query()->with('department')->latest('created_at')->limit(10)->get()
+                : collect(),
             'stats' => [
                 'assignments' => $assignments->count(),
                 'employees' => $assignments->pluck('employee_id')->unique()->count(),
@@ -240,7 +250,7 @@ class ScheduleCalendarController extends Controller
 
     private function canManage(Request $request): bool
     {
-        return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
+        return Gate::forUser($request->user())->allows('workforce.view');
     }
 
     private function focusDate(?string $date): Carbon

@@ -448,8 +448,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const rosterFillButton = rosterBoard?.querySelector('[data-roster-fill]');
     const rosterFillShiftButton = rosterBoard?.querySelector('[data-roster-fill-shift]');
     const rosterClearButton = rosterBoard?.querySelector('[data-roster-clear]');
+    const rosterSaveDraftButton = rosterBoard?.querySelector('[data-roster-save-draft]');
+    const rosterDraftStatus = rosterBoard?.querySelector('[data-roster-draft-status]');
     let rosterEntries = [];
     let rosterEvaluateTimer = null;
+    let currentDraftUuid = null;
 
     const rosterKey = (entry) => `${entry.employee_id}|${entry.work_date}`;
 
@@ -669,10 +672,97 @@ document.addEventListener('DOMContentLoaded', () => {
 
     rosterClearButton?.addEventListener('click', () => setRosterEntries([]));
 
+    // Persists the board exactly as it stands, so a second reviewer can pick up
+    // where the first left off instead of the draft only living in this tab.
+    const saveDraft = async () => {
+        const range = rosterRangePayload();
+        if (!range.department_id || !range.start_date || !range.end_date) return;
+        if (!rosterSaveDraftButton) return;
+
+        const original = rosterSaveDraftButton.textContent;
+        rosterSaveDraftButton.disabled = true;
+        rosterSaveDraftButton.textContent = 'Saving…';
+        try {
+            const response = await fetch(bulkForm.dataset.rosterDraftSaveUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
+                body: JSON.stringify({ ...range, entries: rosterEntries, draft_uuid: currentDraftUuid }),
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(Object.values(payload.errors ?? {}).flat()[0] ?? 'Unable to save the draft.');
+            currentDraftUuid = payload.data.uuid;
+            if (rosterDraftStatus) {
+                rosterDraftStatus.hidden = false;
+                rosterDraftStatus.textContent = `Draft saved ${new Date(payload.data.updated_at).toLocaleTimeString()}. It stays open for another reviewer until this is published or discarded.`;
+            }
+        } catch (error) {
+            if (rosterDraftStatus) {
+                rosterDraftStatus.hidden = false;
+                rosterDraftStatus.textContent = error.message;
+            }
+        } finally {
+            rosterSaveDraftButton.disabled = false;
+            rosterSaveDraftButton.textContent = original;
+        }
+    };
+
+    rosterSaveDraftButton?.addEventListener('click', saveDraft);
+
+    // Offers any drafts already open for the selected department as a "resume"
+    // option, so switching to the roster later does not mean starting blank.
+    const offerOpenDrafts = async () => {
+        const departmentId = bulkForm.elements.department_id?.value;
+        if (!departmentId || !bulkForm.dataset.rosterDraftsUrl || !rosterDraftStatus) return;
+
+        try {
+            const response = await fetch(`${bulkForm.dataset.rosterDraftsUrl}?department_id=${departmentId}`, {
+                headers: { Accept: 'application/json' },
+            });
+            const payload = await response.json();
+            const drafts = payload.data ?? [];
+            if (!drafts.length) return;
+
+            rosterDraftStatus.hidden = false;
+            rosterDraftStatus.replaceChildren();
+            const label = document.createElement('span');
+            label.textContent = `${drafts.length} saved draft(s) for this department: `;
+            rosterDraftStatus.append(label);
+            drafts.forEach((draft) => {
+                const resume = document.createElement('button');
+                resume.type = 'button';
+                resume.className = 'btn btn-sm btn-outline-primary';
+                resume.textContent = `Resume (updated ${new Date(draft.updated_at).toLocaleDateString()})`;
+                resume.addEventListener('click', () => {
+                    currentDraftUuid = draft.uuid;
+                    bulkForm.elements.start_date.value = draft.start_date;
+                    bulkForm.elements.end_date.value = draft.end_date;
+                    setRosterEntries(draft.entries ?? []);
+                });
+
+                const discard = document.createElement('button');
+                discard.type = 'button';
+                discard.className = 'btn btn-sm btn-light';
+                discard.textContent = 'Discard';
+                discard.addEventListener('click', async () => {
+                    await fetch(bulkForm.dataset.rosterDraftDiscardUrlTemplate.replace('__ID__', draft.id), {
+                        method: 'DELETE',
+                        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
+                    });
+                    offerOpenDrafts();
+                });
+
+                rosterDraftStatus.append(' ', resume, discard);
+            });
+        } catch {
+            // Not finding a draft to resume is not worth interrupting the reviewer for.
+        }
+    };
+
     // The board appears as soon as there is a unit and a date range to roster.
     bulkForm?.querySelectorAll('select[name="department_id"], input[name="start_date"], input[name="end_date"], input[name="period_start"], input[name="period_month"], [data-schedule-period]').forEach((field) => {
         field.addEventListener('change', () => window.setTimeout(scheduleRosterEvaluate, 0));
     });
+    bulkForm?.querySelector('[data-bulk-department-filter]')?.addEventListener('change', () => window.setTimeout(offerOpenDrafts, 0));
 
     bulkApproval?.addEventListener('change', () => {
         bulkSaveButton.disabled = !bulkApproval.checked;
@@ -688,6 +778,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Publish exactly what is on screen.
         if (rosterEntries.length) {
             bulkForm.querySelectorAll('[data-roster-entry-input]').forEach((input) => input.remove());
+            if (currentDraftUuid) {
+                const draftInput = document.createElement('input');
+                draftInput.type = 'hidden';
+                draftInput.name = 'draft_uuid';
+                draftInput.value = currentDraftUuid;
+                draftInput.setAttribute('data-roster-entry-input', '');
+                bulkForm.append(draftInput);
+            }
             rosterEntries.forEach((entry, index) => {
                 Object.entries({
                     employee_id: entry.employee_id,
@@ -721,6 +819,11 @@ document.addEventListener('DOMContentLoaded', () => {
         bulkForm.action = bulkForm.dataset.rosterPublishUrl;
         bulkForm.querySelectorAll('[data-roster-entry-input]').forEach((input) => input.remove());
         rosterEntries = [];
+        currentDraftUuid = null;
+        if (rosterDraftStatus) {
+            rosterDraftStatus.hidden = true;
+            rosterDraftStatus.replaceChildren();
+        }
         if (rosterDays) rosterDays.replaceChildren();
         if (rosterBoard) rosterBoard.hidden = true;
         syncScheduleMethod();

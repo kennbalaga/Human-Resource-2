@@ -7,6 +7,7 @@ use App\Http\Requests\Schedule\ShiftRequest;
 use App\Models\Shift;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -15,7 +16,7 @@ class ShiftController extends Controller
 {
     public function index(Request $request): View
     {
-        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty(), 403);
+        abort_unless(Gate::forUser($request->user())->allows('hr.view'), 403);
 
         return view('shifts.index', [
             'shifts' => Shift::query()->withCount('assignments')->orderBy('start_time')->get(),
@@ -47,7 +48,7 @@ class ShiftController extends Controller
 
     public function toggleActive(Request $request, Shift $shift): RedirectResponse
     {
-        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty(), 403);
+        abort_unless(Gate::forUser($request->user())->allows('hr.view'), 403);
 
         $shift->update(['is_active' => ! $shift->is_active]);
 
@@ -56,7 +57,7 @@ class ShiftController extends Controller
 
     public function destroy(Request $request, Shift $shift): RedirectResponse
     {
-        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty(), 403);
+        abort_unless(Gate::forUser($request->user())->allows('hr.view'), 403);
 
         if ($shift->is_system) {
             throw ValidationException::withMessages([

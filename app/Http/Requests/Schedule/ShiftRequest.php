@@ -3,12 +3,13 @@
 namespace App\Http\Requests\Schedule;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class ShiftRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty() ?? false;
+        return $this->user() !== null && Gate::forUser($this->user())->allows('hr.view');
     }
 
     public function rules(): array

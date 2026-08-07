@@ -5,6 +5,7 @@ namespace App\Services\Scheduling;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Models\PreferredDayOff;
 use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\Shift;
@@ -68,13 +69,16 @@ class RotationScheduleService
             ->chunk(7)
             ->values();
         $employeeIds = $employees->pluck('id')->all();
+        // Extra margin beyond the week boundary so the consecutive-workday
+        // check can see a streak that started before this range.
+        $streakMargin = max(1, (int) config('schedule.max_consecutive_workdays'));
         $existingAssignments = ScheduleAssignment::query()
             ->with('shift')
             ->whereIn('employee_id', $employeeIds)
             ->where('status', 'scheduled')
             ->whereBetween('work_date', [
-                $start->copy()->startOfWeek()->subDay()->toDateString(),
-                $end->copy()->endOfWeek()->addDay()->toDateString(),
+                $start->copy()->startOfWeek()->subDay()->subDays($streakMargin)->toDateString(),
+                $end->copy()->endOfWeek()->addDay()->addDays($streakMargin)->toDateString(),
             ])
             ->get()
             ->groupBy('employee_id');
@@ -88,6 +92,12 @@ class RotationScheduleService
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $end->toDateString())
             ->whereDate('end_date', '>=', $start->toDateString())
+            ->get()
+            ->groupBy('employee_id');
+        $preferredDayOffs = PreferredDayOff::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->where('status', 'approved')
+            ->whereBetween('preferred_date', [$start->toDateString(), $end->toDateString()])
             ->get()
             ->groupBy('employee_id');
         $previousShiftIds = ScheduleAssignment::query()
@@ -120,6 +130,7 @@ class RotationScheduleService
             $employeeAssignments = $existingAssignments->get($employee->id, collect());
             $employeeDayOffs = $existingDayOffs->get($employee->id, collect());
             $employeeLeaves = $leaves->get($employee->id, collect());
+            $employeePreferredDates = $preferredDayOffs->get($employee->id, collect())->map(fn (PreferredDayOff $preference) => $preference->preferred_date);
             $dayOffOffset = $employeeIndex % 7;
 
             foreach ($weeks as $weekIndex => $weekDates) {
@@ -140,6 +151,8 @@ class RotationScheduleService
                     max(0, $requiredDaysOff - $dayOffDates->count()),
                     $dayOffDates,
                     $data['holiday_dates'] ?? [],
+                    $employeePreferredDates,
+                    $employee->preferred_weekly_off_day,
                 );
                 foreach ($newDayOffs as $dayOffDate) {
                     $dayOffDates->push($dayOffDate);
@@ -387,6 +400,18 @@ class RotationScheduleService
         return $matrix;
     }
 
+    /**
+     * Which dates in this week become the employee's day(s) off.
+     *
+     * Order of preference: a rest violation still wins outright (it is a real
+     * constraint, not a courtesy), then an HR-approved preferred-day-off
+     * request, then the employee's standing weekly rest-day preference, and
+     * only then the rotation's own even-spread offset. This is what makes the
+     * roster actually honor "prefer employee day-off requests when staffing
+     * allows" instead of only offering a form nobody reads.
+     *
+     * @param  Collection<int, Carbon>  $preferredDates  Approved PreferredDayOff dates for this employee
+     */
     private function chooseDayOffs(
         Collection $dates,
         int $preferredOffset,
@@ -396,6 +421,8 @@ class RotationScheduleService
         int $count,
         Collection $alreadySelected,
         array $holidayDates,
+        Collection $preferredDates = new Collection(),
+        ?int $preferredWeeklyOffDay = null,
     ): Collection {
         if ($count === 0) {
             return collect();
@@ -413,14 +440,23 @@ class RotationScheduleService
         }
 
         $restRecoveryDate = $available->first(fn (Carbon $date) => $this->hasRestViolation($shift, $date, $assignments));
-        $ordered = $available->sortBy(function (Carbon $date) use ($dates, $preferredOffset, $restRecoveryDate) {
+        $ordered = $available->sortBy(function (Carbon $date) use ($dates, $preferredOffset, $restRecoveryDate, $preferredDates, $preferredWeeklyOffDay) {
+            $index = (int) $dates->search(fn (Carbon $candidate) => $candidate->toDateString() === $date->toDateString());
+            $offsetDistance = ($index - $preferredOffset + $dates->count()) % $dates->count();
+
             if ($restRecoveryDate?->toDateString() === $date->toDateString()) {
-                return -1;
+                return -1000;
             }
 
-            $index = (int) $dates->search(fn (Carbon $candidate) => $candidate->toDateString() === $date->toDateString());
+            if ($preferredDates->contains(fn (Carbon $preferred) => $preferred->toDateString() === $date->toDateString())) {
+                return $offsetDistance - 500;
+            }
 
-            return ($index - $preferredOffset + $dates->count()) % $dates->count();
+            if ($preferredWeeklyOffDay !== null && $date->dayOfWeekIso === $preferredWeeklyOffDay) {
+                return $offsetDistance - 100;
+            }
+
+            return $offsetDistance;
         })->values();
 
         return $ordered->take($count)->map(fn (Carbon $date) => $date->copy())->values();
@@ -461,6 +497,9 @@ class RotationScheduleService
         if ($this->hasRestViolation($shift, $date, $assignments)) {
             return 'Minimum rest period not met';
         }
+        if ($this->consecutiveWorkdaysExceeded($date, $assignments)) {
+            return 'Maximum consecutive workdays exceeded';
+        }
 
         $weekStart = $date->copy()->startOfWeek();
         $weekEnd = $date->copy()->endOfWeek();
@@ -486,6 +525,31 @@ class RotationScheduleService
         $hour = (int) Carbon::parse($shift->start_time)->format('G');
 
         return $shift->crosses_midnight || $hour >= 18 || $hour < 6;
+    }
+
+    /** @param  Collection<int, ScheduleAssignment>  $assignments */
+    private function consecutiveWorkdaysExceeded(Carbon $date, Collection $assignments): bool
+    {
+        $maxConsecutive = (int) config('schedule.max_consecutive_workdays');
+        if ($maxConsecutive <= 0) {
+            return false;
+        }
+
+        $scheduledDates = $assignments->pluck('work_date')->map(fn ($workDate) => Carbon::parse($workDate)->toDateString())->unique()->flip();
+
+        $streak = 1;
+        $cursor = $date->copy()->subDay();
+        while ($scheduledDates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor->subDay();
+        }
+        $cursor = $date->copy()->addDay();
+        while ($scheduledDates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor->addDay();
+        }
+
+        return $streak > $maxConsecutive;
     }
 
     private function hasRestViolation(Shift $shift, Carbon $date, Collection $assignments): bool

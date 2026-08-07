@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -189,17 +190,17 @@ class LeaveController extends Controller
 
     private function canManage(Request $request): bool
     {
-        return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
+        return Gate::forUser($request->user())->allows('workforce.view');
     }
 
     private function requireManager(Request $request): void
     {
-        abort_unless($this->canManage($request) && $request->user()->canManageData(), 403);
+        abort_unless(Gate::forUser($request->user())->allows('workforce.manage'), 403);
     }
 
     private function canManageLeaveTypes(Request $request): bool
     {
-        return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
+        return Gate::forUser($request->user())->allows('hr.view');
     }
 
     private function canRequestLeave(Request $request): bool
