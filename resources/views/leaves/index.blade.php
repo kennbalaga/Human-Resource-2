@@ -3,11 +3,6 @@
 @section('title', 'Leave Management')
 
 @section('content')
-    @php
-        $queryFor = fn(array $values) => route('leaves.index', array_merge(request()->query(), $values));
-        $previousMonth = $focusDate->copy()->subMonth()->toDateString();
-        $nextMonth = $focusDate->copy()->addMonth()->toDateString();
-    @endphp
     <section class="page-heading workforce-heading">
         <div><p class="eyebrow">Workforce Management</p><h1>Leave Management</h1><p>Track balances, submit supporting documents, and manage leave approvals.</p></div>
         <div class="row-action-group">
@@ -49,18 +44,6 @@
             <label><span>Status</span><select name="status"><option value="">All statuses</option>@foreach(['pending','approved','rejected','cancelled'] as $status)<option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ str($status)->headline() }}</option>@endforeach</select></label>
             <button class="btn btn-primary" type="submit">Apply filters</button>
         </form>
-    </section>
-
-    <section class="panel leave-calendar-panel">
-        <div class="schedule-toolbar"><div class="calendar-navigation"><a class="calendar-nav-button" href="{{ $queryFor(['date' => $previousMonth]) }}"><x-icon name="chevron-right" class="flip-horizontal" /></a><a class="calendar-today-button" href="{{ $queryFor(['date' => now()->toDateString()]) }}">Today</a><a class="calendar-nav-button" href="{{ $queryFor(['date' => $nextMonth]) }}"><x-icon name="chevron-right" /></a><h2>{{ $focusDate->format('F Y') }}</h2></div><span class="history-caption">Approved leave calendar</span></div>
-        <div class="month-calendar leave-calendar"><div class="month-weekdays">@foreach(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as $day)<span>{{ $day }}</span>@endforeach</div><div class="month-days">
-            @foreach($calendarDays as $day)
-                <article @class(['calendar-day', 'outside-month' => !$day['current_month'], 'is-today' => $day['today']])><div class="calendar-day-header"><span>{{ $day['date']->day }}</span>@if($day['today'])<small>Today</small>@endif</div><div class="calendar-day-events">
-                    @foreach($day['requests']->take(3) as $leave)<span class="leave-calendar-event" style="--leave-color: {{ $leave->leaveType->color }}"><i></i><span><strong>{{ $leave->employee->first_name }} {{ $leave->employee->last_name }}</strong><small>{{ $leave->leaveType->name }}</small></span></span>@endforeach
-                    @if($day['requests']->count() > 3)<span class="more-events">+{{ $day['requests']->count() - 3 }} more</span>@endif
-                </div></article>
-            @endforeach
-        </div></div>
     </section>
 
     <section class="panel workforce-table-panel">
