@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Employee;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class SearchController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
@@ -43,6 +44,27 @@ class SearchController extends Controller
                 ->orderBy('name')
                 ->limit(8)
                 ->get();
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'query' => $query,
+                'employees' => $employees->map(fn (Employee $employee) => [
+                    'name' => $employee->full_name,
+                    'number' => $employee->employee_number,
+                    'department' => $employee->department?->name,
+                    'position' => $employee->position?->title,
+                    'url' => route('employees.show', $employee),
+                ])->values(),
+                'departments' => $departments->map(fn (Department $department) => [
+                    'name' => $department->name,
+                    'employeesCount' => $department->employees_count,
+                    'positionsCount' => $department->positions_count,
+                    'url' => route('departments.index', ['search' => $department->name]),
+                ])->values(),
+                'directoryUrl' => $employees->isNotEmpty() ? route('employees.index', ['search' => $query]) : null,
+                'departmentsUrl' => $departments->isNotEmpty() ? route('departments.index', ['search' => $query]) : null,
+            ]);
         }
 
         return view('search.index', [

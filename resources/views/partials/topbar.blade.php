@@ -27,11 +27,27 @@
             </span>
         </time>
 
-        <form class="global-search" method="GET" action="{{ route('search.index') }}" role="search">
-            <x-icon name="search" />
-            <span class="visually-hidden">Search HRMS</span>
-            <input type="search" name="q" value="{{ request('q') }}" placeholder="Search employees, departments..." aria-label="Search employees and departments" autocomplete="off">
-        </form>
+        <div class="global-search-wrapper" data-global-search>
+            <form class="global-search" method="GET" action="{{ route('search.index') }}" role="search" autocomplete="off">
+                <x-icon name="search" />
+                <label class="visually-hidden" for="globalSearchInput">Search employees and departments</label>
+                <input
+                    id="globalSearchInput"
+                    type="search"
+                    name="q"
+                    value="{{ request('q') }}"
+                    placeholder="Search employees, departments..."
+                    autocomplete="off"
+                    data-global-search-input
+                    role="combobox"
+                    aria-expanded="false"
+                    aria-haspopup="listbox"
+                    aria-controls="globalSearchDropdown"
+                >
+            </form>
+
+            <div id="globalSearchDropdown" class="global-search-dropdown" data-global-search-dropdown hidden></div>
+        </div>
 
         <div class="dropdown">
             <button class="icon-button notification-button" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open notifications">

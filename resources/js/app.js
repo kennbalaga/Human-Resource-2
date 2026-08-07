@@ -9,5 +9,6 @@ import './ai-scheduling';
 import './integration-settings';
 import './theme';
 import './session-timeout';
+import './global-search';
 
 window.bootstrap = bootstrap;
