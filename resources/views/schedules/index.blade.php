@@ -255,16 +255,16 @@
                     <div class="modal-header bulk-schedule-header"><span class="bulk-ai-icon"><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'users'" /></span><div><p class="panel-kicker">{{ $aiSchedulingEnabled ? 'AI Scheduling Assistant' : 'Department scheduling' }}</p><h2 class="modal-title" id="bulkScheduleModalLabel">Generate a bulk schedule</h2><small>Build, validate, approve, and publish one department schedule.</small></div><span class="ai-scheduling-advisory">HR approval required</span><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body bulk-schedule-form">
                         <ol class="bulk-flow-steps" aria-label="Bulk scheduling workflow"><li class="active"><span>1</span><strong>Department & staff</strong></li><li><span>2</span><strong>Period & pattern</strong></li><li><span>3</span><strong>Rules</strong></li><li><span>4</span><strong>{{ $aiSchedulingEnabled ? 'AI validation' : 'System validation' }}</strong></li><li><span>5</span><strong>Approve & publish</strong></li></ol>
-                        <p class="bulk-schedule-intro">Choose a department, then select specific employees or include all active staff. {{ $aiSchedulingEnabled ? 'The assistant generates one reviewed recommendation' : 'The system generates one reviewed bulk plan' }} and never publishes automatically.</p>
+                        <p class="bulk-schedule-intro">Choose a department and position, then select specific employees or include all active staff. {{ $aiSchedulingEnabled ? 'The assistant generates one reviewed recommendation' : 'The system generates one reviewed bulk plan' }} and never publishes automatically.</p>
                         <div class="schedule-form-grid bulk-schedule-details">
                             <div class="bulk-inline-step-heading full-width">
                                 <div><p>Step 1 · Department and staff</p><h3>Choose who to schedule</h3></div>
                                 <span data-bulk-selected-count>0 selected</span>
                             </div>
                             <label><span>Department</span><select name="department_id" data-bulk-department-filter required><option value="">Select department</option>@foreach($departments as $department)<option value="{{ $department->id }}">{{ $department->name }}</option>@endforeach</select></label>
-                            <label><span>Staff selection</span><select name="employee_scope" data-bulk-employee-scope><option value="specific">Specific staff</option><option value="all">All active staff</option></select></label>
-                            <label><span>Position filter</span><select data-bulk-position-filter><option value="">All positions</option>@foreach($positions as $position)<option value="{{ $position->id }}">{{ $position->title }}</option>@endforeach</select></label>
-                            <label><span>Find staff</span><input type="search" data-bulk-employee-search placeholder="Search employee name or ID"></label>
+                            <label><span>Position</span><select data-bulk-position-filter required disabled><option value="">Select a department first</option>@foreach($positions as $position)<option value="{{ $position->id }}" data-department-id="{{ $position->department_id }}" hidden>{{ $position->title }}</option>@endforeach</select></label>
+                            <label><span>Staff selection</span><select name="employee_scope" data-bulk-employee-scope disabled><option value="specific">Specific staff</option><option value="all">All active staff</option></select></label>
+                            <label><span>Find staff</span><input type="search" data-bulk-employee-search placeholder="Search employee name or ID" disabled></label>
                             <div class="bulk-inline-employee-list full-width" data-bulk-employee-list>
                                 <p class="bulk-employee-empty" data-bulk-employee-empty>Select a department to show its active employees.</p>
                                 @foreach($employees as $employee)

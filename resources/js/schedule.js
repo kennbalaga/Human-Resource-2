@@ -321,9 +321,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const empty = bulkForm.querySelector('[data-bulk-employee-empty]');
         const hasVisibleEmployees = bulkEmployeeOptions.some((option) => !option.hidden);
         empty.hidden = hasVisibleEmployees;
-        empty.textContent = departmentId
-            ? 'No active employees match the selected filters.'
-            : 'Select a department to load active employees.';
+        empty.textContent = !departmentId
+            ? 'Select a department to load active employees.'
+            : !positionId
+                ? 'Select a position to load active employees.'
+                : 'No active employees match the selected filters.';
+    };
+
+    // Rosters are built one department and position at a time, so the position
+    // list only ever shows roles that exist in the chosen department, and staff
+    // selection stays locked until a position narrows down who is eligible.
+    const syncBulkPositionOptions = () => {
+        if (!bulkForm) return;
+        const departmentId = bulkForm.elements.department_id.value;
+        const positionFilter = bulkForm.querySelector('[data-bulk-position-filter]');
+        const placeholder = positionFilter.querySelector('option[value=""]');
+        positionFilter.querySelectorAll('option[data-department-id]').forEach((option) => {
+            option.hidden = option.dataset.departmentId !== departmentId;
+        });
+        positionFilter.value = '';
+        positionFilter.disabled = !departmentId;
+        if (placeholder) placeholder.textContent = departmentId ? 'Select position' : 'Select a department first';
+    };
+
+    const syncBulkPositionAvailability = () => {
+        if (!bulkForm) return;
+        const positionFilter = bulkForm.querySelector('[data-bulk-position-filter]');
+        const employeeScope = bulkForm.elements.employee_scope;
+        if (!employeeScope) return;
+        employeeScope.disabled = !positionFilter.value;
+        if (!positionFilter.value) employeeScope.value = 'specific';
     };
 
     const syncEmployeeScope = () => {
@@ -334,15 +361,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const positionFilter = bulkForm.querySelector('[data-bulk-position-filter]');
         const search = bulkForm.querySelector('[data-bulk-employee-search]');
         const selectAll = bulkForm.querySelector('[data-bulk-select-all]');
-        positionFilter.disabled = allStaff;
-        search.disabled = allStaff;
+        search.disabled = allStaff || !positionFilter.value;
         selectAll.hidden = allStaff;
 
         if (allStaff) {
-            positionFilter.value = '';
             search.value = '';
             bulkEmployeeOptions.forEach((option) => {
-                option.querySelector('input').checked = Boolean(departmentId) && option.dataset.departmentId === departmentId;
+                option.querySelector('input').checked = Boolean(departmentId) && option.dataset.departmentId === departmentId
+                    && (!positionFilter.value || option.dataset.positionId === positionFilter.value);
             });
         }
 
@@ -382,21 +408,19 @@ document.addEventListener('DOMContentLoaded', () => {
             invalidateBulkReview();
         });
     });
-    bulkForm?.querySelectorAll('[data-bulk-department-filter], [data-bulk-position-filter], [data-bulk-employee-search]').forEach((field) => {
-        field.addEventListener(field.type === 'search' ? 'input' : 'change', () => {
-            if (field.matches('[data-bulk-department-filter]')) {
-                bulkEmployeeOptions.forEach((option) => {
-                    if (option.dataset.departmentId !== field.value) option.querySelector('input').checked = false;
-                });
-                updateBulkSelectedCount();
-                invalidateBulkReview();
-            }
-            filterBulkEmployees();
-            if (field.matches('[data-bulk-department-filter]') && bulkForm.elements.employee_scope?.value === 'all') {
-                syncEmployeeScope();
-            }
+    bulkForm?.querySelector('[data-bulk-department-filter]')?.addEventListener('change', (event) => {
+        bulkEmployeeOptions.forEach((option) => {
+            if (option.dataset.departmentId !== event.target.value) option.querySelector('input').checked = false;
         });
+        syncBulkPositionOptions();
+        syncBulkPositionAvailability();
+        syncEmployeeScope();
     });
+    bulkForm?.querySelector('[data-bulk-position-filter]')?.addEventListener('change', () => {
+        syncBulkPositionAvailability();
+        syncEmployeeScope();
+    });
+    bulkForm?.querySelector('[data-bulk-employee-search]')?.addEventListener('input', filterBulkEmployees);
     bulkForm?.querySelector('[data-bulk-employee-scope]')?.addEventListener('change', syncEmployeeScope);
     bulkForm?.querySelector('[data-bulk-select-all]')?.addEventListener('click', () => {
         const visible = bulkEmployeeOptions.filter((option) => !option.hidden);
@@ -699,14 +723,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rosterBoard) rosterBoard.hidden = true;
         syncScheduleMethod();
         syncBulkPeriod();
-        filterBulkEmployees();
+        syncBulkPositionOptions();
+        syncBulkPositionAvailability();
         syncEmployeeScope();
         updateBulkSelectedCount();
         invalidateBulkReview();
     });
     syncScheduleMethod();
     syncBulkPeriod();
-    filterBulkEmployees();
+    syncBulkPositionOptions();
+    syncBulkPositionAvailability();
     syncEmployeeScope();
     updateBulkSelectedCount();
 
