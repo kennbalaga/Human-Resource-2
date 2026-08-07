@@ -95,8 +95,6 @@
     </nav>
 
     <div class="sidebar-footer">
-        <x-sidebar-link :href="route('settings.edit')" icon="settings" :active="request()->routeIs('settings.*', 'integrations.*', 'audit-logs.*')">Settings</x-sidebar-link>
-
         <div class="dropup sidebar-profile">
             <button class="sidebar-profile-button" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Open account menu">
                 <span class="avatar avatar-sm">{{ $sidebarInitials }}</span>

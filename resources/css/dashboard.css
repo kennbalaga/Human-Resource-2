@@ -276,8 +276,9 @@ input {
     gap: 4px;
 }
 
+/* The profile block is the only thing left in the footer, so its own top margin
+   would just stack on the footer's padding and float the divider too far down. */
 .sidebar-profile {
-    margin-top: 12px;
     padding-top: 14px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }

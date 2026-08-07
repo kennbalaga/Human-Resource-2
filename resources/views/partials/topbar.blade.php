@@ -36,7 +36,7 @@
                     type="search"
                     name="q"
                     value="{{ request('q') }}"
-                    placeholder="Search employees, departments..."
+                    placeholder="Search ..."
                     autocomplete="off"
                     data-global-search-input
                     role="combobox"
@@ -57,8 +57,8 @@
             aria-label="Switch colour theme"
             title="Switch colour theme"
         >
-            <x-icon name="sun" class="ui-icon theme-toggle-icon theme-toggle-sun" />
-            <x-icon name="moon" class="ui-icon theme-toggle-icon theme-toggle-moon" />
+            <x-icon name="sun" class="theme-toggle-icon theme-toggle-sun" />
+            <x-icon name="moon" class="theme-toggle-icon theme-toggle-moon" />
         </button>
 
         <div class="dropdown">
