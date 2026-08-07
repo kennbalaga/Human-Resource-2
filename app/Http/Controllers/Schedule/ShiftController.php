@@ -19,6 +19,7 @@ class ShiftController extends Controller
 
         return view('shifts.index', [
             'shifts' => Shift::query()->withCount('assignments')->orderBy('start_time')->get(),
+            'canManageData' => $request->user()->canManageData(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);

@@ -54,6 +54,7 @@ class AttendanceReportController extends Controller
             'filters' => $filters,
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'employees' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
+            'canManageData' => $request->user()->canManageData(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);

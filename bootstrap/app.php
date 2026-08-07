@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AuditWriteRequests;
 use App\Http\Middleware\EnforceProductionSecurity;
+use App\Http\Middleware\EnforceReadOnlyRole;
 use App\Http\Middleware\EnsureRequiredTwoFactorAuthentication;
 use App\Http\Middleware\PreventRememberedAuthentication;
 use App\Http\Middleware\SecurityHeaders;
@@ -37,8 +38,9 @@ return Application::configure(basePath: dirname(__DIR__))
             AuditWriteRequests::class,
             PreventRememberedAuthentication::class,
             EnsureRequiredTwoFactorAuthentication::class,
+            EnforceReadOnlyRole::class,
         ]);
-        $middleware->api(append: [SecurityHeaders::class, AuditWriteRequests::class]);
+        $middleware->api(append: [SecurityHeaders::class, AuditWriteRequests::class, EnforceReadOnlyRole::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (TokenMismatchException $exception, Request $request): void {

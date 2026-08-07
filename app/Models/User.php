@@ -45,6 +45,15 @@ class User extends Authenticatable
         ]);
     }
 
+    /**
+     * Roles that administer the system but must not alter the records inside it.
+     * They keep org-wide visibility for support and audit work; the writing is
+     * left to HR. See EnforceReadOnlyRole for the routes this actually blocks.
+     *
+     * @var array<int, string>
+     */
+    public const READ_ONLY_ROLES = ['system-administrator'];
+
     public function hasRole(string $slug): bool
     {
         return $this->roles->contains('slug', $slug);
@@ -56,6 +65,20 @@ class User extends Authenticatable
     public function hasAnyRole(array $slugs): bool
     {
         return $this->roles->pluck('slug')->intersect($slugs)->isNotEmpty();
+    }
+
+    public function isReadOnly(): bool
+    {
+        return $this->hasAnyRole(self::READ_ONLY_ROLES);
+    }
+
+    /**
+     * Whether this account may change workforce records at all. Read-only roles
+     * still see everything; this only gates the writing.
+     */
+    public function canManageData(): bool
+    {
+        return ! $this->isReadOnly();
     }
 
     /**

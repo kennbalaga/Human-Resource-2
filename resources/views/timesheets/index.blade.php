@@ -7,7 +7,7 @@
 
     <section class="page-heading workforce-heading">
         <div><p class="eyebrow">Workforce Management</p><h1>Timesheet Management</h1><p>Weekly work records generated from completed and approved attendance.</p></div>
-        <a class="btn btn-primary dashboard-action" href="{{ route('timesheets.export', request()->query()) }}"><x-icon name="download" /> Export CSV</a>
+        @if(auth()->user()->canManageData())<a class="btn btn-primary dashboard-action" href="{{ route('timesheets.export', request()->query()) }}"><x-icon name="download" /> Export CSV</a>@endif
     </section>
 
     @if (session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
@@ -50,10 +50,10 @@
                             <td><x-status-badge :status="$timesheet->status" /></td>
                             <td>
                                 <div class="row-action-group">
-                                    @if(in_array($timesheet->status, ['draft', 'rejected']) && $timesheet->employee_id === auth()->user()->employee?->id)
+                                    @if(in_array($timesheet->status, ['draft', 'rejected']) && $timesheet->employee_id === auth()->user()->employee?->id && auth()->user()->canManageData())
                                         <form method="POST" action="{{ route('timesheets.submit', $timesheet) }}">@csrf<button class="btn btn-sm btn-primary" type="submit">Submit</button></form>
                                     @endif
-                                    @if($canManage && $timesheet->status === 'submitted')
+                                    @if($canManageData && $timesheet->status === 'submitted')
                                         <form method="POST" action="{{ route('timesheets.approve', $timesheet) }}">@csrf<button class="btn btn-sm btn-success" type="submit">Approve</button></form>
                                         <form method="POST" action="{{ route('timesheets.reject', $timesheet) }}" class="inline-review-form">@csrf<input name="reviewer_notes" placeholder="Return reason" minlength="5" required><button class="btn btn-sm btn-outline-danger" type="submit">Return</button></form>
                                     @endif

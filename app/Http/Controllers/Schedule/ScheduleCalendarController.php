@@ -151,6 +151,7 @@ class ScheduleCalendarController extends Controller
             'activeSeries' => $activeSeries,
             'filters' => $filters,
             'canManage' => $canManage,
+            'canManageData' => $canManage && $request->user()->canManageData(),
             'stats' => [
                 'assignments' => $assignments->count(),
                 'employees' => $assignments->pluck('employee_id')->unique()->count(),

@@ -116,7 +116,10 @@ class LeaveService
 
     public function cancel(LeaveRequest $request, User $user): LeaveRequest
     {
-        if ($request->employee_id !== $user->employee?->id && ! $this->canManage($user)) {
+        // Cancelling your own request is self-service. Cancelling somebody
+        // else's is a review action, so it needs write access as well as reach.
+        if ($request->employee_id !== $user->employee?->id
+            && ! ($this->canManage($user) && $user->canManageData())) {
             abort(403);
         }
 
