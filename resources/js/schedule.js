@@ -313,8 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const search = bulkForm.querySelector('[data-bulk-employee-search]').value.trim().toLowerCase();
 
         bulkEmployeeOptions.forEach((option) => {
-            const matches = Boolean(departmentId) && option.dataset.departmentId === departmentId
-                && (!positionId || option.dataset.positionId === positionId)
+            const matches = Boolean(departmentId) && Boolean(positionId)
+                && option.dataset.departmentId === departmentId
+                && option.dataset.positionId === positionId
                 && (!search || option.dataset.search.includes(search));
             option.hidden = !matches;
         });
@@ -367,8 +368,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (allStaff) {
             search.value = '';
             bulkEmployeeOptions.forEach((option) => {
-                option.querySelector('input').checked = Boolean(departmentId) && option.dataset.departmentId === departmentId
-                    && (!positionFilter.value || option.dataset.positionId === positionFilter.value);
+                option.querySelector('input').checked = Boolean(departmentId) && Boolean(positionFilter.value)
+                    && option.dataset.departmentId === departmentId
+                    && option.dataset.positionId === positionFilter.value;
             });
         }
 
