@@ -97,17 +97,6 @@
     <div class="sidebar-footer">
         <x-sidebar-link :href="route('settings.edit')" icon="settings" :active="request()->routeIs('settings.*', 'integrations.*', 'audit-logs.*')">Settings</x-sidebar-link>
 
-        <div class="sidebar-theme-switch" role="group" aria-label="Color theme">
-            <button class="sidebar-theme-option" type="button" data-theme-set="light" data-theme-update-url="{{ route('settings.theme.update') }}" aria-pressed="false">
-                <x-icon name="sun" />
-                <span>Light</span>
-            </button>
-            <button class="sidebar-theme-option" type="button" data-theme-set="dark" data-theme-update-url="{{ route('settings.theme.update') }}" aria-pressed="false">
-                <x-icon name="moon" />
-                <span>Dark</span>
-            </button>
-        </div>
-
         <div class="dropup sidebar-profile">
             <button class="sidebar-profile-button" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Open account menu">
                 <span class="avatar avatar-sm">{{ $sidebarInitials }}</span>

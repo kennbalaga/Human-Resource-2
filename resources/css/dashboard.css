@@ -276,56 +276,6 @@ input {
     gap: 4px;
 }
 
-.sidebar-theme-switch {
-    display: flex;
-    margin-top: 12px;
-    padding: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 13px;
-    background: rgba(255, 255, 255, 0.06);
-    gap: 4px;
-}
-
-.sidebar-theme-option {
-    display: flex;
-    min-height: 36px;
-    padding: 0 10px;
-    border: 0;
-    border-radius: 10px;
-    color: rgba(255, 255, 255, 0.72);
-    background: transparent;
-    font-size: 0.78rem;
-    font-weight: 550;
-    cursor: pointer;
-    flex: 1;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    transition: color 160ms ease, background-color 160ms ease;
-}
-
-.sidebar-theme-option .ui-icon {
-    width: 16px;
-    height: 16px;
-    flex: none;
-}
-
-.sidebar-theme-option:hover {
-    color: #fff;
-}
-
-html[data-theme-resolved='light'] .sidebar-theme-option[data-theme-set='light'],
-html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.14);
-    box-shadow: 0 1px 2px rgba(4, 24, 15, 0.3);
-}
-
-.sidebar-theme-option:focus-visible {
-    outline: 3px solid rgba(135, 234, 177, 0.72);
-    outline-offset: -3px;
-}
-
 .sidebar-profile {
     margin-top: 12px;
     padding-top: 14px;
@@ -456,18 +406,6 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
         gap: 0;
     }
 
-    html[data-sidebar='collapsed'] .sidebar-theme-switch {
-        flex-direction: column;
-    }
-
-    html[data-sidebar='collapsed'] .sidebar-theme-option {
-        padding: 0;
-    }
-
-    html[data-sidebar='collapsed'] .sidebar-theme-option span {
-        display: none;
-    }
-
     html[data-sidebar='collapsed'] .sidebar-profile .sidebar-profile-menu {
         left: 0;
         width: 236px;
@@ -529,6 +467,12 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
 .topbar-actions {
     justify-content: flex-end;
     gap: 10px;
+}
+
+/* The search field absorbs the squeeze on narrow screens, never the icon buttons. */
+.topbar-actions .icon-button,
+.topbar-actions .dropdown {
+    flex: none;
 }
 
 .mobile-menu-button {
@@ -659,7 +603,7 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
 
 .topbar-date {
     min-height: 40px;
-    padding: 0 12px;
+    padding: 0;
     color: var(--hr-muted);
     align-items: center;
     gap: 8px;
@@ -671,9 +615,13 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
     height: 17px;
 }
 
+/*
+ * No reserved width here: the date line is always the wider of the two, so the
+ * block keeps its size when the hour rolls from one digit to two. A min-width
+ * would only pad dead space between the clock and the search field.
+ */
 .topbar-clock-copy {
     display: grid;
-    min-width: 7.3rem;
     line-height: 1.15;
 }
 
@@ -716,6 +664,36 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
     height: 32px;
     border-color: transparent;
     background: transparent;
+}
+
+/*
+ * Both icons are stacked in the same grid cell so the button never resizes as
+ * the theme flips -- only which one is visible changes.
+ */
+.theme-toggle {
+    cursor: pointer;
+}
+
+.theme-toggle .theme-toggle-icon {
+    grid-area: 1 / 1;
+    width: 18px;
+    height: 18px;
+}
+
+.theme-toggle .theme-toggle-sun {
+    display: none;
+}
+
+.theme-toggle .theme-toggle-moon {
+    display: block;
+}
+
+html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-sun {
+    display: block;
+}
+
+html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
+    display: none;
 }
 
 .icon-button.subtle .ui-icon {

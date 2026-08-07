@@ -49,6 +49,18 @@
             <div id="globalSearchDropdown" class="global-search-dropdown" data-global-search-dropdown hidden></div>
         </div>
 
+        <button
+            class="icon-button theme-toggle"
+            type="button"
+            data-theme-toggle
+            data-theme-update-url="{{ route('settings.theme.update') }}"
+            aria-label="Switch colour theme"
+            title="Switch colour theme"
+        >
+            <x-icon name="sun" class="ui-icon theme-toggle-icon theme-toggle-sun" />
+            <x-icon name="moon" class="ui-icon theme-toggle-icon theme-toggle-moon" />
+        </button>
+
         <div class="dropdown">
             <button class="icon-button notification-button" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open notifications">
                 <x-icon name="bell" />

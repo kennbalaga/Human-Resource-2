@@ -10,12 +10,17 @@
             $greetingNow->hour < 18 => 'Good afternoon',
             default => 'Good evening',
         };
+
+        // Prefer the workforce profile's first name; accounts without one fall
+        // back to the leading word of the display name.
+        $greetingUser = auth()->user();
+        $greetingName = $greetingUser->employee?->first_name ?: str($greetingUser->name)->explode(' ')->first();
     @endphp
 
     <section class="page-heading">
         <div>
             <p class="eyebrow">HRMS Overview</p>
-            <h1>{{ $greeting }}, {{ auth()->user()->name }}.</h1>
+            <h1>{{ $greeting }}, {{ $greetingName }}.</h1>
             <p>Here’s what’s happening across your hospital workforce today.</p>
         </div>
     </section>

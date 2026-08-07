@@ -9,6 +9,13 @@ function updateThemeOptions() {
     document.querySelectorAll('[data-theme-set]').forEach((button) => {
         button.setAttribute('aria-pressed', root.dataset.themeResolved === button.dataset.themeSet ? 'true' : 'false');
     });
+
+    const label = root.dataset.themeResolved === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+
+    document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+        button.setAttribute('aria-label', label);
+        button.setAttribute('title', label);
+    });
 }
 
 function applyTheme(theme) {
@@ -33,28 +40,35 @@ async function persistTheme(button, theme) {
     }
 }
 
+async function selectTheme(button, next) {
+    const previous = root.dataset.theme || 'system';
+
+    if (root.dataset.themeResolved === next) {
+        return;
+    }
+
+    applyTheme(next);
+    button.disabled = true;
+
+    try {
+        await persistTheme(button, next);
+        document.querySelectorAll('input[name="theme"]').forEach((input) => {
+            input.checked = input.value === next;
+        });
+    } catch (error) {
+        applyTheme(previous);
+    } finally {
+        button.disabled = false;
+    }
+}
+
 document.querySelectorAll('[data-theme-set]').forEach((button) => {
-    button.addEventListener('click', async () => {
-        const previous = root.dataset.theme || 'system';
-        const next = button.dataset.themeSet;
+    button.addEventListener('click', () => selectTheme(button, button.dataset.themeSet));
+});
 
-        if (root.dataset.themeResolved === next) {
-            return;
-        }
-
-        applyTheme(next);
-        button.disabled = true;
-
-        try {
-            await persistTheme(button, next);
-            document.querySelectorAll('input[name="theme"]').forEach((input) => {
-                input.checked = input.value === next;
-            });
-        } catch (error) {
-            applyTheme(previous);
-        } finally {
-            button.disabled = false;
-        }
+document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+        selectTheme(button, root.dataset.themeResolved === 'dark' ? 'light' : 'dark');
     });
 });
 
