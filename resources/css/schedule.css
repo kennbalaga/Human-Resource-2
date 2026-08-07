@@ -555,6 +555,7 @@
 
 .schedule-form-grid label:not(.shift-active-toggle) {
     display: grid;
+    align-content: start;
     gap: .4rem;
 }
 
@@ -575,6 +576,32 @@
 
 .schedule-form-grid textarea {
     resize: vertical;
+}
+
+/* Native colour pickers ignore the shared text-input padding, so they are
+   sized on their own and the swatch is squared off to match the field. */
+.schedule-form-grid input[type="color"] {
+    width: 100%;
+    padding: .3rem;
+    cursor: pointer;
+}
+
+.schedule-form-grid input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.schedule-form-grid input[type="color"]::-webkit-color-swatch {
+    border: 0;
+    border-radius: .4rem;
+}
+
+.schedule-form-grid input[type="color"]::-moz-color-swatch {
+    border: 0;
+    border-radius: .4rem;
+}
+
+.schedule-form-grid input[type="file"] {
+    padding: .55rem .75rem;
 }
 
 .schedule-form-grid input:focus,
@@ -920,6 +947,7 @@
 }
 
 .shift-active-toggle input {
+    flex-shrink: 0;
     width: 1.1rem;
     height: 1.1rem;
 }

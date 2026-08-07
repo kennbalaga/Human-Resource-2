@@ -397,6 +397,7 @@ html[data-theme-resolved='dark'] .week-schedule-event strong,
 html[data-theme-resolved='dark'] .schedule-list-employee strong,
 html[data-theme-resolved='dark'] .series-main strong,
 html[data-theme-resolved='dark'] .shift-identity strong,
+html[data-theme-resolved='dark'] .shift-active-toggle strong,
 html[data-theme-resolved='dark'] .shift-hours strong { color:var(--hr-text); }
 html[data-theme-resolved='dark'] .schedule-event,
 html[data-theme-resolved='dark'] .week-schedule-event { background:color-mix(in srgb,var(--event-color) 18%,#141d19); }

@@ -7,9 +7,19 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreLeaveRequest extends FormRequest
 {
+    /**
+     * Leave self-service belongs to regular staff. Administrators and HR
+     * managers review requests instead of filing their own.
+     *
+     * @var array<int, string>
+     */
+    public const ROLES_WITHOUT_SELF_SERVICE = ['system-administrator', 'hr-manager'];
+
     public function authorize(): bool
     {
-        return $this->user()?->employee !== null;
+        $user = $this->user();
+
+        return $user?->employee !== null && ! $user->hasAnyRole(self::ROLES_WITHOUT_SELF_SERVICE);
     }
 
     public function rules(): array

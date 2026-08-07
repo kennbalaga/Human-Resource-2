@@ -94,6 +94,7 @@ class LeaveController extends Controller
             'filters' => $filters,
             'canManage' => $canManage,
             'canManageLeaveTypes' => $this->canManageLeaveTypes($request),
+            'canRequestLeave' => $this->canRequestLeave($request),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);
@@ -198,6 +199,11 @@ class LeaveController extends Controller
     private function canManageLeaveTypes(Request $request): bool
     {
         return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
+    }
+
+    private function canRequestLeave(Request $request): bool
+    {
+        return ! $request->user()->hasAnyRole(StoreLeaveRequest::ROLES_WITHOUT_SELF_SERVICE);
     }
 
     private function notifyEmployee(
