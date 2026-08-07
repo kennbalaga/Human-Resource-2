@@ -605,9 +605,9 @@ html[data-theme-resolved='dark'] .ai-candidate-heading b { color:#9cd9b8; }
 /* Global-search result content. */
 html[data-theme-resolved='dark'] .global-search-result { border-color:var(--hr-border); }
 html[data-theme-resolved='dark'] .global-search-result:hover,
-html[data-theme-resolved='dark'] .global-search-result:focus-visible { background:#172a21; }
-html[data-theme-resolved='dark'] .global-search-result > svg { color:#a9b8b0; }
-html[data-theme-resolved='dark'] .global-search-department-code { color:#86e4ad; background:#173a29; }
+html[data-theme-resolved='dark'] .global-search-result:focus-visible { background:#232e28; }
+html[data-theme-resolved='dark'] .global-search-result > svg { color:#b3c2b9; }
+html[data-theme-resolved='dark'] .global-search-department-code { color:#9cd9b8; background:#20392d; }
 
 /* ==========================================================================
    Depth, contrast, and accent calm-down.
@@ -707,6 +707,87 @@ html[data-theme-resolved='dark'] .status-bar-approved { background:#7ec8a4!impor
 html[data-theme-resolved='dark'] .status-bar-rejected { background:#e79aa4!important; }
 html[data-theme-resolved='dark'] .ai-insight-panel { border-top-color:var(--hr-violet); }
 
+/*
+ * Attendance overview fills. The theme's pastel accents are tuned for text and
+ * badges -- as chart fills on #19231e they sit above the lightness band and
+ * below the chroma floor, so neighbouring series stop being tellable apart.
+ * These are the same four hues re-stepped for the dark surface and re-checked
+ * for colour-blind separation and 3:1 contrast. Not a flip of the light steps.
+ */
+html[data-theme-resolved='dark'] .attendance-swatch-present,
+html[data-theme-resolved='dark'] .attendance-fill-present { background:#48a175; }
+html[data-theme-resolved='dark'] .attendance-swatch-late,
+html[data-theme-resolved='dark'] .attendance-fill-late { background:#bf8a1f; }
+html[data-theme-resolved='dark'] .attendance-swatch-on_leave,
+html[data-theme-resolved='dark'] .attendance-fill-on_leave { background:#9d84d8; }
+html[data-theme-resolved='dark'] .attendance-swatch-absent,
+html[data-theme-resolved='dark'] .attendance-fill-absent { background:#dd6070; }
+
+html[data-theme-resolved='dark'] .attendance-range { border-color:var(--hr-border-strong); background:var(--hr-sunken); }
+html[data-theme-resolved='dark'] .attendance-range a.is-active { color:var(--hr-primary); background:var(--hr-surface-2); box-shadow:none; }
+html[data-theme-resolved='dark'] .attendance-column small,
+html[data-theme-resolved='dark'] .attendance-axis,
+html[data-theme-resolved='dark'] .attendance-legend-item,
+html[data-theme-resolved='dark'] .attendance-overview-caption { color:var(--hr-muted); }
+html[data-theme-resolved='dark'] .attendance-tooltip { border-color:var(--hr-border-strong); background:var(--hr-surface-2); box-shadow:var(--hr-shadow); }
+html[data-theme-resolved='dark'] .attendance-tooltip-row { color:var(--hr-muted); }
+html[data-theme-resolved='dark'] .attendance-table-view { border-top-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .attendance-table-view > summary:hover { background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .attendance-data-table tbody th { color:#c1d0c7; border-bottom-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .attendance-data-table tfoot th,
+html[data-theme-resolved='dark'] .attendance-data-table tfoot td { color:var(--hr-text); border-top-color:var(--hr-border); }
+
+/*
+ * Shift overview. The coverage bar reuses the attendance panel's dark steps so the
+ * two read as one system; the shift's own colour is left alone, since it is the
+ * template's identity and is only ever carried by the dot and the card edge.
+ */
+html[data-theme-resolved='dark'] .shift-pool-fill-clocked-in { background:#48a175; }
+html[data-theme-resolved='dark'] .shift-pool-fill-on-leave { background:#9d84d8; }
+html[data-theme-resolved='dark'] .shift-pool-fill-missing { background:#dd6070; }
+html[data-theme-resolved='dark'] .shift-pool-stats .is-clocked-in dd { color:#5fb98c; }
+html[data-theme-resolved='dark'] .shift-pool-stats .is-missing dd { color:#ef9aa4; }
+
+html[data-theme-resolved='dark'] .shift-pool { border-color:var(--hr-border); background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .shift-pool.is-unstaffed { border-left-color:var(--hr-border-strong); background:var(--hr-sunken); }
+html[data-theme-resolved='dark'] .shift-pool.is-unstaffed .shift-pool-dot { background:var(--hr-border-strong); }
+html[data-theme-resolved='dark'] .shift-pool-bar { background:var(--hr-sunken); }
+html[data-theme-resolved='dark'] .shift-pool-tag { color:var(--hr-muted); background:var(--hr-sunken); }
+html[data-theme-resolved='dark'] .shift-pool-header h3,
+html[data-theme-resolved='dark'] .shift-pool-start strong,
+html[data-theme-resolved='dark'] .shift-pool-stats dd { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .shift-pool-start span,
+html[data-theme-resolved='dark'] .shift-pool-start small,
+html[data-theme-resolved='dark'] .shift-pool-stats dt,
+html[data-theme-resolved='dark'] .shift-pool-footnote,
+html[data-theme-resolved='dark'] .shift-overview-date,
+html[data-theme-resolved='dark'] .shift-overview-caption { color:var(--hr-muted); }
+html[data-theme-resolved='dark'] .shift-table-view { border-top-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .shift-table-view > summary:hover { background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .shift-data-table tbody th { color:#c1d0c7; border-bottom-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .shift-data-table tfoot th,
+html[data-theme-resolved='dark'] .shift-data-table tfoot td { color:var(--hr-text); border-top-color:var(--hr-border); }
+
+/*
+ * Workforce analytics preview. The accents are the attendance panel's dark steps
+ * again -- the light theme's #176b43 / #7656c9 / #b8760d never clear the dark
+ * surface, so each meter is re-stepped rather than dimmed.
+ */
+html[data-theme-resolved='dark'] .analytics-metric { border-color:var(--hr-border); background:var(--hr-surface-2); --analytics-accent:#48a175; }
+html[data-theme-resolved='dark'] .analytics-metric-violet { --analytics-accent:#9d84d8; }
+html[data-theme-resolved='dark'] .analytics-metric-amber { --analytics-accent:#bf8a1f; }
+html[data-theme-resolved='dark'] .analytics-metric-meter { background:var(--hr-sunken); }
+html[data-theme-resolved='dark'] .analytics-metric-value { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .analytics-metric-label,
+html[data-theme-resolved='dark'] .analytics-metric-detail,
+html[data-theme-resolved='dark'] .analytics-preview-range,
+html[data-theme-resolved='dark'] .analytics-preview-footer > span,
+html[data-theme-resolved='dark'] .analytics-preview-caption { color:var(--hr-muted); }
+html[data-theme-resolved='dark'] .analytics-table-view { border-top-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .analytics-table-view > summary:hover { background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .analytics-preview-table tbody th { color:#c1d0c7; border-bottom-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .analytics-preview-footer { border-top-color:var(--hr-border); background:var(--hr-surface-2); }
+
 /* The selected nav item is a wash of the accent, so it desaturates with it. */
 html[data-theme-resolved='dark'] .sidebar-link.active { background:linear-gradient(90deg,rgba(var(--hr-primary-rgb),.26),rgba(var(--hr-primary-rgb),.1)); }
 
@@ -776,15 +857,27 @@ html[data-theme-resolved='dark'] .employee-number { color:#c1d0c7; }
 html[data-theme-resolved='dark'] .app-footer,
 html[data-theme-resolved='dark'] .notification-item time { color:var(--hr-subtle); }
 
-html[data-theme-resolved='dark'] .roster-board { background: #16202c; }
+/* --- 5. Roster board ------------------------------------------------------
+ *
+ * The board nests four levels deep, so it climbs the surface ladder as it goes:
+ * each level in is one step lighter, which reads as "closer" without a single
+ * outline. The light theme's greens and reds are far too dark to survive here,
+ * so coverage, removal, and short-staffed markers move to the pastel scale.
+ * ------------------------------------------------------------------------- */
+
+html[data-theme-resolved='dark'] .roster-board { background:var(--hr-sunken); }
+html[data-theme-resolved='dark'] .roster-day { border-color:transparent; border-left-color:var(--hr-primary); background:var(--hr-surface); }
+html[data-theme-resolved='dark'] .roster-day.is-short { border-left-color:var(--hr-warning); }
+html[data-theme-resolved='dark'] .roster-shift { background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .roster-shift.is-short { background:#332c19; }
+html[data-theme-resolved='dark'] .roster-people li { background:var(--hr-surface-3); }
+html[data-theme-resolved='dark'] .roster-people li.is-blocked { color:#efa8b1; background:#341f25; }
+html[data-theme-resolved='dark'] .roster-people em { color:#a6dcc0; background:var(--hr-tint-success); }
+html[data-theme-resolved='dark'] .roster-add { color:var(--hr-muted); border-color:var(--hr-border-strong); background:transparent; }
+html[data-theme-resolved='dark'] .roster-coverage { color:#a6dcc0; }
+html[data-theme-resolved='dark'] .roster-shift.is-short .roster-coverage { color:#ecc98f; }
+html[data-theme-resolved='dark'] .roster-remove { color:#efa8b1; }
 html[data-theme-resolved='dark'] .roster-board-heading span,
 html[data-theme-resolved='dark'] .roster-people small,
 html[data-theme-resolved='dark'] .roster-shift > header small,
-html[data-theme-resolved='dark'] .roster-rest { color: #93a3b8; }
-html[data-theme-resolved='dark'] .roster-day { background: #1b2735; border-color: #2c3a4b; }
-html[data-theme-resolved='dark'] .roster-shift { background: #223041; }
-html[data-theme-resolved='dark'] .roster-shift.is-short { background: #33291a; }
-html[data-theme-resolved='dark'] .roster-people li { background: #1b2735; }
-html[data-theme-resolved='dark'] .roster-people li.is-blocked { background: #3a2220; color: #f0a79c; }
-html[data-theme-resolved='dark'] .roster-people em { background: #1d4034; color: #7fd3ab; }
-html[data-theme-resolved='dark'] .roster-add { background: #1b2735; border-color: #38475b; color: inherit; }
+html[data-theme-resolved='dark'] .roster-rest { color:var(--hr-muted); }

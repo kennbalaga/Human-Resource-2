@@ -185,6 +185,32 @@ input {
     gap: 4px;
 }
 
+.sidebar-nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/*
+ * Group labels sit below the links in the hierarchy -- lighter weight of voice, so
+ * the eye still lands on the destination first. They stay above the 4.5:1 floor for
+ * the same reason the links do.
+ */
+.sidebar-nav-heading {
+    margin: 12px 0 2px;
+    padding: 0 11px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.62rem;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.sidebar-nav-group:first-child .sidebar-nav-heading {
+    margin-top: 0;
+}
+
 .sidebar-link {
     display: flex;
     min-height: 44px;
@@ -407,6 +433,22 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
         pointer-events: none;
     }
 
+    /* No room for the label at this width, so the group survives as a hairline --
+       the rhythm of the grouping is kept even though the name is gone. */
+    html[data-sidebar='collapsed'] .sidebar-nav-heading {
+        height: 0;
+        margin: 10px 10px 9px;
+        padding: 0;
+        overflow: hidden;
+        border-top: 1px solid rgba(255, 255, 255, 0.13);
+        color: transparent;
+    }
+
+    html[data-sidebar='collapsed'] .sidebar-nav-group:first-child .sidebar-nav-heading {
+        margin-top: 0;
+        border-top: 0;
+    }
+
     html[data-sidebar='collapsed'] .sidebar-profile-button {
         padding-right: 4px;
         padding-left: 4px;
@@ -594,12 +636,19 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
     height: 18px;
 }
 
+/*
+ * The pill draws the field, so the input has to stop being a native search box --
+ * without this reset the UA paints its own fill, which `color-scheme: dark` turns
+ * into a grey slab sitting inside the pill.
+ */
 .global-search input {
     min-width: 0;
     border: 0;
     outline: 0;
     color: var(--hr-text);
     background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
     flex: 1;
     font-size: 0.82rem;
 }
@@ -1680,6 +1729,721 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
     font-size: 0.72rem;
 }
 
+/*
+ * Attendance overview -- the daily Present / Late / On leave / Absent stack.
+ *
+ * The four fills are not hand-picked. They are the app's own green, amber,
+ * violet, and red snapped to steps that clear the lightness band, the chroma
+ * floor, colour-blind separation, and 3:1 against the panel. Amber and red are
+ * the pair that collapses under deuteranopia, so the stack deliberately seats
+ * violet between them; reordering the series would break that. The dark theme
+ * needs its own steps rather than a flip -- those live in dark-mode.css.
+ */
+.attendance-overview {
+    display: flex;
+    overflow: hidden;
+    margin-bottom: 22px;
+    border-radius: 15px;
+    flex-direction: column;
+}
+
+.attendance-range {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid var(--hr-border);
+    border-radius: 9px;
+    background: #f6f9f7;
+    flex: 0 0 auto;
+    gap: 2px;
+}
+
+.attendance-range a {
+    padding: 5px 11px;
+    border-radius: 7px;
+    color: var(--hr-muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.attendance-range a:hover {
+    color: var(--hr-text);
+}
+
+.attendance-range a.is-active {
+    color: var(--hr-primary);
+    background: var(--hr-surface);
+    box-shadow: 0 1px 2px rgba(20, 60, 40, 0.12);
+}
+
+.attendance-overview-caption {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 14px 20px 0;
+    color: var(--hr-muted);
+    gap: 3px 14px;
+    font-size: 0.65rem;
+}
+
+.attendance-legend {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 12px 20px 2px;
+    gap: 8px 20px;
+}
+
+.attendance-legend-item {
+    display: inline-flex;
+    align-items: center;
+    color: var(--hr-muted);
+    gap: 7px;
+    font-size: 0.7rem;
+}
+
+.attendance-legend-item strong {
+    color: var(--hr-text);
+    font-size: 0.74rem;
+    font-weight: 650;
+}
+
+.attendance-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex: 0 0 auto;
+}
+
+.attendance-swatch-present,
+.attendance-fill-present {
+    background: #176b43;
+}
+
+.attendance-swatch-late,
+.attendance-fill-late {
+    background: #b8760d;
+}
+
+.attendance-swatch-on_leave,
+.attendance-fill-on_leave {
+    background: #7656c9;
+}
+
+.attendance-swatch-absent,
+.attendance-fill-absent {
+    background: #b02a3c;
+}
+
+.attendance-chart {
+    --attendance-track: 176px;
+
+    position: relative;
+    display: grid;
+    padding: 14px 20px 8px;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0 10px;
+}
+
+.attendance-axis {
+    display: flex;
+    height: var(--attendance-track);
+    color: var(--hr-muted);
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 0.58rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.attendance-axis span {
+    transform: translateY(-50%);
+}
+
+.attendance-plot-scroll {
+    overflow-x: auto;
+}
+
+.attendance-plot {
+    position: relative;
+    display: grid;
+    min-width: calc(var(--attendance-columns) * 22px);
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 6px;
+}
+
+/* Three hairline rules -- top, midpoint, baseline -- behind the bars. */
+.attendance-plot::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: var(--attendance-track);
+    background-image:
+        linear-gradient(var(--hr-border), var(--hr-border)),
+        linear-gradient(var(--hr-border), var(--hr-border)),
+        linear-gradient(var(--hr-border), var(--hr-border));
+    background-position: 0 0, 0 50%, 0 100%;
+    background-repeat: no-repeat;
+    background-size: 100% 1px;
+    pointer-events: none;
+}
+
+.attendance-column {
+    display: grid;
+    border-radius: 6px;
+    grid-template-rows: var(--attendance-track) auto;
+    gap: 7px;
+}
+
+.attendance-column:focus-visible {
+    outline: 2px solid var(--hr-primary);
+    outline-offset: 3px;
+}
+
+.attendance-column small {
+    color: var(--hr-muted);
+    font-size: 0.57rem;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* The bar is capped rather than filling its slot -- the leftover is meant to be air. */
+.attendance-track {
+    display: flex;
+    width: min(100%, 24px);
+    height: var(--attendance-track);
+    margin: 0 auto;
+    align-items: flex-end;
+}
+
+/* A 2px gap in the surface colour separates the segments; no borders. */
+.attendance-stack {
+    display: flex;
+    overflow: hidden;
+    width: 100%;
+    min-height: 3px;
+    border-radius: 4px 4px 0 0;
+    flex-direction: column-reverse;
+    gap: 2px;
+}
+
+/* A day with nothing recorded still gets a stub, so it reads as zero rather than
+   as a column that failed to draw. */
+.attendance-stack.is-zero {
+    background: var(--hr-border);
+}
+
+.attendance-fill {
+    min-height: 2px;
+    flex: 1 1 0;
+    transition: filter 140ms ease;
+}
+
+.attendance-column:hover .attendance-fill,
+.attendance-column:focus-visible .attendance-fill,
+.attendance-column.is-active .attendance-fill {
+    filter: brightness(1.14) saturate(1.06);
+}
+
+.attendance-tooltip {
+    position: absolute;
+    z-index: 6;
+    min-width: 148px;
+    padding: 9px 11px;
+    border: 1px solid var(--hr-border);
+    border-radius: 10px;
+    background: var(--hr-surface);
+    box-shadow: 0 10px 26px rgba(16, 45, 30, 0.16);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition: opacity 130ms ease;
+}
+
+.attendance-tooltip[data-visible='true'] {
+    opacity: 1;
+}
+
+.attendance-tooltip-day {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--hr-text);
+    font-size: 0.65rem;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.attendance-tooltip-row {
+    display: grid;
+    align-items: center;
+    color: var(--hr-muted);
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    gap: 4px 8px;
+    font-size: 0.65rem;
+}
+
+/* A short stroke keys the series -- at tooltip density a filled box is too much ink. */
+.attendance-tooltip-key {
+    height: 2px;
+    border-radius: 2px;
+}
+
+.attendance-tooltip-row b {
+    color: var(--hr-text);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.attendance-overview-empty {
+    padding: 34px 20px 40px;
+}
+
+.attendance-table-view {
+    border-top: 1px solid var(--hr-border);
+}
+
+.attendance-table-view > summary {
+    padding: 11px 20px;
+    color: var(--hr-primary);
+    cursor: pointer;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+.attendance-table-view > summary:hover {
+    background: #fbfcfb;
+}
+
+.attendance-data-table {
+    min-width: 520px;
+}
+
+.attendance-data-table td {
+    font-variant-numeric: tabular-nums;
+}
+
+.attendance-data-table tbody th {
+    padding: 13px 15px 13px 20px;
+    border-bottom: 1px solid #edf2ef;
+    color: #506058;
+    background: none;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-align: left;
+    text-transform: none;
+}
+
+.attendance-data-table tfoot th,
+.attendance-data-table tfoot td {
+    border-top: 1px solid var(--hr-border);
+    border-bottom: 0;
+    color: var(--hr-text);
+    background: none;
+    font-weight: 650;
+}
+
+/*
+ * Today's shift overview -- one pool per active shift template.
+ *
+ * The coverage bar borrows the attendance stack's green / violet / red so the two
+ * panels read as one language: clocked in, on leave, missing. Each card also flies
+ * the shift's own colour on the dot and left edge, which is identity only -- never
+ * a status -- so the three fills stay the only thing carrying meaning.
+ */
+.shift-overview {
+    display: flex;
+    overflow: hidden;
+    margin-bottom: 22px;
+    border-radius: 15px;
+    flex-direction: column;
+}
+
+.shift-overview-date {
+    color: var(--hr-muted);
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.shift-overview-caption {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 14px 20px 0;
+    color: var(--hr-muted);
+    gap: 3px 14px;
+    font-size: 0.65rem;
+}
+
+.shift-pool-grid {
+    display: grid;
+    padding: 14px 20px 18px;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+}
+
+.shift-pool {
+    display: flex;
+    padding: 13px 14px 12px;
+    border: 1px solid var(--hr-border);
+    border-left: 3px solid var(--shift-color);
+    border-radius: 11px;
+    background: var(--hr-surface);
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* A pool nobody was rostered onto is information, not an error -- it just recedes. */
+.shift-pool.is-unstaffed {
+    border-left-color: var(--hr-border);
+    background: #fbfcfb;
+}
+
+.shift-pool-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.shift-pool-header h3 {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.shift-pool-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+    background: var(--shift-color);
+    flex: 0 0 auto;
+}
+
+.shift-pool.is-unstaffed .shift-pool-dot {
+    background: var(--hr-border-strong, #c8d5ce);
+}
+
+.shift-pool-tag {
+    margin-left: auto;
+    padding: 2px 7px;
+    border-radius: 999px;
+    color: var(--hr-muted);
+    background: var(--hr-sunken, #f2f6f4);
+    font-size: 0.56rem;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.shift-pool-start {
+    display: flex;
+    margin: 0;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.shift-pool-start span {
+    color: var(--hr-muted);
+    font-size: 0.6rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.shift-pool-start strong {
+    color: var(--hr-text);
+    font-size: 1.05rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.shift-pool-start small {
+    color: var(--hr-muted);
+    font-size: 0.62rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.shift-pool-bar {
+    display: flex;
+    overflow: hidden;
+    height: 6px;
+    border-radius: 999px;
+    background: #e9efeb;
+    gap: 1px;
+}
+
+.shift-pool-fill {
+    display: block;
+}
+
+.shift-pool-fill-clocked-in {
+    background: #176b43;
+}
+
+.shift-pool-fill-on-leave {
+    background: #7656c9;
+}
+
+.shift-pool-fill-missing {
+    background: #b02a3c;
+}
+
+.shift-pool-stats {
+    display: grid;
+    margin: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.shift-pool-stats dt {
+    color: var(--hr-muted);
+    font-size: 0.58rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.shift-pool-stats dd {
+    margin: 2px 0 0;
+    color: var(--hr-text);
+    font-size: 0.95rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.shift-pool-stats .is-clocked-in dd {
+    color: #176b43;
+}
+
+/* Only a non-zero Missing earns the red -- a staffed shift should read as calm. */
+.shift-pool-stats .is-missing dd {
+    color: #b02a3c;
+}
+
+.shift-pool-footnote {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: 0.62rem;
+}
+
+.shift-overview-empty {
+    padding: 34px 20px 40px;
+}
+
+.shift-table-view {
+    border-top: 1px solid var(--hr-border);
+}
+
+.shift-table-view > summary {
+    padding: 11px 20px;
+    color: var(--hr-primary);
+    cursor: pointer;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+.shift-table-view > summary:hover {
+    background: #fbfcfb;
+}
+
+.shift-data-table {
+    min-width: 560px;
+}
+
+.shift-data-table td {
+    font-variant-numeric: tabular-nums;
+}
+
+.shift-data-table tbody th {
+    padding: 13px 15px 13px 20px;
+    border-bottom: 1px solid #edf2ef;
+    color: #506058;
+    background: none;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-align: left;
+    text-transform: none;
+}
+
+.shift-data-table tfoot th,
+.shift-data-table tfoot td {
+    border-top: 1px solid var(--hr-border);
+    border-bottom: 0;
+    color: var(--hr-text);
+    background: none;
+    font-weight: 650;
+}
+
+/*
+ * Workforce analytics preview -- five headline figures, then the way out to the
+ * full module.
+ *
+ * Colour is not decoration here. The three "higher is better" rates share the
+ * app's green so the shared fill is itself the reading; leave takes the violet
+ * the attendance stack already spends on On leave, and overtime takes that
+ * stack's amber, because a rising number there is a watch-item rather than a
+ * win. Tinting all five differently would invent five meanings that do not
+ * exist. Dark theme steps live in dark-mode.css.
+ */
+.analytics-preview {
+    display: flex;
+    overflow: hidden;
+    margin-bottom: 22px;
+    border-radius: 15px;
+    flex-direction: column;
+}
+
+.analytics-preview-range {
+    color: var(--hr-muted);
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.analytics-preview-caption {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 14px 20px 0;
+    color: var(--hr-muted);
+    gap: 3px 14px;
+    font-size: 0.65rem;
+}
+
+.analytics-metric-grid {
+    display: grid;
+    padding: 14px 20px 18px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+}
+
+.analytics-metric {
+    --analytics-accent: var(--hr-primary);
+
+    display: flex;
+    padding: 13px 14px 12px;
+    border: 1px solid var(--hr-border);
+    border-left: 3px solid var(--analytics-accent);
+    border-radius: 11px;
+    background: var(--hr-surface);
+    flex-direction: column;
+    gap: 7px;
+}
+
+.analytics-metric-violet {
+    --analytics-accent: #7656c9;
+}
+
+.analytics-metric-amber {
+    --analytics-accent: #b8760d;
+}
+
+.analytics-metric-label {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: 0.6rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.analytics-metric-value {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: 1.5rem;
+    font-weight: 680;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.analytics-metric-meter {
+    height: 6px;
+    border-radius: 999px;
+    background: #e9efeb;
+}
+
+.analytics-metric-meter .progress-bar {
+    border-radius: inherit;
+    background: var(--analytics-accent);
+}
+
+.analytics-metric-detail {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: 0.62rem;
+}
+
+.analytics-preview-empty {
+    padding: 34px 20px 40px;
+}
+
+.analytics-table-view {
+    border-top: 1px solid var(--hr-border);
+}
+
+.analytics-table-view > summary {
+    padding: 11px 20px;
+    color: var(--hr-primary);
+    cursor: pointer;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+.analytics-table-view > summary:hover {
+    background: #fbfcfb;
+}
+
+.analytics-preview-table {
+    min-width: 520px;
+}
+
+.analytics-preview-table td {
+    font-variant-numeric: tabular-nums;
+}
+
+.analytics-preview-table tbody th {
+    padding: 13px 15px 13px 20px;
+    border-bottom: 1px solid #edf2ef;
+    color: #506058;
+    background: none;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-align: left;
+    text-transform: none;
+}
+
+/*
+ * The call to action gets the panel's whole footer rather than a text link, so
+ * the one thing this section exists to do is the one thing that carries weight.
+ */
+.analytics-preview-footer {
+    display: flex;
+    padding: 14px 20px;
+    border-top: 1px solid var(--hr-border);
+    background: #fbfcfb;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+}
+
+.analytics-preview-footer > span {
+    color: var(--hr-muted);
+    font-size: 0.65rem;
+}
+
+.analytics-preview-cta {
+    flex: 0 0 auto;
+}
+
 .quick-actions {
     display: flex;
     padding: 20px 22px;
@@ -1880,6 +2644,30 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
         padding: 16px;
     }
 
+    .attendance-overview-caption,
+    .attendance-legend,
+    .attendance-chart,
+    .attendance-table-view > summary,
+    .shift-overview-caption,
+    .shift-pool-grid,
+    .shift-table-view > summary,
+    .analytics-preview-caption,
+    .analytics-metric-grid,
+    .analytics-table-view > summary,
+    .analytics-preview-footer {
+        padding-right: 16px;
+        padding-left: 16px;
+    }
+
+    .attendance-chart {
+        --attendance-track: 148px;
+    }
+
+    /* Touch has no hover, and the data table already carries every value. */
+    .attendance-tooltip {
+        display: none;
+    }
+
     .app-footer {
         padding: 15px 18px;
         text-align: center;
@@ -1926,6 +2714,42 @@ html[data-theme-resolved='dark'] .sidebar-theme-option[data-theme-set='dark'] {
     .quick-action-icon {
         width: 38px;
         height: 38px;
+    }
+
+    .attendance-overview .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .attendance-legend {
+        gap: 6px 14px;
+    }
+
+    .shift-overview .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .shift-pool-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-preview .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .analytics-metric-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* A full-width button beats one stranded beside wrapped helper text. */
+    .analytics-preview-cta {
+        width: 100%;
+        justify-content: center;
     }
 }
 
