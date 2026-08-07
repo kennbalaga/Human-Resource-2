@@ -54,7 +54,7 @@ class EmployeeController extends Controller
             'employees' => $query->orderBy('last_name')->orderBy('first_name')->paginate(15)->withQueryString(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'filters' => $filters,
-            'canManage' => $this->canManage($request),
+            'canManage' => $this->canWrite($request),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }
@@ -65,7 +65,7 @@ class EmployeeController extends Controller
 
         return view('employees.show', [
             'employee' => $employee,
-            'canManage' => $this->canManage($request),
+            'canManage' => $this->canWrite($request),
             'canViewPrivate' => $this->canManage($request) || $request->user()->employee?->is($employee),
             'canResetTwoFactor' => $request->user()->hasRole('system-administrator')
                 && $employee->user !== null
@@ -250,13 +250,22 @@ class EmployeeController extends Controller
         return app()->environment(['local', 'testing']);
     }
 
+    /**
+     * Who may see the whole directory, including private fields. Read-only
+     * administrators are included: they keep the visibility, not the pen.
+     */
     private function canManage(Request $request): bool
     {
         return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
     }
 
+    private function canWrite(Request $request): bool
+    {
+        return $this->canManage($request) && $request->user()->canManageData();
+    }
+
     private function requireManager(Request $request): void
     {
-        abort_unless($this->canManage($request), 403);
+        abort_unless($this->canWrite($request), 403);
     }
 }

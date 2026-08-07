@@ -13,16 +13,18 @@
             <h1>Attendance Reports</h1>
             <p>Review work hours, late arrivals, undertime, and overtime records.</p>
         </div>
-        <div class="dropdown dashboard-action-menu">
-            <button class="btn btn-primary dashboard-action dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <x-icon name="download" /> Export
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="{{ route('attendance.reports.export', request()->query()) }}"><x-icon name="report" /> <span>Export as CSV</span></a></li>
-                <li><a class="dropdown-item" href="{{ route('attendance.reports.export-excel', request()->query()) }}"><x-icon name="report" /> <span>Export as Excel</span></a></li>
-                <li><a class="dropdown-item" href="{{ route('attendance.reports.export-pdf', request()->query()) }}"><x-icon name="report" /> <span>Export as PDF</span></a></li>
-            </ul>
-        </div>
+        @if($canManageData)
+            <div class="dropdown dashboard-action-menu">
+                <button class="btn btn-primary dashboard-action dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <x-icon name="download" /> Export
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{{ route('attendance.reports.export', request()->query()) }}"><x-icon name="report" /> <span>Export as CSV</span></a></li>
+                    <li><a class="dropdown-item" href="{{ route('attendance.reports.export-excel', request()->query()) }}"><x-icon name="report" /> <span>Export as Excel</span></a></li>
+                    <li><a class="dropdown-item" href="{{ route('attendance.reports.export-pdf', request()->query()) }}"><x-icon name="report" /> <span>Export as PDF</span></a></li>
+                </ul>
+            </div>
+        @endif
     </section>
 
     @if ($errors->any())
@@ -154,7 +156,7 @@
                             <td><x-status-badge :status="$record->status" /></td>
                             <td><x-status-badge :status="$record->approval_status" /></td>
                             <td>
-                                @if ($record->check_out_at && $record->approval_status !== 'approved')
+                                @if ($record->check_out_at && $record->approval_status !== 'approved' && $canManageData)
                                     <div class="attendance-approval-actions">
                                         <form method="POST" action="{{ route('attendance.records.approve', $record) }}">@csrf<button class="btn btn-sm btn-success" type="submit">Approve</button></form>
                                         <form method="POST" action="{{ route('attendance.records.reject', $record) }}" class="attendance-reject-form">@csrf<input type="text" name="rejection_reason" minlength="5" maxlength="500" placeholder="Reason" required><button class="btn btn-sm btn-outline-danger" type="submit">Reject</button></form>

@@ -93,7 +93,8 @@ class LeaveController extends Controller
             'focusDate' => $focusDate,
             'filters' => $filters,
             'canManage' => $canManage,
-            'canManageLeaveTypes' => $this->canManageLeaveTypes($request),
+            'canManageData' => $canManage && $request->user()->canManageData(),
+            'canManageLeaveTypes' => $this->canManageLeaveTypes($request) && $request->user()->canManageData(),
             'canRequestLeave' => $this->canRequestLeave($request),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
@@ -193,7 +194,7 @@ class LeaveController extends Controller
 
     private function requireManager(Request $request): void
     {
-        abort_unless($this->canManage($request), 403);
+        abort_unless($this->canManage($request) && $request->user()->canManageData(), 403);
     }
 
     private function canManageLeaveTypes(Request $request): bool

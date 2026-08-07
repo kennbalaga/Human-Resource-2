@@ -28,6 +28,7 @@ class AnalyticsController extends Controller
         return view('analytics.index', $data + [
             'filters' => $request->validated(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
+            'canManageData' => $request->user()->canManageData(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
             'aiInsight' => Cache::get($this->insightCacheKey($request->user()->id, $request->validated())),

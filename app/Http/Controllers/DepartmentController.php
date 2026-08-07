@@ -36,7 +36,7 @@ class DepartmentController extends Controller
             'departments' => $departments,
             'filters' => $filters,
             'categories' => Department::categories(),
-            'canManage' => $this->canManage($request),
+            'canManage' => $this->canWrite($request),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }
@@ -106,8 +106,13 @@ class DepartmentController extends Controller
         return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
     }
 
+    private function canWrite(Request $request): bool
+    {
+        return $this->canManage($request) && $request->user()->canManageData();
+    }
+
     private function requireManager(Request $request): void
     {
-        abort_unless($this->canManage($request), 403);
+        abort_unless($this->canWrite($request), 403);
     }
 }

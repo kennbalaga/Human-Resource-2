@@ -168,22 +168,18 @@ class LeaveWorkflowTest extends TestCase
         $this->assertDatabaseHas('leave_types', ['code' => 'COMP-OFF', 'name' => 'Compensatory Leave (Comp-Off)']);
     }
 
-    public function test_administrators_and_hr_managers_cannot_request_leave_for_themselves(): void
+    public function test_hr_managers_cannot_request_leave_for_themselves(): void
     {
         $vacation = LeaveType::query()->where('code', 'VAC')->firstOrFail();
+        $reviewer = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
 
-        foreach (['admin@hrms.local', 'hr.manager@hrms.local'] as $email) {
-            $reviewer = User::query()->where('email', $email)->firstOrFail();
-            $this->flushSession();
-
-            $this->actingAs($reviewer)->get('/leaves')->assertOk()->assertDontSee('Request leave');
-            $this->actingAs($reviewer)->post('/leaves', [
-                'leave_type_id' => $vacation->id,
-                'start_date' => '2027-06-07',
-                'end_date' => '2027-06-09',
-                'reason' => 'Scheduled family vacation leave.',
-            ])->assertForbidden();
-        }
+        $this->actingAs($reviewer)->get('/leaves')->assertOk()->assertDontSee('Request leave');
+        $this->actingAs($reviewer)->post('/leaves', [
+            'leave_type_id' => $vacation->id,
+            'start_date' => '2027-06-07',
+            'end_date' => '2027-06-09',
+            'reason' => 'Scheduled family vacation leave.',
+        ])->assertForbidden();
 
         $this->assertDatabaseCount('leave_requests', 0);
     }

@@ -32,6 +32,7 @@ class TimesheetController extends Controller
             ],
             'filters' => $filters,
             'canManage' => $canManage,
+            'canManageData' => $canManage && $request->user()->canManageData(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'employees' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
@@ -99,6 +100,6 @@ class TimesheetController extends Controller
 
     private function requireManager(Request $request): void
     {
-        abort_unless($this->canManage($request), 403);
+        abort_unless($this->canManage($request) && $request->user()->canManageData(), 403);
     }
 }
