@@ -18,12 +18,6 @@
             <h1>{{ $greeting }}, {{ auth()->user()->name }}.</h1>
             <p>Here’s what’s happening across your hospital workforce today.</p>
         </div>
-        @if ($canManageWorkforce)
-            <a class="btn btn-primary dashboard-action" href="{{ route('employees.create') }}">
-                <x-icon name="users" />
-                Add employee
-            </a>
-        @endif
     </section>
 
     <section class="stats-grid" aria-label="Workforce summary">
