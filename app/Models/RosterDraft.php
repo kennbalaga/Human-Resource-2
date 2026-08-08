@@ -16,6 +16,7 @@ class RosterDraft extends Model
         'start_date',
         'end_date',
         'entries',
+        'rules',
         'status',
         'notes',
         'created_by',
@@ -30,6 +31,7 @@ class RosterDraft extends Model
             'start_date' => 'date',
             'end_date' => 'date',
             'entries' => 'array',
+            'rules' => 'array',
             'published_at' => 'datetime',
             'discarded_at' => 'datetime',
         ];

@@ -249,6 +249,11 @@ document.addEventListener('DOMContentLoaded', () => {
         rotationField.hidden = !aiSchedule;
         rotationField.querySelectorAll('input').forEach((input) => { input.disabled = !aiSchedule; });
         weekendField.hidden = aiSchedule;
+        // "Put everyone on the selected shift" only makes sense for a fixed
+        // shift; in rotation/custom mode shift_id is disabled and posting it
+        // would just fail BulkScheduleAssignmentRequest's required check.
+        const shiftFillButton = bulkForm.querySelector('[data-roster-fill-shift]');
+        if (shiftFillButton) shiftFillButton.hidden = aiSchedule;
         bulkForm.elements.include_weekends.checked = aiSchedule;
         const help = bulkForm.querySelector('[data-shift-pool-help]');
         if (help) help.textContent = method === 'custom'
@@ -322,11 +327,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const empty = bulkForm.querySelector('[data-bulk-employee-empty]');
         const hasVisibleEmployees = bulkEmployeeOptions.some((option) => !option.hidden);
         empty.hidden = hasVisibleEmployees;
-        empty.textContent = !departmentId
-            ? 'Select a department to load active employees.'
-            : !positionId
-                ? 'Select a position to load active employees.'
-                : 'No active employees match the selected filters.';
+        if (!departmentId) {
+            empty.textContent = 'Select a department to load its active employees.';
+        } else if (!positionId) {
+            const departmentOption = bulkForm.querySelector('[data-bulk-department-filter]').selectedOptions[0];
+            const count = Number(departmentOption?.dataset.employeeCount ?? 0);
+            const departmentName = departmentOption?.textContent ?? 'this department';
+            empty.textContent = count
+                ? `Loads ${count} active employee${count === 1 ? '' : 's'} in ${departmentName} once a position is selected.`
+                : `No active employees are on record for ${departmentName} yet.`;
+        } else {
+            empty.textContent = 'No active employees match the selected filters.';
+        }
     };
 
     // Rosters are built one department and position at a time, so the position
@@ -343,6 +355,24 @@ document.addEventListener('DOMContentLoaded', () => {
         positionFilter.value = '';
         positionFilter.disabled = !departmentId;
         if (placeholder) placeholder.textContent = departmentId ? 'Select position' : 'Select a department first';
+    };
+
+    // Night-shift limit and consecutive-night-streak rules exist for units
+    // that actually run overnight clinical shifts — a non-clinical
+    // department (Administration, HR, Finance, ...) has no such shift to
+    // limit, so these fields are hidden there rather than asking someone to
+    // set a night rule for a 9-to-5 unit. Disabled, not just hidden, so a
+    // stale value from a previous department doesn't quietly submit.
+    const syncClinicalOnlyFields = () => {
+        if (!bulkForm) return;
+        const departmentSelect = bulkForm.elements.department_id;
+        const isClinical = departmentSelect?.selectedOptions[0]?.dataset.category === 'clinical';
+
+        bulkForm.querySelectorAll('[data-clinical-only]').forEach((field) => {
+            field.hidden = !isClinical;
+            const input = field.querySelector('input, select, textarea');
+            if (input) input.disabled = !isClinical;
+        });
     };
 
     const syncBulkPositionAvailability = () => {
@@ -417,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
         syncBulkPositionOptions();
         syncBulkPositionAvailability();
         syncEmployeeScope();
+        syncClinicalOnlyFields();
     });
     bulkForm?.querySelector('[data-bulk-position-filter]')?.addEventListener('change', () => {
         syncBulkPositionAvailability();
@@ -450,9 +481,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const rosterClearButton = rosterBoard?.querySelector('[data-roster-clear]');
     const rosterSaveDraftButton = rosterBoard?.querySelector('[data-roster-save-draft]');
     const rosterDraftStatus = rosterBoard?.querySelector('[data-roster-draft-status]');
+    const rosterGapPanel = rosterBoard?.querySelector('[data-roster-gap-panel]');
+    const rosterGapTitle = rosterGapPanel?.querySelector('[data-roster-gap-title]');
+    const rosterGapList = rosterGapPanel?.querySelector('[data-roster-gap-list]');
+    const rosterNightStreakPanel = rosterBoard?.querySelector('[data-roster-night-streak-panel]');
+    const rosterNightStreakTitle = rosterNightStreakPanel?.querySelector('[data-roster-night-streak-title]');
+    const rosterNightStreakList = rosterNightStreakPanel?.querySelector('[data-roster-night-streak-list]');
     let rosterEntries = [];
     let rosterEvaluateTimer = null;
     let currentDraftUuid = null;
+    let lastEvaluation = null;
 
     const rosterKey = (entry) => `${entry.employee_id}|${entry.work_date}`;
 
@@ -468,6 +506,53 @@ document.addEventListener('DOMContentLoaded', () => {
         start_date: bulkForm.elements.start_date?.value,
         end_date: bulkForm.elements.end_date?.value,
     });
+
+    // The Step 3 rules travel with every evaluate call so the live board and
+    // the final publish check are held to the same policy the roster was
+    // built under, not a looser fallback default.
+    // A disabled field (e.g. the clinical-only night-shift fields, hidden for
+    // a non-clinical department) still exposes .value in JS even though a
+    // native form submit would drop it — read it as absent here too, so a
+    // stale or zeroed leftover value can't quietly override the sensible
+    // server-side default for a department these rules were never shown for.
+    const valueUnlessDisabled = (field) => (field && !field.disabled ? field.value : undefined);
+
+    const rulesPayload = () => ({
+        days_off_per_week: bulkForm.elements.days_off_per_week?.value,
+        max_hours_per_week: bulkForm.elements.max_hours_per_week?.value,
+        night_shift_limit: valueUnlessDisabled(bulkForm.elements.night_shift_limit),
+        max_consecutive_nights: valueUnlessDisabled(bulkForm.elements.max_consecutive_nights),
+        minimum_rest_hours: bulkForm.elements.minimum_rest_hours?.value,
+        overtime_allowed: bulkForm.elements.overtime_allowed?.checked ?? false,
+        overtime_justification: bulkForm.elements.overtime_justification?.value,
+        night_streak_justification: bulkForm.elements.night_streak_justification?.value,
+        minimum_staff_per_shift: bulkForm.elements.minimum_staff_per_shift?.value,
+        minimum_senior_per_shift: bulkForm.elements.minimum_senior_per_shift?.value,
+        senior_rank_threshold: bulkForm.elements.senior_rank_threshold?.value,
+        holiday_dates_csv: bulkForm.elements.holiday_dates_csv?.value,
+    });
+
+    // Which shift(s) this run is actually about — the single fixed shift, or
+    // the checked rotation/custom pool — so the live board and its coverage
+    // gate judge only what this roster was actually built for, not every
+    // active shift in the department.
+    const relevantShiftIds = () => (isAiSchedule()
+        ? [...bulkForm.querySelectorAll('input[name="shift_ids[]"]:checked')].map((input) => input.value)
+        : [bulkForm.elements.shift_id?.value].filter(Boolean));
+
+    // Turning on overtime requires a reason on record; the field only
+    // appears (and is only required) once the toggle is actually checked.
+    const overtimeToggle = bulkForm?.elements.overtime_allowed;
+    const overtimeJustificationWrap = bulkForm?.querySelector('[data-overtime-justification-wrap]');
+    const overtimeJustificationField = bulkForm?.querySelector('[data-overtime-justification]');
+    const syncOvertimeJustification = () => {
+        if (!overtimeToggle || !overtimeJustificationWrap) return;
+        const allowed = overtimeToggle.checked;
+        overtimeJustificationWrap.hidden = !allowed;
+        if (overtimeJustificationField) overtimeJustificationField.required = allowed;
+        if (!allowed && overtimeJustificationField) overtimeJustificationField.value = '';
+    };
+    overtimeToggle?.addEventListener('change', syncOvertimeJustification);
 
     const setRosterEntries = (entries) => {
         rosterEntries = entries;
@@ -499,6 +584,8 @@ document.addEventListener('DOMContentLoaded', () => {
         day.shifts.forEach((shift) => {
             const block = document.createElement('section');
             block.className = `roster-shift${shift.meets_requirement ? '' : ' is-short'}`;
+            block.dataset.date = day.date;
+            block.dataset.shiftId = String(shift.shift_id);
 
             const shiftHeading = document.createElement('header');
             const shiftName = document.createElement('strong');
@@ -585,8 +672,75 @@ document.addEventListener('DOMContentLoaded', () => {
         rosterDays?.querySelectorAll('.roster-add').forEach(rosterPickerOptions);
     };
 
+    // Tier A, hard: every under-covered (day, shift) pair, each row jumping
+    // straight to that block. There is no justification field here — this
+    // panel cannot be dismissed, only resolved by fixing the roster or
+    // editing the requirement on Step 3.
+    const renderCoverageGaps = (evaluation) => {
+        if (!rosterGapPanel) return;
+        const gaps = [];
+        evaluation.days.forEach((day) => {
+            day.shifts.forEach((shift) => {
+                if (!shift.meets_requirement) gaps.push({ date: day.date, shift });
+            });
+        });
+
+        rosterGapPanel.hidden = gaps.length === 0;
+        if (!gaps.length) return;
+
+        rosterGapTitle.textContent = `${gaps.length} shift${gaps.length === 1 ? '' : 's'} below required cover. This blocks publishing — there is no override.`;
+        rosterGapList.replaceChildren();
+        gaps.forEach((gap) => {
+            const item = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            const seniorNote = gap.shift.senior_required ? ` · ${gap.shift.senior_count}/${gap.shift.senior_required} senior` : '';
+            button.textContent = `${formatScheduleDate(gap.date)} · ${gap.shift.shift} — ${gap.shift.count}/${gap.shift.required} staff${seniorNote}`;
+            button.addEventListener('click', () => {
+                const target = rosterDays?.querySelector(`.roster-shift[data-date="${gap.date}"][data-shift-id="${gap.shift.shift_id}"]`);
+                if (!target) return;
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.classList.add('roster-shift-flash');
+                window.setTimeout(() => target.classList.remove('roster-shift-flash'), 1600);
+            });
+            item.append(button);
+            rosterGapList.append(item);
+        });
+    };
+
+    // Tier B, soft: every (employee, date) placed on a consecutive-night
+    // streak beyond the configured limit. Unlike the coverage panel above,
+    // these entries are still on the board — publishing them just needs a
+    // reason on record.
+    const renderNightStreakWarnings = (evaluation) => {
+        if (!rosterNightStreakPanel) return;
+        const warnings = evaluation.night_streak_warnings ?? [];
+
+        rosterNightStreakPanel.hidden = warnings.length === 0;
+        if (!warnings.length) return;
+
+        rosterNightStreakTitle.textContent = `${warnings.length} night shift${warnings.length === 1 ? '' : 's'} beyond the consecutive-night limit. Publishing needs a justification below.`;
+        rosterNightStreakList.replaceChildren();
+        warnings.forEach((warning) => {
+            const item = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = `${formatScheduleDate(warning.work_date)} · ${warning.employee} — ${warning.shift}`;
+            button.addEventListener('click', () => {
+                const target = rosterDays?.querySelector(`.roster-shift[data-date="${warning.work_date}"]`);
+                if (!target) return;
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.classList.add('roster-shift-flash');
+                window.setTimeout(() => target.classList.remove('roster-shift-flash'), 1600);
+            });
+            item.append(button);
+            rosterNightStreakList.append(item);
+        });
+    };
+
     const renderRoster = (evaluation) => {
         if (!rosterDays) return;
+        lastEvaluation = evaluation;
 
         // Redrawing the board changes its height; holding the scroll position
         // keeps whatever the reviewer was reading in place.
@@ -595,18 +749,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         rosterDays.replaceChildren();
         evaluation.days.forEach((day) => rosterDays.append(renderRosterDay(day)));
+        renderCoverageGaps(evaluation);
+        renderNightStreakWarnings(evaluation);
         if (scroller) scroller.scrollTop = previousScroll;
 
         if (rosterSummary) {
-            const { assignments, day_offs: rest, blocked, shifts_short: short } = evaluation.summary;
+            const { assignments, day_offs: rest, blocked, shifts_short: short, night_streak_warnings: streaks } = evaluation.summary;
             const parts = [`${assignments} assignment(s)`, `${rest} rest day(s)`];
             if (blocked) parts.push(`${blocked} cannot be scheduled`);
             parts.push(short ? `${short} shift(s) below the required cover` : 'every shift meets its requirement');
+            if (streaks) parts.push(`${streaks} beyond the consecutive-night limit`);
             rosterSummary.textContent = `${parts.join(' · ')}.${evaluation.coverage_standard ? ` ${evaluation.coverage_standard}` : ''}`;
         }
 
         if (bulkApprovalWrap) bulkApprovalWrap.hidden = evaluation.summary.assignments === 0;
         rosterBoard.hidden = false;
+        // A fresh evaluation can open or close the coverage-gap gate without
+        // the reviewer touching any field directly (e.g. after a fill-button
+        // run), so re-check Next immediately rather than waiting for the next
+        // native input/change event.
+        refreshStepGate();
     };
 
     const evaluateRoster = async () => {
@@ -617,13 +779,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(bulkForm.dataset.rosterEvaluateUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
-                body: JSON.stringify({ ...range, entries: rosterEntries }),
+                body: JSON.stringify({ ...range, ...rulesPayload(), shift_ids: relevantShiftIds(), entries: rosterEntries }),
             });
+            if (response.status === 419) throw new Error('Your session needs to be refreshed — reopen this window and try again.');
             const payload = await response.json();
             if (!response.ok) throw new Error(Object.values(payload.errors ?? {}).flat()[0] ?? 'Unable to check the roster.');
             renderRoster(payload.data);
         } catch (error) {
-            if (rosterSummary) rosterSummary.textContent = error.message;
+            // rosterSummary lives inside .roster-board, which is still hidden
+            // until a *successful* evaluate response unhides it — writing the
+            // error there means a failed check shows nothing at all. The
+            // always-visible review panel above the board is where a reviewer
+            // will actually see it.
+            updateBulkReview('Could not check the roster', error.message, 'no-ready');
         }
     };
 
@@ -686,7 +854,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(bulkForm.dataset.rosterDraftSaveUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
-                body: JSON.stringify({ ...range, entries: rosterEntries, draft_uuid: currentDraftUuid }),
+                body: JSON.stringify({ ...range, ...rulesPayload(), shift_ids: relevantShiftIds(), entries: rosterEntries, draft_uuid: currentDraftUuid }),
             });
             const payload = await response.json();
             if (!response.ok) throw new Error(Object.values(payload.errors ?? {}).flat()[0] ?? 'Unable to save the draft.');
@@ -707,6 +875,37 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     rosterSaveDraftButton?.addEventListener('click', saveDraft);
+
+    // Puts a resumed draft's Step 3 rules and Step 2 shift selection back
+    // into the form, so re-evaluating it uses what was actually on screen
+    // when it was saved rather than whatever the form defaults to on a
+    // freshly reopened modal.
+    const applyDraftRules = (rules) => {
+        ['days_off_per_week', 'max_hours_per_week', 'night_shift_limit', 'max_consecutive_nights',
+            'minimum_rest_hours', 'minimum_staff_per_shift', 'minimum_senior_per_shift',
+            'senior_rank_threshold', 'holiday_dates_csv', 'overtime_justification', 'night_streak_justification']
+            .forEach((field) => {
+                if (rules[field] !== undefined && rules[field] !== null && bulkForm.elements[field]) {
+                    bulkForm.elements[field].value = rules[field];
+                }
+            });
+
+        if (bulkForm.elements.overtime_allowed) bulkForm.elements.overtime_allowed.checked = Boolean(rules.overtime_allowed);
+        syncOvertimeJustification();
+
+        const shiftIds = (rules.shift_ids ?? []).map(String);
+        if (bulkForm.elements.schedule_method) {
+            bulkForm.elements.schedule_method.value = shiftIds.length ? 'rotation' : 'fixed';
+            syncScheduleMethod();
+        }
+        if (shiftIds.length) {
+            bulkForm.querySelectorAll('input[name="shift_ids[]"]').forEach((input) => {
+                input.checked = shiftIds.includes(input.value);
+            });
+        } else if (rules.shift_id && bulkForm.elements.shift_id) {
+            bulkForm.elements.shift_id.value = rules.shift_id;
+        }
+    };
 
     // Offers any drafts already open for the selected department as a "resume"
     // option, so switching to the roster later does not mean starting blank.
@@ -736,6 +935,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentDraftUuid = draft.uuid;
                     bulkForm.elements.start_date.value = draft.start_date;
                     bulkForm.elements.end_date.value = draft.end_date;
+                    if (bulkForm.elements.period_start) bulkForm.elements.period_start.value = draft.start_date;
+                    applyDraftRules(draft.rules ?? {});
                     setRosterEntries(draft.entries ?? []);
                 });
 
@@ -802,6 +1003,169 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
+    // ---------------------------------------------------------------------
+    // Wizard navigation
+    //
+    // One step panel visible at a time, gated by Next/Back, so the stepper
+    // actually reflects where the reviewer is instead of step 1 staying
+    // permanently "active" no matter how far the form has progressed.
+    // ---------------------------------------------------------------------
+    const stepPanels = [...(bulkForm?.querySelectorAll('[data-step-panel]') ?? [])];
+    const stepItems = [...(bulkForm?.querySelectorAll('[data-step-item]') ?? [])];
+    const stepBackButton = bulkForm?.querySelector('[data-bulk-back]');
+    const stepNextButton = bulkForm?.querySelector('[data-bulk-next]');
+    const stepErrorElement = bulkForm?.querySelector('[data-bulk-step-error]');
+    const publishSummaryGrid = bulkForm?.querySelector('[data-publish-summary-grid]');
+    const publishSummaryGap = bulkForm?.querySelector('[data-publish-summary-gap]');
+    let currentStep = 1;
+
+    const setStepError = (message) => {
+        if (!stepErrorElement) return;
+        stepErrorElement.hidden = !message;
+        stepErrorElement.textContent = message ?? '';
+    };
+
+    // What Step 5's attestation is actually agreeing to, computed from the
+    // same evaluation the Step 4 board already rendered — no separate call.
+    const renderPublishSummary = () => {
+        if (!publishSummaryGrid) return;
+        publishSummaryGrid.replaceChildren();
+        if (!lastEvaluation) return;
+
+        const {
+            assignments, day_offs: restDays, employees_affected: employees, night_differential_hours: nightHours,
+            shifts_short: short, night_streak_warnings: streaks,
+        } = lastEvaluation.summary;
+        [
+            ['Assignments', assignments],
+            ['Rest days', restDays],
+            ['Employees notified', employees],
+            ['Night-differential hrs', nightHours],
+        ].forEach(([label, value]) => {
+            const tile = document.createElement('div');
+            tile.className = 'publish-stat';
+            const strong = document.createElement('strong');
+            strong.textContent = value;
+            const span = document.createElement('span');
+            span.textContent = label;
+            tile.append(strong, span);
+            publishSummaryGrid.append(tile);
+        });
+
+        // Coverage is a hard block at Step 4 — this step should be
+        // unreachable with shifts still short — but the fallback below is a
+        // defensive guard, not an expected path.
+        if (publishSummaryGap) {
+            if (short) {
+                publishSummaryGap.hidden = false;
+                publishSummaryGap.textContent = `${short} shift(s) are still below required cover — this should not be publishable. Go back and fix the roster.`;
+            } else if (streaks) {
+                publishSummaryGap.hidden = false;
+                const justification = bulkForm.elements.night_streak_justification?.value.trim() || '—';
+                publishSummaryGap.textContent = `${streaks} night shift(s) beyond the consecutive-night limit. Justification on record: "${justification}"`;
+            } else {
+                publishSummaryGap.hidden = true;
+            }
+        }
+    };
+
+    const showStep = (step) => {
+        currentStep = step;
+        stepPanels.forEach((panel) => { panel.hidden = Number(panel.dataset.stepPanel) !== step; });
+        stepItems.forEach((item) => {
+            const stepNumber = Number(item.dataset.stepItem);
+            item.classList.toggle('active', stepNumber === step);
+            item.classList.toggle('done', stepNumber < step);
+        });
+        if (stepBackButton) stepBackButton.hidden = step === 1;
+        if (stepNextButton) stepNextButton.hidden = step === 5;
+        if (bulkSaveButton) bulkSaveButton.hidden = step !== 5;
+        setStepError(null);
+        const scroller = bulkForm.querySelector('.bulk-schedule-form');
+        if (scroller) scroller.scrollTop = 0;
+        // Entering the validation step should reflect whatever was just
+        // configured, not a stale board from an earlier pass.
+        if (step === 4) scheduleRosterEvaluate();
+        if (step === 5) renderPublishSummary();
+        refreshStepGate();
+    };
+
+    const validateStep1 = () => {
+        if (!bulkForm.elements.department_id.value) return 'Select a department to continue.';
+        if (!bulkForm.querySelector('[data-bulk-position-filter]').value) return 'Select a position to continue.';
+        if (selectedBulkEmployees().length === 0) return 'Select at least one employee to continue.';
+
+        return null;
+    };
+
+    const validateStep2 = () => {
+        const isMonthly = bulkForm.elements.schedule_period.value === 'monthly';
+        const anchor = isMonthly ? bulkForm.elements.period_month : bulkForm.elements.period_start;
+        if (!anchor.value) return 'Choose a schedule period to continue.';
+        if (!isMonthly && anchor.value < dateInputValue(new Date())) return 'Choose a start date that is not in the past.';
+
+        if (isAiSchedule()) {
+            const checkedShifts = bulkForm.querySelectorAll('input[name="shift_ids[]"]:checked').length;
+            if (checkedShifts < 2) return 'Select at least two shifts for the shift pool.';
+        } else if (!bulkForm.elements.shift_id.value) {
+            return 'Select a shift to continue.';
+        }
+
+        return null;
+    };
+
+    const validateStep4 = () => {
+        if (rosterEntries.length === 0) return 'Build a roster below — fill it or let the assistant rotate staff — before continuing.';
+
+        // Tier A, hard: no justification unlocks this one. The only way past
+        // it is to actually meet the requirement or edit it on Step 3.
+        const short = lastEvaluation?.summary?.shifts_short ?? 0;
+        if (short > 0) {
+            return `${short} shift(s) are still below required cover. Fix the roster or lower the minimum staff / senior requirement on Step 3 to continue — there is no override.`;
+        }
+
+        // Tier B, soft: publishable, but only with a reason on record.
+        const streaks = lastEvaluation?.summary?.night_streak_warnings ?? 0;
+        if (streaks > 0 && !bulkForm.elements.night_streak_justification?.value.trim()) {
+            return `${streaks} night shift(s) exceed the consecutive-night limit. Enter a justification above to publish anyway, or adjust the roster.`;
+        }
+
+        return null;
+    };
+
+    const stepValidators = { 1: validateStep1, 2: validateStep2, 4: validateStep4 };
+
+    // Keeps Next disabled — with the blocking reason as its title/tooltip —
+    // for as long as the current step's validator fails, instead of only
+    // rejecting the attempt after it's clicked.
+    const refreshStepGate = () => {
+        if (!stepNextButton) return;
+        const message = stepValidators[currentStep]?.();
+        stepNextButton.disabled = Boolean(message);
+        stepNextButton.title = message ?? '';
+    };
+    bulkForm?.addEventListener('input', refreshStepGate);
+    bulkForm?.addEventListener('change', refreshStepGate);
+
+    stepNextButton?.addEventListener('click', () => {
+        const message = stepValidators[currentStep]?.();
+        if (message) {
+            setStepError(message);
+
+            return;
+        }
+        showStep(Math.min(5, currentStep + 1));
+    });
+    stepBackButton?.addEventListener('click', () => showStep(Math.max(1, currentStep - 1)));
+    // Jumping back to an already-completed step is safe; jumping ahead stays
+    // gated behind Next so a step can't be skipped without its data.
+    stepItems.forEach((item) => {
+        item.addEventListener('click', () => {
+            const stepNumber = Number(item.dataset.stepItem);
+            if (stepNumber < currentStep) showStep(stepNumber);
+        });
+    });
+
     bulkModalElement?.addEventListener('shown.bs.modal', () => {
         const modalBody = bulkForm.querySelector('.bulk-schedule-form');
         const employeePicker = bulkForm.querySelector('.bulk-employee-picker');
@@ -811,7 +1175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             employeePicker.hidden = false;
             employeePicker.style.removeProperty('display');
         }
-        if (modalBody) modalBody.scrollTop = 0;
+        showStep(1);
         bulkForm.elements.department_id?.focus({ preventScroll: true });
     });
     bulkModalElement?.addEventListener('hidden.bs.modal', () => {
@@ -826,20 +1190,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (rosterDays) rosterDays.replaceChildren();
         if (rosterBoard) rosterBoard.hidden = true;
+        if (rosterGapPanel) rosterGapPanel.hidden = true;
+        if (rosterNightStreakPanel) rosterNightStreakPanel.hidden = true;
+        if (publishSummaryGrid) publishSummaryGrid.replaceChildren();
+        if (publishSummaryGap) publishSummaryGap.hidden = true;
+        lastEvaluation = null;
+        syncOvertimeJustification();
         syncScheduleMethod();
         syncBulkPeriod();
         syncBulkPositionOptions();
         syncBulkPositionAvailability();
         syncEmployeeScope();
+        syncClinicalOnlyFields();
         updateBulkSelectedCount();
         invalidateBulkReview();
+        showStep(1);
     });
+    syncOvertimeJustification();
     syncScheduleMethod();
     syncBulkPeriod();
     syncBulkPositionOptions();
     syncBulkPositionAvailability();
     syncEmployeeScope();
+    syncClinicalOnlyFields();
     updateBulkSelectedCount();
+    showStep(1);
 
     const shiftModalElement = document.querySelector('#shiftTemplateModal');
     const shiftForm = document.querySelector('#shiftTemplateForm');

@@ -159,6 +159,57 @@ class ScheduleComplianceService
             }
         }
 
+        // Mirrors the consecutive-workday walk above, scoped to night shifts:
+        // a per-week night count alone would miss a streak that crosses a
+        // week boundary, letting a published schedule carry an undetected
+        // run of consecutive nights through to being locked.
+        $nightDateSet = $assignments
+            ->filter(fn (ScheduleAssignment $assignment) => $this->isNightShift($assignment->shift))
+            ->pluck('work_date')
+            ->map(fn ($date) => Carbon::parse($date)->toDateString())
+            ->unique()
+            ->flip();
+
+        foreach ($inRange as $assignment) {
+            if (! $this->isNightShift($assignment->shift)) {
+                continue;
+            }
+
+            $date = $assignment->work_date->toDateString();
+            $streak = 1;
+            $cursor = Carbon::parse($date)->subDay();
+            while ($nightDateSet->has($cursor->toDateString())) {
+                $streak++;
+                $cursor->subDay();
+            }
+            $cursor = Carbon::parse($date)->addDay();
+            while ($nightDateSet->has($cursor->toDateString())) {
+                $streak++;
+                $cursor->addDay();
+            }
+
+            $maxConsecutiveNights = (int) $rules['max_consecutive_nights'];
+            // Tier B: worth HR's attention, but — unlike a missed rest day or
+            // an uncovered shift — not itself grounds to fail the review.
+            if ($maxConsecutiveNights > 0 && $streak > $maxConsecutiveNights) {
+                $findings->push($this->finding('consecutive_nights', 'warning', "{$employee->full_name} is scheduled {$streak} consecutive night shifts around {$assignment->work_date->format('M j, Y')}, exceeding the {$maxConsecutiveNights}-night limit.", $employee->id, $date));
+
+                break;
+            }
+        }
+
+        // Labor Code Art. 91: at least 24 consecutive hours off after every
+        // six consecutive workdays, checked against actual elapsed time —
+        // see ScheduleService::weeklyRestViolated for why a calendar "day
+        // off" between two shifts doesn't by itself guarantee this.
+        foreach ($inRange as $assignment) {
+            if ($this->weeklyRestViolated($assignment, $assignments)) {
+                $findings->push($this->finding('weekly_rest', 'error', "{$employee->full_name} did not receive 24 consecutive hours of rest after six consecutive workdays around {$assignment->work_date->format('M j, Y')}.", $employee->id, $assignment->work_date->toDateString()));
+
+                break;
+            }
+        }
+
         return $findings->unique(fn (array $finding) => $finding['rule'].'|'.$finding['employee_id'].'|'.$finding['date']);
     }
 
@@ -185,6 +236,56 @@ class ScheduleComplianceService
         }
 
         return $findings;
+    }
+
+    /**
+     * Mirrors {@see \App\Services\ScheduleService::weeklyRestViolated()}: Labor
+     * Code Art. 91 requires at least 24 consecutive hours off after every six
+     * consecutive workdays, measured against actual elapsed time rather than
+     * calendar dates.
+     *
+     * @param  Collection<int, ScheduleAssignment>  $assignments  This employee's assignments, excluding $assignment itself is not required — the filter below excludes it by end-time.
+     */
+    private function weeklyRestViolated(ScheduleAssignment $assignment, Collection $assignments): bool
+    {
+        $requiredDays = (int) config('schedule.max_consecutive_workdays');
+        $requiredMinutes = max(0, (int) config('schedule.weekly_rest_hours')) * 60;
+        if ($requiredDays <= 0 || $requiredMinutes <= 0) {
+            return false;
+        }
+
+        [$candidateStart] = $this->scheduleService->intervalFor($assignment->shift, $assignment->work_date->toDateString());
+
+        $mostRecent = $assignments
+            ->reject(fn (ScheduleAssignment $other) => $other->is($assignment))
+            ->map(function (ScheduleAssignment $other) {
+                [, $end] = $this->scheduleService->intervalFor($other->shift, $other->work_date->toDateString());
+
+                return ['assignment' => $other, 'end' => $end];
+            })
+            ->filter(fn (array $row) => $row['end']->lessThanOrEqualTo($candidateStart))
+            ->sortByDesc(fn (array $row) => $row['end'])
+            ->first();
+
+        if ($mostRecent === null) {
+            return false;
+        }
+
+        $scheduledDates = $assignments->pluck('work_date')->map(fn ($workDate) => Carbon::parse($workDate)->toDateString())->unique()->flip();
+        $lastWorkedDate = Carbon::parse($mostRecent['assignment']->work_date)->startOfDay();
+
+        $streak = 1;
+        $cursor = $lastWorkedDate->copy()->subDay();
+        while ($scheduledDates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor->subDay();
+        }
+
+        if ($streak < $requiredDays) {
+            return false;
+        }
+
+        return $mostRecent['end']->diffInMinutes($candidateStart) < $requiredMinutes;
     }
 
     private function isNightShift(Shift $shift): bool

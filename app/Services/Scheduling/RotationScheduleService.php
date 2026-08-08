@@ -494,11 +494,19 @@ class RotationScheduleService
         if ($conflict) {
             return 'Overlapping schedule';
         }
-        if ($this->hasRestViolation($shift, $date, $assignments)) {
+        if ($this->hasRestViolation($shift, $date, $assignments, $rules)) {
             return 'Minimum rest period not met';
         }
         if ($this->consecutiveWorkdaysExceeded($date, $assignments)) {
             return 'Maximum consecutive workdays exceeded';
+        }
+
+        // Labor Code Art. 91: at least 24 consecutive hours off after every
+        // six consecutive workdays, checked against actual elapsed time
+        // rather than calendar dates — see ScheduleService::weeklyRestViolated
+        // for why a calendar "day off" alone isn't sufficient.
+        if ($this->weeklyRestViolated($candidateStart, $assignments)) {
+            return 'Weekly rest day not met (Labor Code Art. 91)';
         }
 
         $weekStart = $date->copy()->startOfWeek();
@@ -516,6 +524,10 @@ class RotationScheduleService
             && $weeklyAssignments->filter(fn (ScheduleAssignment $assignment) => $this->isNightShift($assignment->shift))->count() >= $nightShiftLimit) {
             return 'Night shift limit exceeded';
         }
+
+        // Consecutive night shifts are a soft (Tier B) constraint — warned on
+        // and justifiable rather than hard-blocked — so it is not evaluated
+        // here; see RosterDraftService::evaluate()'s night-streak warning pass.
 
         return null;
     }
@@ -552,9 +564,56 @@ class RotationScheduleService
         return $streak > $maxConsecutive;
     }
 
-    private function hasRestViolation(Shift $shift, Carbon $date, Collection $assignments): bool
+    /**
+     * Mirrors {@see \App\Services\ScheduleService::weeklyRestViolated()}: Labor
+     * Code Art. 91 requires at least 24 consecutive hours off after every six
+     * consecutive workdays, measured against actual elapsed time rather than
+     * calendar dates.
+     *
+     * @param  Collection<int, ScheduleAssignment>  $assignments
+     */
+    private function weeklyRestViolated(Carbon $candidateStart, Collection $assignments): bool
     {
-        $minimumMinutes = max(0, (int) config('schedule.minimum_rest_hours')) * 60;
+        $requiredDays = (int) config('schedule.max_consecutive_workdays');
+        $requiredMinutes = max(0, (int) config('schedule.weekly_rest_hours')) * 60;
+        if ($requiredDays <= 0 || $requiredMinutes <= 0) {
+            return false;
+        }
+
+        $mostRecent = $assignments
+            ->map(function (ScheduleAssignment $assignment) {
+                [, $end] = $this->scheduleService->intervalFor($assignment->shift, $assignment->work_date->toDateString());
+
+                return ['assignment' => $assignment, 'end' => $end];
+            })
+            ->filter(fn (array $row) => $row['end']->lessThanOrEqualTo($candidateStart))
+            ->sortByDesc(fn (array $row) => $row['end'])
+            ->first();
+
+        if ($mostRecent === null) {
+            return false;
+        }
+
+        $scheduledDates = $assignments->pluck('work_date')->map(fn ($workDate) => Carbon::parse($workDate)->toDateString())->unique()->flip();
+        $lastWorkedDate = Carbon::parse($mostRecent['assignment']->work_date)->startOfDay();
+
+        $streak = 1;
+        $cursor = $lastWorkedDate->copy()->subDay();
+        while ($scheduledDates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor->subDay();
+        }
+
+        if ($streak < $requiredDays) {
+            return false;
+        }
+
+        return $mostRecent['end']->diffInMinutes($candidateStart) < $requiredMinutes;
+    }
+
+    private function hasRestViolation(Shift $shift, Carbon $date, Collection $assignments, array $rules = []): bool
+    {
+        $minimumMinutes = max(0, (int) ($rules['minimum_rest_hours'] ?? config('schedule.minimum_rest_hours'))) * 60;
         if ($minimumMinutes === 0) {
             return false;
         }
