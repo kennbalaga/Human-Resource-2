@@ -9,6 +9,12 @@
     $sidebarRoles = $sidebarUser->roles->pluck('slug');
     $sidebarCanManageShifts = $sidebarRoles->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
 
+    /* Staff have no reason to browse the workforce directory, so the Organization
+       entry is limited to the roles that administer it. */
+    $sidebarCanSeeOrganization = $sidebarRoles
+        ->intersect(['system-administrator', 'hr-manager', 'department-head'])
+        ->isNotEmpty();
+
     /* Reports and Workforce Analytics share a gate, so the whole Insights group is
        hidden together rather than leaving a heading with nothing under it. */
     $sidebarCanSeeInsights = $sidebarRoles
@@ -50,7 +56,9 @@
                 Dashboard
             </x-sidebar-link>
 
-            <x-sidebar-link :href="route('organization.index')" icon="building" :active="request()->routeIs('organization.*', 'employees.*', 'departments.*', 'positions.*')">Organization</x-sidebar-link>
+            @if ($sidebarCanSeeOrganization)
+                <x-sidebar-link :href="route('organization.index')" icon="building" :active="request()->routeIs('organization.*', 'employees.*', 'departments.*', 'positions.*')">Organization</x-sidebar-link>
+            @endif
         </div>
 
         <div class="sidebar-nav-group" role="group" aria-labelledby="sidebar-group-scheduling">

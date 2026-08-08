@@ -24,6 +24,16 @@ class OrganizationManagementTest extends TestCase
         $this->get('/positions')->assertRedirect('/login');
     }
 
+    public function test_sidebar_hides_the_organization_entry_from_staff(): void
+    {
+        $this->seed();
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+
+        $this->actingAs($employee)->get(route('schedules.index'))
+            ->assertOk()
+            ->assertDontSee(route('organization.index'), false);
+    }
+
     public function test_sidebar_uses_one_organization_entry_and_workspace_tabs_preserve_each_resource_page(): void
     {
         $this->seed();
