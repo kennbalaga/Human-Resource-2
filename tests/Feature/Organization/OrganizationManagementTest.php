@@ -86,13 +86,14 @@ class OrganizationManagementTest extends TestCase
 
         $response = $this->actingAs($manager)->get(route('dashboard'));
 
+        // The dashboard no longer carries an "Add employee" shortcut; creating an
+        // employee starts from the directory. The navigation links are what this
+        // test guards.
         $response
             ->assertOk()
             ->assertSee(route('employees.index'), false)
             ->assertSee(route('departments.index'), false)
-            ->assertSee(route('positions.index'), false)
-            ->assertSee(route('employees.create'), false)
-            ->assertSee('Add employee');
+            ->assertSee(route('positions.index'), false);
 
         $this->actingAs($manager)->get(route('employees.create'))->assertOk()->assertSee('Create employee');
         $this->actingAs($manager)->get(route('departments.create'))->assertOk()->assertSee('Create department');

@@ -11,7 +11,7 @@
         </div>
         <div class="schedule-heading-actions">
             <a class="btn btn-outline-primary dashboard-action" href="{{ route('schedules.index') }}"><x-icon name="calendar" /> Schedule calendar</a>
-            <button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#shiftTemplateModal" data-new-shift><x-icon name="plus" /> New shift</button>
+            @if($canManageData)<button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#shiftTemplateModal" data-new-shift><x-icon name="plus" /> New shift</button>@endif
         </div>
     </section>
 
@@ -71,6 +71,7 @@
                             </td>
                             <td>
                                 <div class="shift-row-actions">
+                                    @if($canManageData)
                                     <button
                                         class="icon-button subtle"
                                         type="button"
@@ -100,6 +101,9 @@
                                     @if (! $shift->is_system && $shift->assignments_count === 0)
                                         <form method="POST" action="{{ route('shifts.destroy', $shift) }}" onsubmit="return confirm('Delete this unused shift template?')">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Delete {{ $shift->name }}" title="Delete"><x-icon name="trash" /></button></form>
                                     @endif
+                                    @else
+                                        <span class="shift-template-hint">View only</span>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -111,6 +115,7 @@
         </div>
     </section>
 
+    @if($canManageData)
     <div class="modal fade" id="shiftTemplateModal" tabindex="-1" aria-labelledby="shiftTemplateModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered"><div class="modal-content schedule-modal-content">
             <form method="POST" action="{{ route('shifts.store') }}" id="shiftTemplateForm" data-store-url="{{ route('shifts.store') }}" data-update-url-template="{{ route('shifts.update', ['shift' => '__ID__']) }}">
@@ -134,4 +139,5 @@
             </form>
         </div></div>
     </div>
+    @endif
 @endsection

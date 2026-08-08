@@ -8,9 +8,12 @@ use App\Models\RecurringSchedule;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\PreferenceNotificationService;
 use App\Services\ScheduleService;
+use App\Services\Scheduling\ScheduleLockService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class RecurringScheduleController extends Controller
 {
@@ -29,11 +32,22 @@ class RecurringScheduleController extends Controller
         Request $request,
         RecurringSchedule $recurringSchedule,
         PreferenceNotificationService $notifications,
+        ScheduleLockService $locks,
     ): RedirectResponse {
-        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty(), 403);
+        abort_unless(Gate::forUser($request->user())->allows('workforce.view'), 403);
 
-        $recurringSchedule->loadMissing(['employee.user.preference', 'shift']);
-        DB::transaction(function () use ($recurringSchedule): void {
+        $recurringSchedule->loadMissing(['employee.department', 'employee.user.preference', 'shift']);
+        DB::transaction(function () use ($recurringSchedule, $locks): void {
+            $futureAssignments = $recurringSchedule->assignments()
+                ->whereDate('work_date', '>=', now(config('schedule.timezone'))->toDateString())
+                ->get();
+
+            if ($recurringSchedule->employee->department !== null) {
+                foreach ($futureAssignments->pluck('work_date')->unique() as $workDate) {
+                    $locks->assertUnlocked($recurringSchedule->employee->department, Carbon::parse($workDate, config('schedule.timezone')));
+                }
+            }
+
             $recurringSchedule->assignments()
                 ->whereDate('work_date', '>=', now(config('schedule.timezone'))->toDateString())
                 ->delete();

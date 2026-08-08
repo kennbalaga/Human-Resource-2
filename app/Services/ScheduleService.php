@@ -10,6 +10,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Scheduling\ScheduleLockService;
 use App\Services\Scheduling\StaffingRequirementService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -32,10 +33,11 @@ class ScheduleService
     public function createAssignment(array $data, User $creator): ScheduleAssignment
     {
         return DB::transaction(function () use ($data, $creator) {
-            $employee = Employee::query()->findOrFail($data['employee_id']);
+            $employee = Employee::query()->with('department')->findOrFail($data['employee_id']);
             $shift = Shift::query()->findOrFail($data['shift_id']);
             $this->ensureSchedulable($employee, $shift);
             $this->ensureNoConflicts($employee, $shift, $data['work_date']);
+            $this->ensureUnlocked($employee, $data['work_date']);
 
             return ScheduleAssignment::query()->create([
                 'employee_id' => $employee->id,
@@ -98,13 +100,18 @@ class ScheduleService
             ]);
         }
         $employeeIds = $employees->keys()->all();
+        // The week-based margin keeps the existing hours/night-shift/days-off
+        // checks correct for dates near the range's edges; the extra streak
+        // margin is so the new consecutive-workday check can see a run that
+        // started before this range, not just the current week.
+        $streakMargin = max(1, (int) config('schedule.max_consecutive_workdays'));
         $assignmentsByEmployee = ScheduleAssignment::query()
             ->with('shift')
             ->whereIn('employee_id', $employeeIds)
             ->where('status', 'scheduled')
             ->whereBetween('work_date', [
-                $start->copy()->startOfWeek()->subDay()->toDateString(),
-                $end->copy()->endOfWeek()->addDay()->toDateString(),
+                $start->copy()->startOfWeek()->subDay()->subDays($streakMargin)->toDateString(),
+                $end->copy()->endOfWeek()->addDay()->addDays($streakMargin)->toDateString(),
             ])
             ->get()
             ->groupBy('employee_id');
@@ -215,10 +222,17 @@ class ScheduleService
     public function updateAssignment(ScheduleAssignment $assignment, array $data): ScheduleAssignment
     {
         return DB::transaction(function () use ($assignment, $data) {
-            $employee = Employee::query()->findOrFail($data['employee_id']);
+            // The assignment is leaving its current slot as well as landing in a
+            // new one, so both ends of the move must be open.
+            $originalEmployee = $assignment->employee()->with('department')->first();
+            $employee = Employee::query()->with('department')->findOrFail($data['employee_id']);
             $shift = Shift::query()->findOrFail($data['shift_id']);
             $this->ensureSchedulable($employee, $shift);
             $this->ensureNoConflicts($employee, $shift, $data['work_date'], $assignment->id);
+            $this->ensureUnlocked($employee, $data['work_date']);
+            if ($originalEmployee !== null) {
+                $this->ensureUnlocked($originalEmployee, $assignment->work_date->toDateString());
+            }
 
             $assignment->update([
                 'employee_id' => $employee->id,
@@ -237,7 +251,7 @@ class ScheduleService
     public function createRecurringSchedule(array $data, User $creator): RecurringSchedule
     {
         return DB::transaction(function () use ($data, $creator) {
-            $employee = Employee::query()->findOrFail($data['employee_id']);
+            $employee = Employee::query()->with('department')->findOrFail($data['employee_id']);
             $shift = Shift::query()->findOrFail($data['shift_id']);
             $this->ensureSchedulable($employee, $shift);
 
@@ -256,6 +270,7 @@ class ScheduleService
             }
 
             foreach ($dates as $date) {
+                $this->ensureUnlocked($employee, $date->toDateString());
                 $this->ensureNoDayOff($employee, $date->toDateString());
                 $conflicts = $this->conflictsFor($employee, $shift, $date->toDateString());
                 if ($conflicts->isNotEmpty()) {
@@ -395,6 +410,46 @@ class ScheduleService
     }
 
     /**
+     * Labor Code Art. 86 night-shift differential: minutes of this shift
+     * that actually fall inside the configured night window (22:00–06:00 by
+     * default), computed as a clock overlap rather than an all-or-nothing
+     * "is this a night shift" flag — a Night Shift spanning 22:00–07:00 has
+     * 480 of its 540 minutes inside the window, not all of them. This is a
+     * projection for the publish summary, not a payroll computation: it does
+     * not know when within the shift any unpaid meal period falls, so it
+     * treats the whole span as worked time.
+     */
+    public function nightDifferentialMinutes(Shift $shift, string $workDate): int
+    {
+        [$start, $end] = $this->intervalFor($shift, $workDate);
+        $window = config('schedule.night_differential');
+        $timezone = config('schedule.timezone');
+
+        $minutes = 0;
+        // The window itself can start the day before or land on the day
+        // after the shift's own work_date depending on where midnight falls,
+        // so every window instance touching a 3-day span around the shift is
+        // checked; only a real overlap contributes minutes, so this cannot
+        // double-count.
+        foreach ([-1, 0, 1] as $dayOffset) {
+            $anchor = Carbon::parse($workDate, $timezone)->addDays($dayOffset)->toDateString();
+            $windowStart = Carbon::parse($anchor.' '.$window['start'], $timezone);
+            $windowEnd = Carbon::parse($anchor.' '.$window['end'], $timezone);
+            if ($windowEnd->lessThanOrEqualTo($windowStart)) {
+                $windowEnd->addDay();
+            }
+
+            $overlapStart = $start->greaterThan($windowStart) ? $start : $windowStart;
+            $overlapEnd = $end->lessThan($windowEnd) ? $end : $windowEnd;
+            if ($overlapStart->lessThan($overlapEnd)) {
+                $minutes += $overlapStart->diffInMinutes($overlapEnd);
+            }
+        }
+
+        return $minutes;
+    }
+
+    /**
      * @param  array<int>  $weekdays
      * @return Collection<int, Carbon>
      */
@@ -501,7 +556,7 @@ class ScheduleService
             return 'Overlapping schedule';
         }
 
-        $minimumMinutes = max(0, (int) config('schedule.minimum_rest_hours')) * 60;
+        $minimumMinutes = max(0, (int) ($rules['minimum_rest_hours'] ?? config('schedule.minimum_rest_hours'))) * 60;
         if ($minimumMinutes > 0 && $assignments->contains(function (ScheduleAssignment $assignment) use ($candidateStart, $candidateEnd, $minimumMinutes) {
             [$existingStart, $existingEnd] = $this->intervalFor($assignment->shift, $assignment->work_date->toDateString());
             if ($candidateStart->greaterThanOrEqualTo($existingEnd)) {
@@ -524,6 +579,19 @@ class ScheduleService
             return 'Days-off rule would be exceeded';
         }
 
+        if ($this->consecutiveWorkdaysExceeded($date, $assignments)) {
+            return 'Maximum consecutive workdays exceeded';
+        }
+
+        // Labor Code Art. 91: at least 24 consecutive hours off after every
+        // six consecutive workdays. A calendar "day off" between two shifts
+        // does not by itself guarantee this — a night shift ending 7 AM
+        // followed by a 6 AM start two calendar days later is only 23 hours,
+        // so this is checked against actual elapsed time, not date gaps.
+        if ($this->weeklyRestViolated($candidateStart, $assignments)) {
+            return 'Weekly rest day not met (Labor Code Art. 91)';
+        }
+
         $overtimeAllowed = (bool) ($rules['overtime_allowed'] ?? false);
         $maximumHours = (int) ($rules['max_hours_per_week'] ?? 168);
         $scheduledMinutes = $weeklyAssignments->sum(fn (ScheduleAssignment $assignment) => $assignment->shift->duration_minutes);
@@ -537,14 +605,146 @@ class ScheduleService
             return 'Night shift limit exceeded';
         }
 
+        // Consecutive night shifts are a soft (Tier B) constraint — warned on
+        // and justifiable rather than hard-blocked — so unlike the checks
+        // above it is not evaluated here; see RosterDraftService::evaluate()'s
+        // night-streak warning pass instead.
+
         return null;
     }
 
     private function isNightShift(Shift $shift): bool
     {
-        $hour = (int) Carbon::parse($shift->start_time)->format('G');
+        return $shift->is_night_shift;
+    }
 
-        return $shift->crosses_midnight || $hour >= 18 || $hour < 6;
+    /**
+     * Unlike the days-off-per-week rule above (which only counts distinct
+     * dates inside one ISO week and misses a run that crosses a week
+     * boundary), this walks the actual streak of consecutive scheduled dates
+     * around the candidate date, in either direction.
+     *
+     * @param  Collection<int, ScheduleAssignment>  $assignments
+     */
+    private function consecutiveWorkdaysExceeded(Carbon $date, Collection $assignments): bool
+    {
+        $maxConsecutive = (int) config('schedule.max_consecutive_workdays');
+        if ($maxConsecutive <= 0) {
+            return false;
+        }
+
+        $scheduledDates = $assignments->pluck('work_date')->map(fn ($workDate) => Carbon::parse($workDate)->toDateString())->unique()->flip();
+
+        $streak = 1;
+        $cursor = $date->copy()->subDay();
+        while ($scheduledDates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor->subDay();
+        }
+        $cursor = $date->copy()->addDay();
+        while ($scheduledDates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor->addDay();
+        }
+
+        return $streak > $maxConsecutive;
+    }
+
+    /**
+     * Labor Code Art. 91: after every six consecutive workdays, the next
+     * shift must start at least a full rest day's worth of hours later.
+     * Unlike {@see consecutiveWorkdaysExceeded}, which only counts calendar
+     * dates, this measures the actual gap from the end of the last shift in
+     * that streak to the candidate's start — a calendar "day off" between
+     * two shifts does not by itself guarantee 24 consecutive hours when
+     * shift times don't align to midnight (a night shift ending 7 AM
+     * followed by a 6 AM start two calendar days later is only 23 hours).
+     *
+     * @param  Collection<int, ScheduleAssignment>  $assignments
+     */
+    private function weeklyRestViolated(Carbon $candidateStart, Collection $assignments): bool
+    {
+        $requiredDays = (int) config('schedule.max_consecutive_workdays');
+        $requiredMinutes = max(0, (int) config('schedule.weekly_rest_hours')) * 60;
+        if ($requiredDays <= 0 || $requiredMinutes <= 0) {
+            return false;
+        }
+
+        // Only the most recent shift ending before the candidate matters —
+        // Art. 91 is about the rest immediately preceding this placement,
+        // not the employee's whole history.
+        $mostRecent = $assignments
+            ->map(function (ScheduleAssignment $assignment) {
+                [, $end] = $this->intervalFor($assignment->shift, $assignment->work_date->toDateString());
+
+                return ['assignment' => $assignment, 'end' => $end];
+            })
+            ->filter(fn (array $row) => $row['end']->lessThanOrEqualTo($candidateStart))
+            ->sortByDesc(fn (array $row) => $row['end'])
+            ->first();
+
+        if ($mostRecent === null) {
+            return false;
+        }
+
+        $scheduledDates = $assignments->pluck('work_date')->map(fn ($workDate) => Carbon::parse($workDate)->toDateString())->unique()->flip();
+        $lastWorkedDate = Carbon::parse($mostRecent['assignment']->work_date)->startOfDay();
+
+        $streak = 1;
+        $cursor = $lastWorkedDate->copy()->subDay();
+        while ($scheduledDates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor->subDay();
+        }
+
+        if ($streak < $requiredDays) {
+            return false;
+        }
+
+        return $mostRecent['end']->diffInMinutes($candidateStart) < $requiredMinutes;
+    }
+
+    /**
+     * A per-week night-shift count misses a streak that crosses a week
+     * boundary, so a limit of 6/week with one day off could still hand
+     * someone six night shifts in a row. This walks the actual consecutive
+     * run of night-shift dates around the candidate date, in either
+     * direction, the same way {@see consecutiveWorkdaysExceeded} does for
+     * all-shift streaks.
+     *
+     * Public, and no longer consulted by {@see bulkAssignmentBlockReason}:
+     * consecutive night shifts are a Tier B (soft, justify-and-proceed)
+     * constraint, not a hard block, so this is called directly by
+     * RosterDraftService's night-streak warning pass instead.
+     *
+     * @param  Collection<int, ScheduleAssignment>  $assignments
+     */
+    public function consecutiveNightShiftsExceeded(Carbon $date, Collection $assignments, int $maxConsecutiveNights): bool
+    {
+        if ($maxConsecutiveNights <= 0) {
+            return false;
+        }
+
+        $nightDates = $assignments
+            ->filter(fn (ScheduleAssignment $assignment) => $this->isNightShift($assignment->shift))
+            ->pluck('work_date')
+            ->map(fn ($workDate) => Carbon::parse($workDate)->toDateString())
+            ->unique()
+            ->flip();
+
+        $streak = 1;
+        $cursor = $date->copy()->subDay();
+        while ($nightDates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor->subDay();
+        }
+        $cursor = $date->copy()->addDay();
+        while ($nightDates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor->addDay();
+        }
+
+        return $streak > $maxConsecutiveNights;
     }
 
     private function ensureNoDayOff(Employee $employee, string $workDate): void
@@ -565,5 +765,17 @@ class ScheduleService
         if (! $shift->is_active) {
             throw ValidationException::withMessages(['shift_id' => 'The selected shift is inactive.']);
         }
+    }
+
+    private function ensureUnlocked(Employee $employee, string $workDate): void
+    {
+        if ($employee->department === null) {
+            return;
+        }
+
+        app(ScheduleLockService::class)->assertUnlocked(
+            $employee->department,
+            Carbon::parse($workDate, config('schedule.timezone')),
+        );
     }
 }

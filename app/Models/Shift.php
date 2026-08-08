@@ -53,6 +53,17 @@ class Shift extends Model
         return $this->end_time <= $this->start_time;
     }
 
+    /**
+     * Anything crossing midnight, or starting in the evening/small hours,
+     * counts toward the night-shift limit and consecutive-nights checks.
+     */
+    public function getIsNightShiftAttribute(): bool
+    {
+        $hour = (int) Carbon::parse($this->start_time)->format('G');
+
+        return $this->crosses_midnight || $hour >= 18 || $hour < 6;
+    }
+
     public function getDurationMinutesAttribute(): int
     {
         $start = Carbon::parse($this->start_time);

@@ -56,7 +56,7 @@ class RecommendationExplanationService
             'candidates' => $candidates,
             'ineligible_candidate_count' => count($result['ineligible']),
             'limitations' => [
-                'Competency, certification, declared availability, official rest-day, preference, and holiday data are unavailable.',
+                'Competency, certification, declared availability, and official rest-day data are unavailable. Declared shift preference is scored as "Matches declared shift preference" above, a soft signal, not a filter.',
                 'The workload risk indicator is operational guidance only and is not a medical or safety diagnosis.',
             ],
         ];

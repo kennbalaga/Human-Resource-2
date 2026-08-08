@@ -1081,6 +1081,29 @@
     background: #176b43;
 }
 
+.bulk-flow-steps .done {
+    color: #176b43;
+    cursor: pointer;
+}
+
+.bulk-flow-steps .done span {
+    color: #176b43;
+    border-color: #176b43;
+    background: #eafaf1;
+}
+
+/* The `hidden` attribute alone isn't enough here: `.schedule-form-grid` (an
+   author style) sets its own `display`, which would otherwise win over the
+   browser's built-in `[hidden] { display: none }` rule. */
+.bulk-step-panel[hidden] {
+    display: none;
+}
+
+.bulk-step-error {
+    color: #b3261e;
+    font-size: .78rem;
+}
+
 .bulk-schedule-intro {
     margin: 0;
     color: #66738a;
@@ -1128,9 +1151,10 @@
     grid-column: 1 / -1;
 }
 
-.bulk-rule-holidays small {
+.bulk-rule-grid label > small {
     color: #7a8698;
     font-size: .64rem;
+    font-weight: 400;
 }
 
 .bulk-rule-grid select,
@@ -1150,6 +1174,42 @@
 
 .bulk-overtime-toggle {
     background: #fff;
+}
+
+/* Shared with the Step 5 approval control (.bulk-approval) so every
+   attestation/justification prompt in the wizard reads as one family;
+   colour alone (amber here, green there) carries the difference in weight. */
+.bulk-justification-field {
+    display: grid;
+    gap: .4rem;
+    padding: .8rem .9rem;
+    border: 1px solid #f0d190;
+    border-radius: .7rem;
+    background: #fffaf0;
+}
+
+.bulk-justification-field > span {
+    color: #805b0b;
+    font-size: .74rem;
+    font-weight: 800;
+}
+
+.bulk-justification-field textarea {
+    width: 100%;
+    padding: .55rem .7rem;
+    border: 1px solid #e9d8ae;
+    border-radius: .55rem;
+    background: #fff;
+    color: #27344b;
+    font: inherit;
+    font-size: .8rem;
+    resize: vertical;
+}
+
+.bulk-justification-field textarea:focus {
+    outline: none;
+    border-color: #c9821b;
+    box-shadow: 0 0 0 3px rgba(201, 130, 27, .14);
 }
 
 .bulk-protected-rules {
@@ -1208,6 +1268,33 @@
     color: #536178;
     font-size: .72rem;
     font-weight: 800;
+}
+
+.bulk-staff-scope {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .7rem .8rem;
+    border: 1px solid #dce5ef;
+    border-radius: .7rem;
+    background: #f8fafc;
+}
+
+.bulk-staff-scope-field {
+    display: grid;
+    gap: .35rem;
+    margin: 0;
+}
+
+.bulk-staff-scope-field > span {
+    color: #536178;
+    font-size: .72rem;
+    font-weight: 800;
+}
+
+.bulk-staff-scope-field select {
+    min-width: 12rem;
 }
 
 .bulk-inline-employee-list {
@@ -2334,4 +2421,172 @@
     margin: 0;
     font-size: .78rem;
     color: #536178;
+}
+
+/* Coverage-gap panel (Tier A, hard — red, no override) and the
+   consecutive-night-streak panel (Tier B, soft — amber, justify-and-proceed).
+   Share layout; colour alone signals which kind of constraint this is. */
+.roster-gap-panel,
+.roster-warn-panel {
+    display: grid;
+    gap: .6rem;
+    padding: .85rem .9rem;
+    border-radius: .7rem;
+}
+
+.roster-gap-panel.is-hard {
+    border: 1px solid #e2a29c;
+    background: #fdeceb;
+}
+
+.roster-warn-panel {
+    border: 1px solid #e4a95e;
+    background: #fff3e0;
+}
+
+.roster-gap-heading {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .82rem;
+}
+
+.roster-gap-panel.is-hard .roster-gap-heading {
+    color: #a3231c;
+}
+
+.roster-warn-panel .roster-gap-heading {
+    color: #9a5a0a;
+}
+
+.roster-gap-heading svg {
+    width: 1rem;
+    flex: 0 0 auto;
+}
+
+.roster-gap-panel ul,
+.roster-warn-panel ul {
+    display: grid;
+    gap: .3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.roster-gap-note {
+    margin: 0;
+    color: #8a3d37;
+    font-size: .74rem;
+}
+
+.roster-gap-panel li button,
+.roster-warn-panel li button {
+    width: 100%;
+    padding: .5rem .65rem;
+    border-radius: .5rem;
+    background: #fff;
+    font-size: .76rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.roster-gap-panel.is-hard li button {
+    border: 1px solid #f0b8b2;
+    color: #8a3d37;
+}
+
+.roster-gap-panel.is-hard li button:hover {
+    background: #fef4f3;
+    border-color: #e2a29c;
+}
+
+.roster-warn-panel li button {
+    border: 1px solid #f0cd9a;
+    color: #7a4a0f;
+}
+
+.roster-warn-panel li button:hover {
+    background: #fff8ec;
+    border-color: #e4a95e;
+}
+
+.roster-shift-flash {
+    animation: roster-shift-flash 1.6s ease;
+}
+
+@keyframes roster-shift-flash {
+    0%, 100% { box-shadow: none; }
+    15%, 45% { box-shadow: 0 0 0 3px #e4a95e; }
+}
+
+/* Step 5 publish summary — what the attestation checkbox is actually
+   agreeing to, rendered from the same evaluation the roster board used. */
+.publish-summary {
+    display: grid;
+    gap: .7rem;
+    padding: .9rem 1rem;
+    border: 1px solid #cfe0f7;
+    border-radius: .75rem;
+    background: #f6f9ff;
+}
+
+.publish-summary > header {
+    display: grid;
+    gap: .1rem;
+}
+
+.publish-summary > header strong {
+    color: #26344b;
+    font-size: .88rem;
+}
+
+.publish-summary > header span {
+    color: #6d7d94;
+    font-size: .7rem;
+}
+
+.publish-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .6rem;
+}
+
+.publish-stat {
+    display: grid;
+    gap: .15rem;
+    padding: .7rem .8rem;
+    border: 1px solid #dce8f7;
+    border-radius: .6rem;
+    background: #fff;
+    text-align: center;
+}
+
+.publish-stat strong {
+    color: #1755b3;
+    font-size: 1.3rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.publish-stat span {
+    color: #6d7d94;
+    font-size: .66rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+.publish-summary-gap {
+    margin: 0;
+    padding: .6rem .75rem;
+    border: 1px solid #e4a95e;
+    border-radius: .55rem;
+    background: #fff3e0;
+    color: #7a4a0f;
+    font-size: .76rem;
+}
+
+@media (max-width: 600px) {
+    .publish-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }

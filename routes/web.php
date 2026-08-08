@@ -16,13 +16,17 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SchedulePreferenceController;
 use App\Http\Controllers\Schedule\AiScheduleRecommendationController;
 use App\Http\Controllers\Schedule\RecurringScheduleController;
 use App\Http\Controllers\Schedule\RosterDraftController;
 use App\Http\Controllers\Schedule\ScheduleAssignmentController;
 use App\Http\Controllers\Schedule\ScheduleCalendarController;
+use App\Http\Controllers\Schedule\ScheduleComplianceController;
 use App\Http\Controllers\Schedule\ScheduleDayOffController;
+use App\Http\Controllers\Schedule\ScheduleLockController;
 use App\Http\Controllers\Schedule\ShiftController;
+use App\Http\Controllers\Schedule\ShiftSwapController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TimesheetController;
@@ -86,6 +90,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/schedules/roster/fill', [RosterDraftController::class, 'fill'])->name('schedules.roster.fill');
     Route::post('/schedules/roster/suggest', [RosterDraftController::class, 'suggest'])->middleware('throttle:10,1')->name('schedules.roster.suggest');
     Route::post('/schedules/roster/publish', [RosterDraftController::class, 'publish'])->name('schedules.roster.publish');
+    Route::get('/schedules/roster/drafts', [RosterDraftController::class, 'drafts'])->name('schedules.roster.drafts');
+    Route::post('/schedules/roster/drafts', [RosterDraftController::class, 'saveDraft'])->name('schedules.roster.drafts.save');
+    Route::delete('/schedules/roster/drafts/{rosterDraft}', [RosterDraftController::class, 'discardDraft'])->name('schedules.roster.drafts.discard');
+    Route::post('/schedule-locks', [ScheduleLockController::class, 'store'])->name('schedule-locks.store');
+    Route::delete('/schedule-locks/{scheduleLock}', [ScheduleLockController::class, 'destroy'])->name('schedule-locks.destroy');
+    Route::post('/schedule-compliance-reviews', [ScheduleComplianceController::class, 'store'])->name('schedule-compliance-reviews.store');
     Route::post('/schedules/ai-recommendations', [AiScheduleRecommendationController::class, 'store'])->middleware('throttle:10,1')->name('schedules.ai-recommendations.store');
     Route::post('/schedules/ai-recommendations/{scheduleRecommendation}/apply', [AiScheduleRecommendationController::class, 'apply'])->middleware('throttle:20,1')->name('schedules.ai-recommendations.apply');
     Route::post('/schedules/ai-recommendations/{scheduleRecommendation}/decision', [AiScheduleRecommendationController::class, 'decision'])->middleware('throttle:20,1')->name('schedules.ai-recommendations.decision');
@@ -101,6 +111,20 @@ Route::middleware('auth')->group(function () {
     Route::put('/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
     Route::patch('/shifts/{shift}/toggle-active', [ShiftController::class, 'toggleActive'])->name('shifts.toggle-active');
     Route::delete('/shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
+
+    Route::get('/shift-swaps', [ShiftSwapController::class, 'index'])->name('shift-swaps.index');
+    Route::post('/shift-swaps', [ShiftSwapController::class, 'store'])->name('shift-swaps.store');
+    Route::post('/shift-swaps/{shiftSwapRequest}/respond', [ShiftSwapController::class, 'respond'])->name('shift-swaps.respond');
+    Route::post('/shift-swaps/{shiftSwapRequest}/approve', [ShiftSwapController::class, 'approve'])->name('shift-swaps.approve');
+    Route::post('/shift-swaps/{shiftSwapRequest}/reject', [ShiftSwapController::class, 'reject'])->name('shift-swaps.reject');
+    Route::post('/shift-swaps/{shiftSwapRequest}/cancel', [ShiftSwapController::class, 'cancel'])->name('shift-swaps.cancel');
+
+    Route::get('/schedule-preferences', [SchedulePreferenceController::class, 'index'])->name('schedule-preferences.index');
+    Route::patch('/schedule-preferences/standing', [SchedulePreferenceController::class, 'updateStandingPreference'])->name('schedule-preferences.update-standing');
+    Route::post('/schedule-preferences/day-off', [SchedulePreferenceController::class, 'storeDayOff'])->name('schedule-preferences.store-day-off');
+    Route::post('/schedule-preferences/day-off/{preferredDayOff}/approve', [SchedulePreferenceController::class, 'approveDayOff'])->name('schedule-preferences.approve-day-off');
+    Route::post('/schedule-preferences/day-off/{preferredDayOff}/reject', [SchedulePreferenceController::class, 'rejectDayOff'])->name('schedule-preferences.reject-day-off');
+    Route::post('/schedule-preferences/day-off/{preferredDayOff}/cancel', [SchedulePreferenceController::class, 'cancelDayOff'])->name('schedule-preferences.cancel-day-off');
 
     Route::get('/timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');
     Route::get('/timesheets/export', [TimesheetController::class, 'export'])->name('timesheets.export');

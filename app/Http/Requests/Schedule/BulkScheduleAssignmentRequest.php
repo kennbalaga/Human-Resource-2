@@ -6,6 +6,7 @@ use App\Models\Position;
 use App\Services\Scheduling\SchedulePeriodService;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class BulkScheduleAssignmentRequest extends FormRequest
@@ -43,7 +44,7 @@ class BulkScheduleAssignmentRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty() ?? false;
+        return $this->user() !== null && Gate::forUser($this->user())->allows('workforce.view');
     }
 
     public function rules(): array
@@ -76,6 +77,8 @@ class BulkScheduleAssignmentRequest extends FormRequest
             'days_off_per_week' => ['nullable', 'integer', 'between:0,6'],
             'max_hours_per_week' => ['nullable', 'integer', 'between:1,168'],
             'night_shift_limit' => ['nullable', 'integer', 'between:0,7'],
+            'max_consecutive_nights' => ['nullable', 'integer', 'between:1,7'],
+            'minimum_rest_hours' => ['nullable', 'integer', 'between:1,48'],
             'overtime_allowed' => ['nullable', 'boolean'],
             'minimum_staff_per_shift' => ['nullable', 'integer', 'between:1,100'],
             'minimum_senior_per_shift' => ['nullable', 'integer', 'between:0,100'],

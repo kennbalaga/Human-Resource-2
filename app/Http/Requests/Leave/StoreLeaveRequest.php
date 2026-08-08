@@ -8,12 +8,13 @@ use Illuminate\Foundation\Http\FormRequest;
 class StoreLeaveRequest extends FormRequest
 {
     /**
-     * Leave self-service belongs to regular staff. Administrators and HR
-     * managers review requests instead of filing their own.
+     * HR managers review leave rather than filing their own. System
+     * administrators are staff like anyone else, so their own leave request is
+     * self-service and stays available even though they cannot approve one.
      *
      * @var array<int, string>
      */
-    public const ROLES_WITHOUT_SELF_SERVICE = ['system-administrator', 'hr-manager'];
+    public const ROLES_WITHOUT_SELF_SERVICE = ['hr-manager'];
 
     public function authorize(): bool
     {

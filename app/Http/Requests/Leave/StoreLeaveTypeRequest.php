@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Leave;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -10,7 +11,7 @@ class StoreLeaveTypeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty() ?? false;
+        return $this->user() !== null && Gate::forUser($this->user())->allows('hr.view');
     }
 
     protected function prepareForValidation(): void

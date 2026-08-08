@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Concerns;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 
 trait AuthorizesWorkforce
 {
     protected function canManage(User $user): bool
     {
-        return $user->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
+        return Gate::forUser($user)->allows('workforce.view');
     }
 
     protected function requireManager(User $user): void

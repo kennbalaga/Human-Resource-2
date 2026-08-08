@@ -16,7 +16,8 @@ return [
         'overtime' => 10,
         'recent_assignments' => 10,
         'overnight_assignments' => 10,
-        'consecutive_duties' => 10,
+        'consecutive_duties' => 5,
+        'shift_preference' => 5,
         'rest_time' => 5,
     ],
 

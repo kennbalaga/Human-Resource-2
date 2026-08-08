@@ -3,11 +3,6 @@
 @section('title', 'Leave Management')
 
 @section('content')
-    @php
-        $queryFor = fn(array $values) => route('leaves.index', array_merge(request()->query(), $values));
-        $previousMonth = $focusDate->copy()->subMonth()->toDateString();
-        $nextMonth = $focusDate->copy()->addMonth()->toDateString();
-    @endphp
     <section class="page-heading workforce-heading">
         <div><p class="eyebrow">Workforce Management</p><h1>Leave Management</h1><p>Track balances, submit supporting documents, and manage leave approvals.</p></div>
         <div class="row-action-group">
@@ -51,28 +46,16 @@
         </form>
     </section>
 
-    <section class="panel leave-calendar-panel">
-        <div class="schedule-toolbar"><div class="calendar-navigation"><a class="calendar-nav-button" href="{{ $queryFor(['date' => $previousMonth]) }}"><x-icon name="chevron-right" class="flip-horizontal" /></a><a class="calendar-today-button" href="{{ $queryFor(['date' => now()->toDateString()]) }}">Today</a><a class="calendar-nav-button" href="{{ $queryFor(['date' => $nextMonth]) }}"><x-icon name="chevron-right" /></a><h2>{{ $focusDate->format('F Y') }}</h2></div><span class="history-caption">Approved leave calendar</span></div>
-        <div class="month-calendar leave-calendar"><div class="month-weekdays">@foreach(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as $day)<span>{{ $day }}</span>@endforeach</div><div class="month-days">
-            @foreach($calendarDays as $day)
-                <article @class(['calendar-day', 'outside-month' => !$day['current_month'], 'is-today' => $day['today']])><div class="calendar-day-header"><span>{{ $day['date']->day }}</span>@if($day['today'])<small>Today</small>@endif</div><div class="calendar-day-events">
-                    @foreach($day['requests']->take(3) as $leave)<span class="leave-calendar-event" style="--leave-color: {{ $leave->leaveType->color }}"><i></i><span><strong>{{ $leave->employee->first_name }} {{ $leave->employee->last_name }}</strong><small>{{ $leave->leaveType->name }}</small></span></span>@endforeach
-                    @if($day['requests']->count() > 3)<span class="more-events">+{{ $day['requests']->count() - 3 }} more</span>@endif
-                </div></article>
-            @endforeach
-        </div></div>
-    </section>
-
     <section class="panel workforce-table-panel">
         <div class="panel-header"><div><p class="panel-kicker">Requests and approvals</p><h2>Leave request history</h2></div><span class="history-caption">{{ $requests->total() }} results</span></div>
         <div class="table-responsive"><table class="dashboard-table workforce-table"><thead><tr><th>Employee</th><th>Leave</th><th>Dates</th><th>Days</th><th>Reason</th><th>Attachments</th><th>Status</th><th>Actions</th></tr></thead><tbody>
             @forelse($requests as $leave)
                 <tr><td><div class="employee-cell"><span class="avatar avatar-table">{{ strtoupper(substr($leave->employee->first_name,0,1).substr($leave->employee->last_name,0,1)) }}</span><div><strong>{{ $leave->employee->full_name }}</strong><span>{{ $leave->employee->employee_number }}</span></div></div></td><td><span class="leave-type-label"><i style="background:{{ $leave->leaveType->color }}"></i>{{ $leave->leaveType->name }}</span></td><td><strong>{{ $leave->start_date->format('M j') }}–{{ $leave->end_date->format('M j, Y') }}</strong></td><td>{{ number_format((float)$leave->requested_days, 1) }}</td><td><span class="truncate-reason" title="{{ $leave->reason }}">{{ $leave->reason }}</span></td><td>@forelse($leave->attachments as $attachment)<a class="attachment-link" href="{{ route('leave-attachments.download', $attachment) }}"><x-icon name="paperclip" />{{ $attachment->original_name }}</a>@empty<span>—</span>@endforelse</td><td><x-status-badge :status="$leave->status" /></td><td><div class="row-action-group">
-                    @if($canManage && $leave->status === 'pending')
+                    @if($canManageData && $leave->status === 'pending')
                         <form method="POST" action="{{ route('leaves.approve', $leave) }}">@csrf<button class="btn btn-sm btn-success">Approve</button></form>
                         <form method="POST" action="{{ route('leaves.reject', $leave) }}" class="inline-review-form">@csrf<input name="reviewer_notes" minlength="5" placeholder="Reason" required><button class="btn btn-sm btn-outline-danger">Reject</button></form>
                     @endif
-                    @if(in_array($leave->status, ['pending','approved']) && ($leave->employee_id === auth()->user()->employee?->id || $canManage))<form method="POST" action="{{ route('leaves.cancel', $leave) }}" onsubmit="return confirm('Cancel this leave request?')">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>@endif
+                    @if(in_array($leave->status, ['pending','approved']) && ($leave->employee_id === auth()->user()->employee?->id || $canManageData))<form method="POST" action="{{ route('leaves.cancel', $leave) }}" onsubmit="return confirm('Cancel this leave request?')">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>@endif
                 </div></td></tr>
             @empty<tr><td colspan="8" class="empty-table-cell"><x-icon name="leave" /><strong>No leave requests found</strong><span>New requests will appear here.</span></td></tr>@endforelse
         </tbody></table></div>

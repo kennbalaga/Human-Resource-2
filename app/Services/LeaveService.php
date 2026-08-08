@@ -12,6 +12,7 @@ use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -116,7 +117,10 @@ class LeaveService
 
     public function cancel(LeaveRequest $request, User $user): LeaveRequest
     {
-        if ($request->employee_id !== $user->employee?->id && ! $this->canManage($user)) {
+        // Cancelling your own request is self-service. Cancelling somebody
+        // else's is a review action, so it needs write access as well as reach.
+        if ($request->employee_id !== $user->employee?->id
+            && ! Gate::forUser($user)->allows('workforce.manage')) {
             abort(403);
         }
 
@@ -217,8 +221,4 @@ class LeaveService
         }
     }
 
-    private function canManage(User $user): bool
-    {
-        return $user->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
-    }
 }

@@ -9,9 +9,11 @@ use App\Models\ScheduleAssignment;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\PreferenceNotificationService;
 use App\Services\ScheduleService;
+use App\Services\Scheduling\ScheduleLockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class ScheduleAssignmentController extends Controller
 {
@@ -44,10 +46,14 @@ class ScheduleAssignmentController extends Controller
         Request $request,
         ScheduleAssignment $scheduleAssignment,
         PreferenceNotificationService $notifications,
+        ScheduleLockService $locks,
     ): RedirectResponse {
-        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty(), 403);
+        abort_unless(Gate::forUser($request->user())->allows('workforce.view'), 403);
 
-        $scheduleAssignment->loadMissing(['employee.user.preference', 'shift']);
+        $scheduleAssignment->loadMissing(['employee.department', 'employee.user.preference', 'shift']);
+        if ($scheduleAssignment->employee->department !== null) {
+            $locks->assertUnlocked($scheduleAssignment->employee->department, $scheduleAssignment->work_date);
+        }
         $scheduleAssignment->delete();
         $this->notifyEmployee($scheduleAssignment, 'removed', $notifications);
 
