@@ -202,6 +202,8 @@
 }
 
 html[data-theme-resolved='dark'] .ai-scheduling { border-color: #294c66; background: #101f28; }
+html[data-theme-resolved='dark'] .ai-scheduling-icon { color: #a8c8ec; background: var(--hr-tint-info); }
+html[data-theme-resolved='dark'] .ai-scheduling summary { color: #a9b8c2; }
 html[data-theme-resolved='dark'] .ai-scheduling-heading h3,
 html[data-theme-resolved='dark'] .ai-candidate-heading strong,
 html[data-theme-resolved='dark'] .ai-ineligible-row strong { color: var(--hr-text); }
@@ -220,6 +222,8 @@ html[data-theme-resolved='dark'] .ai-scheduling-rejection textarea { border-colo
 html[data-theme-resolved='dark'] .schedule-assignment-workspace { background: #0b1510; }
 html[data-theme-resolved='dark'] .schedule-assignment-manual { border-color: #2c4236; background: #101f17; }
 html[data-theme-resolved='dark'] .schedule-assignment-section-heading h3 { color: var(--hr-text); }
+html[data-theme-resolved='dark'] .schedule-assignment-section-heading p { color: #9cd9b8; }
+html[data-theme-resolved='dark'] .schedule-assignment-section-heading > span { color: #a6dcc0; background: var(--hr-tint-success); }
 html[data-theme-resolved='dark'] .schedule-assignment-section-copy,
 html[data-theme-resolved='dark'] .schedule-save-note { color: #a9b8b0; }
 html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-result-actions { background: linear-gradient(to bottom, rgba(16, 31, 40, 0), #101f28 28%); }
