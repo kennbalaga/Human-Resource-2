@@ -12,19 +12,18 @@ use Illuminate\Support\Str;
 
 class NursingStaffSeeder extends Seeder
 {
+    /**
+     * Nursing Service was later dissolved and its staff split evenly across
+     * the clinical departments (see OrganizationSeeder), so these round-robin
+     * across the same 6 departments rather than landing under one central
+     * nursing department.
+     */
+    private const DEPARTMENT_CODES = ['DERM', 'IM', 'SURG', 'PEDS', 'OB-GYN', 'OPD'];
+
     public function run(): void
     {
-        $department = Department::query()->where('code', 'NUR')->firstOrFail();
-
-        $position = Position::query()->updateOrCreate(
-            ['code' => 'NUR-STAFF'],
-            [
-                'department_id' => $department->id,
-                'title' => 'Staff Nurse',
-                'description' => 'Front-line nursing staff providing direct patient care.',
-                'is_active' => true,
-            ],
-        );
+        $departments = Department::query()->whereIn('code', self::DEPARTMENT_CODES)->get()->keyBy('code');
+        $positions = Position::query()->whereIn('code', array_map(fn ($code) => 'NUR-STAFF-'.$code, self::DEPARTMENT_CODES))->get()->keyBy('code');
 
         $employeeRole = Role::query()->where('slug', 'employee')->firstOrFail();
 
@@ -55,7 +54,11 @@ class NursingStaffSeeder extends Seeder
             ? (string) config('workforce.local_employee_default_password')
             : Str::password(40);
 
-        foreach ($staff as $row) {
+        foreach ($staff as $i => $row) {
+            $code = self::DEPARTMENT_CODES[$i % count(self::DEPARTMENT_CODES)];
+            $department = $departments[$code];
+            $position = $positions['NUR-STAFF-'.$code];
+
             $isActiveAccount = in_array($row['employment_status'], ['active', 'on_leave'], true);
 
             $user = User::query()->updateOrCreate(

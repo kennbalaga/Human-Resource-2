@@ -2,6 +2,7 @@
     --hr-primary: #176b43;
     --hr-primary-dark: #0d4f30;
     --hr-primary-soft: #eaf7f0;
+    --hr-primary-rgb: 23, 107, 67;
     --hr-sidebar: #103d2a;
     --hr-sidebar-deep: #0a3020;
     --hr-bg: #f4f7f6;
@@ -1214,6 +1215,60 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
     font-size: 0.82rem;
 }
 
+/* Every primary/outline-primary button, not just the dashboard's own
+   call-to-action row: dark mode already recolours every one of these to the
+   brand green with a single blanket rule (see dark-mode.css), so light mode
+   gets the equivalent here instead of leaving Bootstrap's default blue on
+   every button that isn't explicitly opted in with .dashboard-action. */
+.btn-primary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--hr-primary);
+    --bs-btn-border-color: var(--hr-primary);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--hr-primary-dark);
+    --bs-btn-hover-border-color: var(--hr-primary-dark);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--hr-primary-dark);
+    --bs-btn-active-border-color: var(--hr-primary-dark);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: var(--hr-primary);
+    --bs-btn-disabled-border-color: var(--hr-primary);
+    --bs-btn-focus-shadow-rgb: var(--hr-primary-rgb);
+    color: #fff;
+    border-color: var(--hr-primary);
+    background: var(--hr-primary);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    color: #fff;
+    border-color: var(--hr-primary-dark);
+    background: var(--hr-primary-dark);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--hr-primary);
+    --bs-btn-border-color: var(--hr-primary);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--hr-primary);
+    --bs-btn-hover-border-color: var(--hr-primary);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--hr-primary);
+    --bs-btn-active-border-color: var(--hr-primary);
+    --bs-btn-focus-shadow-rgb: var(--hr-primary-rgb);
+    color: var(--hr-primary);
+    border-color: var(--hr-primary);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+    color: #fff;
+    background: var(--hr-primary);
+    border-color: var(--hr-primary);
+}
+
+/* The dashboard's own call-to-action row layers a distinct shape (pill
+   padding, larger radius, a soft shadow) on top of the colours above. */
 .btn-primary.dashboard-action {
     display: inline-flex;
     min-height: 42px;

@@ -28,7 +28,7 @@ class InitialUserSeeder extends Seeder
                 'last_name' => 'Administrator',
                 'email' => 'admin@hrms.local',
                 'role' => 'system-administrator',
-                'department' => 'IT',
+                'department' => 'ADMIN',
                 'position' => 'SYS-ADMIN',
             ],
             [
@@ -46,8 +46,8 @@ class InitialUserSeeder extends Seeder
                 'last_name' => 'Department Head',
                 'email' => 'nursing.head@hrms.local',
                 'role' => 'department-head',
-                'department' => 'NUR',
-                'position' => 'NUR-HEAD',
+                'department' => 'DERM',
+                'position' => 'NUR-HEAD-DERM',
             ],
             [
                 'employee_number' => 'HR-2026-0002',

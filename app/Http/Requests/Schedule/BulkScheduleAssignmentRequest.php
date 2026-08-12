@@ -51,8 +51,20 @@ class BulkScheduleAssignmentRequest extends FormRequest
     {
         return [
             'department_id' => ['required', 'integer', 'exists:departments,id'],
+            'position_ids' => ['nullable', 'array'],
+            'position_ids.*' => ['integer', 'distinct', Rule::exists('positions', 'id')->where('department_id', $this->input('department_id'))],
             'employee_ids' => ['required', 'array', 'min:1', 'max:'.config('schedule.max_bulk_assignment_employees')],
-            'employee_ids.*' => ['required', 'integer', 'distinct', Rule::exists('employees', 'id')->where('department_id', $this->input('department_id'))],
+            'employee_ids.*' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('employees', 'id')->where(function ($query) {
+                    $query->where('department_id', $this->input('department_id'));
+                    if ($positionIds = array_filter((array) $this->input('position_ids'))) {
+                        $query->whereIn('position_id', $positionIds);
+                    }
+                }),
+            ],
             'shift_id' => ['required', 'integer', 'exists:shifts,id'],
             'schedule_period' => ['nullable', Rule::in(['weekly', 'two_weeks', 'monthly'])],
             'period_start' => ['nullable', 'required_if:schedule_period,weekly,two_weeks', 'date'],

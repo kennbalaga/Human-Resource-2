@@ -39,6 +39,8 @@ class RosterDraftRequest extends FormRequest
 
         return [
             'department_id' => ['required', 'integer', 'exists:departments,id'],
+            'position_ids' => ['nullable', 'array'],
+            'position_ids.*' => ['integer', 'distinct', Rule::exists('positions', 'id')->where('department_id', $this->input('department_id'))],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'notes' => ['nullable', 'string', 'max:500'],

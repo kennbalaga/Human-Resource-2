@@ -219,6 +219,10 @@ document.addEventListener('DOMContentLoaded', () => {
         .filter((option) => option.querySelector('input').checked)
         .map((option) => Number(option.querySelector('input').value));
 
+    const selectedBulkPositionIds = () => (bulkForm
+        ? [...bulkForm.querySelectorAll('input[name="position_ids[]"]:checked')].map((input) => input.value)
+        : []);
+
     const updateBulkSelectedCount = () => {
         if (bulkSelectedCount) bulkSelectedCount.textContent = `${selectedBulkEmployees().length} selected`;
     };
@@ -314,13 +318,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterBulkEmployees = () => {
         if (!bulkForm) return;
         const departmentId = bulkForm.querySelector('[data-bulk-department-filter]').value;
-        const positionId = bulkForm.querySelector('[data-bulk-position-filter]').value;
+        const positionIds = selectedBulkPositionIds();
         const search = bulkForm.querySelector('[data-bulk-employee-search]').value.trim().toLowerCase();
 
         bulkEmployeeOptions.forEach((option) => {
-            const matches = Boolean(departmentId) && Boolean(positionId)
+            const matches = Boolean(departmentId) && positionIds.length > 0
                 && option.dataset.departmentId === departmentId
-                && option.dataset.positionId === positionId
+                && positionIds.includes(option.dataset.positionId)
                 && (!search || option.dataset.search.includes(search));
             option.hidden = !matches;
         });
@@ -329,32 +333,44 @@ document.addEventListener('DOMContentLoaded', () => {
         empty.hidden = hasVisibleEmployees;
         if (!departmentId) {
             empty.textContent = 'Select a department to load its active employees.';
-        } else if (!positionId) {
+        } else if (positionIds.length === 0) {
             const departmentOption = bulkForm.querySelector('[data-bulk-department-filter]').selectedOptions[0];
             const count = Number(departmentOption?.dataset.employeeCount ?? 0);
             const departmentName = departmentOption?.textContent ?? 'this department';
             empty.textContent = count
-                ? `Loads ${count} active employee${count === 1 ? '' : 's'} in ${departmentName} once a position is selected.`
+                ? `Loads ${count} active employee${count === 1 ? '' : 's'} in ${departmentName} once at least one position is selected.`
                 : `No active employees are on record for ${departmentName} yet.`;
         } else {
             empty.textContent = 'No active employees match the selected filters.';
         }
     };
 
-    // Rosters are built one department and position at a time, so the position
-    // list only ever shows roles that exist in the chosen department, and staff
-    // selection stays locked until a position narrows down who is eligible.
+    // Rosters are built one department at a time, so the position list only
+    // ever shows roles that exist in the chosen department, and staff
+    // selection stays locked until at least one position narrows down who is
+    // eligible.
     const syncBulkPositionOptions = () => {
         if (!bulkForm) return;
         const departmentId = bulkForm.elements.department_id.value;
-        const positionFilter = bulkForm.querySelector('[data-bulk-position-filter]');
-        const placeholder = positionFilter.querySelector('option[value=""]');
-        positionFilter.querySelectorAll('option[data-department-id]').forEach((option) => {
-            option.hidden = option.dataset.departmentId !== departmentId;
+        const picker = bulkForm.querySelector('[data-bulk-position-picker]');
+        const help = picker.querySelector('[data-bulk-position-help]');
+        const options = [...picker.querySelectorAll('[data-bulk-position-options] .bulk-position-option')];
+        let visibleCount = 0;
+        options.forEach((option) => {
+            const matches = option.dataset.departmentId === departmentId;
+            option.hidden = !matches;
+            const input = option.querySelector('input');
+            input.disabled = !matches;
+            if (!matches) input.checked = false;
+            if (matches) visibleCount += 1;
         });
-        positionFilter.value = '';
-        positionFilter.disabled = !departmentId;
-        if (placeholder) placeholder.textContent = departmentId ? 'Select position' : 'Select a department first';
+        if (!departmentId) {
+            help.textContent = 'Select a department first';
+        } else if (visibleCount === 0) {
+            help.textContent = 'No positions are on record for this department yet.';
+        } else {
+            help.textContent = 'Select one or more positions to include.';
+        }
     };
 
     // Night-shift limit and consecutive-night-streak rules exist for units
@@ -377,11 +393,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const syncBulkPositionAvailability = () => {
         if (!bulkForm) return;
-        const positionFilter = bulkForm.querySelector('[data-bulk-position-filter]');
+        const hasPosition = selectedBulkPositionIds().length > 0;
         const employeeScope = bulkForm.elements.employee_scope;
         if (!employeeScope) return;
-        employeeScope.disabled = !positionFilter.value;
-        if (!positionFilter.value) employeeScope.value = 'specific';
+        employeeScope.disabled = !hasPosition;
+        if (!hasPosition) employeeScope.value = 'specific';
     };
 
     const syncEmployeeScope = () => {
@@ -389,18 +405,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const scope = bulkForm.elements.employee_scope?.value ?? 'specific';
         const allStaff = scope === 'all';
         const departmentId = bulkForm.elements.department_id.value;
-        const positionFilter = bulkForm.querySelector('[data-bulk-position-filter]');
+        const positionIds = selectedBulkPositionIds();
         const search = bulkForm.querySelector('[data-bulk-employee-search]');
         const selectAll = bulkForm.querySelector('[data-bulk-select-all]');
-        search.disabled = allStaff || !positionFilter.value;
+        search.disabled = allStaff || positionIds.length === 0;
         selectAll.hidden = allStaff;
 
         if (allStaff) {
             search.value = '';
             bulkEmployeeOptions.forEach((option) => {
-                option.querySelector('input').checked = Boolean(departmentId) && Boolean(positionFilter.value)
+                option.querySelector('input').checked = Boolean(departmentId) && positionIds.length > 0
                     && option.dataset.departmentId === departmentId
-                    && option.dataset.positionId === positionFilter.value;
+                    && positionIds.includes(option.dataset.positionId);
             });
         }
 
@@ -449,7 +465,8 @@ document.addEventListener('DOMContentLoaded', () => {
         syncEmployeeScope();
         syncClinicalOnlyFields();
     });
-    bulkForm?.querySelector('[data-bulk-position-filter]')?.addEventListener('change', () => {
+    bulkForm?.querySelector('[data-bulk-position-picker]')?.addEventListener('change', (event) => {
+        if (!event.target.matches('[data-bulk-position-filter]')) return;
         syncBulkPositionAvailability();
         syncEmployeeScope();
     });
@@ -481,6 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rosterClearButton = rosterBoard?.querySelector('[data-roster-clear]');
     const rosterSaveDraftButton = rosterBoard?.querySelector('[data-roster-save-draft]');
     const rosterDraftStatus = rosterBoard?.querySelector('[data-roster-draft-status]');
+    const rosterAssistantNotice = rosterBoard?.querySelector('[data-roster-assistant-notice]');
     const rosterGapPanel = rosterBoard?.querySelector('[data-roster-gap-panel]');
     const rosterGapTitle = rosterGapPanel?.querySelector('[data-roster-gap-title]');
     const rosterGapList = rosterGapPanel?.querySelector('[data-roster-gap-list]');
@@ -493,6 +511,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastEvaluation = null;
 
     const rosterKey = (entry) => `${entry.employee_id}|${entry.work_date}`;
+
+    // The assistant's own explanation of the pattern it chose — most useful
+    // when it also flags a shift it could not have reached no matter how it
+    // arranged people (e.g. too few staff for the rest rule in play).
+    // Cleared on any manual edit or fill run that doesn't supply a fresh one,
+    // so it never claims to explain a board it no longer describes.
+    const setAssistantNotice = (text) => {
+        if (!rosterAssistantNotice) return;
+        rosterAssistantNotice.hidden = !text;
+        rosterAssistantNotice.textContent = text ?? '';
+    };
 
     const selectedEmployees = () => bulkEmployeeOptions
         .filter((option) => option.querySelector('input').checked)
@@ -784,6 +813,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.status === 419) throw new Error('Your session needs to be refreshed — reopen this window and try again.');
             const payload = await response.json();
             if (!response.ok) throw new Error(Object.values(payload.errors ?? {}).flat()[0] ?? 'Unable to check the roster.');
+            // This is a plain re-check of whatever is on the board, not a
+            // fresh proposal, so any notice from the last fill run no longer
+            // describes it.
+            setAssistantNotice(null);
             renderRoster(payload.data);
         } catch (error) {
             // rosterSummary lives inside .roster-board, which is still hidden
@@ -815,6 +848,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const payload = await response.json();
             if (!response.ok) throw new Error(Object.values(payload.errors ?? {}).flat()[0] ?? failure);
             rosterEntries = payload.data.entries;
+            // Only the rotation assistant's response carries a notice; a
+            // plain shift fill has nothing to say, so this clears it there.
+            setAssistantNotice(payload.data.notice ?? null);
             renderRoster(payload.data.evaluation);
         } catch (error) {
             if (rosterSummary) rosterSummary.textContent = error.message;
@@ -838,7 +874,10 @@ document.addEventListener('DOMContentLoaded', () => {
         'That shift could not be filled.',
     ));
 
-    rosterClearButton?.addEventListener('click', () => setRosterEntries([]));
+    rosterClearButton?.addEventListener('click', () => {
+        setAssistantNotice(null);
+        setRosterEntries([]);
+    });
 
     // Persists the board exactly as it stands, so a second reviewer can pick up
     // where the first left off instead of the draft only living in this tab.
@@ -1092,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const validateStep1 = () => {
         if (!bulkForm.elements.department_id.value) return 'Select a department to continue.';
-        if (!bulkForm.querySelector('[data-bulk-position-filter]').value) return 'Select a position to continue.';
+        if (selectedBulkPositionIds().length === 0) return 'Select at least one position to continue.';
         if (selectedBulkEmployees().length === 0) return 'Select at least one employee to continue.';
 
         return null;

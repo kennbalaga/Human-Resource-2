@@ -45,7 +45,14 @@ class RosterDraftService
         $start = Carbon::parse($startDate, config('schedule.timezone'))->startOfDay();
         $end = Carbon::parse($endDate, config('schedule.timezone'))->startOfDay();
         $dates = collect(CarbonPeriod::create($start, $end))
-            ->map(fn ($date) => Carbon::instance($date)->timezone(config('schedule.timezone'))->startOfDay());
+            ->map(fn ($date) => Carbon::instance($date)->timezone(config('schedule.timezone'))->startOfDay())
+            // Administrative offices (HR, Finance, IT, ...) run Monday–Saturday;
+            // the board shouldn't offer, or gate publishing on, a Sunday shift
+            // those departments never actually staff.
+            ->when(
+                $department->category === Department::CATEGORY_ADMINISTRATIVE,
+                fn (Collection $dates) => $dates->reject(fn (Carbon $date) => $date->isSunday())->values(),
+            );
 
         $employees = Employee::query()
             ->with('position')
@@ -305,6 +312,18 @@ class RosterDraftService
 
             foreach ($entries as $entry) {
                 if ($blocked->has($entry['employee_id'].'|'.$entry['work_date'])) {
+                    continue;
+                }
+
+                if ($department->category === Department::CATEGORY_ADMINISTRATIVE
+                    && Carbon::parse($entry['work_date'], config('schedule.timezone'))->isSunday()) {
+                    $lockSkipped->push($this->issue(
+                        $entry,
+                        $employees->get($entry['employee_id'])?->full_name ?? 'Unknown employee',
+                        $entry['shift_id'] !== null ? Shift::find($entry['shift_id'])?->name : null,
+                        'Administrative departments do not schedule Sundays',
+                    ));
+
                     continue;
                 }
 

@@ -333,7 +333,7 @@
                                 <span data-bulk-selected-count>0 selected</span>
                             </div>
                             <label><span>Department</span><select name="department_id" data-bulk-department-filter required><option value="">Select department</option>@foreach($departments as $department)<option value="{{ $department->id }}" data-employee-count="{{ $employees->where('department_id', $department->id)->count() }}" data-category="{{ $department->category }}">{{ $department->name }}</option>@endforeach</select></label>
-                            <label><span>Position</span><select data-bulk-position-filter required disabled><option value="">Select a department first</option>@foreach($positions as $position)<option value="{{ $position->id }}" data-department-id="{{ $position->department_id }}" hidden>{{ $position->title }}</option>@endforeach</select></label>
+                            <fieldset class="bulk-position-picker full-width" data-bulk-position-picker><legend>Position</legend><p data-bulk-position-help>Select a department first</p><div data-bulk-position-options>@foreach($positions as $position)<label class="bulk-position-option" data-department-id="{{ $position->department_id }}" hidden><input type="checkbox" name="position_ids[]" value="{{ $position->id }}" data-bulk-position-filter disabled><span>{{ $position->title }}</span></label>@endforeach</div></fieldset>
                             <label class="full-width"><span>Find staff</span><input type="search" data-bulk-employee-search placeholder="Search employee name or ID" disabled></label>
                             <div class="bulk-staff-scope full-width" data-bulk-staff-scope>
                                 <label class="bulk-staff-scope-field"><span>Include</span><select name="employee_scope" data-bulk-employee-scope disabled><option value="specific">Specific staff</option><option value="all">All active staff</option></select></label>
@@ -404,6 +404,7 @@
                                     </div>
                                 </header>
                                 <div class="roster-draft-status" data-roster-draft-status hidden></div>
+                                <div class="roster-assistant-notice" data-roster-assistant-notice hidden></div>
                                 <div class="roster-gap-panel is-hard" data-roster-gap-panel hidden>
                                     <div class="roster-gap-heading"><x-icon name="close" /><strong data-roster-gap-title></strong></div>
                                     <ul data-roster-gap-list></ul>

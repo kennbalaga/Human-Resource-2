@@ -224,7 +224,7 @@ class RosterDraftController extends Controller
                 'day_offs_created' => $result['day_offs']->count(),
                 'skipped' => $result['skipped']->count(),
                 'rules' => collect($data)->only([
-                    'shift_id', 'shift_ids', 'days_off_per_week', 'max_hours_per_week', 'night_shift_limit',
+                    'position_ids', 'shift_id', 'shift_ids', 'days_off_per_week', 'max_hours_per_week', 'night_shift_limit',
                     'max_consecutive_nights', 'minimum_rest_hours', 'overtime_allowed', 'minimum_staff_per_shift',
                     'minimum_senior_per_shift', 'senior_rank_threshold', 'holiday_dates',
                 ])->all(),

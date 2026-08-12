@@ -111,6 +111,7 @@ class RotationScheduleService
             ->map(fn (Collection $items) => (int) $items->first()->shift_id);
         $scheduleMethod = $data['schedule_method'] ?? 'rotation';
         $seniorRankThreshold = (int) ($data['senior_rank_threshold'] ?? ScheduleService::DEFAULT_SENIOR_RANK_THRESHOLD);
+        $minimumRestMinutes = max(0, (int) ($data['minimum_rest_hours'] ?? config('schedule.minimum_rest_hours'))) * 60;
         $rotationMatrix = $this->rotationMatrix(
             $employees,
             $weeks,
@@ -141,7 +142,34 @@ class RotationScheduleService
                 $dayOffDates = $existingWeekDayOffs
                     ->map(fn (ScheduleDayOff $dayOff) => $dayOff->work_date->copy())
                     ->values();
-                $requiredDaysOff = min((int) ($data['days_off_per_week'] ?? 1), max(0, $weekDates->count() - 1));
+
+                // A shift's own daily turnaround can be shorter than the
+                // configured minimum rest (e.g. a 9-to-6 shift under a
+                // 16-hour rule can't be worked two days running); when that
+                // happens, one day off a week isn't enough to keep the
+                // employee off the reactive rest-violation block below, so
+                // the requirement is raised to what the shift itself needs.
+                //
+                // Which days are picked matters as much as how many:
+                // everyone resting on the same days (as an unstaggered
+                // offset would tend to produce) empties the shift entirely
+                // on those days, while spreading employees across the
+                // spacing cycle keeps someone on duty every day. Each
+                // employee is assigned to one of $restSpacing alternating
+                // groups, anchored to the roster's own start date rather
+                // than this week's, so the pattern stays continuous across a
+                // week boundary instead of resetting its phase every 7 days
+                // (7 not being a multiple of most spacings) and forcing a
+                // day this employee was actually free to work.
+                $restSpacing = $this->restSpacingDays($shift, $minimumRestMinutes);
+                $forcedRestDates = $restSpacing > 1
+                    ? $weekDates->reject(fn (Carbon $date) => ((int) $start->diffInDays($date)) % $restSpacing === $employeeIndex % $restSpacing)
+                    : collect();
+                $requiredDaysOff = max(
+                    min((int) ($data['days_off_per_week'] ?? 1), max(0, $weekDates->count() - 1)),
+                    $forcedRestDates->count(),
+                );
+
                 $newDayOffs = $this->chooseDayOffs(
                     $weekDates,
                     $dayOffOffset,
@@ -153,6 +181,7 @@ class RotationScheduleService
                     $data['holiday_dates'] ?? [],
                     $employeePreferredDates,
                     $employee->preferred_weekly_off_day,
+                    $forcedRestDates,
                 );
                 foreach ($newDayOffs as $dayOffDate) {
                     $dayOffDates->push($dayOffDate);
@@ -312,6 +341,12 @@ class RotationScheduleService
             ->values();
 
         $patternLabel = $scheduleMethod === 'custom' ? 'Custom AI mix' : 'Balanced rotation';
+        $feasibilityWarnings = $this->feasibilityWarnings($employees->count(), $shifts, $requirements, $minimumRestMinutes);
+
+        $notice = "{$patternLabel} fills each shift towards {$department->name}'s recorded coverage standard, then applies the selected days-off, maximum-hours, night-shift, overtime, leave, and rest rules before HR approval.";
+        if ($feasibilityWarnings->isNotEmpty()) {
+            $notice .= ' '.$feasibilityWarnings->implode(' ');
+        }
 
         return [
             'rows' => $rows,
@@ -322,9 +357,61 @@ class RotationScheduleService
             'day_off_count' => $readyDayOffs->count(),
             'skipped_count' => $skipped->count(),
             'staffing_gaps' => $staffingGaps,
-            'notice' => "{$patternLabel} fills each shift towards {$department->name}'s recorded coverage standard, then applies the selected days-off, maximum-hours, night-shift, overtime, leave, and rest rules before HR approval.",
+            'notice' => $notice,
             'coverage_standard' => $this->staffingRequirements->derivationSummary($department),
         ];
+    }
+
+    /**
+     * Flag a shift's requirement as structurally out of reach *before* the
+     * roster is built rather than leaving the reviewer to piece it together
+     * from a wall of "N shifts below required cover" once the coverage gate
+     * blocks publishing. A shift whose own clock span forces employees onto
+     * every-other-day (or wider) spacing can only ever put roughly
+     * headcount / spacing people on duty at once — no rotation pattern can
+     * close a gap past that ceiling; only more staff, a shorter shift, or a
+     * relaxed rest rule can.
+     *
+     * @param  Collection<int, Shift>  $shifts
+     * @param  Collection<int, array{staff: int, senior: int, source: string}>  $requirements
+     * @return Collection<int, string>
+     */
+    private function feasibilityWarnings(int $eligibleEmployees, Collection $shifts, Collection $requirements, int $minimumRestMinutes): Collection
+    {
+        if ($eligibleEmployees === 0) {
+            return collect();
+        }
+
+        return $shifts
+            ->map(function (Shift $shift) use ($eligibleEmployees, $requirements, $minimumRestMinutes) {
+                $requirement = $requirements->get($shift->id);
+                $spacing = $this->restSpacingDays($shift, $minimumRestMinutes);
+                if ($requirement === null || $requirement['staff'] <= 0 || $spacing <= 1) {
+                    return null;
+                }
+
+                // Staggering splits the team into $spacing alternating
+                // groups as evenly as the headcount allows; the smallest of
+                // those groups is what actually caps coverage, since that
+                // group's day is the worst one the requirement has to
+                // survive — not the best-case day the largest group covers.
+                $worstCaseSimultaneous = (int) floor($eligibleEmployees / $spacing);
+                if ($worstCaseSimultaneous >= $requirement['staff']) {
+                    return null;
+                }
+
+                return sprintf(
+                    '%s needs %d staff, but a %dh minimum rest rule limits each of the %d selected employees to about 1 day in every %d — some days will have as few as %d on duty.',
+                    $shift->name,
+                    $requirement['staff'],
+                    (int) ($minimumRestMinutes / 60),
+                    $eligibleEmployees,
+                    $spacing,
+                    $worstCaseSimultaneous,
+                );
+            })
+            ->filter()
+            ->values();
     }
 
 
@@ -411,6 +498,7 @@ class RotationScheduleService
      * allows" instead of only offering a form nobody reads.
      *
      * @param  Collection<int, Carbon>  $preferredDates  Approved PreferredDayOff dates for this employee
+     * @param  Collection<int, Carbon>  $forcedDates  Dates the rest-hours rule requires off regardless of preference, so this employee's alternating group keeps its slot in the coverage split
      */
     private function chooseDayOffs(
         Collection $dates,
@@ -423,6 +511,7 @@ class RotationScheduleService
         array $holidayDates,
         Collection $preferredDates = new Collection(),
         ?int $preferredWeeklyOffDay = null,
+        Collection $forcedDates = new Collection(),
     ): Collection {
         if ($count === 0) {
             return collect();
@@ -440,15 +529,23 @@ class RotationScheduleService
         }
 
         $restRecoveryDate = $available->first(fn (Carbon $date) => $this->hasRestViolation($shift, $date, $assignments));
-        $ordered = $available->sortBy(function (Carbon $date) use ($dates, $preferredOffset, $restRecoveryDate, $preferredDates, $preferredWeeklyOffDay) {
+        $ordered = $available->sortBy(function (Carbon $date) use ($dates, $preferredOffset, $restRecoveryDate, $preferredDates, $preferredWeeklyOffDay, $forcedDates) {
             $index = (int) $dates->search(fn (Carbon $candidate) => $candidate->toDateString() === $date->toDateString());
             $offsetDistance = ($index - $preferredOffset + $dates->count()) % $dates->count();
+            $dateString = $date->toDateString();
 
-            if ($restRecoveryDate?->toDateString() === $date->toDateString()) {
+            if ($restRecoveryDate?->toDateString() === $dateString) {
                 return -1000;
             }
 
-            if ($preferredDates->contains(fn (Carbon $preferred) => $preferred->toDateString() === $date->toDateString())) {
+            // Ranked above a mere preference: skipping one of these breaks
+            // the alternating-group split chosen for this employee, which is
+            // what keeps the shift from emptying out entirely on other days.
+            if ($forcedDates->contains(fn (Carbon $forced) => $forced->toDateString() === $dateString)) {
+                return -900;
+            }
+
+            if ($preferredDates->contains(fn (Carbon $preferred) => $preferred->toDateString() === $dateString)) {
                 return $offsetDistance - 500;
             }
 
@@ -609,6 +706,28 @@ class RotationScheduleService
         }
 
         return $mostRecent['end']->diffInMinutes($candidateStart) < $requiredMinutes;
+    }
+
+    /**
+     * How many days must separate two working days on this shift for the
+     * configured minimum rest to actually be met. A shift's own daily
+     * turnaround (24 hours minus its clock span) already clears a modest
+     * rest requirement for free; once the requirement exceeds that
+     * turnaround, the same employee cannot work this shift on consecutive
+     * calendar days at all and needs a wider gap instead — e.g. an 8-to-5
+     * shift under a 16-hour rest rule leaves only a 15-hour gap day to day,
+     * so it can only be worked every other day (spacing of 2).
+     */
+    private function restSpacingDays(Shift $shift, int $minimumRestMinutes): int
+    {
+        if ($minimumRestMinutes <= 0) {
+            return 1;
+        }
+
+        [$start, $end] = $this->scheduleService->intervalFor($shift, '2000-01-01');
+        $clockSpanMinutes = $start->diffInMinutes($end);
+
+        return max(1, (int) ceil(($minimumRestMinutes + $clockSpanMinutes) / 1440));
     }
 
     private function hasRestViolation(Shift $shift, Carbon $date, Collection $assignments, array $rules = []): bool

@@ -11,44 +11,25 @@ class OrganizationSeeder extends Seeder
     public function run(): void
     {
         $departments = [
-            ['code' => 'MED', 'name' => 'Medical Services', 'category' => 'clinical', 'description' => 'Medical care services and clinical governance.'],
-            ['code' => 'NUR', 'name' => 'Nursing Service', 'category' => 'clinical', 'description' => 'Nursing care, wards, and patient support.'],
-            ['code' => 'ER', 'name' => 'Emergency Room', 'category' => 'clinical', 'description' => 'Emergency assessment, stabilization, and treatment.'],
-            ['code' => 'ICU', 'name' => 'Intensive Care Unit', 'category' => 'clinical', 'description' => 'Critical care for patients requiring intensive monitoring.'],
-            ['code' => 'OR', 'name' => 'Operating Room', 'category' => 'clinical', 'description' => 'Surgical and perioperative services.'],
-            ['code' => 'OPD', 'name' => 'Outpatient Department', 'category' => 'clinical', 'description' => 'Consultation and ambulatory care services.'],
-            ['code' => 'WARDS', 'name' => 'Inpatient Wards', 'category' => 'clinical', 'description' => 'General inpatient care and ward operations.'],
-            ['code' => 'DR', 'name' => 'Delivery Room', 'category' => 'clinical', 'description' => 'Labor and delivery services.'],
-            ['code' => 'NICU', 'name' => 'Neonatal Intensive Care Unit', 'category' => 'clinical', 'description' => 'Specialized critical care for newborns.'],
-            ['code' => 'PED-WARD', 'name' => 'Pediatric Ward', 'category' => 'clinical', 'description' => 'Inpatient care for pediatric patients.'],
-            ['code' => 'MED-WARD', 'name' => 'Medical Ward', 'category' => 'clinical', 'description' => 'Inpatient medical care.'],
-            ['code' => 'SURG-WARD', 'name' => 'Surgical Ward', 'category' => 'clinical', 'description' => 'Inpatient surgical care and recovery.'],
-            ['code' => 'OB-GYN', 'name' => 'Obstetrics and Gynecology', 'category' => 'clinical', 'description' => 'Women’s health, obstetric, and gynecologic care.'],
-            ['code' => 'DIALYSIS', 'name' => 'Dialysis Unit', 'category' => 'clinical', 'description' => 'Renal dialysis services.'],
-            ['code' => 'REHAB', 'name' => 'Rehabilitation and Physical Therapy', 'category' => 'clinical', 'description' => 'Rehabilitation and physical therapy services.'],
-            ['code' => 'LAB', 'name' => 'Clinical Laboratory', 'category' => 'clinical', 'description' => 'Laboratory diagnostic services.'],
-            ['code' => 'RADIOLOGY', 'name' => 'Radiology and Imaging', 'category' => 'clinical', 'description' => 'Diagnostic imaging services.'],
-            ['code' => 'PHARMACY', 'name' => 'Pharmacy', 'category' => 'clinical', 'description' => 'Medication management and dispensing.'],
-            ['code' => 'BLOOD-BANK', 'name' => 'Blood Bank', 'category' => 'clinical', 'description' => 'Blood collection, storage, and transfusion support.'],
-            ['code' => 'RESP-THERAPY', 'name' => 'Respiratory Therapy', 'category' => 'clinical', 'description' => 'Respiratory assessment and therapy services.'],
-            ['code' => 'NUTRITION', 'name' => 'Nutrition and Dietetics', 'category' => 'clinical', 'description' => 'Clinical nutrition and dietetic services.'],
-            ['code' => 'ADMIN', 'name' => 'Administration', 'category' => 'administrative', 'description' => 'Hospital administration and executive support.'],
-            ['code' => 'FIN', 'name' => 'Finance', 'category' => 'administrative', 'description' => 'Financial planning, accounting, and reporting.'],
-            ['code' => 'HR', 'name' => 'Human Resources', 'category' => 'administrative', 'description' => 'Workforce administration and employee services.'],
-            ['code' => 'IT', 'name' => 'Information Technology', 'category' => 'administrative', 'description' => 'Information systems, infrastructure, and user support.'],
-            ['code' => 'BILLING', 'name' => 'Billing', 'category' => 'administrative', 'description' => 'Patient billing and account reconciliation.'],
-            ['code' => 'ADMISSIONS', 'name' => 'Admissions', 'category' => 'administrative', 'description' => 'Patient registration and admission coordination.'],
-            ['code' => 'HIM', 'name' => 'Medical Records and Health Information Management', 'category' => 'administrative', 'description' => 'Health records, privacy, and information management.'],
-            ['code' => 'PROCUREMENT', 'name' => 'Procurement and Purchasing', 'category' => 'administrative', 'description' => 'Purchasing and supplier coordination.'],
-            ['code' => 'WAREHOUSE', 'name' => 'Supply Chain and Warehouse', 'category' => 'administrative', 'description' => 'Inventory, warehousing, and supply distribution.'],
-            ['code' => 'QA', 'name' => 'Quality Assurance', 'category' => 'administrative', 'description' => 'Quality management and continuous improvement.'],
-            ['code' => 'LEGAL', 'name' => 'Legal Office', 'category' => 'administrative', 'description' => 'Legal and regulatory support.'],
-            ['code' => 'HOUSEKEEPING', 'name' => 'Housekeeping', 'category' => 'support', 'description' => 'Environmental cleaning and sanitation services.'],
-            ['code' => 'MAINT', 'name' => 'Maintenance and Engineering', 'category' => 'support', 'description' => 'Facility, equipment, and engineering support.'],
-            ['code' => 'SECURITY', 'name' => 'Security', 'category' => 'support', 'description' => 'Facility security and safety support.'],
-            ['code' => 'TRANSPORT', 'name' => 'Transport Services', 'category' => 'support', 'description' => 'Patient, staff, and material transport services.'],
-            ['code' => 'LAUNDRY', 'name' => 'Laundry', 'category' => 'support', 'description' => 'Linen and laundry operations.'],
-            ['code' => 'CSSD', 'name' => 'Central Sterile Supply Department', 'category' => 'support', 'description' => 'Sterile processing and supply support.'],
+            // Administrative Services & Support Departments
+            ['code' => 'ADMIN', 'name' => 'Administrative and General Services', 'category' => 'administrative', 'description' => 'Security, transport, housekeeping, maintenance, and records management.'],
+            ['code' => 'FIN', 'name' => 'Finance and Accounting Section', 'category' => 'administrative', 'description' => 'Budget, billing, claims, and cash operations.'],
+            ['code' => 'HR', 'name' => 'Human Resource Management Section', 'category' => 'administrative', 'description' => 'Personnel hiring, records, payroll, and staff welfare.'],
+            ['code' => 'PROCUREMENT', 'name' => 'Materials and Procurement / Supply Section', 'category' => 'administrative', 'description' => 'Equipment purchasing, property management, and warehousing.'],
+            ['code' => 'MEDSOC', 'name' => 'Medical Social Services', 'category' => 'administrative', 'description' => 'Patient financial assistance, case management, and welfare support.'],
+            // Clinical and Medical Departments
+            ['code' => 'DERM', 'name' => 'Department of Dermatology and Leprosy Care', 'category' => 'clinical', 'description' => "Specialized national reference and training center for skin care and Hansen's disease management."],
+            ['code' => 'IM', 'name' => 'Department of Internal Medicine', 'category' => 'clinical', 'description' => 'Adult general care, sub-specialties, and ward admissions.'],
+            ['code' => 'SURG', 'name' => 'Department of Surgery', 'category' => 'clinical', 'description' => 'General operations, specialized surgical care, and trauma management.'],
+            ['code' => 'PEDS', 'name' => 'Department of Pediatrics', 'category' => 'clinical', 'description' => 'Newborn care, child health, and pediatric ward services.'],
+            ['code' => 'OB-GYN', 'name' => 'Department of Obstetrics and Gynecology', 'category' => 'clinical', 'description' => 'Maternal care, prenatal services, and delivery suites.'],
+            ['code' => 'ER', 'name' => 'Emergency Department', 'category' => 'clinical', 'description' => '24/7 acute trauma and urgent care.'],
+            ['code' => 'OPD', 'name' => 'Outpatient Department (OPD)', 'category' => 'clinical', 'description' => 'General and specialty ambulatory clinics.'],
+            // Ancillary and Diagnostic Units
+            ['code' => 'RADIOLOGY', 'name' => 'Radiology Department', 'category' => 'clinical', 'description' => 'X-ray, ultrasound, and imaging diagnostics.'],
+            ['code' => 'LAB', 'name' => 'Laboratory Department', 'category' => 'clinical', 'description' => 'Pathology, blood bank, and clinical testing services.'],
+            ['code' => 'PHARMACY', 'name' => 'Pharmacy Department', 'category' => 'clinical', 'description' => 'Medication dispensing and clinical pharmacy programs.'],
+            ['code' => 'PT-OT', 'name' => 'Physical Therapy and Occupational Therapy Units', 'category' => 'clinical', 'description' => 'Rehabilitation and functional restoration services.'],
         ];
 
         foreach ($departments as $department) {
@@ -59,10 +40,9 @@ class OrganizationSeeder extends Seeder
         }
 
         $positions = [
-            ['department' => 'IT', 'code' => 'SYS-ADMIN', 'title' => 'System Administrator'],
+            ['department' => 'ADMIN', 'code' => 'SYS-ADMIN', 'title' => 'System Administrator'],
             ['department' => 'HR', 'code' => 'HR-MGR', 'title' => 'HR Manager'],
             ['department' => 'HR', 'code' => 'HR-OFFICER', 'title' => 'HR Officer'],
-            ['department' => 'NUR', 'code' => 'NUR-HEAD', 'title' => 'Nursing Department Head'],
         ];
 
         foreach ($positions as $position) {
@@ -76,6 +56,31 @@ class OrganizationSeeder extends Seeder
                 [
                     'department_id' => $departmentId,
                     'title' => $position['title'],
+                    'is_active' => true,
+                ],
+            );
+        }
+
+        // Nursing no longer has a single central department: a hospital-wide
+        // restructure split Nursing Service across the clinical departments,
+        // so Head Nurse and Staff Nurse are positions scoped to each of them
+        // rather than one shared pair. NursingStaffSeeder distributes actual
+        // staff across these round-robin.
+        $nursingDepartmentCodes = ['DERM', 'IM', 'SURG', 'PEDS', 'OB-GYN', 'OPD'];
+        foreach ($nursingDepartmentCodes as $code) {
+            $departmentId = Department::query()->where('code', $code)->firstOrFail()->id;
+
+            Position::query()->updateOrCreate(
+                ['code' => 'NUR-HEAD-'.$code],
+                ['department_id' => $departmentId, 'title' => 'Head Nurse', 'seniority_rank' => 4, 'is_active' => true],
+            );
+            Position::query()->updateOrCreate(
+                ['code' => 'NUR-STAFF-'.$code],
+                [
+                    'department_id' => $departmentId,
+                    'title' => 'Staff Nurse',
+                    'description' => 'Front-line nursing staff providing direct patient care.',
+                    'seniority_rank' => 2,
                     'is_active' => true,
                 ],
             );
