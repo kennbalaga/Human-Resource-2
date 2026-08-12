@@ -1,0 +1,1583 @@
+/*
+ * Staff / Nurse dashboard.
+ *
+ * Nine widgets, one reading order. The page is laid out so a nurse arriving for a
+ * shift reads it top to bottom and stops as soon as her question is answered:
+ * anything that moved (the change alert), where she stands right now (attendance),
+ * what she is working (today's shift), then the slower material -- the week ahead,
+ * her timesheet, her tallies, her credits, her trend.
+ *
+ * The series colours are not new. They are the four steps the attendance overview
+ * already uses, which were snapped to clear the lightness band, the chroma floor,
+ * colour-blind separation, and 3:1 against the panel. Reusing them keeps "late"
+ * the same amber everywhere in the product; the dark theme's own steps live in
+ * dark-mode.css beside the ones they match.
+ */
+.staff-dashboard {
+    --staff-present: #176b43;
+    --staff-late: #b8760d;
+    --staff-absent: #b02a3c;
+    --staff-leave: #7656c9;
+    --staff-trend-fill: #176b43;
+    --staff-idle: #8d9a94;
+}
+
+/* ---------------------------------------------------------------- page frame */
+
+.staff-heading {
+    margin-bottom: 20px;
+}
+
+.staff-heading-badge {
+    display: inline-flex;
+    padding: 9px 14px;
+    border: 1px solid var(--hr-border);
+    border-radius: 12px;
+    background: var(--hr-surface);
+    align-items: center;
+    gap: 10px;
+    box-shadow: var(--hr-shadow);
+}
+
+.staff-heading-badge .ui-icon {
+    width: 17px;
+    height: 17px;
+    color: var(--hr-primary);
+}
+
+.staff-heading-badge small {
+    display: block;
+    color: var(--hr-muted);
+    font-size: 0.6rem;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.staff-heading-badge strong {
+    font-size: 0.78rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+}
+
+.staff-flash {
+    display: flex;
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    border: 1px solid var(--hr-border);
+    border-radius: 12px;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.76rem;
+}
+
+.staff-flash .ui-icon {
+    width: 17px;
+    height: 17px;
+    flex: none;
+}
+
+.staff-flash-success {
+    border-color: rgba(23, 107, 67, .3);
+    color: #10583a;
+    background: #eef8f2;
+}
+
+.staff-flash-danger {
+    border-color: rgba(201, 61, 78, .3);
+    color: #9a2b3a;
+    background: #fdf1f2;
+}
+
+.staff-grid {
+    display: grid;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.staff-grid-hero,
+.staff-grid-split {
+    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+}
+
+.staff-grid-trio {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Every panel in a grid row is a column so its footer link can sit on the floor
+   of the card rather than floating under short content. */
+.staff-grid > .panel,
+.staff-dashboard > .panel {
+    display: flex;
+    overflow: hidden;
+    flex-direction: column;
+}
+
+.staff-dashboard > .panel {
+    margin-bottom: 20px;
+}
+
+.staff-grid > .panel > a.panel-footer-link {
+    margin-top: auto;
+}
+
+.staff-panel-meta {
+    color: var(--hr-muted);
+    font-size: 0.66rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------- shared small pieces */
+
+.staff-chip {
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 999px;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.65rem;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.staff-chip .ui-icon {
+    width: 13px;
+    height: 13px;
+}
+
+.staff-chip-success {
+    color: #0f5c39;
+    background: #e4f4ec;
+}
+
+.staff-chip-warning {
+    color: #8a5a08;
+    background: #fbf1de;
+}
+
+.staff-chip-danger {
+    color: #98293a;
+    background: #fbe9ec;
+}
+
+.staff-chip-info {
+    color: #22527f;
+    background: #e7f0f9;
+}
+
+.staff-chip-idle {
+    color: #5d6a64;
+    background: #eef2f0;
+}
+
+.staff-detail-list {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    flex-direction: column;
+    gap: 0;
+    list-style: none;
+}
+
+.staff-detail-list li {
+    display: flex;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--hr-border);
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.72rem;
+}
+
+.staff-detail-list li:last-child {
+    border-bottom: 0;
+}
+
+.staff-detail-list span {
+    position: relative;
+    padding-left: 14px;
+    color: var(--hr-muted);
+}
+
+/* The bullet the brief asks for, drawn rather than typed so it can carry the
+   accent colour without putting a glyph in the accessible name. */
+.staff-detail-list span::before {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--hr-primary);
+    content: '';
+    transform: translateY(-50%);
+}
+
+.staff-detail-list b {
+    color: var(--hr-text);
+    font-weight: 650;
+    text-align: right;
+}
+
+.staff-detail-tone-success {
+    color: var(--hr-success);
+}
+
+.staff-detail-tone-violet {
+    color: var(--hr-violet);
+}
+
+.staff-detail-tone-idle {
+    color: var(--hr-muted);
+}
+
+.staff-figure-pair {
+    display: grid;
+    margin: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.staff-figure-pair > div {
+    padding: 11px 13px;
+    border: 1px solid var(--hr-border);
+    border-radius: 11px;
+    background: #fafcfb;
+}
+
+.staff-figure-pair dt {
+    color: var(--hr-muted);
+    font-size: 0.63rem;
+    font-weight: 650;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.staff-figure-pair dd {
+    margin: 4px 0 0;
+    color: var(--hr-text);
+    font-size: 1.02rem;
+    font-weight: 660;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+
+.staff-primary-action {
+    display: inline-flex;
+    width: 100%;
+    padding: 9px 14px;
+    border-radius: 10px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-size: 0.74rem;
+    font-weight: 640;
+}
+
+.staff-primary-action .ui-icon {
+    width: 15px;
+    height: 15px;
+}
+
+/* --------------------------------------------------- 1. today's attendance */
+
+/* The critical card. It carries an accent rail so it reads as the page's anchor
+   even in a screenshot -- but only while the employee is actually on the clock,
+   which is the one state worth marking from across the room. The idle and closed
+   states keep the plain card outline: a grey rail marks nothing, and a heavy
+   grey line under the page heading only reads as grime. */
+.staff-today-success {
+    border-top: 3px solid var(--hr-primary);
+}
+
+.staff-today-date {
+    color: var(--hr-muted);
+    font-size: 0.66rem;
+    font-weight: 600;
+}
+
+.staff-today-body {
+    display: flex;
+    padding: 18px 20px;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.staff-today-state {
+    display: flex;
+    padding: 13px 15px;
+    border: 1px solid var(--hr-border);
+    border-radius: 13px;
+    background: #f7fbf9;
+    align-items: center;
+    gap: 12px;
+}
+
+.staff-today-state > div {
+    min-width: 0;
+    flex: 1;
+}
+
+.staff-today-state strong {
+    display: block;
+    font-size: 0.98rem;
+    font-weight: 680;
+    letter-spacing: -0.02em;
+}
+
+.staff-today-state span {
+    display: block;
+    margin-top: 2px;
+    color: var(--hr-muted);
+    font-size: 0.7rem;
+}
+
+.staff-today-state b {
+    color: var(--hr-text);
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+}
+
+.staff-state-dot {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--staff-idle);
+    flex: none;
+}
+
+.staff-today-success .staff-state-dot {
+    background: var(--hr-success);
+}
+
+/* The halo only ever marks the live state, so a still card never pulses. */
+.staff-today-success .staff-state-dot::after {
+    position: absolute;
+    inset: -5px;
+    border: 2px solid rgba(25, 135, 84, .35);
+    border-radius: 50%;
+    content: '';
+    animation: staff-pulse 2.4s ease-out infinite;
+}
+
+.staff-today-neutral .staff-state-dot {
+    background: var(--hr-muted);
+}
+
+@keyframes staff-pulse {
+    0% { opacity: .9; transform: scale(.7); }
+    70% { opacity: 0; transform: scale(1.25); }
+    100% { opacity: 0; transform: scale(1.25); }
+}
+
+.reduce-motion .staff-state-dot::after {
+    animation: none;
+}
+
+.staff-today-readouts {
+    display: grid;
+    margin: 0;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.staff-today-readouts > div {
+    min-width: 0;
+    padding: 11px 13px;
+    border: 1px solid var(--hr-border);
+    border-radius: 11px;
+    background: var(--hr-surface);
+}
+
+.staff-today-readouts dt {
+    color: var(--hr-muted);
+    font-size: 0.62rem;
+    font-weight: 650;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.staff-today-readouts dd {
+    margin: 5px 0 0;
+    overflow: hidden;
+    color: var(--hr-text);
+    font-size: 0.92rem;
+    font-weight: 660;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.staff-today-readouts .is-pending dd {
+    color: var(--hr-muted);
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+.staff-today-note {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: 0.68rem;
+}
+
+.staff-biometric {
+    display: flex;
+    padding: 12px 14px;
+    border: 1px solid var(--hr-border);
+    border-radius: 12px;
+    background: #f8faf9;
+    align-items: center;
+    gap: 12px;
+}
+
+.staff-biometric-icon {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    color: var(--hr-primary);
+    background: var(--hr-primary-soft);
+    flex: none;
+    place-items: center;
+}
+
+.staff-biometric-icon .ui-icon {
+    width: 19px;
+    height: 19px;
+}
+
+.staff-biometric-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.staff-biometric-copy strong {
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 650;
+}
+
+.staff-biometric-copy span {
+    display: block;
+    margin-top: 2px;
+    color: var(--hr-muted);
+    font-size: 0.66rem;
+}
+
+.staff-biometric-state {
+    padding: 4px 10px;
+    border-radius: 999px;
+    color: #5d6a64;
+    background: #eef2f0;
+    flex: none;
+    font-size: 0.63rem;
+    font-weight: 650;
+}
+
+.staff-biometric-state.is-online {
+    color: #0f5c39;
+    background: #e4f4ec;
+}
+
+.staff-source-list {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    gap: 8px 18px;
+    list-style: none;
+}
+
+.staff-source-list li {
+    display: inline-flex;
+    align-items: center;
+    color: var(--hr-muted);
+    gap: 6px;
+    font-size: 0.67rem;
+}
+
+.staff-source-list .ui-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--hr-primary);
+}
+
+.staff-today-actions {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: auto;
+    padding: 14px 20px;
+    border-top: 1px solid var(--hr-border);
+    background: #fbfcfb;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.staff-clock-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.staff-clock-reason {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.64rem;
+    font-weight: 650;
+}
+
+.staff-clock-reason input {
+    min-width: 230px;
+    padding: 8px 11px;
+    border: 1px solid var(--hr-border);
+    border-radius: 9px;
+    font-size: 0.72rem;
+    font-weight: 400;
+}
+
+.staff-clock-button {
+    display: inline-flex;
+    padding: 10px 20px;
+    border: 0;
+    border-radius: 10px;
+    color: #fff;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    font-weight: 660;
+    letter-spacing: -0.01em;
+}
+
+.staff-clock-button .ui-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.staff-clock-button.is-in {
+    background: var(--hr-primary);
+}
+
+.staff-clock-button.is-in:hover {
+    color: #fff;
+    background: var(--hr-primary-dark);
+}
+
+.staff-clock-button.is-out {
+    background: #b5533f;
+}
+
+.staff-clock-button.is-out:hover {
+    color: #fff;
+    background: #9c4534;
+}
+
+.staff-today-closed {
+    display: inline-flex;
+    margin: 0;
+    align-items: center;
+    color: var(--hr-muted);
+    gap: 8px;
+    font-size: 0.71rem;
+}
+
+.staff-today-closed .ui-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--hr-primary);
+}
+
+/* -------------------------------------------------------- 2. my shift today */
+
+.staff-shift-body {
+    display: flex;
+    padding: 18px 20px;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.staff-shift-name {
+    display: flex;
+    margin: 0;
+    align-items: center;
+    gap: 9px;
+}
+
+.staff-shift-name strong {
+    font-size: 1.16rem;
+    font-weight: 690;
+    letter-spacing: -0.03em;
+}
+
+.staff-shift-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 4px;
+    background: var(--shift-color, var(--hr-primary));
+    flex: none;
+}
+
+.staff-shift-tag {
+    padding: 3px 8px;
+    border-radius: 999px;
+    color: var(--hr-muted);
+    background: #eef2f0;
+    font-size: 0.6rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.staff-shift-department {
+    display: flex;
+    margin: 0;
+    align-items: center;
+    color: var(--hr-muted);
+    gap: 6px;
+    font-size: 0.74rem;
+}
+
+.staff-shift-department .ui-icon {
+    width: 15px;
+    height: 15px;
+    color: var(--hr-primary);
+}
+
+.staff-shift-hours {
+    margin: 4px 0 10px;
+    color: var(--hr-text);
+    font-size: 0.86rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.015em;
+}
+
+/* ---------------------------------------------------- 3. upcoming schedule */
+
+.staff-upcoming-table th[scope='row'] {
+    padding: 12px 15px 12px 20px;
+    color: var(--hr-text);
+    background: transparent;
+    font-size: 0.72rem;
+    font-weight: 650;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+.staff-upcoming-table th[scope='row'] small {
+    display: block;
+    margin-top: 1px;
+    color: var(--hr-muted);
+    font-size: 0.62rem;
+    font-weight: 600;
+}
+
+.staff-shift-pill {
+    display: inline-flex;
+    padding: 4px 11px 4px 9px;
+    border-radius: 999px;
+    color: var(--hr-text);
+    background: #f1f5f3;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.68rem;
+    font-weight: 640;
+}
+
+.staff-shift-pill::before {
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    background: var(--shift-color, var(--hr-muted));
+    content: '';
+}
+
+.staff-shift-pill-rest::before {
+    background: var(--hr-muted);
+}
+
+.staff-shift-pill-leave::before {
+    background: var(--staff-leave);
+}
+
+/* ------------------------------------------------- 4. my attendance summary */
+
+.staff-summary-body {
+    display: flex;
+    padding: 18px 20px;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.staff-tallies {
+    display: grid;
+    margin: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.staff-tally {
+    position: relative;
+    padding: 11px 13px 11px 16px;
+    border: 1px solid var(--hr-border);
+    border-radius: 11px;
+    background: #fafcfb;
+}
+
+/* Identity comes from a coloured rail beside the number, never from colouring
+   the number itself -- a light amber would be unreadable as text. */
+.staff-tally::before {
+    position: absolute;
+    top: 11px;
+    bottom: 11px;
+    left: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    content: '';
+}
+
+.staff-tally-present::before { background: var(--staff-present); }
+.staff-tally-late::before { background: var(--staff-late); }
+.staff-tally-absent::before { background: var(--staff-absent); }
+.staff-tally-leave::before { background: var(--staff-leave); }
+
+.staff-tally dt {
+    color: var(--hr-muted);
+    font-size: 0.63rem;
+    font-weight: 650;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.staff-tally dd {
+    margin: 3px 0 0;
+    color: var(--hr-text);
+    font-size: 1.32rem;
+    font-weight: 680;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+}
+
+.staff-meter-head {
+    display: flex;
+    margin: 0 0 7px;
+    align-items: baseline;
+    justify-content: space-between;
+    color: var(--hr-muted);
+    gap: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.staff-meter-head b {
+    color: var(--hr-text);
+    font-size: 1.02rem;
+    font-weight: 680;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+
+/* The unfilled track is a lighter step of the fill's own hue, so the state of the
+   ratio reads across the whole bar rather than only where it is painted. */
+.staff-meter {
+    overflow: hidden;
+    height: 8px;
+    border-radius: 999px;
+    background: #dcece3;
+}
+
+.staff-meter span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--staff-present);
+}
+
+.staff-meter-note {
+    margin: 8px 0 0;
+    color: var(--hr-muted);
+    font-size: 0.66rem;
+}
+
+/* ------------------------------------------------------ 5. timesheet status */
+
+.staff-timesheet.needs-attention {
+    border-color: rgba(217, 139, 20, .45);
+}
+
+.staff-timesheet-body {
+    display: flex;
+    padding: 18px 20px;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.staff-status-line {
+    display: flex;
+    margin: 0;
+    align-items: center;
+    gap: 11px;
+}
+
+.staff-status-line strong {
+    display: block;
+    font-size: 0.86rem;
+    font-weight: 660;
+    letter-spacing: -0.015em;
+}
+
+.staff-status-line small {
+    display: block;
+    margin-top: 2px;
+    color: var(--hr-muted);
+    font-size: 0.66rem;
+}
+
+.staff-status-icon {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    color: #5d6a64;
+    background: #eef2f0;
+    flex: none;
+    place-items: center;
+}
+
+.staff-status-icon .ui-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.staff-status-success .staff-status-icon { color: #0f5c39; background: #e4f4ec; }
+.staff-status-warning .staff-status-icon { color: #8a5a08; background: #fbf1de; }
+.staff-status-danger .staff-status-icon { color: #98293a; background: #fbe9ec; }
+.staff-status-info .staff-status-icon { color: #22527f; background: #e7f0f9; }
+
+.staff-attention-note {
+    display: flex;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(217, 139, 20, .32);
+    border-radius: 10px;
+    color: #7d5209;
+    background: #fdf7ec;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.68rem;
+}
+
+.staff-attention-note .ui-icon {
+    width: 15px;
+    height: 15px;
+    flex: none;
+}
+
+/* ---------------------------------------------------------- 6. leave balance */
+
+.staff-leave-body {
+    display: flex;
+    padding: 18px 20px;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.staff-leave-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.staff-leave-table th[scope='col'] {
+    padding: 0 0 7px;
+    border-bottom: 1px solid var(--hr-border);
+    color: var(--hr-muted);
+    font-size: 0.61rem;
+    font-weight: 650;
+    letter-spacing: 0.05em;
+    text-align: right;
+    text-transform: uppercase;
+}
+
+.staff-leave-table th[scope='col']:first-child {
+    text-align: left;
+}
+
+.staff-leave-table th[scope='row'] {
+    padding: 9px 0;
+    color: var(--hr-text);
+    font-size: 0.72rem;
+    font-weight: 620;
+    text-align: left;
+}
+
+.staff-leave-table td {
+    padding: 9px 0;
+    color: var(--hr-muted);
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.staff-leave-table td b {
+    color: var(--hr-text);
+    font-size: 0.85rem;
+    font-weight: 660;
+}
+
+.staff-leave-table tbody tr + tr th,
+.staff-leave-table tbody tr + tr td {
+    border-top: 1px dashed var(--hr-border);
+}
+
+.staff-leave-tracker {
+    padding-top: 12px;
+    border-top: 1px solid var(--hr-border);
+}
+
+.staff-tracker-head {
+    margin: 0 0 8px;
+    color: var(--hr-muted);
+    font-size: 0.62rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.staff-tracker-row {
+    display: flex;
+    margin: 0 0 8px;
+    align-items: center;
+    gap: 10px;
+}
+
+.staff-tracker-row:last-child {
+    margin-bottom: 0;
+}
+
+.staff-tracker-copy {
+    min-width: 0;
+}
+
+.staff-tracker-copy strong {
+    display: block;
+    overflow: hidden;
+    font-size: 0.71rem;
+    font-weight: 640;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.staff-tracker-copy small {
+    display: block;
+    color: var(--hr-muted);
+    font-size: 0.65rem;
+}
+
+.staff-tracker-empty {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: 0.68rem;
+}
+
+/* ------------------------------------------------------ 7. schedule changes */
+
+/* The one band on the page that is allowed to shout. It is amber rather than red
+   because a moved shift is news, not a failure, and red is kept for the states
+   that actually cost the employee something. */
+.staff-alert {
+    margin-bottom: 20px;
+    padding: 16px 20px 6px;
+    border: 1px solid rgba(217, 139, 20, .45);
+    border-left: 4px solid var(--hr-warning);
+    border-radius: 15px;
+    background: #fffaf1;
+    box-shadow: var(--hr-shadow);
+}
+
+.staff-alert-header {
+    display: flex;
+    margin-bottom: 14px;
+    align-items: center;
+    gap: 12px;
+}
+
+.staff-alert-icon {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    color: #8a5a08;
+    background: #fbeed6;
+    flex: none;
+    place-items: center;
+}
+
+.staff-alert-icon .ui-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.staff-alert-kicker {
+    margin: 0 0 3px;
+    color: #8a5a08;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.staff-alert h2 {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 670;
+    letter-spacing: -0.02em;
+}
+
+.staff-change-list {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    flex-direction: column;
+    gap: 10px;
+    list-style: none;
+}
+
+.staff-change {
+    display: grid;
+    padding: 13px 15px;
+    border: 1px solid rgba(217, 139, 20, .26);
+    border-radius: 12px;
+    background: var(--hr-surface);
+    grid-template-columns: minmax(150px, 0.8fr) minmax(0, 1.5fr) minmax(150px, 1fr);
+    align-items: center;
+    gap: 14px;
+}
+
+.staff-change-date strong {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 660;
+}
+
+.staff-change-date span {
+    display: block;
+    margin-top: 2px;
+    color: #8a5a08;
+    font-size: 0.64rem;
+    font-weight: 650;
+}
+
+.staff-change-swap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.staff-change-swap small,
+.staff-change-reason small {
+    display: block;
+    color: var(--hr-muted);
+    font-size: 0.6rem;
+    font-weight: 650;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.staff-change-swap b {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.72rem;
+    font-weight: 620;
+}
+
+.staff-change-before b {
+    color: var(--hr-muted);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+}
+
+.staff-change-after b {
+    color: var(--hr-primary);
+}
+
+.staff-change-arrow {
+    width: 15px;
+    height: 15px;
+    color: var(--hr-warning);
+    flex: none;
+}
+
+.staff-change-reason b {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.72rem;
+    font-weight: 620;
+}
+
+.staff-change-reason span {
+    display: block;
+    margin-top: 2px;
+    color: var(--hr-muted);
+    font-size: 0.62rem;
+}
+
+.staff-alert-link {
+    display: inline-flex;
+    padding: 12px 0 10px;
+    color: #8a5a08;
+    text-decoration: none;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.69rem;
+    font-weight: 650;
+}
+
+.staff-alert-link .ui-icon {
+    width: 14px;
+    height: 14px;
+}
+
+/* ------------------------------------------------------ 8. overtime summary */
+
+.staff-overtime-body {
+    display: flex;
+    padding: 18px 20px;
+    flex-direction: column;
+    gap: 13px;
+}
+
+.staff-hero-figure {
+    margin: 0;
+}
+
+.staff-hero-figure b {
+    display: block;
+    color: var(--hr-text);
+    font-size: 2.05rem;
+    font-weight: 690;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.045em;
+    line-height: 1.05;
+}
+
+.staff-hero-figure span {
+    display: block;
+    margin-top: 4px;
+    color: var(--hr-muted);
+    font-size: 0.68rem;
+}
+
+/* Two touching segments, separated by surface rather than by a stroke. */
+.staff-split-bar {
+    display: flex;
+    overflow: hidden;
+    height: 10px;
+    border-radius: 999px;
+    background: #e9eeeb;
+    gap: 2px;
+}
+
+.staff-split-bar i {
+    min-width: 0;
+}
+
+.staff-split-approved {
+    background: var(--staff-present);
+}
+
+.staff-split-pending {
+    background: var(--staff-late);
+}
+
+.staff-legend {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    gap: 6px 20px;
+    list-style: none;
+}
+
+.staff-legend li {
+    display: inline-flex;
+    align-items: center;
+    color: var(--hr-muted);
+    gap: 7px;
+    font-size: 0.69rem;
+}
+
+.staff-legend b {
+    color: var(--hr-text);
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+}
+
+.staff-legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex: none;
+}
+
+.staff-legend-swatch.is-approved { background: var(--staff-present); }
+.staff-legend-swatch.is-pending { background: var(--staff-late); }
+
+.staff-overtime-note {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: 0.66rem;
+}
+
+/* ----------------------------------------------------- 9. my analytics */
+
+.staff-analytics-body {
+    display: grid;
+    padding: 18px 20px;
+    grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+    gap: 22px;
+}
+
+.staff-metric-list {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    flex-direction: column;
+    gap: 0;
+    list-style: none;
+}
+
+.staff-metric {
+    display: flex;
+    padding: 11px 0;
+    border-bottom: 1px dashed var(--hr-border);
+    align-items: center;
+    gap: 11px;
+}
+
+.staff-metric:last-child {
+    border-bottom: 0;
+}
+
+.staff-metric-bullet {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--hr-primary);
+    flex: none;
+}
+
+.staff-metric-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.staff-metric-copy strong {
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 640;
+}
+
+.staff-metric-copy small {
+    display: block;
+    margin-top: 1px;
+    color: var(--hr-muted);
+    font-size: 0.64rem;
+}
+
+.staff-metric > b {
+    color: var(--hr-text);
+    font-size: 0.94rem;
+    font-weight: 670;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+.staff-trend-figure {
+    margin: 0;
+    min-width: 0;
+}
+
+.staff-trend-figure figcaption {
+    margin-bottom: 12px;
+}
+
+.staff-trend-figure figcaption strong {
+    display: block;
+    font-size: 0.76rem;
+    font-weight: 650;
+}
+
+.staff-trend-figure figcaption span {
+    display: block;
+    margin-top: 2px;
+    color: var(--hr-muted);
+    font-size: 0.64rem;
+}
+
+.staff-trend {
+    --staff-trend-track: 150px;
+
+    position: relative;
+    display: grid;
+    /* Head room for the direct label above a full-height column. */
+    margin-top: 16px;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0 10px;
+}
+
+.staff-trend-axis {
+    display: flex;
+    height: var(--staff-trend-track);
+    color: var(--hr-muted);
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 0.58rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.staff-trend-axis span {
+    transform: translateY(-50%);
+}
+
+.staff-trend-plot {
+    position: relative;
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 2px;
+}
+
+/* Hairline, solid, one step off the surface: present but never competing with
+   the columns drawn over them. */
+.staff-trend-grid {
+    position: absolute;
+    inset: 0 0 auto;
+    display: flex;
+    height: var(--staff-trend-track);
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.staff-trend-grid i {
+    height: 1px;
+    background: var(--hr-border);
+}
+
+.staff-trend-column {
+    display: flex;
+    min-width: 0;
+    padding: 0 2px;
+    border-radius: 8px;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.staff-trend-column:focus-visible {
+    outline: 3px solid rgba(23, 107, 67, .22);
+    outline-offset: 2px;
+}
+
+.staff-trend-track {
+    position: relative;
+    display: flex;
+    height: var(--staff-trend-track);
+    justify-content: center;
+    align-items: flex-end;
+}
+
+.staff-trend-fill {
+    position: relative;
+    display: block;
+    width: 100%;
+    max-width: 24px;
+    /* Rounded at the data end, square where it meets the baseline. */
+    border-radius: 4px 4px 0 0;
+    background: var(--staff-trend-fill);
+}
+
+/* A month with no rostered days is not a 0% month. It gets a baseline tick so the
+   gap is visibly "nothing recorded" rather than "attended nothing". */
+.staff-trend-void {
+    display: block;
+    width: 100%;
+    max-width: 24px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--hr-border);
+}
+
+/* Sits on the cap of its own column, not at the top of the track, so a short
+   month's label stays attached to the bar it belongs to. */
+.staff-trend-value {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    margin-bottom: 4px;
+    color: var(--hr-text);
+    font-size: 0.63rem;
+    font-weight: 660;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    transform: translateX(-50%);
+}
+
+.staff-trend-column small {
+    color: var(--hr-muted);
+    font-size: 0.6rem;
+    text-align: center;
+}
+
+.staff-trend-column.is-current small {
+    color: var(--hr-text);
+    font-weight: 650;
+}
+
+.staff-trend-column.is-active .staff-trend-fill,
+.staff-trend-column:hover .staff-trend-fill {
+    filter: brightness(1.08);
+}
+
+.staff-trend-tooltip {
+    position: absolute;
+    z-index: 3;
+    display: flex;
+    min-width: 132px;
+    padding: 9px 11px;
+    border: 1px solid var(--hr-border);
+    border-radius: 10px;
+    background: var(--hr-surface);
+    flex-direction: column;
+    gap: 3px;
+    box-shadow: 0 12px 28px rgba(25, 68, 49, .16);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition: opacity 120ms ease;
+}
+
+.staff-trend-tooltip[data-visible='true'] {
+    opacity: 1;
+}
+
+.staff-trend-tooltip-month {
+    color: var(--hr-text);
+    font-size: 0.66rem;
+    font-weight: 660;
+}
+
+.staff-trend-tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    color: var(--hr-muted);
+    gap: 14px;
+    font-size: 0.64rem;
+}
+
+.staff-trend-tooltip-row b {
+    color: var(--hr-text);
+    font-variant-numeric: tabular-nums;
+    font-weight: 640;
+}
+
+.staff-trend-table-view {
+    margin-top: 14px;
+}
+
+.staff-trend-table-view summary {
+    color: var(--hr-primary);
+    cursor: pointer;
+    font-size: 0.68rem;
+    font-weight: 620;
+}
+
+.staff-trend-table-view .table-responsive {
+    margin-top: 10px;
+    border: 1px solid var(--hr-border);
+    border-radius: 11px;
+}
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 1400px) {
+    .staff-change {
+        grid-template-columns: minmax(140px, 0.9fr) minmax(0, 1.6fr);
+    }
+
+    .staff-change-reason {
+        grid-column: 1 / -1;
+        padding-top: 10px;
+        border-top: 1px dashed var(--hr-border);
+    }
+}
+
+@media (max-width: 1280px) {
+    .staff-grid-trio {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .staff-analytics-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 1100px) {
+    .staff-grid-hero,
+    .staff-grid-split {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 860px) {
+    .staff-heading {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .staff-today-readouts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .staff-change {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: flex-start;
+    }
+
+    .staff-change-swap {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .staff-change-arrow {
+        transform: rotate(90deg);
+    }
+
+    .staff-today-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .staff-clock-form,
+    .staff-clock-button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 720px) {
+    .staff-grid-trio {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .staff-state-dot::after {
+        animation: none;
+    }
+}

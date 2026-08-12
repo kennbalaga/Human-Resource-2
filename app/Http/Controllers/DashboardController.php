@@ -9,6 +9,7 @@ use App\Models\Position;
 use App\Models\Timesheet;
 use App\Services\AttendanceOverviewService;
 use App\Services\ShiftOverviewService;
+use App\Services\StaffDashboardService;
 use App\Services\WorkforceAnalyticsPreviewService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,8 +22,24 @@ class DashboardController extends Controller
         AttendanceOverviewService $attendanceOverview,
         ShiftOverviewService $shiftOverview,
         WorkforceAnalyticsPreviewService $analyticsPreview,
+        StaffDashboardService $staffDashboard,
     ): View {
         $canManageWorkforce = $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
+
+        // Staff open their own day, not the hospital's. The org-wide dashboard below
+        // is a management tool -- headcounts, department shares, the full roster --
+        // and none of it answers the questions a nurse signs in with. An account
+        // without a workforce profile has no "own day" to show, so it keeps the
+        // overview rather than landing on nine empty widgets.
+        $employee = $request->user()->employee;
+
+        if (! $canManageWorkforce && $employee !== null) {
+            return view('dashboard.staff', [
+                'dashboard' => $staffDashboard->forEmployee($employee),
+                'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
+                'notifications' => collect(),
+            ]);
+        }
 
         $counts = $this->summaryCounts();
         $activeEmployees = $counts['active_employees'];

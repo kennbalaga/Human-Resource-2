@@ -1,5 +1,6 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 @import './dashboard.css';
+@import './staff-dashboard.css';
 @import './attendance.css';
 @import './schedule.css';
 @import './workforce.css';

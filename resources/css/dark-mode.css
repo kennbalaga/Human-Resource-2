@@ -987,3 +987,84 @@ html[data-theme-resolved='dark'] .integration-test-form small { color:var(--hr-m
 html[data-theme-resolved='dark'] .two-factor-cancel-form label span { color:#bfcdc5; }
 html[data-theme-resolved='dark'] .two-factor-actions .two-factor-danger summary,
 html[data-theme-resolved='dark'] .two-factor-admin-reset>.panel-header>svg { color:#efa8b1; }
+
+/* --- 8. Staff / Nurse dashboard ------------------------------------------ */
+
+/*
+ * The series steps are the dark theme's own, not a flip of the light ones: the
+ * light green and amber sit above the dark surface's lightness band and drop
+ * under the chroma floor there, which is exactly where neighbouring series stop
+ * being tellable apart. These are the same four hues re-stepped for #19231e and
+ * re-checked for colour-blind separation and 3:1 contrast -- and they are the
+ * steps the attendance overview already uses, so "late" stays one amber.
+ */
+html[data-theme-resolved='dark'] .staff-dashboard {
+    --staff-present: #48a175;
+    --staff-late: #bf8a1f;
+    --staff-absent: #dd6070;
+    --staff-leave: #9d84d8;
+    --staff-trend-fill: #48a175;
+    --staff-idle: #7c8b83;
+}
+
+html[data-theme-resolved='dark'] .staff-heading-badge,
+html[data-theme-resolved='dark'] .staff-change,
+html[data-theme-resolved='dark'] .staff-trend-tooltip { color:var(--hr-text); border-color:transparent; background:var(--hr-surface); box-shadow:var(--hr-shadow); }
+html[data-theme-resolved='dark'] .staff-today-state,
+html[data-theme-resolved='dark'] .staff-biometric,
+html[data-theme-resolved='dark'] .staff-today-readouts>div,
+html[data-theme-resolved='dark'] .staff-figure-pair>div,
+html[data-theme-resolved='dark'] .staff-tally { border-color:var(--hr-border); background:var(--hr-sunken); }
+html[data-theme-resolved='dark'] .staff-today-actions { border-color:var(--hr-border); background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .staff-detail-list li,
+html[data-theme-resolved='dark'] .staff-metric,
+html[data-theme-resolved='dark'] .staff-leave-tracker,
+html[data-theme-resolved='dark'] .staff-leave-table th[scope='col'],
+html[data-theme-resolved='dark'] .staff-leave-table tbody tr+tr th,
+html[data-theme-resolved='dark'] .staff-leave-table tbody tr+tr td,
+html[data-theme-resolved='dark'] .staff-trend-grid i,
+html[data-theme-resolved='dark'] .staff-trend-table-view .table-responsive { border-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .staff-clock-reason input { color:var(--hr-text); border-color:var(--hr-border-strong); background:var(--hr-sunken); }
+
+html[data-theme-resolved='dark'] .staff-chip-success,
+html[data-theme-resolved='dark'] .staff-biometric-state.is-online,
+html[data-theme-resolved='dark'] .staff-status-success .staff-status-icon { color:var(--hr-success); background:var(--hr-tint-success); }
+html[data-theme-resolved='dark'] .staff-chip-warning,
+html[data-theme-resolved='dark'] .staff-status-warning .staff-status-icon { color:var(--hr-warning); background:var(--hr-tint-warning); }
+html[data-theme-resolved='dark'] .staff-chip-danger,
+html[data-theme-resolved='dark'] .staff-status-danger .staff-status-icon { color:var(--hr-danger); background:var(--hr-tint-danger); }
+html[data-theme-resolved='dark'] .staff-chip-info,
+html[data-theme-resolved='dark'] .staff-status-info .staff-status-icon { color:var(--hr-info); background:var(--hr-tint-info); }
+html[data-theme-resolved='dark'] .staff-chip-idle,
+html[data-theme-resolved='dark'] .staff-status-icon,
+html[data-theme-resolved='dark'] .staff-biometric-state,
+html[data-theme-resolved='dark'] .staff-shift-tag,
+html[data-theme-resolved='dark'] .staff-shift-pill { color:var(--hr-muted); background:var(--hr-tint-neutral); }
+html[data-theme-resolved='dark'] .staff-shift-pill { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .staff-biometric-icon { color:var(--hr-primary); background:var(--hr-primary-soft); }
+
+/* The unfilled meter track is a lighter step of the fill's own hue here too, so
+   the ratio still reads across the whole bar instead of only where it is painted. */
+html[data-theme-resolved='dark'] .staff-meter,
+html[data-theme-resolved='dark'] .staff-split-bar { background:#2a3a32; }
+html[data-theme-resolved='dark'] .staff-trend-void { background:#33443c; }
+
+html[data-theme-resolved='dark'] .staff-flash-success { color:#9fdcbd; border-color:#2f5544; background:#17281f; }
+html[data-theme-resolved='dark'] .staff-flash-danger { color:#efa8b1; border-color:#59333a; background:#271a1d; }
+
+/* The change alert keeps its amber identity but rebuilt on the dark surface --
+   the light band's cream would glow against a near-black canvas. */
+html[data-theme-resolved='dark'] .staff-alert { border-color:#5c4d2a; border-left-color:var(--hr-warning); background:#1f1c14; box-shadow:var(--hr-shadow); }
+html[data-theme-resolved='dark'] .staff-alert h2 { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .staff-alert-kicker,
+html[data-theme-resolved='dark'] .staff-alert-link,
+html[data-theme-resolved='dark'] .staff-change-date span { color:#ecc98f; }
+html[data-theme-resolved='dark'] .staff-alert-icon { color:#ecc98f; background:#2c2618; }
+html[data-theme-resolved='dark'] .staff-change-after b { color:var(--hr-primary); }
+html[data-theme-resolved='dark'] .staff-attention-note { color:#ecc98f; border-color:#5c4d2a; background:#2c2618; }
+html[data-theme-resolved='dark'] .staff-timesheet.needs-attention { border-color:#5c4d2a; }
+
+html[data-theme-resolved='dark'] .staff-clock-button.is-out { color:#fff; background:#a4483a; }
+html[data-theme-resolved='dark'] .staff-clock-button.is-out:hover { background:#b85647; }
+html[data-theme-resolved='dark'] .staff-clock-button.is-in { color:#0c1310; background:var(--hr-primary); }
+html[data-theme-resolved='dark'] .staff-clock-button.is-in:hover { color:#0c1310; background:var(--hr-primary-dark); }

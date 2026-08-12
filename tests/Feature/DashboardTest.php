@@ -95,24 +95,23 @@ class DashboardTest extends TestCase
         $this->assertGreaterThan(0, $secondPage->viewData('recentEmployees')->count());
     }
 
-    public function test_standard_employee_dashboard_actions_use_non_manager_pages(): void
+    /**
+     * The org-wide overview is a management tool, so a standard employee is routed
+     * to the staff dashboard instead. StaffDashboardTest covers what they get; this
+     * asserts only that the manager view is not what they are handed.
+     */
+    public function test_standard_employees_do_not_receive_the_organisation_overview(): void
     {
         $this->seed();
 
         $user = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
-        $response = $this->actingAs($user)->get('/dashboard');
 
-        $response
+        $this->actingAs($user)->get('/dashboard')
             ->assertOk()
-            ->assertSee('Open my attendance')
-            ->assertSee('Open my schedule')
-            ->assertSee('Open my leave requests')
-            ->assertDontSee('Open attendance reports')
-            ->assertDontSee('Open shift templates');
-
-        $this->assertSame(
-            $response->viewData('recentEmployees')->count() + 1,
-            substr_count($response->getContent(), 'data-dashboard-action-menu')
-        );
+            ->assertSee('My workday')
+            ->assertDontSee('HRMS Overview')
+            ->assertDontSee('Recently added employees')
+            ->assertDontSee('Workforce by department')
+            ->assertDontSee('data-dashboard-action-menu', false);
     }
 }

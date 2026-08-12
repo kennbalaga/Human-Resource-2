@@ -141,6 +141,21 @@
             <path d="M12 3 20 6v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6Z" />
             <path d="m9 12 2 2 4-4" />
             @break
+        @case('fingerprint')
+            <path d="M12 11v2a9 9 0 0 1-1.5 5" />
+            <path d="M8.5 9.5a3.5 3.5 0 0 1 7 0V13c0 1.2.2 2.4.6 3.5" />
+            <path d="M5.5 13v-2a6.5 6.5 0 0 1 10-5.5" />
+            <path d="M18.5 11v2c0 .9.1 1.8.3 2.7" />
+            <path d="M12 15v1a12 12 0 0 1-.6 3.7" />
+            @break
+        @case('alert')
+            <path d="M12 3.8 2.9 19.2a1 1 0 0 0 .9 1.5h16.4a1 1 0 0 0 .9-1.5Z" />
+            <path d="M12 9.5v4M12 17h.01" />
+            @break
+        @case('trend')
+            <path d="M3 17l6-6 4 4 8-8" />
+            <path d="M15 7h6v6" />
+            @break
         @case('moon')
             <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z" />
             @break

@@ -16,6 +16,10 @@ class AttendanceActionRequest extends FormRequest
         return [
             'office_location_id' => ['required', 'integer', 'exists:office_locations,id'],
             'notes' => ['nullable', 'string', 'max:500'],
+            // Named destinations only. The staff dashboard clocks out in place and
+            // has to come back to itself; accepting a URL here would turn a form
+            // field into an open redirect.
+            'return_to' => ['nullable', 'in:dashboard'],
         ];
     }
 }

@@ -1,5 +1,6 @@
 import * as bootstrap from 'bootstrap';
 import './dashboard';
+import './staff-dashboard';
 import './attendance';
 import './attendance-settings';
 import './schedule';

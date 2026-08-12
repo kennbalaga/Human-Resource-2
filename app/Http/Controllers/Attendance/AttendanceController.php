@@ -82,7 +82,7 @@ class AttendanceController extends Controller
             $request->userAgent(),
         );
 
-        return redirect()->route('attendance.index')->with(
+        return redirect($this->destination($request))->with(
             'success',
             'Checked in successfully at '.$record->check_in_at->timezone($office->timezone)->format('g:i A').'.',
         );
@@ -104,7 +104,7 @@ class AttendanceController extends Controller
             $request->userAgent(),
         );
 
-        return redirect()->route('attendance.index')->with(
+        return redirect($this->destination($request))->with(
             'success',
             'Checked out successfully. Worked time: '.$record->worked_hours.'.',
         );
@@ -113,6 +113,19 @@ class AttendanceController extends Controller
     private function notes(AttendanceActionRequest $request): ?string
     {
         return ((string) $request->string('notes')->trim()) ?: null;
+    }
+
+    /**
+     * Where the confirmation lands. The staff dashboard clocks in and out from its
+     * own attendance card, so it asks to be returned to itself rather than pushing
+     * the employee onto a page they did not open. The value is a named destination
+     * the request has already validated, never a caller-supplied URL.
+     */
+    private function destination(AttendanceActionRequest $request): string
+    {
+        return $request->string('return_to')->value() === 'dashboard'
+            ? route('dashboard')
+            : route('attendance.index');
     }
 
     private function ensureManualAttendanceAllowed(
