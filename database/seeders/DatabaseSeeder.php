@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             NursingStaffSeeder::class,
             SamplePositionStaffSeeder::class,
             EmptyDepartmentStaffSeeder::class,
+            PositionStaffTopUpSeeder::class,
         ]);
     }
 }

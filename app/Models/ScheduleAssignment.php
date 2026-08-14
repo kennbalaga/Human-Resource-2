@@ -14,16 +14,21 @@ class ScheduleAssignment extends Model
         'employee_id',
         'shift_id',
         'recurring_schedule_id',
+        'schedule_recommendation_id',
         'work_date',
         'status',
+        'source',
         'notes',
         'created_by',
+        'applied_by',
+        'was_modified',
     ];
 
     protected function casts(): array
     {
         return [
             'work_date' => 'date',
+            'was_modified' => 'boolean',
         ];
     }
 
@@ -45,5 +50,15 @@ class ScheduleAssignment extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function appliedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'applied_by');
+    }
+
+    public function recommendation(): BelongsTo
+    {
+        return $this->belongsTo(ScheduleRecommendation::class, 'schedule_recommendation_id');
     }
 }

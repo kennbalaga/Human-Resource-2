@@ -5,10 +5,12 @@ namespace App\Services\Scheduling;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Position;
+use App\Models\RosterDraft;
 use App\Models\ScheduleRecommendation;
 use App\Models\ScheduleRecommendationDecision;
 use App\Models\Shift;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +24,8 @@ class RecommendationLifecycleService
         private readonly RecommendationFreshnessService $freshness,
         private readonly EmployeeEligibilityService $eligibility,
         private readonly RecommendationExplanationService $explanations,
+        private readonly RosterDraftService $rosterDrafts,
+        private readonly ScheduleLockService $locks,
     ) {}
 
     /** @return array<string, mixed> */
@@ -65,15 +69,35 @@ class RecommendationLifecycleService
         ];
     }
 
-    /** @param array<string, mixed> $target @return array<string, mixed> */
+    /**
+     * Revalidate a recommendation and materialize it into a draft roster row.
+     *
+     * This never touches schedule_assignments — same as the rest of the roster
+     * board workflow, the recommendation only ever lands on a RosterDraft.
+     * Publishing that draft (RosterDraftService::publish) is what eventually
+     * saves the schedule.
+     *
+     * @param  array<string, mixed>  $target
+     * @return array<string, mixed>
+     */
     public function apply(User $user, ScheduleRecommendation $recommendation, int $employeeId, array $target): array
     {
+        // Fast path: a recommendation can only be materialized once. If it
+        // already produced a draft entry, hand that back instead of
+        // re-validating and re-writing — this also covers a client retrying
+        // an apply whose response it never received.
+        $existing = $this->existingDraftEntry($recommendation);
+        if ($existing !== null) {
+            return $this->draftResponse($recommendation, $existing['draft'], $existing['entry']);
+        }
+
         $this->ensureReviewable($recommendation);
         $this->ensureTargetMatches($recommendation, $target);
         $department = Department::query()->findOrFail($recommendation->target_department_id);
         $position = Position::query()->findOrFail($recommendation->target_position_id);
         $shift = Shift::query()->findOrFail($recommendation->target_shift_id);
-        $fingerprint = $this->freshness->fingerprint($department, $position, $shift, $recommendation->target_work_date->toDateString());
+        $workDate = $recommendation->target_work_date->toDateString();
+        $fingerprint = $this->freshness->fingerprint($department, $position, $shift, $workDate);
 
         if (! hash_equals($recommendation->fingerprint, $fingerprint)) {
             $this->expire($recommendation);
@@ -88,23 +112,70 @@ class RecommendationLifecycleService
         }
 
         $employee = Employee::query()->findOrFail($employeeId);
-        $evaluation = $this->eligibility->evaluateCandidate($employee, $department, $position, $shift, $recommendation->target_work_date->toDateString());
+        $evaluation = $this->eligibility->evaluateCandidate($employee, $department, $position, $shift, $workDate);
         if (! $evaluation['eligible']) {
             $this->expire($recommendation);
         }
 
-        return DB::transaction(function () use ($user, $recommendation, $employeeId): array {
+        return DB::transaction(function () use ($user, $recommendation, $employeeId, $department, $shift, $workDate): array {
             $locked = ScheduleRecommendation::query()->lockForUpdate()->findOrFail($recommendation->id);
+
+            // Re-check under the row lock: a concurrent request may have
+            // materialized this recommendation while we were validating.
+            $existing = $this->existingDraftEntry($locked);
+            if ($existing !== null) {
+                return $this->draftResponse($locked, $existing['draft'], $existing['entry']);
+            }
+
             $this->ensureReviewable($locked);
+
+            // Guard rails before writing anything: a locked period or a
+            // conflict against the draft as it actually stands (double
+            // booking, leave, day off, understaffing rules resolved via
+            // StaffingRequirementService inside RosterDraftService::evaluate)
+            // both abort the whole transaction rather than partially apply.
+            $this->locks->assertUnlocked($department, Carbon::parse($workDate, config('schedule.timezone')));
+
             $action = $employeeId === $locked->recommended_employee_id ? 'applied' : 'modified';
+            $entry = [
+                'employee_id' => $employeeId,
+                'shift_id' => $shift->id,
+                'work_date' => $workDate,
+                'schedule_recommendation_id' => $locked->id,
+                'source' => 'ai',
+                'applied_by' => $user->id,
+                'was_modified' => $action === 'modified',
+            ];
+
+            $target = $this->openDraftCovering($department, $workDate);
+            $entries = $target !== null ? collect($target->entries)->push($entry) : collect([$entry]);
+            $startDate = $target?->start_date->toDateString() ?? $workDate;
+            $endDate = $target?->end_date->toDateString() ?? $workDate;
+            $rules = $target?->rules ?? [];
+
+            $draftEvaluation = $this->rosterDrafts->evaluate($department, $entries, $startDate, $endDate, $rules);
+            $this->assertEntryPlaceable($draftEvaluation, $entry);
+
             $this->decision($locked, $user, $action, $employeeId);
             $locked->update(['status' => $action]);
+
+            $draft = $this->rosterDrafts->saveDraft(
+                $department,
+                $entries,
+                $startDate,
+                $endDate,
+                $user,
+                $target?->notes,
+                $target?->uuid,
+                $rules,
+            );
 
             return [
                 'recommendation_id' => $locked->uuid,
                 'status' => $action,
                 'employee_id' => $employeeId,
-                'message' => 'Recommendation revalidated. The employee field may now be updated; the schedule has not been saved.',
+                'draft_id' => $draft->uuid,
+                'message' => 'Recommendation applied to the draft roster. Review and publish the draft to save the schedule.',
             ];
         });
     }
@@ -151,6 +222,77 @@ class RecommendationLifecycleService
     {
         $recommendation->update(['status' => 'expired']);
         throw ValidationException::withMessages(['recommendation' => self::STALE_MESSAGE]);
+    }
+
+    /**
+     * The open draft, if any, whose period already covers this date — entries
+     * are appended to it rather than scattering one recommendation's rows
+     * across several drafts for the same department and day.
+     */
+    private function openDraftCovering(Department $department, string $workDate): ?RosterDraft
+    {
+        return $this->rosterDrafts->openDraftsFor($department)
+            ->first(fn (RosterDraft $draft) => $workDate >= $draft->start_date->toDateString()
+                && $workDate <= $draft->end_date->toDateString());
+    }
+
+    /**
+     * @return array{draft: RosterDraft, entry: array<string, mixed>}|null
+     */
+    private function existingDraftEntry(ScheduleRecommendation $recommendation): ?array
+    {
+        $draft = RosterDraft::query()
+            ->where('department_id', $recommendation->target_department_id)
+            ->where('status', '!=', 'discarded')
+            ->get()
+            ->first(fn (RosterDraft $draft) => collect($draft->entries)->contains(
+                fn (array $entry) => (int) ($entry['schedule_recommendation_id'] ?? 0) === $recommendation->id
+            ));
+
+        if ($draft === null) {
+            return null;
+        }
+
+        $entry = collect($draft->entries)->first(
+            fn (array $entry) => (int) ($entry['schedule_recommendation_id'] ?? 0) === $recommendation->id
+        );
+
+        return ['draft' => $draft, 'entry' => $entry];
+    }
+
+    /** @param array<string, mixed> $entry @return array<string, mixed> */
+    private function draftResponse(ScheduleRecommendation $recommendation, RosterDraft $draft, array $entry): array
+    {
+        return [
+            'recommendation_id' => $recommendation->uuid,
+            'status' => $recommendation->status,
+            'employee_id' => $entry['employee_id'],
+            'draft_id' => $draft->uuid,
+            'message' => 'This recommendation was already applied to a draft roster.',
+        ];
+    }
+
+    /**
+     * Abort if placing this entry on the draft, as it actually stands,
+     * conflicts with the employee's own schedule (double booking, leave, a
+     * day off) or the unit's staffing rules — both resolved by
+     * RosterDraftService::evaluate, the same check the roster board itself
+     * runs before publish.
+     *
+     * @param  array<string, mixed>  $evaluation
+     * @param  array<string, mixed>  $entry
+     */
+    private function assertEntryPlaceable(array $evaluation, array $entry): void
+    {
+        $issue = collect($evaluation['issues'])->first(
+            fn (array $issue) => $issue['employee_id'] === $entry['employee_id'] && $issue['work_date'] === $entry['work_date']
+        );
+
+        if ($issue !== null) {
+            throw ValidationException::withMessages([
+                'schedule' => "This recommendation could not be placed on the draft roster: {$issue['reason']}.",
+            ]);
+        }
     }
 
     private function decision(

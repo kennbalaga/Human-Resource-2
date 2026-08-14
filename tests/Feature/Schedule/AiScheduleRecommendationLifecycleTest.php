@@ -8,7 +8,9 @@ use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Position;
+use App\Models\RosterDraft;
 use App\Models\ScheduleAssignment;
+use App\Models\ScheduleLock;
 use App\Models\ScheduleRecommendation;
 use App\Models\ScheduleRecommendationDecision;
 use App\Models\Shift;
@@ -91,6 +93,80 @@ class AiScheduleRecommendationLifecycleTest extends TestCase
             'final_selected_employee_id' => $this->employee->id,
         ]);
         $this->assertDatabaseHas('schedule_recommendations', ['uuid' => $generated['recommendation_id'], 'status' => 'applied']);
+    }
+
+    public function test_apply_materializes_the_recommendation_into_a_draft_roster_row(): void
+    {
+        $before = ScheduleAssignment::query()->count();
+        $generated = $this->generate()->assertOk()->json('data');
+        $recommendationId = ScheduleRecommendation::query()->where('uuid', $generated['recommendation_id'])->value('id');
+
+        $data = $this->actingAs($this->manager)->postJson($generated['apply_url'], $this->applyPayload($this->employee->id))
+            ->assertOk()
+            ->assertJsonPath('data.status', 'applied')
+            ->assertJsonPath('data.employee_id', $this->employee->id)
+            ->json('data');
+
+        $this->assertArrayHasKey('draft_id', $data);
+        $draft = RosterDraft::query()->where('uuid', $data['draft_id'])->firstOrFail();
+        $this->assertSame($this->department->id, $draft->department_id);
+        $this->assertSame('open', $draft->status);
+
+        $entry = collect($draft->entries)->firstWhere('schedule_recommendation_id', $recommendationId);
+        $this->assertNotNull($entry);
+        $this->assertSame($this->employee->id, $entry['employee_id']);
+        $this->assertSame($this->shift->id, $entry['shift_id']);
+        $this->assertSame('2027-10-01', $entry['work_date']);
+        $this->assertSame('ai', $entry['source']);
+        $this->assertSame($this->manager->id, $entry['applied_by']);
+        $this->assertFalse($entry['was_modified']);
+
+        // Publishing, not applying, is what saves an actual schedule.
+        $this->assertSame($before, ScheduleAssignment::query()->count());
+    }
+
+    public function test_applying_the_same_recommendation_twice_is_idempotent(): void
+    {
+        $generated = $this->generate()->assertOk()->json('data');
+        $recommendationId = ScheduleRecommendation::query()->where('uuid', $generated['recommendation_id'])->value('id');
+        $payload = $this->applyPayload($this->employee->id);
+
+        $first = $this->actingAs($this->manager)->postJson($generated['apply_url'], $payload)->assertOk()->json('data');
+        $second = $this->actingAs($this->manager)->postJson($generated['apply_url'], $payload)->assertOk()->json('data');
+
+        $this->assertSame($first['draft_id'], $second['draft_id']);
+        $this->assertSame('applied', $second['status']);
+        $this->assertSame(1, RosterDraft::query()->count());
+
+        $draft = RosterDraft::query()->where('uuid', $first['draft_id'])->firstOrFail();
+        $matching = collect($draft->entries)->where('schedule_recommendation_id', $recommendationId);
+        $this->assertCount(1, $matching);
+
+        // The second call short-circuited before recording another decision.
+        $this->assertSame(1, ScheduleRecommendationDecision::query()->count());
+    }
+
+    public function test_apply_is_blocked_and_rolled_back_when_the_period_is_locked(): void
+    {
+        ScheduleLock::query()->create([
+            'department_id' => $this->department->id,
+            'start_date' => '2027-10-01',
+            'end_date' => '2027-10-01',
+            'locked_by' => $this->manager->id,
+            'locked_at' => now(),
+        ]);
+        $generated = $this->generate()->assertOk()->json('data');
+
+        $this->actingAs($this->manager)->postJson($generated['apply_url'], $this->applyPayload($this->employee->id))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('schedule');
+
+        $this->assertSame(0, RosterDraft::query()->count());
+        $this->assertSame(0, ScheduleRecommendationDecision::query()->count());
+        $this->assertDatabaseHas('schedule_recommendations', [
+            'uuid' => $generated['recommendation_id'],
+            'status' => 'for_hr_review',
+        ]);
     }
 
     public function test_selecting_a_recorded_alternative_is_a_modified_human_decision(): void
