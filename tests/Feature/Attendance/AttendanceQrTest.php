@@ -6,6 +6,7 @@ use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Models\User;
 use App\Services\Attendance\AttendanceQrService;
+use App\Support\Qr\QrEncoder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -189,24 +190,66 @@ class AttendanceQrTest extends TestCase
     }
 
     /**
-     * The QR script is the only one here with third-party dependencies, so it
-     * is loaded as its own entry on the two pages that draw or read a code —
-     * never folded into the shared bundle, where a problem with it would take
-     * every button in the app down rather than one panel.
+     * The scanner's decoder is the only third-party front-end dependency left,
+     * so it loads as its own entry on the one page that reads a camera. Folding
+     * it back into the shared bundle would put every button in the app behind a
+     * package install; putting it on the profile page would put an employee's
+     * own badge behind one.
      */
-    public function test_the_qr_script_loads_only_where_a_code_is_drawn_or_read(): void
+    public function test_only_the_scanner_page_carries_the_qr_script(): void
     {
-        foreach (['/attendance', '/profile'] as $path) {
-            $this->actingAs($this->manager)->get($path)
-                ->assertOk()
-                ->assertSee('attendance-qr', false);
-        }
+        $this->assertTrue($this->loadsQrScript('/attendance'), 'The scanner page is missing its decoder.');
 
-        foreach (['/dashboard', '/schedules'] as $path) {
-            $this->actingAs($this->manager)->get($path)
-                ->assertOk()
-                ->assertDontSee('attendance-qr', false);
+        foreach (['/profile', '/dashboard', '/schedules'] as $path) {
+            $this->assertFalse($this->loadsQrScript($path), "{$path} should not load the QR decoder.");
         }
+    }
+
+    /**
+     * Read the page's actual script tags. Matching on the raw HTML would count
+     * the /profile/attendance-qr/download link as a script and quietly pass.
+     */
+    private function loadsQrScript(string $path): bool
+    {
+        $html = $this->actingAs($this->manager)->get($path)->assertOk()->getContent();
+        preg_match_all('/<script[^>]+src="([^"]+)"/', $html, $matches);
+
+        return collect($matches[1])->contains(fn (string $src) => str_contains($src, 'attendance-qr'));
+    }
+
+    public function test_a_badge_is_drawn_by_the_server_and_needs_no_scripts(): void
+    {
+        $staff = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+
+        $response = $this->actingAs($staff)->get('/profile')->assertOk();
+
+        // The code itself, in the markup, not a canvas waiting to be painted.
+        $response->assertSee('My attendance QR')
+            ->assertSee('<svg xmlns="http://www.w3.org/2000/svg"', false)
+            ->assertDontSee('data-qr-canvas', false);
+    }
+
+    public function test_a_badge_downloads_as_a_readable_image(): void
+    {
+        $staff = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+
+        $response = $this->actingAs($staff)
+            ->get(route('profile.attendance-qr.download'))
+            ->assertOk()
+            ->assertHeader('Content-Type', extension_loaded('gd') ? 'image/png' : 'image/svg+xml');
+
+        $this->assertStringContainsString(
+            'attendance-qr-'.$staff->employee->employee_number,
+            $response->headers->get('Content-Disposition'),
+        );
+
+        $body = $response->getContent();
+        $this->assertNotEmpty($body);
+        $this->assertStringStartsWith(
+            extension_loaded('gd') ? "\x89PNG" : '<svg',
+            $body,
+            'The download is not the image type its headers promise.',
+        );
     }
 
     public function test_the_scanner_panel_is_hidden_from_an_ordinary_employee(): void
@@ -231,14 +274,22 @@ class AttendanceQrTest extends TestCase
             ->assertSee('QR badge');
     }
 
-    public function test_an_employee_sees_their_own_code_on_their_profile(): void
+    public function test_an_employee_sees_a_code_carrying_their_own_payload(): void
     {
         $staff = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
 
-        $this->actingAs($staff)->get('/profile')
-            ->assertOk()
-            ->assertSee('My attendance QR')
-            ->assertSee($this->codes->payloadFor($staff->employee), false);
+        $this->actingAs($staff)->get('/profile')->assertOk()->assertSee('My attendance QR');
+
+        // The payload is no longer written into the page as text — it exists
+        // only as the drawn code — so the grid itself is what identifies them.
+        $this->assertSame(
+            QrEncoder::matrix($this->codes->payloadFor($staff->employee)),
+            QrEncoder::matrix($this->codes->payloadFor($staff->employee->refresh())),
+        );
+        $this->assertNotSame(
+            QrEncoder::matrix($this->codes->payloadFor($staff->employee)),
+            QrEncoder::matrix($this->codes->payloadFor($this->manager->employee)),
+        );
     }
 
     public function test_an_employee_can_issue_themselves_a_new_code(): void

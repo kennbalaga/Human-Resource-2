@@ -1,6 +1,5 @@
-// The encoder and the decoder are each a sizeable chunk, and every page in the
-// app loads this bundle. They are pulled in only once an element that actually
-// needs them is on the page.
+// The badge on My Profile is drawn by the server, so nothing here encodes a QR
+// code — this file only reads them from a camera, on the one page that does.
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
 /**
@@ -20,39 +19,6 @@ const cameraFailureMessage = (error) => {
         default:
             return 'The camera could not be opened on this device.';
     }
-};
-
-/**
- * The employee's own badge, drawn on their profile. Rendered in the browser
- * from the signed payload the server issued, so the code itself is never stored
- * as an image anywhere it could be picked up.
- */
-const renderProfileCode = async () => {
-    const panel = document.querySelector('[data-attendance-qr]');
-    const canvas = panel?.querySelector('[data-qr-canvas]');
-    if (!panel || !canvas || !panel.dataset.qrPayload) return;
-
-    try {
-        const { default: QRCode } = await import('qrcode');
-        await QRCode.toCanvas(canvas, panel.dataset.qrPayload, {
-            width: 220,
-            margin: 1,
-            errorCorrectionLevel: 'M',
-            color: { dark: '#101c17', light: '#ffffff' },
-        });
-    } catch {
-        canvas.hidden = true;
-        panel.querySelector('[data-qr-fallback]').hidden = false;
-
-        return;
-    }
-
-    panel.querySelector('[data-qr-download]')?.addEventListener('click', () => {
-        const link = document.createElement('a');
-        link.download = panel.dataset.qrFilename || 'attendance-qr.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-    });
 };
 
 /**
@@ -284,7 +250,4 @@ const startScanner = () => {
     window.addEventListener('pagehide', stop);
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    renderProfileCode();
-    startScanner();
-});
+document.addEventListener('DOMContentLoaded', startScanner);

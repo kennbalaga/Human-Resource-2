@@ -35,9 +35,9 @@
     @vite(array_values(array_filter([
         'resources/css/app.css',
         'resources/js/app.js',
-        // Loaded only where a QR code is drawn or read, keeping the encoder and
-        // decoder off every other page in the app.
-        request()->routeIs('attendance.index', 'profile.show') ? 'resources/js/attendance-qr.js' : null,
+        // Only the entrance scanner needs it. Badges are drawn by the server,
+        // so an employee's own page carries no QR script at all.
+        request()->routeIs('attendance.index') ? 'resources/js/attendance-qr.js' : null,
     ])))
     @stack('head')
 </head>

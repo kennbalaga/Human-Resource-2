@@ -34,8 +34,7 @@
 .profile-qr-panel { overflow:hidden; }
 .profile-qr-body { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; padding:0 1.25rem 1.25rem; gap:1.1rem; }
 .profile-qr-code { display:grid; margin:0; padding:.7rem; border:1px solid #e7ece9; border-radius:.85rem; background:#fff; justify-items:center; }
-.profile-qr-code canvas { display:block; width:180px; height:180px; }
-.profile-qr-code figcaption { max-width:180px; color:#8a7a2f; font-size:.66rem; text-align:center; }
+.profile-qr-code svg { display:block; width:180px; height:180px; }
 .profile-qr-copy>p { margin:0 0 .7rem; color:#5f6e66; font-size:.76rem; line-height:1.5; }
 .profile-qr-copy dl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); margin:0 0 .8rem; gap:.5rem; }
 .profile-qr-copy dt { color:#7b8881; font-size:.63rem; font-weight:800; text-transform:uppercase; }

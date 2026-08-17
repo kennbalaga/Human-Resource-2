@@ -65,6 +65,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile/attendance-qr/download', [ProfileController::class, 'downloadAttendanceQr'])->name('profile.attendance-qr.download');
     Route::post('/profile/attendance-qr/regenerate', [ProfileController::class, 'regenerateAttendanceQr'])->name('profile.attendance-qr.regenerate');
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::patch('/settings/account', [SettingsController::class, 'updateAccount'])->name('settings.account.update');

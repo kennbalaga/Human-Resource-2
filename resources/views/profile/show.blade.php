@@ -40,17 +40,13 @@
                 </dl>
             </article>
 
-            <article
-                class="panel profile-qr-panel"
-                data-attendance-qr
-                data-qr-payload="{{ $attendanceQrPayload }}"
-                data-qr-filename="attendance-qr-{{ $employee->employee_number }}.png"
-            >
+            <article class="panel profile-qr-panel">
                 <div class="panel-header"><div><p class="panel-kicker">Time &amp; attendance</p><h2>My attendance QR</h2></div><x-icon name="fingerprint" /></div>
                 <div class="profile-qr-body">
-                    <figure class="profile-qr-code">
-                        <canvas data-qr-canvas width="220" height="220" aria-label="Attendance QR code for {{ $employee->full_name }}"></canvas>
-                        <figcaption data-qr-fallback hidden>This QR code could not be drawn in your browser. Try reloading the page.</figcaption>
+                    <figure class="profile-qr-code" role="img" aria-label="Attendance QR code for {{ $employee->full_name }}">
+                        {{-- Rendered by the server: the badge is here whether or not
+                             the page's scripts are. --}}
+                        {!! $attendanceQrSvg !!}
                     </figure>
                     <div class="profile-qr-copy">
                         <p>Present this at the entrance scanner to record your time in and time out while the fingerprint terminal is unavailable.</p>
@@ -60,7 +56,7 @@
                         </dl>
                         <p class="profile-qr-warning"><x-icon name="shield" /> <span>Treat this like your ID. Anyone holding a copy can have it scanned in your name — if it leaks, issue a new one and the old code stops working.</span></p>
                         <div class="profile-qr-actions">
-                            <button class="btn btn-primary" type="button" data-qr-download><x-icon name="download" /> Download PNG</button>
+                            <a class="btn btn-primary" href="{{ route('profile.attendance-qr.download') }}"><x-icon name="download" /> Download</a>
                             <form method="POST" action="{{ route('profile.attendance-qr.regenerate') }}" onsubmit="return confirm('Issue a new QR code? Every copy of your current code will stop working immediately.')">
                                 @csrf
                                 <button class="btn btn-outline-primary" type="submit"><x-icon name="refresh" /> Issue new code</button>
