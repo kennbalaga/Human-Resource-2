@@ -144,6 +144,65 @@ class ScheduleServiceTest extends TestCase
         ], $dates);
     }
 
+    public function test_it_rejects_an_assignment_on_a_date_that_has_already_started(): void
+    {
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
+        $today = now(config('schedule.timezone'))->startOfDay();
+        $before = ScheduleAssignment::query()->count();
+
+        foreach ([$today, $today->copy()->subDay(), $today->copy()->subWeek()] as $date) {
+            try {
+                $this->service->createAssignment([
+                    'employee_id' => $this->employee->id,
+                    'shift_id' => $shift->id,
+                    'work_date' => $date->toDateString(),
+                ], $this->manager);
+                $this->fail("An assignment on {$date->toDateString()} should have been rejected.");
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('work_date', $exception->errors());
+            }
+        }
+
+        $this->assertDatabaseCount('schedule_assignments', $before);
+    }
+
+    public function test_it_rejects_moving_an_assignment_off_a_date_that_has_already_started(): void
+    {
+        $today = now(config('schedule.timezone'))->startOfDay();
+
+        // A roster published before today still holds today's assignments; the
+        // service just may no longer move them.
+        $assignment = ScheduleAssignment::query()
+            ->whereDate('work_date', $today->toDateString())
+            ->firstOrFail();
+
+        $this->expectException(ValidationException::class);
+
+        $this->service->updateAssignment($assignment, [
+            'employee_id' => $assignment->employee_id,
+            'shift_id' => $assignment->shift_id,
+            'work_date' => $today->copy()->addMonths(6)->toDateString(),
+        ]);
+    }
+
+    public function test_it_allows_an_assignment_on_an_upcoming_date(): void
+    {
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
+        $today = now(config('schedule.timezone'))->startOfDay();
+        $upcoming = $today->copy()->addMonths(6);
+
+        $assignment = $this->service->createAssignment([
+            'employee_id' => $this->employee->id,
+            'shift_id' => $shift->id,
+            'work_date' => $upcoming->toDateString(),
+        ], $this->manager);
+
+        $this->assertTrue($assignment->exists);
+        $this->assertTrue($this->service->isDateEditable($today->copy()->addDay()));
+        $this->assertFalse($this->service->isDateEditable($today));
+        $this->assertFalse($this->service->isDateEditable($today->copy()->subDay()));
+    }
+
     public function test_recurring_creation_is_atomic_when_one_date_conflicts(): void
     {
         $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();

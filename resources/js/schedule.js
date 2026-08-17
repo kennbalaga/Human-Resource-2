@@ -142,7 +142,24 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.entries(values).forEach(([selector, value]) => {
             detailModalElement.querySelector(selector).textContent = value;
         });
-        detailModalElement.querySelector('[data-delete-assignment-form]').action = replaceRouteId(assignmentForm.dataset.updateUrlTemplate, assignment.id);
+
+        // A day that has already started is view only: today's roster moves only
+        // through an approved shift swap, and a past one not at all.
+        const deleteForm = detailModalElement.querySelector('[data-delete-assignment-form]');
+        const editButton = detailModalElement.querySelector('[data-edit-assignment]');
+        const lockNotice = detailModalElement.querySelector('[data-detail-lock]');
+        const editable = assignment.editable !== false;
+
+        deleteForm.action = replaceRouteId(assignmentForm.dataset.updateUrlTemplate, assignment.id);
+        deleteForm.hidden = !editable;
+        if (editButton) editButton.hidden = !editable;
+        if (lockNotice) {
+            lockNotice.hidden = editable;
+            lockNotice.querySelector('[data-detail-lock-message]').textContent = assignment.date === detailModalElement.dataset.scheduleToday
+                ? 'Today’s schedule is view only. An approved shift swap is the only way to change it.'
+                : 'This date has already passed. Its schedule is kept as a record and can no longer be changed.';
+        }
+
         window.bootstrap.Modal.getOrCreateInstance(detailModalElement).show();
     };
 
