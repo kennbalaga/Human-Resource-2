@@ -12,6 +12,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -43,6 +44,10 @@ class AttendanceController extends Controller
         return view('attendance.index', [
             'employee' => $employee,
             'office' => $office,
+            // Scanning writes somebody else's attendance, so the camera belongs
+            // to the people who already carry workforce records, not to whoever
+            // happens to open the page.
+            'canScanQr' => Gate::forUser($request->user())->allows('workforce.view'),
             'todayRecord' => $todayRecord,
             'recentRecords' => $recentRecords,
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',

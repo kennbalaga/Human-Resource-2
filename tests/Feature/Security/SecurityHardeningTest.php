@@ -19,6 +19,20 @@ class SecurityHardeningTest extends TestCase
             ->assertSee('Welcome Back');
     }
 
+    /**
+     * The attendance QR scanner reads badges from a live camera. A policy of
+     * camera=() blocks that before the browser ever prompts anyone, and the
+     * symptom — no camera entry at all in the site's permissions — reads like a
+     * device fault rather than a header, so it is worth holding in place.
+     */
+    public function test_the_permissions_policy_lets_this_origin_use_a_camera_but_no_one_else(): void
+    {
+        $policy = $this->get('/login')->assertOk()->headers->get('Permissions-Policy');
+
+        $this->assertStringContainsString('camera=(self)', $policy);
+        $this->assertStringContainsString('microphone=()', $policy);
+    }
+
     public function test_csp_reports_are_accepted_without_authentication(): void
     {
         $this->postJson('/api/v1/security/csp-report', [

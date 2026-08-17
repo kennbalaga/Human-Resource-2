@@ -14,7 +14,13 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+        // camera=(self): the attendance QR scanner reads badges at the entrance,
+        // so this origin must be able to ask for the camera at all — with
+        // camera=() the browser refuses before the employee is ever prompted,
+        // and no camera entry even appears in the site's permissions. Embedded
+        // third-party frames stay excluded, as does the microphone, which
+        // nothing here has a reason to open.
+        $response->headers->set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(self)');
         $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
 
         $this->addContentSecurityPolicy($response);

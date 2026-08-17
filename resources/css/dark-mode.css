@@ -382,6 +382,11 @@ html[data-theme-resolved='dark'] .calendar-view-switch a.active { color:#a8c8ec;
 html[data-theme-resolved='dark'] .calendar-day { color:#cdd9d3; border-color:var(--hr-border); background:#19231e; }
 html[data-theme-resolved='dark'] .calendar-day.outside-month { background:#101815; }
 html[data-theme-resolved='dark'] .calendar-day.is-today { background:#1d2f27; }
+html[data-theme-resolved='dark'] .calendar-day.is-locked-day { background:#141d19; }
+html[data-theme-resolved='dark'] .calendar-day.is-locked-day.is-today { background:#1d2f27; }
+html[data-theme-resolved='dark'] .calendar-day-lock { color:#7f8f86; }
+html[data-theme-resolved='dark'] .schedule-detail-lock { color:#b3c2b9; border-color:var(--hr-border); background:#141d19; }
+html[data-theme-resolved='dark'] .schedule-detail-lock svg { color:#8fa197; }
 html[data-theme-resolved='dark'] .calendar-day-header,
 html[data-theme-resolved='dark'] .more-events,
 html[data-theme-resolved='dark'] .week-schedule-event small,
@@ -1068,3 +1073,19 @@ html[data-theme-resolved='dark'] .staff-clock-button.is-out { color:#fff; backgr
 html[data-theme-resolved='dark'] .staff-clock-button.is-out:hover { background:#b85647; }
 html[data-theme-resolved='dark'] .staff-clock-button.is-in { color:#0c1310; background:var(--hr-primary); }
 html[data-theme-resolved='dark'] .staff-clock-button.is-in:hover { color:#0c1310; background:var(--hr-primary-dark); }
+
+/* Attendance QR: the code itself keeps its white quiet zone in both themes —
+   inverting a QR is what stops scanners from reading it. */
+html[data-theme-resolved='dark'] .profile-qr-code { border-color:var(--hr-border); background:#fff; }
+html[data-theme-resolved='dark'] .profile-qr-copy>p { color:#b3c2b9; }
+html[data-theme-resolved='dark'] .profile-qr-copy dd { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .profile-qr-warning { color:#e2cd8f; border-color:#3d3320; background:#241f12; }
+html[data-theme-resolved='dark'] .attendance-scanner-status { color:#ccd8d2; border-color:var(--hr-border); background:#161f1b; }
+html[data-theme-resolved='dark'] .attendance-scanner-status.is-scanning { border-color:rgba(var(--hr-primary-rgb),.4); background:#1b2b22; }
+html[data-theme-resolved='dark'] .attendance-scanner-status.is-error { color:#f0b3ac; border-color:#4a2b27; background:#2a1a18; }
+html[data-theme-resolved='dark'] .attendance-scanner-viewport { border-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .attendance-scanner-result { border-color:var(--hr-border); background:#141d19; }
+html[data-theme-resolved='dark'] .attendance-scanner-result strong { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .attendance-scanner-result small { color:#8fa197; }
+html[data-theme-resolved='dark'] .attendance-scanner-result p { color:#c3d1c9; }
+html[data-theme-resolved='dark'] .attendance-scanner-hint { color:#8fa197; }

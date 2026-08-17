@@ -205,6 +205,25 @@
     text-transform: uppercase;
 }
 
+/* Days that have already started: kept legible, but visibly not a place to plan. */
+.calendar-day.is-locked-day {
+    background: #fafbfd;
+}
+
+.calendar-day.is-locked-day.is-today {
+    background: #f7faff;
+}
+
+.calendar-day-lock {
+    display: inline-flex;
+    color: #9aa6b8;
+}
+
+.calendar-day-lock svg {
+    width: .78rem;
+    height: .78rem;
+}
+
 .calendar-day-events {
     display: grid;
     gap: .3rem;
@@ -706,6 +725,38 @@
 .schedule-detail-grid strong {
     color: #2c3a51;
     font-size: .82rem;
+}
+
+.schedule-detail-lock {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: 0;
+    padding: .6rem .75rem;
+    border: 1px solid #e3e8f1;
+    border-radius: .6rem;
+    background: #f6f8fc;
+    color: #5a677d;
+    font-size: .75rem;
+}
+
+.schedule-detail-lock svg {
+    flex: none;
+    width: .95rem;
+    height: .95rem;
+    color: #8592a6;
+}
+
+/* Reads as a sentence, not as one of the grid's uppercase field labels. */
+.schedule-detail-grid .schedule-detail-lock span {
+    color: inherit;
+    font-size: .75rem;
+    font-weight: 500;
+    text-transform: none;
+}
+
+.schedule-detail-lock[hidden] {
+    display: none;
 }
 
 .shift-template-hint {

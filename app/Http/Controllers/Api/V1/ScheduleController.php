@@ -56,9 +56,10 @@ class ScheduleController extends Controller
         return new ScheduleAssignmentResource($assignment->load(['employee.user', 'employee.department', 'employee.position', 'shift']));
     }
 
-    public function destroy(Request $request, ScheduleAssignment $scheduleAssignment): Response
+    public function destroy(Request $request, ScheduleAssignment $scheduleAssignment, ScheduleService $service): Response
     {
         $this->requireManager($request->user());
+        $service->assertDateEditable($scheduleAssignment->work_date, 'schedule');
         $scheduleAssignment->delete();
 
         return response()->noContent();

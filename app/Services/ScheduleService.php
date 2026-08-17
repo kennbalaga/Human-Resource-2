@@ -28,6 +28,49 @@ class ScheduleService
     public const DEFAULT_SENIOR_RANK_THRESHOLD = 3;
 
     /**
+     * The first date a roster may still be planned by hand. Once a day has begun
+     * its roster is a record of who was expected at work, not a plan, so today
+     * and everything before it are read-only here. An approved shift swap can
+     * still move today's shift — that runs through ShiftSwapService, not this
+     * service, and carries its own request-and-approval trail.
+     */
+    public function firstEditableDate(): Carbon
+    {
+        return now(config('schedule.timezone'))->startOfDay()->addDay();
+    }
+
+    public function isDateEditable(Carbon|string $workDate): bool
+    {
+        return $this->asScheduleDate($workDate)->greaterThanOrEqualTo($this->firstEditableDate());
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    public function assertDateEditable(Carbon|string $workDate, string $field = 'work_date'): void
+    {
+        if ($this->isDateEditable($workDate)) {
+            return;
+        }
+
+        $date = $this->asScheduleDate($workDate);
+
+        throw ValidationException::withMessages([
+            $field => $date->isToday()
+                ? "Today's schedule is read-only. An approved shift swap is the only way to change ".$date->format('M j, Y').'.'
+                : 'Schedules on '.$date->format('M j, Y').' have already passed and can no longer be changed.',
+        ]);
+    }
+
+    private function asScheduleDate(Carbon|string $workDate): Carbon
+    {
+        return Carbon::parse(
+            $workDate instanceof Carbon ? $workDate->toDateString() : $workDate,
+            config('schedule.timezone'),
+        )->startOfDay();
+    }
+
+    /**
      * @param  array{employee_id: int, shift_id: int, work_date: string, notes?: string|null}  $data
      */
     public function createAssignment(array $data, User $creator): ScheduleAssignment
@@ -35,6 +78,7 @@ class ScheduleService
         return DB::transaction(function () use ($data, $creator) {
             $employee = Employee::query()->with('department')->findOrFail($data['employee_id']);
             $shift = Shift::query()->findOrFail($data['shift_id']);
+            $this->assertDateEditable($data['work_date']);
             $this->ensureSchedulable($employee, $shift);
             $this->ensureNoConflicts($employee, $shift, $data['work_date']);
             $this->ensureUnlocked($employee, $data['work_date']);
@@ -221,7 +265,6 @@ class ScheduleService
         return compact('ready', 'skipped', 'staffingGaps');
     }
 
-
     /**
      * @param  array{employee_id: int, shift_id: int, work_date: string, notes?: string|null}  $data
      */
@@ -233,6 +276,9 @@ class ScheduleService
             $originalEmployee = $assignment->employee()->with('department')->first();
             $employee = Employee::query()->with('department')->findOrFail($data['employee_id']);
             $shift = Shift::query()->findOrFail($data['shift_id']);
+            // Both ends again: a started day may neither give a shift up nor take one on.
+            $this->assertDateEditable($assignment->work_date);
+            $this->assertDateEditable($data['work_date']);
             $this->ensureSchedulable($employee, $shift);
             $this->ensureNoConflicts($employee, $shift, $data['work_date'], $assignment->id);
             $this->ensureUnlocked($employee, $data['work_date']);

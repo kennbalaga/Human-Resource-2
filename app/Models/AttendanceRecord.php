@@ -81,4 +81,27 @@ class AttendanceRecord extends Model
     {
         return sprintf('%dh %02dm', intdiv($this->worked_minutes, 60), $this->worked_minutes % 60);
     }
+
+    public function getCheckInMethodLabelAttribute(): string
+    {
+        return $this->captureLabel($this->check_in_method);
+    }
+
+    public function getCheckOutMethodLabelAttribute(): string
+    {
+        return $this->captureLabel($this->check_out_method);
+    }
+
+    /**
+     * How a capture source reads in a table. Title case alone would render the
+     * QR badge as "Qr".
+     */
+    private function captureLabel(?string $method): string
+    {
+        return match ($method ?? 'manual') {
+            'qr' => 'QR badge',
+            'biometric' => 'Biometric',
+            default => 'Manual',
+        };
+    }
 }

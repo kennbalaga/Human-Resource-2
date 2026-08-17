@@ -45,7 +45,7 @@ class AttendanceReportRequest extends FormRequest
             'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'status' => ['nullable', 'string', 'in:present,late'],
             'approval_status' => ['nullable', 'string', 'in:pending,approved,rejected'],
-            'capture_method' => ['nullable', 'string', 'in:manual,biometric,mixed'],
+            'capture_method' => ['nullable', 'string', 'in:manual,biometric,qr,mixed'],
         ];
     }
 }
