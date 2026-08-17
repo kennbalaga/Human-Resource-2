@@ -122,6 +122,45 @@
             </section>
         </div>
 
+        @if ($canScanQr)
+            <section class="panel attendance-scanner-panel" data-qr-scanner data-scan-url="{{ route('attendance.qr-scan.store') }}">
+                <div class="panel-header">
+                    <div>
+                        <p class="panel-kicker">Entrance scanner</p>
+                        <h2>Scan employee QR</h2>
+                    </div>
+                    <span class="history-caption">Records for the badge holder, not for you</span>
+                </div>
+
+                <div class="attendance-scanner-body">
+                    <div class="attendance-scanner-viewport">
+                        <video data-scanner-video playsinline muted></video>
+                        <div class="attendance-scanner-reticle" aria-hidden="true"></div>
+                    </div>
+
+                    <div class="attendance-scanner-side">
+                        <p class="attendance-scanner-status" data-scanner-status><x-icon name="fingerprint" /><span>Camera is off.</span></p>
+
+                        <div class="attendance-scanner-result" data-scanner-result hidden>
+                            <span class="attendance-scanner-avatar" data-result-initials>—</span>
+                            <div>
+                                <strong data-result-name>—</strong>
+                                <small data-result-meta>—</small>
+                                <p><span data-result-action>—</span> <span data-result-time></span></p>
+                            </div>
+                        </div>
+
+                        <div class="attendance-scanner-actions">
+                            <button class="btn btn-primary" type="button" data-scanner-start><x-icon name="log-in" /> Open camera</button>
+                            <button class="btn btn-light" type="button" data-scanner-stop hidden><x-icon name="close" /> Stop camera</button>
+                        </div>
+
+                        <p class="attendance-scanner-hint">The first scan of the day records a time in and the next records a time out. Every scan is saved against the employee on the badge, with your name on the record as the scanning officer.</p>
+                    </div>
+                </div>
+            </section>
+        @endif
+
         <section class="panel attendance-history-panel">
             <div class="panel-header">
                 <div>
@@ -154,13 +193,13 @@
                                 <td>{{ $record->officeLocation?->name ?? 'Not available' }}</td>
                                 <td>{{ $record->check_in_at?->timezone($office->timezone)->format('g:i A') ?? '—' }}</td>
                                 <td>
-                                    <strong>{{ str($record->check_in_method ?? 'manual')->title() }}</strong>
+                                    <strong>{{ $record->check_in_method_label }}</strong>
                                     @if($record->checkInBiometricDevice)<small>{{ $record->checkInBiometricDevice->name }}</small>@endif
                                 </td>
                                 <td>{{ $record->check_out_at?->timezone($office->timezone)->format('g:i A') ?? '—' }}</td>
                                 <td>
                                     @if($record->check_out_at)
-                                        <strong>{{ str($record->check_out_method ?? 'manual')->title() }}</strong>
+                                        <strong>{{ $record->check_out_method_label }}</strong>
                                         @if($record->checkOutBiometricDevice)<small>{{ $record->checkOutBiometricDevice->name }}</small>@endif
                                     @else
                                         —

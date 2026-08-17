@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminTwoFactorController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Attendance\AttendanceApprovalController;
 use App\Http\Controllers\Attendance\AttendanceController;
+use App\Http\Controllers\Attendance\AttendanceQrScanController;
 use App\Http\Controllers\Attendance\AttendanceReportController;
 use App\Http\Controllers\Attendance\BiometricSimulatorController;
 use App\Http\Controllers\AuditLogController;
@@ -16,7 +17,6 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SchedulePreferenceController;
 use App\Http\Controllers\Schedule\AiScheduleRecommendationController;
 use App\Http\Controllers\Schedule\RecurringScheduleController;
 use App\Http\Controllers\Schedule\RosterDraftController;
@@ -27,6 +27,7 @@ use App\Http\Controllers\Schedule\ScheduleDayOffController;
 use App\Http\Controllers\Schedule\ScheduleLockController;
 use App\Http\Controllers\Schedule\ShiftController;
 use App\Http\Controllers\Schedule\ShiftSwapController;
+use App\Http\Controllers\SchedulePreferenceController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TimesheetController;
@@ -42,6 +43,7 @@ Route::get('/dashboard', DashboardController::class)
 Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(function () {
     Route::get('/', [AttendanceController::class, 'index'])->name('index');
     Route::get('/state', [AttendanceController::class, 'state'])->name('state');
+    Route::post('/qr-scan', [AttendanceQrScanController::class, 'store'])->name('qr-scan.store');
     Route::post('/check-in', [AttendanceController::class, 'checkIn'])->name('check-in');
     Route::post('/check-out', [AttendanceController::class, 'checkOut'])->name('check-out');
     Route::get('/reports', [AttendanceReportController::class, 'index'])->name('reports.index');
@@ -63,6 +65,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/attendance-qr/regenerate', [ProfileController::class, 'regenerateAttendanceQr'])->name('profile.attendance-qr.regenerate');
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::patch('/settings/account', [SettingsController::class, 'updateAccount'])->name('settings.account.update');
     Route::patch('/settings/preferences', [SettingsController::class, 'updatePreferences'])->name('settings.preferences.update');

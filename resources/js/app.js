@@ -2,6 +2,7 @@ import * as bootstrap from 'bootstrap';
 import './dashboard';
 import './staff-dashboard';
 import './attendance';
+import './attendance-qr';
 import './attendance-settings';
 import './schedule';
 import './workforce';

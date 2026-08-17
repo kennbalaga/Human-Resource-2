@@ -29,6 +29,23 @@
 .profile-settings-form label small { color:#849089; font-size:.64rem; line-height:1.45; }
 .profile-settings-form>.btn { display:inline-flex; width:max-content; align-items:center; gap:.4rem; font-size:.75rem; }
 .profile-settings-form>.btn svg { width:1rem; }
+/* The employee's own attendance badge. Kept plain white behind the code —
+   a tinted or gradient backdrop is what makes a printed QR fail to scan. */
+.profile-qr-panel { overflow:hidden; }
+.profile-qr-body { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; padding:0 1.25rem 1.25rem; gap:1.1rem; }
+.profile-qr-code { display:grid; margin:0; padding:.7rem; border:1px solid #e7ece9; border-radius:.85rem; background:#fff; justify-items:center; }
+.profile-qr-code canvas { display:block; width:180px; height:180px; }
+.profile-qr-code figcaption { max-width:180px; color:#8a7a2f; font-size:.66rem; text-align:center; }
+.profile-qr-copy>p { margin:0 0 .7rem; color:#5f6e66; font-size:.76rem; line-height:1.5; }
+.profile-qr-copy dl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); margin:0 0 .8rem; gap:.5rem; }
+.profile-qr-copy dt { color:#7b8881; font-size:.63rem; font-weight:800; text-transform:uppercase; }
+.profile-qr-copy dd { margin:.2rem 0 0; overflow-wrap:anywhere; color:#293b32; font-size:.76rem; font-weight:650; }
+.profile-qr-warning { display:flex; align-items:flex-start; gap:.5rem; margin:0 0 .9rem; padding:.65rem .75rem; border:1px solid #efe3c4; border-radius:.7rem; color:#7a6520; background:#fdf8ec; font-size:.7rem; line-height:1.45; }
+.profile-qr-warning svg { width:1rem; flex:none; margin-top:.05rem; }
+.profile-qr-actions { display:flex; flex-wrap:wrap; gap:.5rem; }
+.profile-qr-actions .btn { display:inline-flex; align-items:center; gap:.4rem; font-size:.74rem; }
+.profile-qr-actions .btn svg { width:1rem; }
+.profile-qr-actions form { margin:0; }
 .profile-empty-state { display:grid; justify-items:center; padding:3rem; text-align:center; }
 .profile-empty-state svg { width:2rem; color:var(--hr-primary); }
 .profile-empty-state h2 { margin:.8rem 0 .25rem; font-size:1.05rem; }
@@ -127,6 +144,6 @@
 .profile-settings-form .two-factor-identity-check span { font-weight:650; line-height:1.45; }
 body.compact-navigation .sidebar-link { min-height:37px; padding-top:6px; padding-bottom:6px; }
 body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after { scroll-behavior:auto!important; animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; }
-@media(max-width:1000px){.profile-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.profile-content-grid{grid-template-columns:1fr}.settings-layout{grid-template-columns:1fr}.settings-section-nav{position:static;grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1000px){.profile-qr-body{grid-template-columns:1fr}.profile-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.profile-content-grid{grid-template-columns:1fr}.settings-layout{grid-template-columns:1fr}.settings-section-nav{position:static;grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:750px){.two-factor-setup-grid{grid-template-columns:1fr}.two-factor-qr{border-right:0;border-bottom:1px solid #e0e8e3}.two-factor-enable-form{grid-template-columns:1fr}.two-factor-cancel-form{align-items:stretch;flex-direction:column}.recovery-code-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.profile-hero{align-items:flex-start;flex-wrap:wrap}.profile-hero-status{width:100%;justify-items:start}.profile-stat-grid,.profile-detail-list,.settings-password-grid{grid-template-columns:1fr}.settings-section-nav{grid-template-columns:1fr}.settings-inline-form{grid-template-columns:1fr}.appearance-options>div{grid-template-columns:1fr}.appearance-option>span{min-height:auto}.profile-settings-form>.btn,.profile-heading-action{width:100%;justify-content:center}}

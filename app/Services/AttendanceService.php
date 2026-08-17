@@ -149,7 +149,11 @@ class AttendanceService
 
     private function validateCaptureSource(string $method, ?BiometricDevice $biometricDevice): void
     {
-        if (! in_array($method, ['manual', 'biometric'], true)) {
+        // 'qr' is the badge scanner standing in for the fingerprint terminal
+        // until it is installed. It is captured at the entrance by a scanning
+        // officer rather than by the employee, so like a biometric scan it
+        // records no device of its own and is never self-served.
+        if (! in_array($method, ['manual', 'biometric', 'qr'], true)) {
             throw new \InvalidArgumentException('Unsupported attendance capture method.');
         }
 
@@ -157,8 +161,8 @@ class AttendanceService
             throw new \InvalidArgumentException('Biometric attendance requires a source device.');
         }
 
-        if ($method === 'manual' && $biometricDevice !== null) {
-            throw new \InvalidArgumentException('Manual attendance cannot reference a biometric device.');
+        if ($method !== 'biometric' && $biometricDevice !== null) {
+            throw new \InvalidArgumentException(ucfirst($method).' attendance cannot reference a biometric device.');
         }
     }
 }

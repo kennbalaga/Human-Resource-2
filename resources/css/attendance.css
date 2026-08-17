@@ -269,6 +269,175 @@
     margin-bottom: 22px;
 }
 
+/* Entrance scanner. The viewport stays a fixed, dark rectangle so the operator
+   always knows where to hold the badge, whether or not the camera is running. */
+.attendance-scanner-panel {
+    margin-bottom: 22px;
+}
+
+.attendance-scanner-body {
+    display: grid;
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    align-items: start;
+    padding: 0 1.25rem 1.25rem;
+    gap: 1.15rem;
+}
+
+.attendance-scanner-viewport {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    border: 1px solid #d9e2dd;
+    border-radius: 0.9rem;
+    background: #101c17;
+}
+
+.attendance-scanner-viewport video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.attendance-scanner-reticle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 58%;
+    aspect-ratio: 1;
+    border: 2px dashed rgba(255, 255, 255, 0.5);
+    border-radius: 0.75rem;
+    transform: translate(-50%, -50%);
+}
+
+.attendance-scanner-panel:not(.is-live) .attendance-scanner-reticle {
+    opacity: 0.35;
+}
+
+.attendance-scanner-side {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.attendance-scanner-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid #dbe4df;
+    border-radius: 0.7rem;
+    color: #4b5a52;
+    background: #f7faf8;
+    font-size: 0.74rem;
+}
+
+.attendance-scanner-status svg {
+    width: 1.05rem;
+    flex: none;
+    color: var(--hr-primary);
+}
+
+.attendance-scanner-status.is-scanning {
+    border-color: rgba(23, 107, 67, 0.35);
+    background: #f0f7f3;
+}
+
+.attendance-scanner-status.is-error {
+    border-color: #f0d2d2;
+    color: #93362f;
+    background: #fdf3f2;
+}
+
+.attendance-scanner-result {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid #dbe4df;
+    border-left-width: 4px;
+    border-radius: 0.75rem;
+    background: #fff;
+}
+
+.attendance-scanner-result.is-in {
+    border-left-color: #2f9163;
+}
+
+.attendance-scanner-result.is-out {
+    border-left-color: #2672da;
+}
+
+.attendance-scanner-result.is-error {
+    border-left-color: #c8503f;
+}
+
+.attendance-scanner-avatar {
+    display: grid;
+    width: 3rem;
+    height: 3rem;
+    flex: none;
+    border-radius: 0.9rem;
+    color: #fff;
+    background: linear-gradient(145deg, #208158, #0f5638);
+    font-size: 0.9rem;
+    font-weight: 800;
+    place-items: center;
+}
+
+.attendance-scanner-result.is-error .attendance-scanner-avatar {
+    background: linear-gradient(145deg, #c8503f, #93362f);
+}
+
+.attendance-scanner-result strong {
+    display: block;
+    color: #22332b;
+    font-size: 0.88rem;
+}
+
+.attendance-scanner-result small {
+    display: block;
+    margin-top: 0.1rem;
+    color: #77857e;
+    font-size: 0.68rem;
+}
+
+.attendance-scanner-result p {
+    margin: 0.35rem 0 0;
+    color: #3d4f46;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.attendance-scanner-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.attendance-scanner-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+}
+
+.attendance-scanner-actions .btn svg {
+    width: 1rem;
+}
+
+.attendance-scanner-hint {
+    margin: 0;
+    color: #78857e;
+    font-size: 0.68rem;
+    line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+    .attendance-scanner-body {
+        grid-template-columns: 1fr;
+    }
+}
+
 .history-caption {
     color: var(--hr-muted);
     font-size: 0.66rem;
