@@ -1150,6 +1150,15 @@
     display: none;
 }
 
+/* A step holding more than one block — the period fields and the rule card
+   below them. The modal body's own gap does not reach inside a panel, so the
+   stack supplies the same spacing between its parts. */
+.bulk-step-stack {
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+}
+
 .bulk-step-error {
     color: #b3261e;
     font-size: .78rem;

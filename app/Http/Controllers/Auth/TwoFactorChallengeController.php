@@ -56,6 +56,12 @@ class TwoFactorChallengeController extends Controller
             ]);
         }
 
+        // Asked here rather than before the challenge, so that knowing only
+        // the password is not enough to close somebody else's session.
+        if ($activeSession->openElsewhere($user, $request)) {
+            return $activeSession->closeEverywhere($user, $request);
+        }
+
         $remember = (bool) $request->session()->pull('login.remember', false);
         $request->session()->forget('login.id');
         $rememberedLogin->login($user, $remember);

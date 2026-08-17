@@ -56,7 +56,14 @@ return [
 
     'session' => [
         'warning_seconds' => (int) env('SESSION_WARNING_SECONDS', 300),
-        'heartbeat_seconds' => (int) env('SESSION_HEARTBEAT_SECONDS', 300),
+
+        // How often an open screen asks the server whether it is still signed
+        // in. This is what tells a device that the account has been opened
+        // somewhere else, and nobody watching their own screen should have to
+        // click something to find that out — so it is counted in seconds, not
+        // minutes. Only visible tabs ask; a backgrounded one asks the moment
+        // it is looked at again. Raise it to trade promptness for traffic.
+        'heartbeat_seconds' => (int) env('SESSION_HEARTBEAT_SECONDS', 5),
     ],
 
     'two_factor' => [

@@ -636,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
         end_date: bulkForm.elements.end_date?.value,
     });
 
-    // The Step 3 rules travel with every evaluate call so the live board and
+    // The Step 2 rules travel with every evaluate call so the live board and
     // the final publish check are held to the same policy the roster was
     // built under, not a looser fallback default.
     // A disabled field (e.g. the clinical-only night-shift fields, hidden for
@@ -804,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tier A, hard: every under-covered (day, shift) pair, each row jumping
     // straight to that block. There is no justification field here — this
     // panel cannot be dismissed, only resolved by fixing the roster or
-    // editing the requirement on Step 3.
+    // editing the requirement on Step 2.
     const renderCoverageGaps = (evaluation) => {
         if (!rosterGapPanel) return;
         const gaps = [];
@@ -1015,7 +1015,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     rosterSaveDraftButton?.addEventListener('click', saveDraft);
 
-    // Puts a resumed draft's Step 3 rules and Step 2 shift selection back
+    // Puts a resumed draft's Step 2 rules and shift selection back
     // into the form, so re-evaluating it uses what was actually on screen
     // when it was saved rather than whatever the form defaults to on a
     // freshly reopened modal.
@@ -1272,10 +1272,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rosterEntries.length === 0) return 'Build a roster below — fill it or let the assistant rotate staff — before continuing.';
 
         // Tier A, hard: no justification unlocks this one. The only way past
-        // it is to actually meet the requirement or edit it on Step 3.
+        // it is to actually meet the requirement or edit it on Step 2.
         const short = lastEvaluation?.summary?.shifts_short ?? 0;
         if (short > 0) {
-            return `${short} shift(s) are still below required cover. Fix the roster or lower the minimum staff / senior requirement on Step 3 to continue — there is no override.`;
+            return `${short} shift(s) are still below required cover. Fix the roster or lower the minimum staff / senior requirement on Step 2 to continue — there is no override.`;
         }
 
         // Tier B, soft: publishable, but only with a reason on record.

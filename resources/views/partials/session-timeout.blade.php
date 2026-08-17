@@ -8,7 +8,7 @@
     data-session-timeout
     data-timeout-seconds="{{ $sessionTimeoutSeconds }}"
     data-warning-seconds="{{ $sessionWarningSeconds }}"
-    data-heartbeat-seconds="{{ max(60, (int) config('security.session.heartbeat_seconds', 300)) }}"
+    data-heartbeat-seconds="{{ max(3, (int) config('security.session.heartbeat_seconds', 5)) }}"
     data-keep-alive-url="{{ route('session.keep-alive') }}"
     data-logout-url="{{ route('logout') }}"
     data-login-url="{{ route('login') }}"

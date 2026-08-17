@@ -931,7 +931,7 @@ html[data-theme-resolved='dark'] .bulk-flow-steps .done span { color:#a6dcc0; bo
 html[data-theme-resolved='dark'] .bulk-step-error { color:#efa8b1; }
 html[data-theme-resolved='dark'] .bulk-protected-rules svg { color:var(--hr-primary); }
 
-/* Step 3 - the overtime justification prompt shares the warning plate used by
+/* Step 2 - the overtime justification prompt shares the warning plate used by
    the validation panels, so the two attestations read as one family. */
 html[data-theme-resolved='dark'] .bulk-justification-field { border-color:#5c4d2a; background:#2c2618; }
 html[data-theme-resolved='dark'] .bulk-justification-field>span { color:#ecc98f; }

@@ -65,7 +65,7 @@ class RosterDraftRequest extends FormRequest
             'shift_ids' => ['nullable', 'array'],
             'shift_ids.*' => ['integer', 'exists:shifts,id'],
 
-            // The same Step 3 rules the roster was generated under, so a live
+            // The same Step 2 rules the roster was generated under, so a live
             // recompute or the final publish check holds it to the same policy.
             'days_off_per_week' => ['nullable', 'integer', 'between:0,6'],
             'max_hours_per_week' => ['nullable', 'integer', 'between:1,168'],

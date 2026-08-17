@@ -8,6 +8,7 @@
 - System Administrator 2FA recovery requires administrator password confirmation and an explicit identity-verification attestation. It revokes the target account's database sessions and API tokens and creates an audit record and in-app notification.
 - Password recovery requires a matching employee ID and registered work email, returns a generic response to prevent account discovery, uses hashed single-use tokens that expire after 30 minutes, and rate-limits requests.
 - Successful password resets rotate the remember token, revoke Sanctum API tokens, and invalidate existing browser sessions.
+- An account may be signed in on one device at a time. A second sign-in does not take the session over: the account is closed on both sides, the device that was already working is signed out, and the arriving sign-in is turned away. Each side is shown a dialog naming which of the two it is, and the login page repeats it. The signed-out device finds out without being touched — an open screen asks the server every SESSION_HEARTBEAT_SECONDS (default 5) while its tab is in the foreground, and asks again the moment a backgrounded tab is looked at. Raise that value to trade promptness for traffic. A device that closes its browser without signing out leaves its slot held, so its next sign-in is turned away once before it succeeds.
 - Role checks plus scoped token abilities.
 - CSRF protection for browser forms and request validation for write operations.
 - API throttling: 60 requests/minute and 5 token attempts/minute.

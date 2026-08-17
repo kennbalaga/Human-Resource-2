@@ -33,9 +33,9 @@
                         </p>
                     @endif
 
-                    @if (session('notice'))
+                    @if ($sessionNotice)
                         <p role="status" class="auth-alert auth-alert-notice">
-                            {{ session('notice') }}
+                            {{ $sessionNotice->message() }}
                         </p>
                     @endif
 
@@ -98,6 +98,24 @@
             <div class="bg-shape shape-2"></div>
         </div>
     </div>
+
+    @if ($sessionNotice)
+        {{-- The alert on the form says the same thing and stays behind once
+             this is dismissed. This is here to be unmissable: whoever reaches
+             this page was sent, not brought, and is owed the reason before
+             they start typing their password in again. --}}
+        <dialog class="auth-dialog" data-auth-dialog aria-labelledby="authDialogTitle">
+            <div class="auth-dialog-icon" aria-hidden="true">
+                <i class="fa-solid fa-user-lock"></i>
+            </div>
+
+            <p class="auth-dialog-kicker">Session ended</p>
+            <h2 class="auth-dialog-title" id="authDialogTitle">{{ $sessionNotice->title() }}</h2>
+            <p class="auth-dialog-message">{{ $sessionNotice->message() }}</p>
+
+            <button type="button" class="btn-primary" data-auth-dialog-close autofocus>Got it</button>
+        </dialog>
+    @endif
 
 </body>
 </html>

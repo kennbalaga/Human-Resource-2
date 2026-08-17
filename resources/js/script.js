@@ -20,4 +20,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Rendered only when the server has something to explain about the session
+    // that just ended, so its presence is the whole condition for showing it.
+    const sessionDialog = document.querySelector('[data-auth-dialog]');
+
+    if (sessionDialog) {
+        // showModal over the open attribute: it takes focus, traps it, and
+        // dims the form behind, which the attribute alone does none of.
+        sessionDialog.showModal();
+
+        sessionDialog.querySelector('[data-auth-dialog-close]')?.addEventListener('click', () => {
+            sessionDialog.close();
+            document.getElementById('password')?.focus();
+        });
+
+        // Leaving the reason in the address bar survives a refresh and a shared
+        // link, and would announce the same ended session again tomorrow.
+        const url = new URL(window.location.href);
+
+        if (url.searchParams.has('reason')) {
+            url.searchParams.delete('reason');
+            window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+        }
+    }
 });

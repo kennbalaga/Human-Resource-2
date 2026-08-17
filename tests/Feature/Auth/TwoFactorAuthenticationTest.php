@@ -103,6 +103,13 @@ class TwoFactorAuthenticationTest extends TestCase
         $this->flushSession();
         Auth::forgetGuards();
 
+        // A session lost rather than signed out leaves the account's one
+        // device slot behind it, and coming back to a slot still held turns
+        // the first sign-in away. That is its own rule, exercised in
+        // SingleActiveSessionTest; what is being read here is what a saved
+        // identity does and does not get you, so the slot is freed by hand.
+        $user->fresh()->forceFill(['active_session_token' => null])->save();
+
         $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
             ->get(route('settings.edit'))
             ->assertRedirect(route('login'));

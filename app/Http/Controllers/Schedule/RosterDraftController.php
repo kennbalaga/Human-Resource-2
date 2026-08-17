@@ -136,8 +136,8 @@ class RosterDraftController extends Controller
         $data = $request->validated();
         $department = Department::query()->findOrFail($data['department_id']);
 
-        // Everything besides the core draft fields is the Step 3 rule set and
-        // Step 2 shift selection this board was built under — saved as-is so
+        // Everything besides the core draft fields is the Step 2 rule set and
+        // shift selection this board was built under — saved as-is so
         // resuming re-evaluates under what was actually on screen, not
         // whatever the form defaults to when the modal is reopened.
         $rules = collect($data)

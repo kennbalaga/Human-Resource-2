@@ -159,6 +159,102 @@ body {
     border-color: #fde68a;
 }
 
+/* The same explanation, said first and said loudly. Someone who was signed out
+   from under themselves should not have to find the reason on a page they were
+   dropped onto. */
+.auth-dialog {
+    /* A modal dialog is centred by the browser's own `margin: auto`, which the
+       `*` reset at the top of this file zeroes along with everything else —
+       leaving it pinned to the top-left corner. Centre it back by hand. */
+    position: fixed;
+    inset: 0;
+    width: min(430px, calc(100vw - 2.5rem));
+    max-height: calc(100vh - 2.5rem);
+    height: fit-content;
+    margin: auto;
+    padding: 2.25rem 2rem 1.75rem;
+    overflow: auto;
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    background: var(--bg-light);
+    box-shadow: 0 24px 70px rgba(17, 50, 34, 0.28);
+    text-align: center;
+}
+
+.auth-dialog::backdrop {
+    background: rgba(12, 30, 20, 0.55);
+    backdrop-filter: blur(2px);
+}
+
+.auth-dialog[open] {
+    animation: auth-dialog-rise 0.2s ease-out;
+}
+
+@keyframes auth-dialog-rise {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+}
+
+.auth-dialog-icon {
+    display: grid;
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 1.25rem;
+    color: var(--primary-blue);
+    border: 1px solid #cfe6d8;
+    border-radius: 16px;
+    background: #eaf5ee;
+    font-size: 1.35rem;
+    place-items: center;
+}
+
+.auth-dialog-kicker {
+    margin-bottom: 0.5rem;
+    color: var(--primary-blue);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.auth-dialog-title {
+    /* Balanced so a two-line heading breaks near the middle instead of leaving
+       one word stranded underneath. */
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-wrap: balance;
+}
+
+.auth-dialog-message {
+    margin: 0.75rem 0 1.75rem;
+    color: var(--text-gray);
+    font-size: 0.875rem;
+    line-height: 1.65;
+}
+
+.auth-dialog .btn-primary {
+    padding: 0.8rem;
+    font-size: 0.9375rem;
+}
+
+/* The button is focused on open so a keyboard can dismiss it, which draws the
+   browser's default ring tight around the fill. Give it room and its own
+   colour instead. */
+.auth-dialog .btn-primary:focus-visible {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-dialog[open] {
+        animation: none;
+    }
+}
+
 .security-note {
     display: flex;
     align-items: flex-start;

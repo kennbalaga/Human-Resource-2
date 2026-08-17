@@ -23,8 +23,23 @@ if (element) {
     const loginButton = element.querySelector('[data-session-login]');
     let warningVisible = false;
     let expired = false;
+    let expiredReason = null;
     let endingSession = false;
     let lastHeartbeatAt = Date.now();
+
+    // The login page repeats whatever ended the session, so it has to be told.
+    // Nothing survives the sign-out itself — the session the server would have
+    // flashed a message into is the one being thrown away — so the reason
+    // travels in the address instead.
+    const loginUrl = (reason) => {
+        const url = new URL(element.dataset.loginUrl, window.location.origin);
+
+        if (reason) {
+            url.searchParams.set('reason', reason);
+        }
+
+        return url.toString();
+    };
 
     const readNumber = (key, fallback) => {
         try {
@@ -149,13 +164,17 @@ if (element) {
     const showExpired = (reason = null) => {
         const displaced = reason === 'signed_in_elsewhere';
         expired = true;
+        expiredReason = reason;
         warningVisible = true;
         kicker.textContent = 'Session ended';
         title.textContent = displaced
-            ? 'This account signed in on another device'
+            ? 'Your account was opened on another device'
             : 'You were signed out for inactivity';
+        // Not a handover: whoever tried to sign in elsewhere was turned away
+        // too, so saying only that this device lost the account would leave
+        // the person here expecting someone to be using it.
         message.textContent = displaced
-            ? 'Only one device can be signed in at a time, so this one was signed out. Sign in again here to take the session back.'
+            ? 'Someone signed in to this account somewhere else. Only one device can use it at a time, so this session was ended and that sign-in was stopped as well.'
             : 'Your saved Employee ID is ready on the login page. Enter your password and authenticator code to continue.';
         countdownWrap.classList.add('d-none');
         continueButton.classList.add('d-none');
@@ -203,8 +222,20 @@ if (element) {
         }
     };
 
+    // Asking the server whether this device is still signed in is also how it
+    // learns the account has been opened somewhere else, and that has to reach
+    // the person watching the screen on its own — waiting for them to click
+    // something would mean sitting in front of a session that already ended.
+    // So this runs on a short interval rather than a lazy one, and pays for it
+    // by easing off to a slow check while the tab is in the background, where
+    // there is nobody to tell yet. Backgrounded is quieter, never silent: the
+    // tab still finds out on its own, and finds out at once when looked at.
+    const backgroundHeartbeatMs = Math.max(heartbeatMs, 60000);
+
     const heartbeat = async () => {
-        if (warningVisible || expired || Date.now() - lastHeartbeatAt < heartbeatMs) {
+        const dueAfter = document.hidden ? backgroundHeartbeatMs : heartbeatMs;
+
+        if (warningVisible || expired || Date.now() - lastHeartbeatAt < dueAfter) {
             return;
         }
 
@@ -258,6 +289,17 @@ if (element) {
         document.addEventListener(eventName, recordActivity, { passive: true });
     });
 
+    // A tab returning to the foreground may have been signed out from under it
+    // while it sat in the background and nobody was asking. Skip the wait.
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            return;
+        }
+
+        lastHeartbeatAt = 0;
+        heartbeat();
+    });
+
     window.addEventListener('storage', (event) => {
         if (event.key === expiredKey && event.newValue) {
             showExpired(readReason());
@@ -270,7 +312,7 @@ if (element) {
         await endSession();
         window.location.assign(element.dataset.loginUrl);
     });
-    loginButton.addEventListener('click', () => window.location.assign(element.dataset.loginUrl));
+    loginButton.addEventListener('click', () => window.location.assign(loginUrl(expiredReason)));
 
     window.setInterval(tick, 1000);
 }

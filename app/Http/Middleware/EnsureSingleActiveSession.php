@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\ActiveDeviceSessionService;
+use App\Support\SessionNotice;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,17 +12,19 @@ use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * One device per account: signing in somewhere else ends the session here.
+ * One device per account: an attempt to open it somewhere else ends the
+ * session here.
  *
  * Workforce records are read on shared and personal devices alike, and an
  * account left signed in on a ward terminal is the same account someone signs
- * into at home. Rather than let both run, the newer sign-in wins and this
- * middleware retires the older session on its next request — which is every
+ * into at home. Rather than let both run — or let the newer one silently
+ * inherit the older one's screen — the account closes on both sides, and this
+ * middleware retires the older session on its next request, which is every
  * request it would have used to do anything.
  */
 class EnsureSingleActiveSession
 {
-    public const MESSAGE = 'You were signed out because this account signed in on another device.';
+    public const NOTICE = SessionNotice::SignedInElsewhere;
 
     public function __construct(
         private readonly ActiveDeviceSessionService $sessions,
@@ -31,13 +34,14 @@ class EnsureSingleActiveSession
     {
         $user = $request->user();
 
-        // Signing out is what a displaced device should still be able to do
-        // uninterrupted; the controller releases nothing it no longer holds.
+        // Signing out is what a device whose hold has ended should still be
+        // able to do uninterrupted; the controller releases nothing it no
+        // longer holds.
         if ($user === null || $request->routeIs('logout') || ! $this->sessions->displaced($user, $request)) {
             return $next($request);
         }
 
-        Log::info('HRMS session displaced by a sign-in on another device.', [
+        Log::info('HRMS session ended by a sign-in attempt on another device.', [
             'event' => 'session.displaced',
             'user_id' => $user->getKey(),
             'ip_address' => $request->ip(),
@@ -49,13 +53,17 @@ class EnsureSingleActiveSession
         $request->session()->regenerateToken();
 
         if ($request->expectsJson()) {
+            // The browser is mid-fetch and will show the dialog itself, then
+            // send the person to the login page carrying the same reason —
+            // the flash below would have been spent by then.
             return new JsonResponse([
-                'message' => self::MESSAGE,
-                'reason' => 'signed_in_elsewhere',
-                'redirect' => route('login'),
+                'message' => self::NOTICE->message(),
+                'title' => self::NOTICE->title(),
+                'reason' => self::NOTICE->value,
+                'redirect' => route('login', ['reason' => self::NOTICE->value]),
             ], 401);
         }
 
-        return redirect()->route('login')->with('notice', self::MESSAGE);
+        return redirect()->route('login')->with(SessionNotice::FLASH_KEY, self::NOTICE->value);
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Services\ActiveDeviceSessionService;
 use App\Services\RememberedLoginService;
 use App\Services\TwoFactorSecurityService;
+use App\Support\SessionNotice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,11 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login', [
             'rememberedEmployeeId' => $rememberedEmployeeId,
             'rememberedEmployeeSelected' => $rememberedEmployeeId !== null,
+            // Redirected here by the server, or sent here by a browser that
+            // had already shown the dialog and knows why it is leaving.
+            'sessionNotice' => SessionNotice::fromRequestValue(
+                $request->session()->get(SessionNotice::FLASH_KEY, $request->query('reason')),
+            ),
         ]);
     }
 
@@ -45,6 +51,13 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('two-factor.login');
         }
 
+        // Correct credentials are not enough while the account is open
+        // somewhere else. Nobody inherits the session: it closes there, and
+        // this attempt is turned away rather than let through.
+        if ($activeSession->openElsewhere($user, $request)) {
+            return $activeSession->closeEverywhere($user, $request);
+        }
+
         $rememberedLogin->login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
@@ -53,8 +66,8 @@ class AuthenticatedSessionController extends Controller
         ])->save();
 
         // Claimed last, after the session has been regenerated, so the token
-        // lands in the session this browser will keep. Any device already
-        // signed into this account is displaced by it.
+        // lands in the session this browser will keep — and only ever once the
+        // slot has been found free above.
         $activeSession->claim($user, $request);
 
         return redirect()->intended(route('dashboard', absolute: false));
