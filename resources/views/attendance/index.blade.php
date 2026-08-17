@@ -64,6 +64,10 @@
                     <span>{{ $office->timezone }}</span>
                 </div>
 
+                {{-- Everything a scan can change, kept in one block the scanner
+                     can swap out. The live clock above it stays put, since
+                     replacing it would strip the interval driving it. --}}
+                <div data-attendance-live>
                 <div class="attendance-state">
                     @if (! $todayRecord?->check_in_at)
                         <span class="attendance-state-icon state-ready"><x-icon name="log-in" /></span>
@@ -114,6 +118,7 @@
                         <div><span>Manual attendance</span><strong>Disabled by System Administrator</strong></div>
                     </div>
                 @endif
+                </div>
 
                 <div class="attendance-policy">
                     <div><span>Work hours</span><strong>{{ \Carbon\Carbon::parse($office->work_start_time)->format('g:i A') }}–{{ \Carbon\Carbon::parse($office->work_end_time)->format('g:i A') }}</strong></div>

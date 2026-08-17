@@ -56,6 +56,41 @@ const renderProfileCode = async () => {
 };
 
 /**
+ * Pull the page again and swap in the parts a scan just changed — the personal
+ * log and today's own status. A scan writes through JSON so the camera can keep
+ * running, which otherwise leaves the tables below it showing the state of
+ * things before the badge was read.
+ *
+ * The panels are re-rendered by the server rather than rebuilt here, so the
+ * rows keep one definition; the scanner's own markup and the live clock are
+ * deliberately left untouched, since replacing them would stop the camera and
+ * the ticking clock respectively.
+ */
+const refreshOwnRecords = async () => {
+    const targets = ['[data-attendance-live]', '.attendance-history-panel'];
+
+    try {
+        const response = await fetch(window.location.href, {
+            headers: { Accept: 'text/html' },
+            cache: 'no-store',
+            credentials: 'same-origin',
+        });
+        if (!response.ok) return;
+
+        const fresh = new DOMParser().parseFromString(await response.text(), 'text/html');
+
+        targets.forEach((selector) => {
+            const current = document.querySelector(selector);
+            const replacement = fresh.querySelector(selector);
+            if (current && replacement) current.replaceWith(replacement);
+        });
+    } catch {
+        // The scan itself is already recorded; a stale table is not worth
+        // interrupting the queue at the door for.
+    }
+};
+
+/**
  * The entrance scanner. Holds the camera open and reads frames continuously;
  * whichever badge lands in front of the lens is the person whose attendance is
  * written, which is why the panel only exists for staff allowed to record it.
@@ -148,6 +183,8 @@ const startScanner = () => {
 
             showResult(body, body.action === 'check-in' ? 'in' : 'out');
             setStatus('Ready for the next badge.', 'idle');
+
+            if (!body.repeat) refreshOwnRecords();
         } catch {
             showResult('The scanner could not reach the server. Check the connection and try again.', 'error');
             setStatus('Ready for the next badge.', 'idle');

@@ -175,6 +175,19 @@ class AttendanceQrTest extends TestCase
             ->assertSee('Scan employee QR');
     }
 
+    /**
+     * The scanner refreshes these two regions after each badge by re-fetching
+     * the page, so the personal log below it does not sit on pre-scan data.
+     * Rename or drop either hook and the refresh silently stops working.
+     */
+    public function test_the_page_exposes_the_regions_the_scanner_refreshes(): void
+    {
+        $this->actingAs($this->manager)->get('/attendance')
+            ->assertOk()
+            ->assertSee('data-attendance-live', false)
+            ->assertSee('attendance-history-panel', false);
+    }
+
     public function test_the_scanner_panel_is_hidden_from_an_ordinary_employee(): void
     {
         $this->actingAs(User::query()->where('email', 'employee@hrms.local')->firstOrFail())
