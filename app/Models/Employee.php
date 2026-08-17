@@ -30,6 +30,16 @@ class Employee extends Model
         'preferred_weekly_off_day',
     ];
 
+    /**
+     * Anyone holding this can mint that employee's attendance badge, so it must
+     * never ride along in an API payload or a debug dump.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'attendance_qr_secret',
+    ];
+
     protected function casts(): array
     {
         return [

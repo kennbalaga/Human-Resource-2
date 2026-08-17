@@ -23,6 +23,23 @@
             @endif
         </div>
     </section>
+    @if($canReissueAttendanceQr)
+        <section class="panel organization-profile employee-qr-panel">
+            <div class="panel-header"><div><p class="panel-kicker">Time &amp; attendance</p><h2>Attendance badge</h2></div><x-icon name="fingerprint" /></div>
+            <div class="profile-qr-body">
+                <figure class="profile-qr-code" role="img" aria-label="Attendance QR code for {{ $employee->full_name }}">{!! $attendanceQrSvg !!}</figure>
+                <div class="profile-qr-copy">
+                    <p>{{ $employee->full_name }} presents this at the entrance scanner. They can download it themselves from My Profile.</p>
+                    <p class="profile-qr-warning"><x-icon name="shield" /> <span>Issue a new badge if this one has been lost, shared, or photographed. Every printed copy of their current code stops scanning immediately, and they will need to download the replacement.</span></p>
+                    <form method="POST" action="{{ route('employees.attendance-qr.reissue', $employee) }}" onsubmit="return confirm('Issue a new attendance badge for {{ $employee->full_name }}? Their current code will stop working immediately.')">
+                        @csrf
+                        <button class="btn btn-outline-primary" type="submit"><x-icon name="refresh" /> Issue new badge</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    @endif
+
     @if($canResetTwoFactor)
         <section class="panel organization-profile two-factor-admin-reset">
             <div class="panel-header"><div><p class="panel-kicker">Security recovery</p><h2>Reset employee two-factor authentication</h2></div><x-icon name="shield" /></div>

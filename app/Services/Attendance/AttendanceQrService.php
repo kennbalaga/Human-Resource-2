@@ -3,6 +3,7 @@
 namespace App\Services\Attendance;
 
 use App\Models\Employee;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -11,17 +12,21 @@ use Illuminate\Validation\ValidationException;
  *
  * The code carries the employee's own id — the foreign key attendance is
  * written against — together with a signature over that id, the employee
- * number, and a per-employee revision. The signature is what separates this
- * from a printed employee number: the id is public, so without it anyone who
- * knows a colleague's number could generate that colleague's badge on any
- * free QR website and clock them in. The signing key is the application key,
- * which never leaves the server, so a code can only be produced here.
+ * number, signed with a secret held against that employee in the database. The
+ * signature is what separates this from a printed employee number: the id is
+ * public, so without it anyone who knows a colleague's number could generate
+ * that colleague's badge on any free QR website and clock them in.
+ *
+ * The secret deliberately lives in the database and not in configuration. An
+ * APP_KEY belongs to one installation and is generated per install, so signing
+ * with it meant two machines sharing this database disagreed about what a
+ * person's badge was, and a badge downloaded on one was refused by the other.
  *
  * What the signature deliberately does NOT solve: a badge is a bearer token,
  * and a photograph of one works as well as the original. That is why the
  * scanner is limited to HR, administrators and department heads standing at
- * the entrance, and why a leaked code can be recalled by bumping the
- * employee's revision.
+ * the entrance, and why a leaked code can be recalled by
+ * rotating that employee's secret.
  */
 class AttendanceQrService
 {
@@ -82,7 +87,7 @@ class AttendanceQrService
      */
     public function regenerate(Employee $employee): Employee
     {
-        $employee->increment('attendance_qr_revision');
+        $employee->forceFill(['attendance_qr_secret' => Str::random(64)])->save();
 
         return $employee->refresh();
     }
@@ -95,10 +100,26 @@ class AttendanceQrService
                 self::PREFIX,
                 $employee->id,
                 $employee->employee_number,
-                $employee->attendance_qr_revision ?? 1,
             ]),
-            (string) config('app.key'),
+            $this->secretFor($employee),
         ), 0, self::SIGNATURE_LENGTH);
+    }
+
+    /**
+     * The employee's signing secret, which lives in the database rather than in
+     * any one installation's configuration — that is what lets a badge
+     * downloaded on one machine be read by a scanner running on another.
+     *
+     * Issued on first use so that staff added by an import, a seeder, or a
+     * direct insert still get a working badge without a separate backfill.
+     */
+    private function secretFor(Employee $employee): string
+    {
+        if (blank($employee->attendance_qr_secret)) {
+            $this->regenerate($employee);
+        }
+
+        return (string) $employee->attendance_qr_secret;
     }
 
     /**

@@ -54,13 +54,9 @@
                             <div><dt>Issued to</dt><dd>{{ $employee->full_name }}</dd></div>
                             <div><dt>Employee ID</dt><dd>{{ $employee->employee_number }}</dd></div>
                         </dl>
-                        <p class="profile-qr-warning"><x-icon name="shield" /> <span>Treat this like your ID. Anyone holding a copy can have it scanned in your name — if it leaks, issue a new one and the old code stops working.</span></p>
+                        <p class="profile-qr-warning"><x-icon name="shield" /> <span>Treat this like your ID. Anyone holding a copy can have it scanned in your name — tell HR at once if you lose it, so they can retire it and issue you a new one.</span></p>
                         <div class="profile-qr-actions">
                             <a class="btn btn-primary" href="{{ route('profile.attendance-qr.download') }}"><x-icon name="download" /> Download</a>
-                            <form method="POST" action="{{ route('profile.attendance-qr.regenerate') }}" onsubmit="return confirm('Issue a new QR code? Every copy of your current code will stop working immediately.')">
-                                @csrf
-                                <button class="btn btn-outline-primary" type="submit"><x-icon name="refresh" /> Issue new code</button>
-                            </form>
                         </div>
                     </div>
                 </div>

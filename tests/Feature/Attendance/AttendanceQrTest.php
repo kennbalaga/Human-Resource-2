@@ -89,6 +89,41 @@ class AttendanceQrTest extends TestCase
         $this->codes->resolve($old);
     }
 
+    /**
+     * The bug this guards against: badges were signed with APP_KEY, which is
+     * generated per installation and never shared. Two machines working off one
+     * database therefore disagreed about a person's badge, so a code downloaded
+     * on the office PC was refused by the scanner on the laptop. The signing
+     * secret belongs to the employee record, not to whichever copy of the app
+     * happens to be serving the page.
+     */
+    public function test_a_badge_does_not_depend_on_which_installation_issued_it(): void
+    {
+        $issuedHere = $this->codes->payloadFor($this->employee);
+
+        // Same database row, a different machine's application key.
+        config(['app.key' => 'base64:'.base64_encode(random_bytes(32))]);
+        $service = app(AttendanceQrService::class);
+
+        $this->assertSame($issuedHere, $service->payloadFor($this->employee->refresh()));
+        $this->assertSame($this->employee->id, $service->resolve($issuedHere)->id);
+    }
+
+    public function test_a_badge_is_issued_to_an_employee_who_has_never_had_one(): void
+    {
+        $this->employee->forceFill(['attendance_qr_secret' => null])->save();
+
+        $payload = $this->codes->payloadFor($this->employee->refresh());
+
+        $this->assertSame($this->employee->id, $this->codes->resolve($payload)->id);
+        $this->assertNotEmpty($this->employee->refresh()->attendance_qr_secret);
+    }
+
+    public function test_the_signing_secret_never_leaves_the_server(): void
+    {
+        $this->assertArrayNotHasKey('attendance_qr_secret', $this->employee->toArray());
+    }
+
     public function test_scanning_records_time_in_then_time_out_for_the_badge_holder(): void
     {
         $payload = $this->codes->payloadFor($this->employee);
@@ -292,16 +327,46 @@ class AttendanceQrTest extends TestCase
         );
     }
 
-    public function test_an_employee_can_issue_themselves_a_new_code(): void
+    public function test_an_employee_cannot_retire_their_own_badge_by_accident(): void
     {
-        $staff = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
-        $before = $staff->employee->attendance_qr_revision;
+        // The self-service button is deliberately gone: a stray click would kill
+        // a badge the holder had already printed, with no way to undo it.
+        $this->assertFalse(app('router')->has('profile.attendance-qr.regenerate'));
+    }
 
-        $this->actingAs($staff)
-            ->post(route('profile.attendance-qr.regenerate'))
-            ->assertRedirect()
+    public function test_hr_can_retire_a_lost_badge_from_the_employee_record(): void
+    {
+        $lost = $this->codes->payloadFor($this->employee);
+
+        $this->actingAs($this->manager)->get(route('employees.show', $this->employee))
+            ->assertOk()
+            ->assertSee('Attendance badge')
+            ->assertSee('Issue new badge');
+
+        $this->actingAs($this->manager)
+            ->post(route('employees.attendance-qr.reissue', $this->employee))
+            ->assertRedirect(route('employees.show', $this->employee))
             ->assertSessionHasNoErrors();
 
-        $this->assertSame($before + 1, $staff->employee->refresh()->attendance_qr_revision);
+        // The badge in someone's wallet stops working the moment HR reissues.
+        $replacement = $this->codes->payloadFor($this->employee->refresh());
+        $this->assertNotSame($lost, $replacement);
+        $this->assertSame($this->employee->id, $this->codes->resolve($replacement)->id);
+
+        $this->expectException(ValidationException::class);
+        $this->codes->resolve($lost);
+    }
+
+    public function test_an_ordinary_employee_cannot_retire_anyone_else_s_badge(): void
+    {
+        $staff = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $colleague = Employee::query()->whereKeyNot($this->employee->id)->firstOrFail();
+        $before = $this->codes->payloadFor($colleague);
+
+        $this->actingAs($staff)
+            ->post(route('employees.attendance-qr.reissue', $colleague))
+            ->assertForbidden();
+
+        $this->assertSame($before, $this->codes->payloadFor($colleague->refresh()));
     }
 }

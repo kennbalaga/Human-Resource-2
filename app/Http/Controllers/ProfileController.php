@@ -62,18 +62,4 @@ class ProfileController extends Controller
 
         return back()->with('success', 'Your contact information has been updated.');
     }
-
-    /**
-     * Retire the badge this employee has been carrying and issue a new one, for
-     * when the old code has been lost, shared, or photographed by someone else.
-     */
-    public function regenerateAttendanceQr(Request $request, AttendanceQrService $attendanceCodes): RedirectResponse
-    {
-        $employee = $request->user()->employee;
-        abort_if($employee === null, 403, 'Your user account is not linked to an employee profile.');
-
-        $attendanceCodes->regenerate($employee);
-
-        return back()->with('success', 'A new attendance QR code has been issued. Download it again — your previous code no longer works.');
-    }
 }

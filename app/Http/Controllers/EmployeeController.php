@@ -8,8 +8,10 @@ use App\Models\Employee;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Attendance\AttendanceQrService;
 use App\Services\Organization\EmployeeNumberGenerator;
 use App\Services\Organization\EmployeeNumberSettings;
+use App\Support\Qr\QrEncoder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -67,12 +69,33 @@ class EmployeeController extends Controller
             'employee' => $employee,
             'canManage' => $this->canWrite($request),
             'canViewPrivate' => $this->canManage($request) || $request->user()->employee?->is($employee),
+            'attendanceQrSvg' => QrEncoder::svg(app(AttendanceQrService::class)->payloadFor($employee)),
+            'canReissueAttendanceQr' => $this->canWrite($request),
             'canResetTwoFactor' => $request->user()->hasRole('system-administrator')
                 && $employee->user !== null
                 && ! $employee->user->is($request->user())
                 && $employee->user->two_factor_secret !== null,
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
+    }
+
+    /**
+     * Retire the badge this employee has been carrying and issue a new one.
+     * The recall for a badge that has been lost, shared, or photographed —
+     * every printed copy of the old code stops scanning the moment this runs,
+     * which is why it sits with HR rather than with the badge holder.
+     */
+    public function reissueAttendanceQr(
+        Request $request,
+        Employee $employee,
+        AttendanceQrService $codes,
+    ): RedirectResponse {
+        $this->requireManager($request);
+        $codes->regenerate($employee);
+
+        return redirect()
+            ->route('employees.show', $employee)
+            ->with('success', "A new attendance badge was issued for {$employee->full_name}. Their previous code no longer scans — ask them to download the new one.");
     }
 
     public function create(Request $request): View

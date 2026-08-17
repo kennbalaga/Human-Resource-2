@@ -601,3 +601,9 @@ html[data-theme-resolved='dark'] .organization-detail {
     .organization-workspace-tabs { display:flex; overflow-x:auto; scrollbar-width:thin; }
     .organization-workspace-tabs a { min-width:14rem; }
 }
+
+/* Reuses the badge layout from My Profile; only the panel wrapper differs. */
+.employee-qr-panel .profile-qr-body { padding: 0 1.25rem 1.25rem; }
+.employee-qr-panel .profile-qr-copy form { margin: 0; }
+.employee-qr-panel .profile-qr-copy .btn { display: inline-flex; align-items: center; gap: .4rem; font-size: .74rem; }
+.employee-qr-panel .profile-qr-copy .btn svg { width: 1rem; }
