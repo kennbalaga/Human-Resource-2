@@ -29,12 +29,14 @@ class AttendanceQrScanController extends Controller
      * holder did not see the confirmation. Anything inside this window replays
      * the previous outcome instead of counting as a fresh scan.
      *
-     * Sized for the mistake it prevents: without it, a second scan moments
-     * after arriving closes the day at zero hours worked, which someone then
-     * has to correct by hand. Nobody legitimately works a shift shorter than
-     * this, so nothing real is lost by holding the window open.
+     * Kept short on purpose: long enough to absorb a badge held in front of the
+     * lens or an operator re-scanning because they missed the confirmation,
+     * short enough that a deliberate correction — the wrong badge was scanned,
+     * or checkout really was seconds later — does not sit locked out feeling
+     * broken. The response also carries when the window ends, so the scanner
+     * can say so instead of just repeating "already recorded".
      */
-    private const REPEAT_SCAN_WINDOW_SECONDS = 90;
+    private const REPEAT_SCAN_WINDOW_SECONDS = 20;
 
     public function store(
         Request $request,
@@ -112,7 +114,10 @@ class AttendanceQrScanController extends Controller
             $record,
             $record->check_out_at !== null ? 'check-out' : 'check-in',
             $timezone,
-        ) + ['repeat' => true];
+        ) + [
+            'repeat' => true,
+            'retry_at' => $last->copy()->addSeconds(self::REPEAT_SCAN_WINDOW_SECONDS)->timezone($timezone)->format('g:i:s A'),
+        ];
     }
 
     /**

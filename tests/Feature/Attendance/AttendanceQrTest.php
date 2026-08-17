@@ -170,6 +170,10 @@ class AttendanceQrTest extends TestCase
         $this->assertNull(
             AttendanceRecord::query()->where('employee_id', $this->employee->id)->value('check_out_at'),
         );
+
+        // The operator has no way to tell "already recorded" from "stuck"
+        // without being told exactly when a real scan will go through.
+        $this->assertNotNull($repeat->json('retry_at'));
     }
 
     public function test_a_third_scan_is_refused_and_names_the_employee(): void

@@ -93,8 +93,8 @@ const startScanner = () => {
 
     const showResult = (data, state) => {
         result.hidden = false;
-        result.classList.remove('is-in', 'is-out', 'is-error');
-        result.classList.add(`is-${state}`);
+        result.classList.remove('is-in', 'is-out', 'is-error', 'is-repeat');
+        result.classList.add(data.repeat ? 'is-repeat' : `is-${state}`);
 
         if (state === 'error') {
             result.querySelector('[data-result-initials]').textContent = '!';
@@ -111,9 +111,22 @@ const startScanner = () => {
         result.querySelector('[data-result-name]').textContent = employee.name;
         result.querySelector('[data-result-meta]').textContent =
             [employee.employee_number, employee.department].filter(Boolean).join(' · ');
-        result.querySelector('[data-result-action]').textContent = data.action === 'check-in'
-            ? (data.repeat ? 'Already timed in' : 'Timed in')
-            : (data.repeat ? 'Already timed out' : 'Timed out');
+
+        // A repeat is not a fresh outcome, so it gets its own wording and, more
+        // usefully, the exact moment a real scan will go through — the operator
+        // otherwise has no way to tell "already recorded" from "stuck".
+        if (data.repeat) {
+            result.querySelector('[data-result-action]').textContent = data.action === 'check-in'
+                ? 'Already recorded — same arrival'
+                : 'Already recorded — same departure';
+            result.querySelector('[data-result-time]').textContent = data.retry_at
+                ? `Scan again after ${data.retry_at} for it to count as a new event.`
+                : 'Scanned again too soon.';
+
+            return;
+        }
+
+        result.querySelector('[data-result-action]').textContent = data.action === 'check-in' ? 'Timed in' : 'Timed out';
         result.querySelector('[data-result-time]').textContent = [
             data.recorded_at,
             data.late_minutes && data.action === 'check-in' ? `${data.late_minutes} min late` : null,

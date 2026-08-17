@@ -371,6 +371,16 @@
     border-left-color: #c8503f;
 }
 
+/* Neither the "in" green nor the "out" blue: a repeat scan recorded nothing
+   new, and looking identical to a fresh success is what read as broken. */
+.attendance-scanner-result.is-repeat {
+    border-left-color: #c99a2e;
+}
+
+.attendance-scanner-result.is-repeat .attendance-scanner-avatar {
+    background: linear-gradient(145deg, #c99a2e, #93691a);
+}
+
 .attendance-scanner-avatar {
     display: grid;
     width: 3rem;
