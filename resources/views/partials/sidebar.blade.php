@@ -20,6 +20,14 @@
     $sidebarCanSeeInsights = $sidebarRoles
         ->intersect(['system-administrator', 'hr-manager', 'department-head'])
         ->isNotEmpty();
+
+    /* Shift swaps cover a clinical shift, not an office desk. A manager keeps
+       the link to review requests system-wide regardless of their own
+       department; anyone else needs to be clinical staff themselves. */
+    $sidebarCanSeeShiftSwaps = $sidebarRoles
+        ->intersect(['system-administrator', 'hr-manager', 'department-head'])
+        ->isNotEmpty()
+        || ($sidebarUser->employee?->canUseShiftSwaps() ?? false);
 @endphp
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Primary navigation">
@@ -67,9 +75,11 @@
             <x-sidebar-link :href="route('schedules.index')" icon="calendar" :active="request()->routeIs('schedules.*')">
                 Schedules
             </x-sidebar-link>
-            <x-sidebar-link :href="route('shift-swaps.index')" icon="repeat" :active="request()->routeIs('shift-swaps.*')">
-                Shift Swaps
-            </x-sidebar-link>
+            @if ($sidebarCanSeeShiftSwaps)
+                <x-sidebar-link :href="route('shift-swaps.index')" icon="repeat" :active="request()->routeIs('shift-swaps.*')">
+                    Shift Swaps
+                </x-sidebar-link>
+            @endif
             <x-sidebar-link :href="route('schedule-preferences.index')" icon="clock" :active="request()->routeIs('schedule-preferences.*')">
                 Preferences
             </x-sidebar-link>

@@ -58,6 +58,17 @@ class Employee extends Model
         return $this->belongsTo(Department::class);
     }
 
+    /**
+     * Shift swaps are a clinical-staffing tool — covering a ward or a shift
+     * when a nurse or other clinical worker cannot make it. Administrative and
+     * support staff work fixed office hours with no shift to trade, so the
+     * feature does not apply to them at all, not merely hidden by preference.
+     */
+    public function canUseShiftSwaps(): bool
+    {
+        return $this->department?->category === Department::CATEGORY_CLINICAL;
+    }
+
     public function position(): BelongsTo
     {
         return $this->belongsTo(Position::class);

@@ -22,6 +22,13 @@ class ShiftSwapController extends Controller
         $employee = $request->user()->employee;
         abort_if($employee === null, 403);
         $canManage = Gate::forUser($request->user())->allows('workforce.manage');
+
+        // Shift swaps exist to cover a clinical shift, not an office desk.
+        // A manager keeps access to review requests system-wide regardless of
+        // their own department; anyone else needs to be clinical staff, or
+        // there is nothing here for them to see at all.
+        abort_unless($canManage || $employee->canUseShiftSwaps(), 403);
+
         $today = now(config('schedule.timezone'))->toDateString();
         $horizon = now(config('schedule.timezone'))->addDays(45)->toDateString();
 
@@ -43,28 +50,38 @@ class ShiftSwapController extends Controller
             'approved' => (clone $baseQuery)->where('status', 'approved')->count(),
         ];
 
+        // A manager keeps the page to review every request, but "Request swap"
+        // is personal self-service — offering it to someone with no rotating
+        // shift to trade would just fail validation the moment they submitted.
+        $canRequestSwap = $employee->canUseShiftSwaps();
+
         return view('shift-swaps.index', [
             'requests' => $requests,
             'summary' => $summary,
             'employee' => $employee,
             'canManage' => $canManage,
             'canManageData' => $canManage && $request->user()->canManageData(),
-            'myAssignments' => ScheduleAssignment::query()
-                ->with('shift')
-                ->where('employee_id', $employee->id)
-                ->where('status', 'scheduled')
-                ->whereBetween('work_date', [$today, $horizon])
-                ->orderBy('work_date')
-                ->limit(100)
-                ->get(),
-            'colleagueAssignments' => ScheduleAssignment::query()
-                ->with(['shift', 'employee'])
-                ->whereHas('employee', fn ($q) => $q->where('department_id', $employee->department_id)->where('id', '!=', $employee->id))
-                ->where('status', 'scheduled')
-                ->whereBetween('work_date', [$today, $horizon])
-                ->orderBy('work_date')
-                ->limit(200)
-                ->get(),
+            'canRequestSwap' => $canRequestSwap,
+            'myAssignments' => $canRequestSwap
+                ? ScheduleAssignment::query()
+                    ->with('shift')
+                    ->where('employee_id', $employee->id)
+                    ->where('status', 'scheduled')
+                    ->whereBetween('work_date', [$today, $horizon])
+                    ->orderBy('work_date')
+                    ->limit(100)
+                    ->get()
+                : collect(),
+            'colleagueAssignments' => $canRequestSwap
+                ? ScheduleAssignment::query()
+                    ->with(['shift', 'employee'])
+                    ->whereHas('employee', fn ($q) => $q->where('department_id', $employee->department_id)->where('id', '!=', $employee->id))
+                    ->where('status', 'scheduled')
+                    ->whereBetween('work_date', [$today, $horizon])
+                    ->orderBy('work_date')
+                    ->limit(200)
+                    ->get()
+                : collect(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);

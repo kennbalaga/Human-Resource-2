@@ -33,12 +33,15 @@ class ShiftSwapService
                 ->findOrFail($data['requester_assignment_id']);
             $targetAssignment = ScheduleAssignment::query()
                 ->lockForUpdate()
+                ->with('employee.department')
                 ->findOrFail($data['target_assignment_id']);
 
             if ($requester->id === $targetAssignment->employee_id) {
                 throw ValidationException::withMessages(['target_assignment_id' => 'You cannot request a swap with yourself.']);
             }
 
+            $this->ensureEligible($requester, 'requester_assignment_id');
+            $this->ensureEligible($targetAssignment->employee, 'target_assignment_id');
             $this->ensureSwappable($requesterAssignment, 'requester_assignment_id');
             $this->ensureSwappable($targetAssignment, 'target_assignment_id');
             $this->ensureDifferentSlot($requesterAssignment, $targetAssignment);
@@ -180,6 +183,22 @@ class ShiftSwapService
 
             return $swap->refresh();
         });
+    }
+
+    /**
+     * Both sides of a trade must be clinical staff. The requester is already
+     * gated at the request layer, but the target arrives as a bare assignment
+     * id with no such check — without this, a clinical employee could still
+     * name an administrative colleague's assignment as the other half of the
+     * trade.
+     */
+    private function ensureEligible(Employee $employee, string $field): void
+    {
+        if (! $employee->canUseShiftSwaps()) {
+            throw ValidationException::withMessages([
+                $field => 'Shift swaps are for clinical staff. '.$employee->full_name.' is not eligible.',
+            ]);
+        }
     }
 
     private function ensureSwappable(ScheduleAssignment $assignment, string $field): void
