@@ -889,21 +889,33 @@ html[data-theme-resolved='dark'] .notification-item time { color:var(--hr-subtle
  * ------------------------------------------------------------------------- */
 
 html[data-theme-resolved='dark'] .roster-board { background:var(--hr-sunken); }
-html[data-theme-resolved='dark'] .roster-day { border-color:transparent; border-left-color:var(--hr-primary); background:var(--hr-surface); }
-html[data-theme-resolved='dark'] .roster-day.is-short { border-left-color:var(--hr-warning); }
+/* The week grid: day cells sit on the surface, shift lanes sink one step
+   below them, and each person card lifts back up so a name stays readable
+   against the lane it is standing in. */
+html[data-theme-resolved='dark'] .roster-cell { border-color:var(--hr-border); background:var(--hr-surface); }
+html[data-theme-resolved='dark'] .roster-cell.is-short { border-color:#5c4d2a; background:#241f14; }
+html[data-theme-resolved='dark'] .roster-cell.is-empty { border-color:var(--hr-border); background:transparent; }
 html[data-theme-resolved='dark'] .roster-shift { background:var(--hr-surface-2); }
 html[data-theme-resolved='dark'] .roster-shift.is-short { background:#332c19; }
-html[data-theme-resolved='dark'] .roster-people li { background:var(--hr-surface-3); }
-html[data-theme-resolved='dark'] .roster-people li.is-blocked { color:#efa8b1; background:#341f25; }
-html[data-theme-resolved='dark'] .roster-people em { color:#a6dcc0; background:var(--hr-tint-success); }
+html[data-theme-resolved='dark'] .roster-shift.is-drop-target { background:var(--hr-tint-success); outline-color:var(--hr-primary); }
+html[data-theme-resolved='dark'] .roster-person { border-color:var(--hr-border); background:var(--hr-surface-3); }
+html[data-theme-resolved='dark'] .roster-person.is-blocked { color:#efa8b1; border-color:#5c2d33; background:#341f25; }
+html[data-theme-resolved='dark'] .roster-person em { color:#a6dcc0; background:var(--hr-tint-success); }
+html[data-theme-resolved='dark'] .roster-cell-add { color:#a6dcc0; background:var(--hr-tint-success); }
 html[data-theme-resolved='dark'] .roster-add { color:var(--hr-muted); border-color:var(--hr-border-strong); background:transparent; }
 html[data-theme-resolved='dark'] .roster-coverage { color:#a6dcc0; }
 html[data-theme-resolved='dark'] .roster-shift.is-short .roster-coverage { color:#ecc98f; }
-html[data-theme-resolved='dark'] .roster-remove { color:#efa8b1; }
+/* The slide-in plate has to fade from the card it is covering, not from white. */
+html[data-theme-resolved='dark'] .roster-remove { color:#efa8b1; background:linear-gradient(90deg, rgba(19,27,23,0) 0, #341f25 45%); }
+html[data-theme-resolved='dark'] .roster-view-switch { border-color:var(--hr-border); background:var(--hr-sunken); }
+html[data-theme-resolved='dark'] .roster-view-switch button { color:var(--hr-muted); }
+html[data-theme-resolved='dark'] .roster-view-switch button.is-active { color:var(--hr-text); background:var(--hr-surface-2); box-shadow:none; }
 html[data-theme-resolved='dark'] .roster-board-heading span,
-html[data-theme-resolved='dark'] .roster-people small,
-html[data-theme-resolved='dark'] .roster-shift > header small,
-html[data-theme-resolved='dark'] .roster-rest { color:var(--hr-muted); }
+html[data-theme-resolved='dark'] .roster-column-head,
+html[data-theme-resolved='dark'] .roster-drag-hint,
+html[data-theme-resolved='dark'] .roster-cell-weekday,
+html[data-theme-resolved='dark'] .roster-person-body small,
+html[data-theme-resolved='dark'] .roster-cell-rest { color:var(--hr-muted); }
 
 /* --- 6. Bulk scheduling wizard, step by step -----------------------------
  *

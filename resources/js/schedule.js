@@ -602,13 +602,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const rosterGapPanel = rosterBoard?.querySelector('[data-roster-gap-panel]');
     const rosterGapTitle = rosterGapPanel?.querySelector('[data-roster-gap-title]');
     const rosterGapList = rosterGapPanel?.querySelector('[data-roster-gap-list]');
+    const rosterGapToggle = rosterGapPanel?.querySelector('[data-roster-gap-toggle]');
+    const rosterGapBody = rosterGapPanel?.querySelector('[data-roster-gap-body]');
     const rosterNightStreakPanel = rosterBoard?.querySelector('[data-roster-night-streak-panel]');
     const rosterNightStreakTitle = rosterNightStreakPanel?.querySelector('[data-roster-night-streak-title]');
     const rosterNightStreakList = rosterNightStreakPanel?.querySelector('[data-roster-night-streak-list]');
+    const rosterViewButtons = [...(rosterBoard?.querySelectorAll('[data-roster-view]') ?? [])];
+    const rosterPagePrevious = rosterBoard?.querySelector('[data-roster-page-previous]');
+    const rosterPageNext = rosterBoard?.querySelector('[data-roster-page-next]');
+    const rosterPageLabel = rosterBoard?.querySelector('[data-roster-page-label]');
     let rosterEntries = [];
     let rosterEvaluateTimer = null;
     let currentDraftUuid = null;
     let lastEvaluation = null;
+    // A month of days at once is unreadable, so the board shows one week — or
+    // one day — and pages through the rest. Held here rather than recomputed,
+    // so a re-evaluation redraws the page being read instead of jumping home.
+    let rosterView = 'week';
+    let rosterPage = 0;
+    let rosterPages = [];
+    // The card being dragged. dataTransfer cannot be read during dragover, and
+    // dragover is where a lane decides whether to light up as a target.
+    let draggedCard = null;
+
+    // Sunday first, matching Date.getDay() so a date indexes its own column.
+    const ROSTER_WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     const rosterKey = (entry) => `${entry.employee_id}|${entry.work_date}`;
 
@@ -629,6 +647,36 @@ document.addEventListener('DOMContentLoaded', () => {
             id: Number(option.querySelector('input').value),
             name: option.querySelector('strong').textContent,
         }));
+
+    // Shift colour is what tells two lanes apart at a glance once the card
+    // itself is down to a name and a title.
+    const shiftColour = (shiftId) => bulkForm
+        ?.querySelector(`input[name="shift_ids[]"][value="${shiftId}"], select[name="shift_id"] option[value="${shiftId}"]`)
+        ?.dataset.color || '#19704b';
+
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const ICON_PATHS = {
+        plus: 'M12 5v14M5 12h14',
+        trash: 'M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v5M14 11v5',
+    };
+
+    /** The same stroked 24×24 shape the x-icon component draws, built in JS. */
+    const rosterIcon = (name) => {
+        const svg = document.createElementNS(SVG_NS, 'svg');
+        svg.setAttribute('class', 'ui-icon');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('stroke-width', '1.8');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('stroke-linejoin', 'round');
+        svg.setAttribute('aria-hidden', 'true');
+        const path = document.createElementNS(SVG_NS, 'path');
+        path.setAttribute('d', ICON_PATHS[name]);
+        svg.append(path);
+
+        return svg;
+    };
 
     const rosterRangePayload = () => ({
         department_id: bulkForm.elements.department_id?.value,
@@ -700,81 +748,276 @@ document.addEventListener('DOMContentLoaded', () => {
         scheduleRosterEvaluate();
     };
 
-    const renderRosterDay = (day) => {
-        const article = document.createElement('article');
-        article.className = `roster-day${day.fully_covered ? '' : ' is-short'}`;
+    // A drop is a move, not a copy: one placement per person per day means the
+    // person leaves wherever they were standing and lands here. Landing back on
+    // the shift they already hold rewrites the same entry and changes nothing.
+    const moveRosterEntry = (employeeId, fromDate, toDate, shiftId) => {
+        rosterEntries = rosterEntries.filter((entry) => {
+            const key = rosterKey(entry);
+
+            return key !== `${employeeId}|${fromDate}` && key !== `${employeeId}|${toDate}`;
+        });
+        rosterEntries.push({ employee_id: employeeId, shift_id: shiftId, work_date: toDate });
+        scheduleRosterEvaluate();
+    };
+
+    const rosterDayNumber = (date) => new Date(`${date}T00:00:00`).getDate();
+    const rosterWeekday = (date) => new Date(`${date}T00:00:00`).getDay();
+    const rosterShortDate = (date) => new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric' })
+        .format(new Date(`${date}T00:00:00`));
+
+    /**
+     * Break the scheduled range into what the board shows at one time: a
+     * calendar week of seven weekday columns, or a single day.
+     *
+     * Week pages keep an empty column for a weekday the range does not cover,
+     * so Tuesday stays under Tuesday whether or not anyone works it — a grid
+     * that reflowed around missing days would be unreadable a fortnight in.
+     */
+    const buildRosterPages = (days) => {
+        if (rosterView === 'day') {
+            return days.map((day) => ({ slots: [day], label: formatScheduleDate(day.date) }));
+        }
+
+        const weeks = [];
+        days.forEach((day) => {
+            const weekday = rosterWeekday(day.date);
+            const current = weeks[weeks.length - 1];
+
+            if (!current || weekday <= current.lastWeekday) {
+                weeks.push({ slots: new Array(7).fill(null), lastWeekday: weekday, covered: [day] });
+                weeks[weeks.length - 1].slots[weekday] = day;
+
+                return;
+            }
+
+            current.slots[weekday] = day;
+            current.lastWeekday = weekday;
+            current.covered.push(day);
+        });
+
+        return weeks.map((week) => {
+            const first = week.covered[0].date;
+            const last = week.covered[week.covered.length - 1].date;
+
+            return {
+                slots: week.slots,
+                label: first === last ? formatScheduleDate(first) : `${rosterShortDate(first)} – ${rosterShortDate(last)}`,
+            };
+        });
+    };
+
+    const rosterPageIndexForDate = (date) => rosterPages
+        .findIndex((page) => page.slots.some((day) => day?.date === date));
+
+    const renderPersonCard = (person, day) => {
+        const item = document.createElement('li');
+        item.className = 'roster-person';
+        if (person.blocked) item.classList.add('is-blocked');
+        item.draggable = true;
+        item.dataset.employeeId = String(person.employee_id);
+        item.dataset.date = day.date;
+
+        const body = document.createElement('div');
+        body.className = 'roster-person-body';
+        const name = document.createElement('strong');
+        name.textContent = person.name;
+        if (person.is_senior) {
+            const badge = document.createElement('em');
+            badge.textContent = 'senior';
+            name.append(' ', badge);
+        }
+        const role = document.createElement('small');
+        role.textContent = person.position ?? '';
+        body.append(name, role);
+
+        // Kept out of the way until the card is pointed at or focused, so a
+        // full week of cards reads as names rather than a wall of buttons.
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'roster-remove';
+        remove.title = `Remove ${person.name}`;
+        remove.setAttribute('aria-label', `Remove ${person.name} from ${formatScheduleDate(day.date)}`);
+        remove.append(rosterIcon('trash'));
+        remove.addEventListener('click', () => removeRosterEntry(person.employee_id, day.date));
+
+        item.append(body, remove);
+
+        item.addEventListener('dragstart', (event) => {
+            draggedCard = { employeeId: person.employee_id, date: day.date };
+            item.classList.add('is-dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', person.name);
+        });
+        item.addEventListener('dragend', () => {
+            draggedCard = null;
+            item.classList.remove('is-dragging');
+            rosterDays?.querySelectorAll('.is-drop-target')
+                .forEach((lane) => lane.classList.remove('is-drop-target'));
+        });
+
+        return item;
+    };
+
+    const renderShiftLane = (day, shift) => {
+        const lane = document.createElement('section');
+        lane.className = `roster-shift${shift.meets_requirement ? '' : ' is-short'}`;
+        lane.dataset.date = day.date;
+        lane.dataset.shiftId = String(shift.shift_id);
 
         const heading = document.createElement('header');
-        const dayTitle = document.createElement('strong');
-        dayTitle.textContent = `${formatScheduleDate(day.date)} · ${day.weekday}`;
-        heading.append(dayTitle);
-        article.append(heading);
+        const dot = document.createElement('span');
+        dot.className = 'roster-shift-dot';
+        dot.style.background = shiftColour(shift.shift_id);
+        const shiftName = document.createElement('strong');
+        shiftName.textContent = shift.shift;
+        shiftName.title = shift.time ? `${shift.shift} · ${shift.time}` : shift.shift;
+        const coverage = document.createElement('span');
+        coverage.className = 'roster-coverage';
+        coverage.textContent = shift.senior_required
+            ? `${shift.count}/${shift.required} · ${shift.senior_count}/${shift.senior_required} sr`
+            : `${shift.count}/${shift.required}`;
+        coverage.title = `Required by the ${shift.requirement_source}.`;
+        heading.append(dot, shiftName, coverage);
+        lane.append(heading);
 
-        day.shifts.forEach((shift) => {
-            const block = document.createElement('section');
-            block.className = `roster-shift${shift.meets_requirement ? '' : ' is-short'}`;
-            block.dataset.date = day.date;
-            block.dataset.shiftId = String(shift.shift_id);
+        const list = document.createElement('ul');
+        list.className = 'roster-people';
+        shift.assigned.forEach((person) => list.append(renderPersonCard(person, day)));
+        lane.append(list);
 
-            const shiftHeading = document.createElement('header');
-            const shiftName = document.createElement('strong');
-            shiftName.textContent = shift.shift;
-            const shiftTime = document.createElement('small');
-            shiftTime.textContent = shift.time ?? '';
-            const coverage = document.createElement('span');
-            coverage.className = 'roster-coverage';
-            const seniorNote = shift.senior_required
-                ? ` · ${shift.senior_count}/${shift.senior_required} senior`
-                : '';
-            coverage.textContent = `${shift.count}/${shift.required} staff${seniorNote}`;
-            coverage.title = `Required by the ${shift.requirement_source}.`;
-            shiftHeading.append(shiftName, shiftTime, coverage);
-            block.append(shiftHeading);
-
-            const list = document.createElement('ul');
-            list.className = 'roster-people';
-            shift.assigned.forEach((person) => {
-                const item = document.createElement('li');
-                if (person.blocked) item.classList.add('is-blocked');
-                const label = document.createElement('span');
-                label.textContent = person.name;
-                if (person.is_senior) {
-                    const badge = document.createElement('em');
-                    badge.textContent = 'senior';
-                    label.append(' ', badge);
-                }
-                const number = document.createElement('small');
-                number.textContent = person.employee_number ?? '';
-                const remove = document.createElement('button');
-                remove.type = 'button';
-                remove.className = 'roster-remove';
-                remove.textContent = 'Remove';
-                remove.addEventListener('click', () => removeRosterEntry(person.employee_id, day.date));
-                item.append(label, number, remove);
-                list.append(item);
-            });
-            block.append(list);
-
-            const picker = document.createElement('select');
-            picker.className = 'roster-add';
-            rosterPickerOptions(picker);
-            picker.addEventListener('change', () => {
-                if (!picker.value) return;
-                addRosterEntry(Number(picker.value), shift.shift_id, day.date);
-            });
-            block.append(picker);
-
-            article.append(block);
+        const picker = document.createElement('select');
+        picker.className = 'roster-add';
+        rosterPickerOptions(picker);
+        picker.addEventListener('change', () => {
+            if (!picker.value) return;
+            addRosterEntry(Number(picker.value), shift.shift_id, day.date);
         });
+        lane.append(picker);
+
+        lane.addEventListener('dragover', (event) => {
+            if (!draggedCard) return;
+            // Only a handled dragover marks a valid drop; without preventDefault
+            // the browser refuses the drop outright.
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            lane.classList.add('is-drop-target');
+        });
+        lane.addEventListener('dragleave', (event) => {
+            if (lane.contains(event.relatedTarget)) return;
+            lane.classList.remove('is-drop-target');
+        });
+        lane.addEventListener('drop', (event) => {
+            event.preventDefault();
+            lane.classList.remove('is-drop-target');
+            if (!draggedCard) return;
+            moveRosterEntry(draggedCard.employeeId, draggedCard.date, day.date, shift.shift_id);
+            draggedCard = null;
+        });
+
+        return lane;
+    };
+
+    const renderRosterDayCell = (day) => {
+        const cell = document.createElement('article');
+        cell.className = `roster-cell${day.fully_covered ? '' : ' is-short'}`;
+        cell.dataset.date = day.date;
+
+        const heading = document.createElement('header');
+        const number = document.createElement('strong');
+        number.textContent = String(rosterDayNumber(day.date));
+        const weekday = document.createElement('span');
+        weekday.className = 'roster-cell-weekday';
+        weekday.textContent = day.weekday;
+
+        // Only surfaces on the day being pointed at: seven always-on add
+        // buttons compete with the names, which are what the grid is for.
+        const add = document.createElement('button');
+        add.type = 'button';
+        add.className = 'roster-cell-add';
+        add.title = 'Add someone to this day';
+        add.setAttribute('aria-label', `Add someone on ${formatScheduleDate(day.date)}`);
+        add.append(rosterIcon('plus'));
+        add.addEventListener('click', () => {
+            const adding = cell.classList.toggle('is-adding');
+            add.setAttribute('aria-expanded', String(adding));
+            if (adding) cell.querySelector('.roster-add')?.focus();
+        });
+        add.setAttribute('aria-expanded', 'false');
+
+        heading.append(number, weekday, add);
+        cell.append(heading);
+
+        day.shifts.forEach((shift) => cell.append(renderShiftLane(day, shift)));
 
         if (day.day_offs.length) {
             const rest = document.createElement('p');
-            rest.className = 'roster-rest';
-            rest.textContent = `Rest day: ${day.day_offs.map((person) => person.name).join(', ')}`;
-            article.append(rest);
+            rest.className = 'roster-cell-rest';
+            rest.textContent = `Rest day · ${day.day_offs.length}`;
+            rest.title = day.day_offs.map((person) => person.name).join(', ');
+            cell.append(rest);
         }
 
-        return article;
+        return cell;
+    };
+
+    /** A weekday this range does not reach — held open so the columns line up. */
+    const renderEmptyDayCell = () => {
+        const cell = document.createElement('article');
+        cell.className = 'roster-cell is-empty';
+        cell.setAttribute('aria-hidden', 'true');
+
+        return cell;
+    };
+
+    const renderRosterCalendar = (evaluation) => {
+        if (!rosterDays) return;
+
+        rosterPages = buildRosterPages(evaluation.days);
+        rosterDays.classList.toggle('is-day-view', rosterView === 'day');
+        rosterDays.replaceChildren();
+
+        if (!rosterPages.length) {
+            if (rosterPageLabel) rosterPageLabel.textContent = '—';
+
+            return;
+        }
+
+        rosterPage = Math.min(Math.max(rosterPage, 0), rosterPages.length - 1);
+        const page = rosterPages[rosterPage];
+
+        if (rosterView === 'week') {
+            ROSTER_WEEKDAY_LABELS.forEach((label) => {
+                const head = document.createElement('span');
+                head.className = 'roster-column-head';
+                head.textContent = label;
+                rosterDays.append(head);
+            });
+        }
+
+        page.slots.forEach((day) => rosterDays.append(day ? renderRosterDayCell(day) : renderEmptyDayCell()));
+
+        if (rosterPageLabel) rosterPageLabel.textContent = page.label;
+        if (rosterPagePrevious) rosterPagePrevious.disabled = rosterPage === 0;
+        if (rosterPageNext) rosterPageNext.disabled = rosterPage >= rosterPages.length - 1;
+    };
+
+    /** Bring a date into view, turning the page to it first if it is not on screen. */
+    const revealRosterShift = (date, shiftId) => {
+        const index = rosterPageIndexForDate(date);
+        if (index >= 0 && index !== rosterPage) {
+            rosterPage = index;
+            if (lastEvaluation) renderRosterCalendar(lastEvaluation);
+        }
+
+        const selector = shiftId
+            ? `.roster-shift[data-date="${date}"][data-shift-id="${shiftId}"]`
+            : `.roster-shift[data-date="${date}"]`;
+        const target = rosterDays?.querySelector(selector);
+        if (!target) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('roster-shift-flash');
+        window.setTimeout(() => target.classList.remove('roster-shift-flash'), 1600);
     };
 
     const rosterPickerOptions = (picker) => {
@@ -801,6 +1044,40 @@ document.addEventListener('DOMContentLoaded', () => {
         rosterDays?.querySelectorAll('.roster-add').forEach(rosterPickerOptions);
     };
 
+    rosterViewButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            if (rosterView === button.dataset.rosterView) return;
+
+            // Land on whatever was already on screen rather than back at the
+            // start of the period, so switching views does not lose the reader.
+            const anchor = rosterPages[rosterPage]?.slots.find(Boolean)?.date;
+            rosterView = button.dataset.rosterView;
+            rosterViewButtons.forEach((other) => {
+                const active = other === button;
+                other.classList.toggle('is-active', active);
+                other.setAttribute('aria-pressed', String(active));
+            });
+
+            if (!lastEvaluation) return;
+            rosterPages = buildRosterPages(lastEvaluation.days);
+            rosterPage = Math.max(0, anchor ? rosterPageIndexForDate(anchor) : 0);
+            renderRosterCalendar(lastEvaluation);
+        });
+    });
+
+    const turnRosterPage = (step) => {
+        rosterPage += step;
+        if (lastEvaluation) renderRosterCalendar(lastEvaluation);
+    };
+    rosterPagePrevious?.addEventListener('click', () => turnRosterPage(-1));
+    rosterPageNext?.addEventListener('click', () => turnRosterPage(1));
+
+    rosterGapToggle?.addEventListener('click', () => {
+        const expanded = rosterGapToggle.getAttribute('aria-expanded') === 'true';
+        rosterGapToggle.setAttribute('aria-expanded', String(!expanded));
+        if (rosterGapBody) rosterGapBody.hidden = expanded;
+    });
+
     // Tier A, hard: every under-covered (day, shift) pair, each row jumping
     // straight to that block. There is no justification field here — this
     // panel cannot be dismissed, only resolved by fixing the roster or
@@ -825,13 +1102,7 @@ document.addEventListener('DOMContentLoaded', () => {
             button.type = 'button';
             const seniorNote = gap.shift.senior_required ? ` · ${gap.shift.senior_count}/${gap.shift.senior_required} senior` : '';
             button.textContent = `${formatScheduleDate(gap.date)} · ${gap.shift.shift} — ${gap.shift.count}/${gap.shift.required} staff${seniorNote}`;
-            button.addEventListener('click', () => {
-                const target = rosterDays?.querySelector(`.roster-shift[data-date="${gap.date}"][data-shift-id="${gap.shift.shift_id}"]`);
-                if (!target) return;
-                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                target.classList.add('roster-shift-flash');
-                window.setTimeout(() => target.classList.remove('roster-shift-flash'), 1600);
-            });
+            button.addEventListener('click', () => revealRosterShift(gap.date, gap.shift.shift_id));
             item.append(button);
             rosterGapList.append(item);
         });
@@ -855,13 +1126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const button = document.createElement('button');
             button.type = 'button';
             button.textContent = `${formatScheduleDate(warning.work_date)} · ${warning.employee} — ${warning.shift}`;
-            button.addEventListener('click', () => {
-                const target = rosterDays?.querySelector(`.roster-shift[data-date="${warning.work_date}"]`);
-                if (!target) return;
-                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                target.classList.add('roster-shift-flash');
-                window.setTimeout(() => target.classList.remove('roster-shift-flash'), 1600);
-            });
+            button.addEventListener('click', () => revealRosterShift(warning.work_date, null));
             item.append(button);
             rosterNightStreakList.append(item);
         });
@@ -876,8 +1141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const scroller = bulkForm.querySelector('.bulk-schedule-form');
         const previousScroll = scroller?.scrollTop ?? 0;
 
-        rosterDays.replaceChildren();
-        evaluation.days.forEach((day) => rosterDays.append(renderRosterDay(day)));
+        renderRosterCalendar(evaluation);
         renderCoverageGaps(evaluation);
         renderNightStreakWarnings(evaluation);
         if (scroller) scroller.scrollTop = previousScroll;
@@ -1344,7 +1608,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (rosterDays) rosterDays.replaceChildren();
         if (rosterBoard) rosterBoard.hidden = true;
+        // A fresh run starts at the beginning of its own period, not on
+        // whatever week the last one was left open at.
+        rosterPages = [];
+        rosterPage = 0;
         if (rosterGapPanel) rosterGapPanel.hidden = true;
+        if (rosterGapBody) rosterGapBody.hidden = true;
+        rosterGapToggle?.setAttribute('aria-expanded', 'false');
         if (rosterNightStreakPanel) rosterNightStreakPanel.hidden = true;
         if (publishSummaryGrid) publishSummaryGrid.replaceChildren();
         if (publishSummaryGap) publishSummaryGap.hidden = true;

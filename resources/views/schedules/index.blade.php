@@ -373,9 +373,9 @@
                                 @if($aiSchedulingEnabled)
                                     <label><span>Shift pattern</span><select name="schedule_method" data-schedule-method><option value="rotation">Rotating · AI balanced</option><option value="custom">Custom · AI optimized mix</option><option value="fixed">Fixed · same shift</option></select></label>
                                 @endif
-                                <label @class(['full-width' => ! $aiSchedulingEnabled]) data-fixed-shift><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}" data-rotating="{{ $shift->is_rotating ? '1' : '0' }}" data-night="{{ $shift->is_night_shift ? '1' : '0' }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
+                                <label @class(['full-width' => ! $aiSchedulingEnabled]) data-fixed-shift><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}" data-rotating="{{ $shift->is_rotating ? '1' : '0' }}" data-night="{{ $shift->is_night_shift ? '1' : '0' }}" data-color="{{ $shift->color }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
                                 @if($aiSchedulingEnabled)
-                                    <fieldset class="rotation-shift-picker full-width" data-rotation-shifts><legend>Shift pool for AI recommendation</legend><p data-shift-pool-help>Select at least two shifts. The assistant balances coverage and rotates employees weekly.</p><div>@foreach($shifts as $shift)<label><input type="checkbox" name="shift_ids[]" value="{{ $shift->id }}" data-rotating="{{ $shift->is_rotating ? '1' : '0' }}" data-night="{{ $shift->is_night_shift ? '1' : '0' }}"><span class="shift-color" style="background:{{ $shift->color }}"></span><span><strong>{{ $shift->name }}</strong><small>{{ $shift->formatted_time }}</small></span></label>@endforeach</div></fieldset>
+                                    <fieldset class="rotation-shift-picker full-width" data-rotation-shifts><legend>Shift pool for AI recommendation</legend><p data-shift-pool-help>Select at least two shifts. The assistant balances coverage and rotates employees weekly.</p><div>@foreach($shifts as $shift)<label><input type="checkbox" name="shift_ids[]" value="{{ $shift->id }}" data-rotating="{{ $shift->is_rotating ? '1' : '0' }}" data-night="{{ $shift->is_night_shift ? '1' : '0' }}" data-color="{{ $shift->color }}"><span class="shift-color" style="background:{{ $shift->color }}"></span><span><strong>{{ $shift->name }}</strong><small>{{ $shift->formatted_time }}</small></span></label>@endforeach</div></fieldset>
                                 @endif
                                 <label><span>Schedule period</span><select name="schedule_period" data-schedule-period><option value="weekly">Weekly · 7 days</option><option value="two_weeks">Two weeks · 14 days</option><option value="monthly">Monthly · calendar month</option></select></label>
                                 <label data-period-start><span>Schedule starts</span><input type="date" name="period_start" value="{{ $rosterPeriodStart->toDateString() }}" min="{{ $today->toDateString() }}" required></label>
@@ -419,7 +419,7 @@
                             <section class="bulk-schedule-review" data-bulk-review aria-live="polite"><x-icon name="shield" /><div><strong>Build the roster below, then publish</strong><span>Leave, double shifts, rest, maximum hours, night limits, and the unit's coverage standard are checked on every change.</span></div></section>
                             <section class="roster-board" data-roster-board hidden aria-live="polite">
                                 <header class="roster-board-heading">
-                                    <div><strong>Roster — grouped by day and shift</strong><span data-roster-summary>Nobody is rostered yet.</span></div>
+                                    <div><strong>Roster</strong><span data-roster-summary>Nobody is rostered yet.</span></div>
                                     <div class="roster-board-actions">
                                         <button type="button" class="btn btn-sm btn-outline-primary" data-roster-fill-shift><x-icon name="users" /> Put everyone on the selected shift</button>
                                         @if($aiSchedulingEnabled)<button type="button" class="btn btn-sm btn-outline-primary" data-roster-fill><x-icon name="ai" /> Let the assistant rotate them</button>@endif
@@ -427,12 +427,36 @@
                                         <button type="button" class="btn btn-sm btn-light" data-roster-clear>Clear</button>
                                     </div>
                                 </header>
+
+                                {{-- A fortnight or a month is too much to read at once, so the
+                                     board pages through it a week — or a single day — at a time. --}}
+                                <div class="roster-calendar-bar">
+                                    <div class="roster-view-switch" role="group" aria-label="Roster view">
+                                        <button type="button" class="is-active" data-roster-view="week" aria-pressed="true">Week</button>
+                                        <button type="button" data-roster-view="day" aria-pressed="false">Day</button>
+                                    </div>
+                                    <div class="roster-pager">
+                                        <button type="button" class="icon-button subtle" data-roster-page-previous aria-label="Previous"><x-icon name="chevron-right" class="flip-horizontal" /></button>
+                                        <strong data-roster-page-label>—</strong>
+                                        <button type="button" class="icon-button subtle" data-roster-page-next aria-label="Next"><x-icon name="chevron-right" /></button>
+                                    </div>
+                                    <p class="roster-drag-hint">Drag a name to another day or shift to move it.</p>
+                                </div>
                                 <div class="roster-draft-status" data-roster-draft-status hidden></div>
                                 <div class="roster-assistant-notice" data-roster-assistant-notice hidden></div>
+                                {{-- Folded shut by default. Fourteen red rows above the board
+                                     is the loudest thing on the step and buries the board it is
+                                     asking you to fix; the count alone carries the same block. --}}
                                 <div class="roster-gap-panel is-hard" data-roster-gap-panel hidden>
-                                    <div class="roster-gap-heading"><x-icon name="close" /><strong data-roster-gap-title></strong></div>
-                                    <ul data-roster-gap-list></ul>
-                                    <p class="roster-gap-note">Coverage must actually be met — fix the roster below or lower the minimum staff / senior requirement on Step 2. There is no override for this one.</p>
+                                    <button type="button" class="roster-gap-heading" data-roster-gap-toggle aria-expanded="false">
+                                        <x-icon name="close" />
+                                        <strong data-roster-gap-title></strong>
+                                        <span class="roster-gap-caret"><x-icon name="chevron-down" /></span>
+                                    </button>
+                                    <div class="roster-gap-body" data-roster-gap-body hidden>
+                                        <ul data-roster-gap-list></ul>
+                                        <p class="roster-gap-note">Coverage must actually be met — fix the roster below or lower the minimum staff / senior requirement on Step 2. There is no override for this one.</p>
+                                    </div>
                                 </div>
                                 <div class="roster-warn-panel" data-roster-night-streak-panel hidden>
                                     <div class="roster-gap-heading"><x-icon name="shield" /><strong data-roster-night-streak-title></strong></div>
