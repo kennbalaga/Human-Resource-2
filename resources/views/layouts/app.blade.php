@@ -30,7 +30,15 @@
         })();
     </script>
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- One @vite call: each one emits its own dev-server client, so a second
+         call elsewhere would run two HMR clients on the same page. --}}
+    @vite(array_values(array_filter([
+        'resources/css/app.css',
+        'resources/js/app.js',
+        // Loaded only where a QR code is drawn or read, keeping the encoder and
+        // decoder off every other page in the app.
+        request()->routeIs('attendance.index', 'profile.show') ? 'resources/js/attendance-qr.js' : null,
+    ])))
     @stack('head')
 </head>
 <body class="app-body {{ $uiPreference->compact_navigation ? 'compact-navigation' : '' }} {{ $uiPreference->reduce_motion ? 'reduce-motion' : '' }}">

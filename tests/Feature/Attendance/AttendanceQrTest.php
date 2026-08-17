@@ -188,6 +188,27 @@ class AttendanceQrTest extends TestCase
             ->assertSee('attendance-history-panel', false);
     }
 
+    /**
+     * The QR script is the only one here with third-party dependencies, so it
+     * is loaded as its own entry on the two pages that draw or read a code —
+     * never folded into the shared bundle, where a problem with it would take
+     * every button in the app down rather than one panel.
+     */
+    public function test_the_qr_script_loads_only_where_a_code_is_drawn_or_read(): void
+    {
+        foreach (['/attendance', '/profile'] as $path) {
+            $this->actingAs($this->manager)->get($path)
+                ->assertOk()
+                ->assertSee('attendance-qr', false);
+        }
+
+        foreach (['/dashboard', '/schedules'] as $path) {
+            $this->actingAs($this->manager)->get($path)
+                ->assertOk()
+                ->assertDontSee('attendance-qr', false);
+        }
+    }
+
     public function test_the_scanner_panel_is_hidden_from_an_ordinary_employee(): void
     {
         $this->actingAs(User::query()->where('email', 'employee@hrms.local')->firstOrFail())

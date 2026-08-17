@@ -11,6 +11,12 @@ export default defineConfig({
                 'resources/css/style.css',
                 'resources/js/app.js',
                 'resources/js/script.js',
+                // Its own entry rather than part of app.js: it is the only code
+                // here with third-party dependencies, and folding it into the
+                // shared bundle means anything wrong with them — a missing
+                // install on a fresh checkout, most likely — takes every button
+                // in the app down with it instead of one panel.
+                'resources/js/attendance-qr.js',
             ],
             refresh: true,
             fonts: [
