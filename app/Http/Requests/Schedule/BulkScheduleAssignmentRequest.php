@@ -92,7 +92,7 @@ class BulkScheduleAssignmentRequest extends FormRequest
             'max_consecutive_nights' => ['nullable', 'integer', 'between:1,7'],
             'minimum_rest_hours' => ['nullable', 'integer', 'between:1,48'],
             'overtime_allowed' => ['nullable', 'boolean'],
-            'minimum_staff_per_shift' => ['nullable', 'integer', 'between:1,100'],
+            'maximum_staff_per_shift' => ['nullable', 'integer', 'between:1,100'],
             'minimum_senior_per_shift' => ['nullable', 'integer', 'between:0,100'],
             'senior_rank_threshold' => ['nullable', 'integer', 'between:2,'.Position::MAX_SENIORITY_RANK],
             'holiday_dates_csv' => ['nullable', 'string', 'max:500'],

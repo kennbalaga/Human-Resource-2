@@ -1468,6 +1468,13 @@
     padding: 0 !important;
 }
 
+/* Closed off because the other kind of shift is currently chosen — faded
+   rather than removed, so the option is still visibly there to come back to. */
+.rotation-shift-picker label.is-unavailable {
+    cursor: not-allowed;
+    opacity: .45;
+}
+
 .rotation-shift-picker .shift-color {
     width: .38rem;
     height: 1.8rem;

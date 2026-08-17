@@ -88,6 +88,7 @@ class ShiftController extends Controller
             'break_minutes' => $request->integer('break_minutes'),
             'color' => strtoupper($request->string('color')->toString()),
             'is_active' => $request->boolean('is_active'),
+            'is_rotating' => $request->boolean('is_rotating'),
         ];
     }
 

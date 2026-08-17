@@ -43,7 +43,7 @@
                 <tbody>
                     @forelse ($shifts as $shift)
                         @php
-                            $shiftPayload = ['id' => $shift->id, 'code' => $shift->code, 'name' => $shift->name, 'start_time' => substr($shift->start_time, 0, 5), 'end_time' => substr($shift->end_time, 0, 5), 'break_minutes' => $shift->break_minutes, 'color' => $shift->color, 'is_active' => $shift->is_active];
+                            $shiftPayload = ['id' => $shift->id, 'code' => $shift->code, 'name' => $shift->name, 'start_time' => substr($shift->start_time, 0, 5), 'end_time' => substr($shift->end_time, 0, 5), 'break_minutes' => $shift->break_minutes, 'color' => $shift->color, 'is_active' => $shift->is_active, 'is_rotating' => $shift->is_rotating];
                         @endphp
                         <tr>
                             <td>
@@ -133,6 +133,7 @@
                             <label title="{{ $label }}"><input type="radio" name="color" value="{{ $color }}" @checked($color === '#176B43')><span class="shift-color-choice" style="background: {{ $color }}"><span class="visually-hidden">{{ $label }}</span></span></label>
                         @endforeach
                     </div></fieldset>
+                    <label class="shift-active-toggle full-width"><input type="checkbox" name="is_rotating" value="1" checked><span><strong>Part of a shift rotation</strong><small>On for a shift that covers one part of the day and needs others to complete it, like Morning, Afternoon and Night. Off for a standalone office day such as 8:00 AM&ndash;5:00 PM, which the assistant can then roster on its own and without night-shift rules.</small></span></label>
                     <label class="shift-active-toggle full-width"><input type="checkbox" name="is_active" value="1" checked><span><strong>Active template</strong><small>Available for new assignments and recurring schedules.</small></span></label>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save template</button></div>

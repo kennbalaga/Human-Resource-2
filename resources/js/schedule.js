@@ -257,6 +257,58 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     };
 
+    // The pool's instruction changes with what is ticked, because the rule
+    // itself does: two shifts are needed to cover a day between them, and a
+    // standalone office shift needs no partner.
+    const syncShiftPoolHelp = () => {
+        const help = bulkForm?.querySelector('[data-shift-pool-help]');
+        if (!help) return;
+
+        if (rostersStandaloneShiftsOnly()) {
+            help.textContent = 'This shift covers a full working day on its own, so no second shift is needed — and nothing else can be added beside it.';
+
+            return;
+        }
+
+        help.textContent = bulkForm.elements.schedule_method?.value === 'custom'
+            ? 'Select at least two shifts. The assistant creates a stable custom mix across employees while balancing coverage.'
+            : 'Select at least two shifts. The assistant balances coverage and rotates employees weekly.';
+    };
+
+    /**
+     * A standalone shift and a rotating one cannot share a pool. The 8-to-5
+     * office day already fills the day it covers, so pairing it with a Night
+     * leg would ask the assistant to roster the same person across two
+     * incompatible patterns.
+     *
+     * Nothing is ever unticked automatically — the offending box is simply
+     * closed off while the other kind is chosen, so the roster in front of
+     * someone never changes out from under them. Untick to open it back up.
+     */
+    const syncShiftPoolExclusivity = () => {
+        const boxes = [...(bulkForm?.querySelectorAll('input[name="shift_ids[]"]') ?? [])];
+        if (boxes.length === 0 || !isAiSchedule()) return;
+
+        const checked = boxes.filter((box) => box.checked);
+        const standaloneChosen = checked.some((box) => box.dataset.rotating === '0');
+        const rotatingChosen = checked.some((box) => box.dataset.rotating === '1');
+
+        boxes.forEach((box) => {
+            const blocked = box.checked
+                ? false
+                : (standaloneChosen || (rotatingChosen && box.dataset.rotating === '0'));
+
+            box.disabled = blocked;
+            box.closest('label')?.classList.toggle('is-unavailable', blocked);
+            box.closest('label')?.setAttribute(
+                'title',
+                blocked
+                    ? 'A standalone shift cannot be combined with a rotating one. Untick the current selection to choose this instead.'
+                    : '',
+            );
+        });
+    };
+
     const syncScheduleMethod = () => {
         if (!bulkForm || !bulkForm.elements.schedule_method) return;
         const aiSchedule = isAiSchedule();
@@ -268,7 +320,10 @@ document.addEventListener('DOMContentLoaded', () => {
         fixedField.querySelector('select').disabled = aiSchedule;
         fixedField.querySelector('select').required = !aiSchedule;
         rotationField.hidden = !aiSchedule;
-        rotationField.querySelectorAll('input').forEach((input) => { input.disabled = !aiSchedule; });
+        rotationField.querySelectorAll('input').forEach((input) => {
+            input.disabled = !aiSchedule;
+            if (!aiSchedule) input.closest('label')?.classList.remove('is-unavailable');
+        });
         weekendField.hidden = aiSchedule;
         // "Put everyone on the selected shift" only makes sense for a fixed
         // shift; in rotation/custom mode shift_id is disabled and posting it
@@ -276,10 +331,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const shiftFillButton = bulkForm.querySelector('[data-roster-fill-shift]');
         if (shiftFillButton) shiftFillButton.hidden = aiSchedule;
         bulkForm.elements.include_weekends.checked = aiSchedule;
-        const help = bulkForm.querySelector('[data-shift-pool-help]');
-        if (help) help.textContent = method === 'custom'
-            ? 'Select at least two shifts. The assistant creates a stable custom mix across employees while balancing coverage.'
-            : 'Select at least two shifts. The assistant balances coverage and rotates employees weekly.';
+        syncShiftPoolExclusivity();
+        syncShiftPoolHelp();
         bulkSaveButton.textContent = 'Approve & publish';
         invalidateBulkReview();
     };
@@ -390,22 +443,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // The shifts this run will actually roster: the ticked pool in AI mode, or
+    // the single chosen template in fixed mode.
+    const selectedShiftOptions = () => (isAiSchedule()
+        ? [...bulkForm.querySelectorAll('input[name="shift_ids[]"]:checked')]
+        : [...bulkForm.querySelectorAll('select[name="shift_id"] option:checked')].filter((option) => option.value));
+
+    // A pool of standalone shifts only — an 8-to-5 office day and nothing else.
+    // Nothing here rotates, so there is no second leg to pair it with.
+    const rostersStandaloneShiftsOnly = () => {
+        const selected = selectedShiftOptions();
+
+        return selected.length > 0 && selected.every((option) => option.dataset.rotating === '0');
+    };
+
     // Night-shift limit and consecutive-night-streak rules exist for units
     // that actually run overnight clinical shifts — a non-clinical
     // department (Administration, HR, Finance, ...) has no such shift to
     // limit, so these fields are hidden there rather than asking someone to
-    // set a night rule for a 9-to-5 unit. Disabled, not just hidden, so a
-    // stale value from a previous department doesn't quietly submit.
+    // set a night rule for a 9-to-5 unit. The same applies to a clinical unit
+    // rostering only its administrative day: no night in the pool, no night
+    // rule to set, and no charge-cover question either. Disabled, not just
+    // hidden, so a stale value doesn't quietly submit.
     const syncClinicalOnlyFields = () => {
         if (!bulkForm) return;
         const departmentSelect = bulkForm.elements.department_id;
         const isClinical = departmentSelect?.selectedOptions[0]?.dataset.category === 'clinical';
+        const standaloneOnly = rostersStandaloneShiftsOnly();
+        const hasNightShift = selectedShiftOptions().some((option) => option.dataset.night === '1');
 
-        bulkForm.querySelectorAll('[data-clinical-only]').forEach((field) => {
-            field.hidden = !isClinical;
-            const input = field.querySelector('input, select, textarea');
-            if (input) input.disabled = !isClinical;
-        });
+        const apply = (selector, visible) => {
+            bulkForm.querySelectorAll(selector).forEach((field) => {
+                field.hidden = !visible;
+                const input = field.querySelector('input, select, textarea');
+                if (input) input.disabled = !visible;
+            });
+        };
+
+        apply('[data-clinical-only]', isClinical && hasNightShift);
+        apply('[data-rotating-only]', !standaloneOnly);
     };
 
     const syncBulkPositionAvailability = () => {
@@ -445,7 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-    bulkForm?.querySelectorAll('select[name="shift_id"], input[name="start_date"], input[name="end_date"], input[name="include_weekends"], select[name="days_off_per_week"], input[name="max_hours_per_week"], input[name="night_shift_limit"], input[name="minimum_staff_per_shift"], input[name="overtime_allowed"], input[name="holiday_dates_csv"]').forEach((field) => {
+    bulkForm?.querySelectorAll('select[name="shift_id"], input[name="start_date"], input[name="end_date"], input[name="include_weekends"], select[name="days_off_per_week"], input[name="max_hours_per_week"], input[name="night_shift_limit"], input[name="maximum_staff_per_shift"], input[name="overtime_allowed"], input[name="holiday_dates_csv"]').forEach((field) => {
         field.addEventListener('change', () => {
             updateBulkSelectedCount();
             invalidateBulkReview();
@@ -461,10 +537,17 @@ document.addEventListener('DOMContentLoaded', () => {
             refreshRosterPickers();
         });
     });
-    bulkForm?.querySelectorAll('select[name="schedule_method"], input[name="shift_ids[]"]').forEach((field) => {
+    bulkForm?.querySelectorAll('select[name="schedule_method"], input[name="shift_ids[]"], select[name="shift_id"]').forEach((field) => {
         field.addEventListener('change', () => {
             if (field.name === 'schedule_method') syncScheduleMethod();
             else invalidateBulkReview();
+
+            // Which shifts are chosen decides both how many the pool needs and
+            // whether the night and charge-cover rules apply at all. The Next
+            // gate re-runs on its own from the form-level change listener.
+            syncShiftPoolExclusivity();
+            syncShiftPoolHelp();
+            syncClinicalOnlyFields();
         });
     });
     bulkForm?.querySelectorAll('[data-schedule-period], input[name="period_start"], input[name="period_month"]').forEach((field) => {
@@ -572,9 +655,9 @@ document.addEventListener('DOMContentLoaded', () => {
         overtime_allowed: bulkForm.elements.overtime_allowed?.checked ?? false,
         overtime_justification: bulkForm.elements.overtime_justification?.value,
         night_streak_justification: bulkForm.elements.night_streak_justification?.value,
-        minimum_staff_per_shift: bulkForm.elements.minimum_staff_per_shift?.value,
-        minimum_senior_per_shift: bulkForm.elements.minimum_senior_per_shift?.value,
-        senior_rank_threshold: bulkForm.elements.senior_rank_threshold?.value,
+        maximum_staff_per_shift: bulkForm.elements.maximum_staff_per_shift?.value,
+        minimum_senior_per_shift: valueUnlessDisabled(bulkForm.elements.minimum_senior_per_shift),
+        senior_rank_threshold: valueUnlessDisabled(bulkForm.elements.senior_rank_threshold),
         holiday_dates_csv: bulkForm.elements.holiday_dates_csv?.value,
     });
 
@@ -938,7 +1021,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // freshly reopened modal.
     const applyDraftRules = (rules) => {
         ['days_off_per_week', 'max_hours_per_week', 'night_shift_limit', 'max_consecutive_nights',
-            'minimum_rest_hours', 'minimum_staff_per_shift', 'minimum_senior_per_shift',
+            'minimum_rest_hours', 'maximum_staff_per_shift', 'minimum_senior_per_shift',
             'senior_rank_threshold', 'holiday_dates_csv', 'overtime_justification', 'night_streak_justification']
             .forEach((field) => {
                 if (rules[field] !== undefined && rules[field] !== null && bulkForm.elements[field]) {
@@ -961,6 +1044,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (rules.shift_id && bulkForm.elements.shift_id) {
             bulkForm.elements.shift_id.value = rules.shift_id;
         }
+
+        // A resumed draft arrives with its pool already ticked, so the pool's
+        // own rules have to be re-applied to it rather than left as the empty
+        // form had them.
+        syncShiftPoolExclusivity();
+        syncShiftPoolHelp();
+        syncClinicalOnlyFields();
     };
 
     // Offers any drafts already open for the selected department as a "resume"
@@ -1162,7 +1252,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isAiSchedule()) {
             const checkedShifts = bulkForm.querySelectorAll('input[name="shift_ids[]"]:checked').length;
-            if (checkedShifts < 2) return 'Select at least two shifts for the shift pool.';
+
+            if (checkedShifts === 0) return 'Select a shift for the shift pool.';
+
+            // One shift is a complete answer when it stands alone — an 8-to-5
+            // office day covers its unit by itself. A rotating leg does not:
+            // Morning on its own leaves the afternoon and the night unstaffed.
+            if (checkedShifts < 2 && !rostersStandaloneShiftsOnly()) {
+                return 'Select at least two shifts — a rotating shift covers only part of the day.';
+            }
         } else if (!bulkForm.elements.shift_id.value) {
             return 'Select a shift to continue.';
         }
@@ -1292,6 +1390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         shiftForm.elements.break_minutes.value = shift.break_minutes;
         shiftForm.elements.color.value = shift.color;
         shiftForm.elements.is_active.checked = Boolean(shift.is_active);
+        shiftForm.elements.is_rotating.checked = Boolean(shift.is_rotating);
     };
 
     document.querySelector('[data-new-shift]')?.addEventListener('click', () => setShiftMode());

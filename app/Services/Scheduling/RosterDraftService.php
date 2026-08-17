@@ -81,13 +81,15 @@ class RosterDraftService
             : $allShifts;
         $requirements = $this->staffingRequirements->forShifts($department, $relevantShifts);
 
-        // A figure typed into the roster form only ever overrides the unit's
-        // standing requirement for this one evaluation, same as at generation time.
-        if (isset($rules['minimum_staff_per_shift']) || isset($rules['minimum_senior_per_shift'])) {
+        // Whether a shift is adequately covered is judged against the unit's own
+        // standard, never against a ceiling typed for one run — the roster form
+        // answers how many are too many, not how few are enough. The charge-cover
+        // figure is still the reviewer's to set for this evaluation.
+        if (isset($rules['minimum_senior_per_shift'])) {
             $requirements = $requirements->map(fn (array $requirement): array => [
-                'staff' => (int) ($rules['minimum_staff_per_shift'] ?? $requirement['staff']),
-                'senior' => (int) ($rules['minimum_senior_per_shift'] ?? $requirement['senior']),
-                'source' => 'roster form',
+                'staff' => (int) $requirement['staff'],
+                'senior' => (int) $rules['minimum_senior_per_shift'],
+                'source' => $requirement['source'],
             ]);
         }
 

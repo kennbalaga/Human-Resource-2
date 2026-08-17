@@ -22,6 +22,7 @@ class Shift extends Model
         'color',
         'is_active',
         'is_system',
+        'is_rotating',
         'created_by',
     ];
 
@@ -30,6 +31,7 @@ class Shift extends Model
         return [
             'is_active' => 'boolean',
             'is_system' => 'boolean',
+            'is_rotating' => 'boolean',
         ];
     }
 

@@ -21,6 +21,7 @@ class ShiftRequest extends FormRequest
             'break_minutes' => ['required', 'integer', 'min:0', 'max:480'],
             'color' => ['required', 'in:#176B43,#2F80ED,#8B5CF6,#334155,#D97706,#DC2626'],
             'is_active' => ['nullable', 'boolean'],
+            'is_rotating' => ['nullable', 'boolean'],
         ];
     }
 }

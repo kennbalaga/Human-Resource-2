@@ -225,7 +225,7 @@ class RosterDraftController extends Controller
                 'skipped' => $result['skipped']->count(),
                 'rules' => collect($data)->only([
                     'position_ids', 'shift_id', 'shift_ids', 'days_off_per_week', 'max_hours_per_week', 'night_shift_limit',
-                    'max_consecutive_nights', 'minimum_rest_hours', 'overtime_allowed', 'minimum_staff_per_shift',
+                    'max_consecutive_nights', 'minimum_rest_hours', 'overtime_allowed', 'maximum_staff_per_shift',
                     'minimum_senior_per_shift', 'senior_rank_threshold', 'holiday_dates',
                 ])->all(),
                 'overtime_justification' => $data['overtime_justification'] ?? null,

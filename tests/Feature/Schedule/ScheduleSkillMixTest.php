@@ -8,6 +8,7 @@ use App\Models\Position;
 use App\Models\Shift;
 use App\Services\ScheduleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class ScheduleSkillMixTest extends TestCase
@@ -75,7 +76,6 @@ class ScheduleSkillMixTest extends TestCase
         ]);
 
         $plan = $this->service->bulkAssignmentPlan($this->payload($juniors, [
-            'minimum_staff_per_shift' => 2,
             'minimum_senior_per_shift' => 1,
             'senior_rank_threshold' => 3,
         ]));
@@ -99,7 +99,6 @@ class ScheduleSkillMixTest extends TestCase
         ]);
 
         $plan = $this->service->bulkAssignmentPlan($this->payload($team, [
-            'minimum_staff_per_shift' => 2,
             'minimum_senior_per_shift' => 1,
             'senior_rank_threshold' => 3,
         ]));
@@ -117,7 +116,6 @@ class ScheduleSkillMixTest extends TestCase
 
         // The charge nurse sits at rank 3, so demanding rank 4+ must still flag it.
         $plan = $this->service->bulkAssignmentPlan($this->payload($team, [
-            'minimum_staff_per_shift' => 1,
             'minimum_senior_per_shift' => 1,
             'senior_rank_threshold' => 4,
         ]));
@@ -131,7 +129,6 @@ class ScheduleSkillMixTest extends TestCase
         $juniors = collect([$this->employee('SM-2026-0007', $this->staffPosition)]);
 
         $plan = $this->service->bulkAssignmentPlan($this->payload($juniors, [
-            'minimum_staff_per_shift' => 1,
             'minimum_senior_per_shift' => 0,
         ]));
 
@@ -141,9 +138,13 @@ class ScheduleSkillMixTest extends TestCase
     public function test_both_head_count_and_seniority_gaps_are_reported_together(): void
     {
         $juniors = collect([$this->employee('SM-2026-0008', $this->staffPosition)]);
+        $this->department->shiftRequirements()->create([
+            'shift_id' => $this->shift->id,
+            'minimum_staff' => 3,
+            'minimum_senior' => 0,
+        ]);
 
         $plan = $this->service->bulkAssignmentPlan($this->payload($juniors, [
-            'minimum_staff_per_shift' => 3,
             'minimum_senior_per_shift' => 1,
             'senior_rank_threshold' => 3,
         ]));
@@ -153,7 +154,7 @@ class ScheduleSkillMixTest extends TestCase
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, Employee>  $employees
+     * @param  Collection<int, Employee>  $employees
      * @param  array<string, mixed>  $rules
      * @return array<string, mixed>
      */

@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Position;
 use App\Models\Shift;
+use App\Models\User;
 use App\Services\ScheduleService;
 use App\Services\Scheduling\RotationScheduleService;
 use App\Services\Scheduling\StaffingRequirementService;
@@ -121,7 +122,13 @@ class StaffingStandardTest extends TestCase
         $this->assertStringContainsString('beds and ratio', $gap['suggestion']);
     }
 
-    public function test_a_figure_typed_into_the_roster_form_overrides_the_standard(): void
+    /**
+     * The roster form sets a ceiling, not a floor. A low figure typed there
+     * used to redefine what counted as adequate cover for that run, which meant
+     * a shift could be declared fully staffed by the person who understaffed
+     * it; the unit's standard is the only thing that answers that now.
+     */
+    public function test_the_roster_form_cannot_talk_the_unit_standard_down(): void
     {
         $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $nurses = collect([$this->employee('W1-0002', $this->staffPosition)]);
@@ -132,10 +139,12 @@ class StaffingStandardTest extends TestCase
             'shift_id' => $shift->id,
             'start_date' => '2027-03-01',
             'end_date' => '2027-03-01',
-            'minimum_staff_per_shift' => 1,
+            'maximum_staff_per_shift' => 1,
         ]);
 
-        $this->assertTrue($plan['staffingGaps']->isEmpty());
+        $gap = $plan['staffingGaps']->firstWhere('label', 'staff');
+        $this->assertNotNull($gap, 'The ward standard should still report the shortfall.');
+        $this->assertSame(1, $gap['available']);
     }
 
     public function test_the_rotation_fills_shifts_towards_their_own_requirement(): void
@@ -218,7 +227,7 @@ class StaffingStandardTest extends TestCase
 
     public function test_the_manager_can_record_a_shift_coverage_standard(): void
     {
-        $manager = \App\Models\User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail();
+        $manager = User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail();
         $morning = Shift::query()->where('code', 'MORNING-0600')->firstOrFail();
 
         $this->actingAs($manager)

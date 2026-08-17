@@ -179,10 +179,31 @@ class ScheduleService
             ->groupBy('employee_id');
         $ready = collect();
         $skipped = collect();
+        // The ceiling the roster form set, and how many are already standing on
+        // each date under it.
+        $maximumStaff = isset($data['maximum_staff_per_shift'])
+            ? max(1, (int) $data['maximum_staff_per_shift'])
+            : null;
+        $placedPerDate = [];
 
         foreach ($employees as $employee) {
             $employeeAssignments = $assignmentsByEmployee->get($employee->id, collect());
             foreach ($dates as $date) {
+                $dateKey = $date->toDateString();
+
+                // Filling every eligible name onto one shift is what made a
+                // roster overshoot; past the ceiling the rest are left off and
+                // reported, rather than silently piled on.
+                if ($maximumStaff !== null && ($placedPerDate[$dateKey] ?? 0) >= $maximumStaff) {
+                    $skipped->push([
+                        'employee' => $employee->full_name,
+                        'date' => $dateKey,
+                        'reason' => "{$shift->name} is already at its maximum of {$maximumStaff} staff for this date",
+                    ]);
+
+                    continue;
+                }
+
                 $reason = $this->bulkAssignmentBlockReason(
                     $employee,
                     $shift,
@@ -204,6 +225,7 @@ class ScheduleService
                 }
 
                 $ready->push(['employee' => $employee, 'date' => $date]);
+                $placedPerDate[$dateKey] = ($placedPerDate[$dateKey] ?? 0) + 1;
                 $plannedAssignment = new ScheduleAssignment([
                     'employee_id' => $employee->id,
                     'shift_id' => $shift->id,
@@ -215,13 +237,14 @@ class ScheduleService
             }
         }
 
-        // The unit's standing requirement is the default; a figure typed into the
-        // roster form only ever overrides it for that one run.
+        // How thin a shift may run is the unit's own standard, not a number
+        // typed into this form — the form's figure is the ceiling above, and a
+        // roster that meets a ceiling can still be dangerously short.
         $standard = $this->staffingRequirementFor($data, $shift);
-        $minimumStaff = (int) ($data['minimum_staff_per_shift'] ?? $standard['staff']);
+        $minimumStaff = (int) $standard['staff'];
         $minimumSenior = (int) ($data['minimum_senior_per_shift'] ?? $standard['senior']);
         $seniorRank = (int) ($data['senior_rank_threshold'] ?? self::DEFAULT_SENIOR_RANK_THRESHOLD);
-        $requirementSource = isset($data['minimum_staff_per_shift']) ? 'roster form' : $standard['source'];
+        $requirementSource = $standard['source'];
 
         $staffingGaps = $dates
             ->flatMap(function (Carbon $date) use ($ready, $shift, $minimumStaff, $minimumSenior, $seniorRank, $requirementSource) {

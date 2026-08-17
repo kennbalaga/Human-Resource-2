@@ -9,12 +9,10 @@ use App\Models\PreferredDayOff;
 use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\Shift;
-use App\Models\User;
 use App\Services\ScheduleService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class RotationScheduleService
@@ -53,13 +51,22 @@ class RotationScheduleService
         $department = Department::query()->with('shiftRequirements')->findOrFail($data['department_id']);
         $requirements = $this->staffingRequirements->forShifts($department, $shifts);
 
-        if (isset($data['minimum_staff_per_shift']) || isset($data['minimum_senior_per_shift'])) {
+        // Only the charge-cover figure is still answerable on the form; how thin
+        // a shift may run stays the unit's own standard, since a ceiling typed
+        // for one run is no basis for calling a shift adequately staffed.
+        if (isset($data['minimum_senior_per_shift'])) {
             $requirements = $requirements->map(fn (array $requirement): array => [
-                'staff' => (int) ($data['minimum_staff_per_shift'] ?? $requirement['staff']),
-                'senior' => (int) ($data['minimum_senior_per_shift'] ?? $requirement['senior']),
-                'source' => 'roster form',
+                'staff' => (int) $requirement['staff'],
+                'senior' => (int) $data['minimum_senior_per_shift'],
+                'source' => $requirement['source'],
             ]);
         }
+
+        // The ceiling the roster form set: the assistant places nobody beyond it.
+        $maximumStaff = isset($data['maximum_staff_per_shift'])
+            ? max(1, (int) $data['maximum_staff_per_shift'])
+            : null;
+        $placedPerShiftDate = [];
 
         $start = Carbon::parse($data['start_date'], config('schedule.timezone'))->startOfDay();
         $end = Carbon::parse($data['end_date'], config('schedule.timezone'))->startOfDay();
@@ -217,15 +224,18 @@ class RotationScheduleService
                         continue;
                     }
 
-                    $reason = $this->assignmentBlockReason(
-                        $employee,
-                        $shift,
-                        $date,
-                        $employeeAssignments,
-                        $employeeDayOffs,
-                        $employeeLeaves,
-                        $data,
-                    );
+                    $capacityKey = $shift->id.'|'.$date->toDateString();
+                    $reason = $maximumStaff !== null && ($placedPerShiftDate[$capacityKey] ?? 0) >= $maximumStaff
+                        ? "{$shift->name} is already at its maximum of {$maximumStaff} staff for this date"
+                        : $this->assignmentBlockReason(
+                            $employee,
+                            $shift,
+                            $date,
+                            $employeeAssignments,
+                            $employeeDayOffs,
+                            $employeeLeaves,
+                            $data,
+                        );
                     if ($reason !== null) {
                         $skipped->push([
                             'employee' => $employee->full_name,
@@ -247,6 +257,7 @@ class RotationScheduleService
                     }
 
                     $readyAssignments->push(['employee' => $employee, 'shift' => $shift, 'date' => $date]);
+                    $placedPerShiftDate[$capacityKey] = ($placedPerShiftDate[$capacityKey] ?? 0) + 1;
                     $dailySchedule->push([
                         'date' => $date->toDateString(),
                         'status' => 'scheduled',
@@ -414,7 +425,6 @@ class RotationScheduleService
             ->values();
     }
 
-
     /**
      * Decide which shift each employee works in each week.
      *
@@ -509,9 +519,9 @@ class RotationScheduleService
         int $count,
         Collection $alreadySelected,
         array $holidayDates,
-        Collection $preferredDates = new Collection(),
+        Collection $preferredDates = new Collection,
         ?int $preferredWeeklyOffDay = null,
-        Collection $forcedDates = new Collection(),
+        Collection $forcedDates = new Collection,
     ): Collection {
         if ($count === 0) {
             return collect();
@@ -662,7 +672,7 @@ class RotationScheduleService
     }
 
     /**
-     * Mirrors {@see \App\Services\ScheduleService::weeklyRestViolated()}: Labor
+     * Mirrors {@see ScheduleService::weeklyRestViolated()}: Labor
      * Code Art. 91 requires at least 24 consecutive hours off after every six
      * consecutive workdays, measured against actual elapsed time rather than
      * calendar dates.

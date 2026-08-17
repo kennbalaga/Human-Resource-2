@@ -31,7 +31,15 @@ class AiRotationScheduleTest extends TestCase
         $this->seed();
         $this->manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
         $this->employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
-        $this->shiftIds = Shift::query()->whereIn('code', ['MORNING-0600', 'ADMIN-0800'])->orderBy('start_time')->pluck('id')->all();
+        // Two rotating legs. The Administrative Shift used to stand in as the
+        // second here, but a standalone office day is no longer poolable with a
+        // rotating one — the two describe incompatible patterns, and pairing
+        // them is exactly what the pool rules now refuse.
+        $this->shiftIds = Shift::query()
+            ->whereIn('code', ['MORNING-0600', 'AFTERNOON-1400'])
+            ->orderBy('start_time')
+            ->pluck('id')
+            ->all();
     }
 
     public function test_rotation_generator_is_protected_by_the_ai_feature_setting(): void
