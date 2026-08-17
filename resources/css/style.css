@@ -151,6 +151,14 @@ body {
     border-color: #fecaca;
 }
 
+/* Neither a success nor a failure: something happened to the session that the
+   person arriving at this page is owed an explanation for. */
+.auth-alert-notice {
+    color: #854d0e;
+    background: #fefce8;
+    border-color: #fde68a;
+}
+
 .security-note {
     display: flex;
     align-items: flex-start;

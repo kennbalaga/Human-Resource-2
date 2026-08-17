@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ActiveDeviceSessionService;
 use App\Services\RememberedLoginService;
 use App\Services\TwoFactorSecurityService;
 use Illuminate\Http\RedirectResponse;
@@ -28,6 +29,7 @@ class TwoFactorChallengeController extends Controller
         Request $request,
         TwoFactorSecurityService $twoFactor,
         RememberedLoginService $rememberedLogin,
+        ActiveDeviceSessionService $activeSession,
     ): RedirectResponse {
         $validated = $request->validate([
             'code' => ['nullable', 'string', 'max:30', 'required_without:recovery_code'],
@@ -60,6 +62,10 @@ class TwoFactorChallengeController extends Controller
         $request->session()->regenerate();
 
         $user->forceFill(['last_login_at' => now()])->save();
+
+        // Only a completed challenge takes the account's session slot: an
+        // abandoned one must not sign out the device already working.
+        $activeSession->claim($user, $request);
         ValidTwoFactorAuthenticationCodeProvided::dispatch($user);
 
         return redirect()->intended(route('dashboard', absolute: false));

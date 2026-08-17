@@ -10,6 +10,7 @@ if (element) {
     const warningStartsAt = timeoutMs - warningMs;
     const activityKey = 'workforce.session.last-activity';
     const expiredKey = 'workforce.session.expired-at';
+    const expiredReasonKey = 'workforce.session.expired-reason';
     const modal = Modal.getOrCreateInstance(element, { backdrop: 'static', keyboard: false });
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
     const title = element.querySelector('[data-session-title]');
@@ -43,6 +44,25 @@ if (element) {
         }
     };
 
+    // Every tab on this device loses the session together, so whichever tab
+    // finds out first leaves the reason behind for the others to show.
+    const writeReason = (reason) => {
+        try {
+            if (reason) localStorage.setItem(expiredReasonKey, reason);
+            else localStorage.removeItem(expiredReasonKey);
+        } catch (error) {
+            // This tab still shows its own reason without storage.
+        }
+    };
+
+    const readReason = () => {
+        try {
+            return localStorage.getItem(expiredReasonKey);
+        } catch (error) {
+            return null;
+        }
+    };
+
     const clearKey = (key) => {
         try {
             localStorage.removeItem(key);
@@ -54,6 +74,7 @@ if (element) {
     let lastActivityAt = Date.now();
     writeNumber(activityKey, lastActivityAt);
     clearKey(expiredKey);
+    clearKey(expiredReasonKey);
 
     const formatDuration = (milliseconds) => {
         const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
@@ -84,7 +105,14 @@ if (element) {
         }
 
         if (!response.ok || response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
-            throw new Error('The authenticated session is no longer available.');
+            const error = new Error('The authenticated session is no longer available.');
+            // The server says why it ended when it can. Being signed out
+            // because the account opened on another device reads nothing like
+            // an idle timeout, and the person at this screen needs to be told
+            // which of the two happened.
+            error.detail = await response.json().catch(() => null);
+
+            throw error;
         }
 
         return response;
@@ -118,12 +146,17 @@ if (element) {
         modal.show();
     };
 
-    const showExpired = () => {
+    const showExpired = (reason = null) => {
+        const displaced = reason === 'signed_in_elsewhere';
         expired = true;
         warningVisible = true;
         kicker.textContent = 'Session ended';
-        title.textContent = 'You were signed out for inactivity';
-        message.textContent = 'Your saved Employee ID is ready on the login page. Enter your password and authenticator code to continue.';
+        title.textContent = displaced
+            ? 'This account signed in on another device'
+            : 'You were signed out for inactivity';
+        message.textContent = displaced
+            ? 'Only one device can be signed in at a time, so this one was signed out. Sign in again here to take the session back.'
+            : 'Your saved Employee ID is ready on the login page. Enter your password and authenticator code to continue.';
         countdownWrap.classList.add('d-none');
         continueButton.classList.add('d-none');
         signOutButton.classList.add('d-none');
@@ -131,14 +164,15 @@ if (element) {
         modal.show();
     };
 
-    const endSession = async () => {
+    const endSession = async (reason = null) => {
         if (endingSession) {
             return;
         }
 
         endingSession = true;
-        showExpired();
+        showExpired(reason);
         writeNumber(expiredKey, Date.now());
+        writeReason(reason);
 
         try {
             await request(element.dataset.logoutUrl, { method: 'POST' });
@@ -159,10 +193,11 @@ if (element) {
             lastHeartbeatAt = now;
             writeNumber(activityKey, now);
             clearKey(expiredKey);
+            clearKey(expiredReasonKey);
             warningVisible = false;
             modal.hide();
         } catch (error) {
-            await endSession();
+            await endSession(error.detail?.reason ?? null);
         } finally {
             continueButton.disabled = false;
         }
@@ -178,7 +213,7 @@ if (element) {
         try {
             await request(element.dataset.keepAliveUrl);
         } catch (error) {
-            await endSession();
+            await endSession(error.detail?.reason ?? null);
         }
     };
 
@@ -225,7 +260,7 @@ if (element) {
 
     window.addEventListener('storage', (event) => {
         if (event.key === expiredKey && event.newValue) {
-            showExpired();
+            showExpired(readReason());
             loginButton.disabled = false;
         }
     });

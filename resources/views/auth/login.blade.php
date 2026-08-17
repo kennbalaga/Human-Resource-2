@@ -33,6 +33,12 @@
                         </p>
                     @endif
 
+                    @if (session('notice'))
+                        <p role="status" class="auth-alert auth-alert-notice">
+                            {{ session('notice') }}
+                        </p>
+                    @endif
+
                     @if ($errors->any())
                         <p role="alert" class="auth-alert auth-alert-error">
                             {{ $errors->first() }}

@@ -4,6 +4,7 @@ use App\Http\Middleware\AuditWriteRequests;
 use App\Http\Middleware\EnforceProductionSecurity;
 use App\Http\Middleware\EnforceReadOnlyRole;
 use App\Http\Middleware\EnsureRequiredTwoFactorAuthentication;
+use App\Http\Middleware\EnsureSingleActiveSession;
 use App\Http\Middleware\PreventRememberedAuthentication;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -37,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SecurityHeaders::class,
             AuditWriteRequests::class,
             PreventRememberedAuthentication::class,
+            EnsureSingleActiveSession::class,
             EnsureRequiredTwoFactorAuthentication::class,
             EnforceReadOnlyRole::class,
         ]);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\ActiveDeviceSessionService;
 use App\Services\RememberedLoginService;
 use App\Services\TwoFactorSecurityService;
 use Illuminate\Http\JsonResponse;
@@ -25,8 +26,12 @@ class AuthenticatedSessionController extends Controller
         ]);
     }
 
-    public function store(LoginRequest $request, RememberedLoginService $rememberedLogin, TwoFactorSecurityService $twoFactor): RedirectResponse
-    {
+    public function store(
+        LoginRequest $request,
+        RememberedLoginService $rememberedLogin,
+        TwoFactorSecurityService $twoFactor,
+        ActiveDeviceSessionService $activeSession,
+    ): RedirectResponse {
         $user = $request->authenticate();
 
         if ($twoFactor->challengeRequiredFor($user)) {
@@ -47,6 +52,11 @@ class AuthenticatedSessionController extends Controller
             'last_login_at' => now(),
         ])->save();
 
+        // Claimed last, after the session has been regenerated, so the token
+        // lands in the session this browser will keep. Any device already
+        // signed into this account is displaced by it.
+        $activeSession->claim($user, $request);
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
@@ -60,8 +70,14 @@ class AuthenticatedSessionController extends Controller
         ]);
     }
 
-    public function destroy(Request $request): RedirectResponse|JsonResponse
+    public function destroy(Request $request, ActiveDeviceSessionService $activeSession): RedirectResponse|JsonResponse
     {
+        $user = $request->user();
+
+        if ($user !== null) {
+            $activeSession->release($user, $request);
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
