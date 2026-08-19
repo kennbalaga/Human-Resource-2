@@ -42,7 +42,7 @@ return [
     | Labor Code Art. 91: at least 24 consecutive hours of rest after every
     | max_consecutive_workdays. This is a hard legal floor, not a per-run
     | override — unlike minimum_rest_hours (the general inter-shift fatigue
-    | gap, tunable per roster), this one is not exposed as a Step 3 field.
+    | gap, tunable per roster), this one is not exposed as a Step 2 field.
     */
     'weekly_rest_hours' => (int) env('SCHEDULE_WEEKLY_REST_HOURS', 24),
 

@@ -337,7 +337,7 @@
                 <form method="POST" action="{{ route('schedules.roster.publish') }}" id="bulkScheduleForm" data-roster-fill-url="{{ route('schedules.roster.fill') }}" data-roster-evaluate-url="{{ route('schedules.roster.evaluate') }}" data-roster-publish-url="{{ route('schedules.roster.publish') }}" data-roster-draft-save-url="{{ route('schedules.roster.drafts.save') }}" data-roster-drafts-url="{{ route('schedules.roster.drafts') }}" data-roster-draft-discard-url-template="{{ route('schedules.roster.drafts.discard', ['rosterDraft' => '__ID__']) }}" @if($aiSchedulingEnabled) data-roster-suggest-url="{{ route('schedules.roster.suggest') }}" @endif>@csrf
                     <div class="modal-header bulk-schedule-header"><span class="bulk-ai-icon"><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'users'" /></span><div><p class="panel-kicker">{{ $aiSchedulingEnabled ? 'AI Scheduling Assistant' : 'Department scheduling' }}</p><h2 class="modal-title" id="bulkScheduleModalLabel">Generate a bulk schedule</h2><small>Build, validate, approve, and publish one department schedule.</small></div><span class="ai-scheduling-advisory">HR approval required</span><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body bulk-schedule-form">
-                        <ol class="bulk-flow-steps" data-bulk-flow-steps aria-label="Bulk scheduling workflow"><li data-step-item="1" class="active"><span>1</span><strong>Department & staff</strong></li><li data-step-item="2"><span>2</span><strong>Period & rules</strong></li><li data-step-item="3"><span>3</span><strong>AI generation</strong></li><li data-step-item="4"><span>4</span><strong>Validation</strong></li><li data-step-item="5"><span>5</span><strong>Approve & publish</strong></li></ol>
+                        <ol class="bulk-flow-steps" data-bulk-flow-steps aria-label="Bulk scheduling workflow"><li data-step-item="1" class="active"><span>1</span><strong>Department & staff</strong></li><li data-step-item="2"><span>2</span><strong>Period & rules</strong></li><li data-step-item="3"><span>3</span><strong>Draft generation</strong></li><li data-step-item="4"><span>4</span><strong>Validation</strong></li><li data-step-item="5"><span>5</span><strong>Approve & publish</strong></li></ol>
                         <p class="bulk-schedule-intro">Choose a department and position, then select specific employees or include all active staff. {{ $aiSchedulingEnabled ? 'The assistant generates one reviewed recommendation' : 'The system generates one reviewed bulk plan' }} and never publishes automatically.</p>
                         <div class="schedule-form-grid bulk-schedule-details bulk-step-panel" data-step-panel="1">
                             <div class="bulk-inline-step-heading full-width">
@@ -408,14 +408,7 @@
                             </fieldset>
                         </div>
 
-                        {{-- Reserved for the generation step. Nothing runs here yet;
-                             the step exists so the flow it belongs to is already in
-                             place when it does. --}}
                         <div class="bulk-step-panel" data-step-panel="3" hidden>
-                            <div class="bulk-pattern-step-heading"><span>Step 3 · AI generation</span></div>
-                        </div>
-
-                        <div class="bulk-step-panel" data-step-panel="4" hidden>
                             <section class="bulk-schedule-review" data-bulk-review aria-live="polite"><x-icon name="shield" /><div><strong>Build the roster below, then publish</strong><span>Leave, double shifts, rest, maximum hours, night limits, and the unit's coverage standard are checked on every change.</span></div></section>
                             <section class="roster-board" data-roster-board hidden aria-live="polite">
                                 <header class="roster-board-heading">
@@ -470,10 +463,17 @@
                             </section>
                         </div>
 
+                        {{-- Reserved for the validation step. Nothing runs here yet;
+                             the step exists so the flow it belongs to is already in
+                             place when it does. --}}
+                        <div class="bulk-step-panel" data-step-panel="4" hidden>
+                            <div class="bulk-pattern-step-heading"><span>Step 4 · Validation</span></div>
+                        </div>
+
                         <div class="bulk-step-panel" data-step-panel="5" hidden>
                             <div class="bulk-pattern-step-heading full-width"><span>Step 5 · Approve and publish</span></div>
                             <section class="publish-summary" data-publish-summary>
-                                <header><strong>What publishing will do</strong><span>Computed from the reviewed roster on the previous step.</span></header>
+                                <header><strong>What publishing will do</strong><span>Computed from the reviewed roster on Step 3.</span></header>
                                 <div class="publish-summary-grid" data-publish-summary-grid></div>
                                 <p class="publish-summary-gap" data-publish-summary-gap hidden></p>
                             </section>

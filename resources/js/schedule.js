@@ -1436,7 +1436,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // What Step 5's attestation is actually agreeing to, computed from the
-    // same evaluation the Step 4 board already rendered — no separate call.
+    // same evaluation the Step 3 board already rendered — no separate call.
     const renderPublishSummary = () => {
         if (!publishSummaryGrid) return;
         publishSummaryGrid.replaceChildren();
@@ -1462,7 +1462,7 @@ document.addEventListener('DOMContentLoaded', () => {
             publishSummaryGrid.append(tile);
         });
 
-        // Coverage is a hard block at Step 4 — this step should be
+        // Coverage is a hard block at Step 3 — this step should be
         // unreachable with shifts still short — but the fallback below is a
         // defensive guard, not an expected path.
         if (publishSummaryGap) {
@@ -1493,9 +1493,9 @@ document.addEventListener('DOMContentLoaded', () => {
         setStepError(null);
         const scroller = bulkForm.querySelector('.bulk-schedule-form');
         if (scroller) scroller.scrollTop = 0;
-        // Entering the validation step should reflect whatever was just
+        // Entering the draft step should reflect whatever was just
         // configured, not a stale board from an earlier pass.
-        if (step === 4) scheduleRosterEvaluate();
+        if (step === 3) scheduleRosterEvaluate();
         if (step === 5) renderPublishSummary();
         refreshStepGate();
     };
@@ -1532,7 +1532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     };
 
-    const validateStep4 = () => {
+    const validateStep3 = () => {
         if (rosterEntries.length === 0) return 'Build a roster below — fill it or let the assistant rotate staff — before continuing.';
 
         // Tier A, hard: no justification unlocks this one. The only way past
@@ -1551,7 +1551,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     };
 
-    const stepValidators = { 1: validateStep1, 2: validateStep2, 4: validateStep4 };
+    const stepValidators = { 1: validateStep1, 2: validateStep2, 3: validateStep3 };
 
     // Keeps Next disabled — with the blocking reason as its title/tooltip —
     // for as long as the current step's validator fails, instead of only

@@ -950,7 +950,7 @@ html[data-theme-resolved='dark'] .bulk-justification-field>span { color:#ecc98f;
 html[data-theme-resolved='dark'] .bulk-justification-field textarea { color:var(--hr-text); border-color:#5c4d2a; background:var(--hr-sunken); }
 html[data-theme-resolved='dark'] .bulk-justification-field textarea:focus { border-color:var(--hr-primary); }
 
-/* Step 4 - review banner icons and the coverage gap / warning panels. */
+/* Step 3 - review banner icons and the coverage gap / warning panels. */
 html[data-theme-resolved='dark'] .bulk-schedule-review>svg { color:#a6dcc0; }
 html[data-theme-resolved='dark'] .bulk-schedule-review.has-skips>svg,
 html[data-theme-resolved='dark'] .bulk-review-schedule-empty { color:#ecc98f; }
