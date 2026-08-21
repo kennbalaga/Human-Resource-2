@@ -93,6 +93,52 @@ class AiScheduleRecommendationLifecycleTest extends TestCase
         $this->assertDatabaseHas('schedule_recommendations', ['uuid' => $generated['recommendation_id'], 'status' => 'applied']);
     }
 
+    public function test_applying_a_recommendation_then_saving_the_form_records_its_source(): void
+    {
+        $generated = $this->generate()->assertOk()->json('data');
+        $applied = $this->actingAs($this->manager)->postJson($generated['apply_url'], $this->applyPayload($this->employee->id))
+            ->assertOk()->json('data');
+
+        $this->actingAs($this->manager)->post(route('schedules.store'), [
+            'employee_id' => $this->employee->id,
+            'shift_id' => $this->shift->id,
+            'work_date' => '2027-10-01',
+            'recommendation_id' => $applied['recommendation_id'],
+        ])->assertRedirect();
+
+        $recommendation = ScheduleRecommendation::query()->where('uuid', $applied['recommendation_id'])->firstOrFail();
+        $this->assertDatabaseHas('schedule_assignments', [
+            'employee_id' => $this->employee->id,
+            'work_date' => '2027-10-01',
+            'source_recommendation_id' => $recommendation->id,
+        ]);
+    }
+
+    public function test_saving_without_a_recommendation_id_leaves_it_null(): void
+    {
+        $this->actingAs($this->manager)->post(route('schedules.store'), [
+            'employee_id' => $this->employee->id,
+            'shift_id' => $this->shift->id,
+            'work_date' => '2027-10-01',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('schedule_assignments', [
+            'employee_id' => $this->employee->id,
+            'work_date' => '2027-10-01',
+            'source_recommendation_id' => null,
+        ]);
+    }
+
+    public function test_an_unknown_recommendation_id_is_rejected(): void
+    {
+        $this->actingAs($this->manager)->post(route('schedules.store'), [
+            'employee_id' => $this->employee->id,
+            'shift_id' => $this->shift->id,
+            'work_date' => '2027-10-01',
+            'recommendation_id' => (string) Str::uuid(),
+        ])->assertSessionHasErrors('recommendation_id');
+    }
+
     public function test_selecting_a_recorded_alternative_is_a_modified_human_decision(): void
     {
         $alternative = Employee::query()->create([
@@ -140,13 +186,13 @@ class AiScheduleRecommendationLifecycleTest extends TestCase
     public function test_changed_schedule_leave_employee_shift_and_attendance_each_make_a_recommendation_stale(): void
     {
         $mutations = [
-            fn (string $date) => ScheduleAssignment::query()->create([
+            fn (string $date) => \App\Services\Scheduling\RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
                 'employee_id' => $this->employee->id,
                 'shift_id' => $this->shift->id,
                 'work_date' => $date,
                 'status' => 'scheduled',
                 'created_by' => $this->manager->id,
-            ]),
+            ])),
             fn (string $date) => LeaveRequest::query()->create([
                 'uuid' => (string) Str::uuid(),
                 'employee_id' => $this->employee->id,

@@ -103,5 +103,9 @@ class AppServiceProvider extends ServiceProvider
         ]) && $user->canManageData());
 
         Gate::define('system.manage', fn (User $user) => $user->hasRole('system-administrator'));
+
+        Gate::define('attendance.override', fn (User $user) => $user->hasAnyRole([
+            'system-administrator', 'hr-manager', 'department-head',
+        ]) && $user->canManageData());
     }
 }

@@ -8,6 +8,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Models\ShiftSwapRequest;
 use App\Models\User;
+use App\Services\Scheduling\RosterWriteContext;
 use App\Services\ShiftSwapService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -56,13 +57,13 @@ class ShiftSwapEligibilityTest extends TestCase
 
     private function assignmentFor(Employee $employee, string $date): ScheduleAssignment
     {
-        return ScheduleAssignment::query()->create([
+        return RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
             'employee_id' => $employee->id,
             'shift_id' => $this->shift->id,
             'work_date' => $date,
             'status' => 'scheduled',
             'created_by' => $this->manager->id,
-        ]);
+        ]));
     }
 
     public function test_clinical_department_is_eligible(): void

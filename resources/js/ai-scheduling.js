@@ -154,6 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             form.elements.employee_id.value = String(data.employee_id);
             form.elements.employee_id.dispatchEvent(new Event('change', { bubbles: true }));
+            if (form.elements.recommendation_id) form.elements.recommendation_id.value = data.recommendation_id;
             results.hidden = true;
             showStatus(`${data.message} Review the form, then use the existing Save assignment button when ready.`, 'success');
         } catch (error) {

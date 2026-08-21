@@ -33,6 +33,7 @@
                 @if($canManageEmployeeNumberSettings)<a href="#system-controls"><x-icon name="users" /><span><strong>Employee IDs</strong><small>Automatic ID generation</small></span></a>@endif
                 @if($canManageTwoFactorEnforcement)<a href="#two-factor-enforcement"><x-icon name="shield" /><span><strong>2FA enforcement</strong><small>Require 2FA by role</small></span></a>@endif
                 @if($canManageAttendanceSettings)<a href="#attendance-capture"><x-icon name="clock" /><span><strong>Attendance capture</strong><small>Biometric and manual modes</small></span></a>@endif
+                @if($canManageAttendanceSettings)<a href="#attendance-schedule"><x-icon name="calendar" /><span><strong>Schedule-aware attendance</strong><small>Roster-based lateness and overtime</small></span></a>@endif
                 @if($canManageAttendanceSettings && $biometricSimulatorAvailable)<a href="#biometric-simulator"><x-icon name="settings" /><span><strong>Scanner simulator</strong><small>Local testing tool</small></span></a>@endif
                 @if($canAccessSystemAdministration)<a href="#system-administration"><x-icon name="plug" /><span><strong>Operational tools</strong><small>Integrations and audit logs</small></span></a>@endif
             @endif
@@ -203,6 +204,24 @@
                         <div class="settings-security-note"><x-icon name="shield" /><p>Manual entries remain pending for review and are labeled separately from biometric scans. Every mode change is included in the audit log.</p></div>
                         @if($attendanceSettingUpdatedBy)<small>Last changed by {{ $attendanceSettingUpdatedBy }}</small>@endif
                         <button class="btn btn-primary" type="submit"><x-icon name="check-circle" /> Save attendance mode</button>
+                    </form>
+                </article>
+
+                <article class="panel settings-panel" id="attendance-schedule">
+                    <div class="panel-header"><div><p class="panel-kicker">Attendance policy</p><h2>Schedule-aware attendance</h2></div><x-status-badge :status="$attendanceScheduleAware ? 'active' : 'pending'" /></div>
+                    <form method="POST" action="{{ route('settings.attendance-schedule.update') }}" class="profile-settings-form">
+                        @csrf @method('PATCH')
+                        <div class="settings-security-note"><x-icon name="shield" /><p>Turning on <strong>Schedule-aware timing</strong> changes payroll-adjacent lateness/overtime figures for every future punch — flip it only after reviewing the shadow-mode data these columns have been collecting. Turning on <strong>Enforce published shift</strong> refuses a check-in with no published shift unless a manager authorises it from the <a href="{{ route('attendance.override.index') }}">attendance override</a> page.</p></div>
+                        <label><span>Early window (minutes)</span><input type="number" name="early_window_minutes" min="0" max="1440" value="{{ old('early_window_minutes', $attendanceScheduleEarlyWindowMinutes) }}" required><small>How long before a shift's start a punch still binds to it.</small></label>
+                        <label><span>Grace period (minutes)</span><input type="number" name="grace_minutes" min="0" max="1440" value="{{ old('grace_minutes', $attendanceScheduleGraceMinutes) }}" required><small>Lateness grace after shift start.</small></label>
+                        <label><span>Late-bind window (minutes)</span><input type="number" name="late_bind_minutes" min="0" max="1440" value="{{ old('late_bind_minutes', $attendanceScheduleLateBindMinutes) }}" required><small>How long after shift start a punch can still bind rather than being treated as off-shift.</small></label>
+                        <fieldset class="appearance-options">
+                            <legend>Flags</legend>
+                            <label class="appearance-option"><input type="checkbox" name="schedule_aware" value="1" @checked(old('schedule_aware', $attendanceScheduleAware))><span><x-icon name="calendar" /><strong>Schedule-aware timing</strong><small>Lateness, overtime and undertime derive from the published shift instead of office hours.</small></span></label>
+                            <label class="appearance-option"><input type="checkbox" name="enforce_published_shift" value="1" @checked(old('enforce_published_shift', $attendanceScheduleEnforcePublishedShift))><span><x-icon name="shield" /><strong>Enforce published shift</strong><small>Refuse a check-in with no published shift unless a manager authorises it.</small></span></label>
+                        </fieldset>
+                        @if($attendanceScheduleSettingUpdatedBy)<small>Last changed by {{ $attendanceScheduleSettingUpdatedBy }}</small>@endif
+                        <button class="btn btn-primary" type="submit"><x-icon name="check-circle" /> Save schedule-aware settings</button>
                     </form>
                 </article>
 

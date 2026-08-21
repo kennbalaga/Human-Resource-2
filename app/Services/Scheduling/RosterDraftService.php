@@ -312,55 +312,61 @@ class RosterDraftService
             $dayOffs = collect();
             $lockSkipped = collect();
 
-            foreach ($entries as $entry) {
-                if ($blocked->has($entry['employee_id'].'|'.$entry['work_date'])) {
-                    continue;
-                }
+            RosterWriteContext::allow($creator, function () use (
+                $entries, $blocked, $department, $employees, $locks, $notes, $creator,
+                &$created, &$dayOffs, &$lockSkipped,
+            ): void {
+                foreach ($entries as $entry) {
+                    if ($blocked->has($entry['employee_id'].'|'.$entry['work_date'])) {
+                        continue;
+                    }
 
-                if ($department->category === Department::CATEGORY_ADMINISTRATIVE
-                    && Carbon::parse($entry['work_date'], config('schedule.timezone'))->isSunday()) {
-                    $lockSkipped->push($this->issue(
-                        $entry,
-                        $employees->get($entry['employee_id'])?->full_name ?? 'Unknown employee',
-                        $entry['shift_id'] !== null ? Shift::find($entry['shift_id'])?->name : null,
-                        'Administrative departments do not schedule Sundays',
-                    ));
+                    if ($department->category === Department::CATEGORY_ADMINISTRATIVE
+                        && Carbon::parse($entry['work_date'], config('schedule.timezone'))->isSunday()) {
+                        $lockSkipped->push($this->issue(
+                            $entry,
+                            $employees->get($entry['employee_id'])?->full_name ?? 'Unknown employee',
+                            $entry['shift_id'] !== null ? Shift::find($entry['shift_id'])?->name : null,
+                            'Administrative departments do not schedule Sundays',
+                        ));
 
-                    continue;
-                }
+                        continue;
+                    }
 
-                if ($this->isLocked($locks, $entry['work_date'])) {
-                    $lockSkipped->push($this->issue(
-                        $entry,
-                        $employees->get($entry['employee_id'])?->full_name ?? 'Unknown employee',
-                        $entry['shift_id'] !== null ? Shift::find($entry['shift_id'])?->name : null,
-                        'Schedule locked for this period',
-                    ));
+                    if ($this->isLocked($locks, $entry['work_date'])) {
+                        $lockSkipped->push($this->issue(
+                            $entry,
+                            $employees->get($entry['employee_id'])?->full_name ?? 'Unknown employee',
+                            $entry['shift_id'] !== null ? Shift::find($entry['shift_id'])?->name : null,
+                            'Schedule locked for this period',
+                        ));
 
-                    continue;
-                }
+                        continue;
+                    }
 
-                if ($entry['shift_id'] === null) {
-                    $dayOffs->push(ScheduleDayOff::query()->create([
+                    if ($entry['shift_id'] === null) {
+                        $dayOffs->push(ScheduleDayOff::query()->create([
+                            'employee_id' => $entry['employee_id'],
+                            'work_date' => $entry['work_date'],
+                            'source' => 'roster_draft',
+                            'notes' => $notes ?? 'Rest day set on the reviewed roster.',
+                            'created_by' => $creator->id,
+                        ]));
+
+                        continue;
+                    }
+
+                    $created->push(ScheduleAssignment::query()->create([
                         'employee_id' => $entry['employee_id'],
+                        'shift_id' => $entry['shift_id'],
                         'work_date' => $entry['work_date'],
-                        'source' => 'roster_draft',
-                        'notes' => $notes ?? 'Rest day set on the reviewed roster.',
+                        'status' => 'scheduled',
+                        'notes' => $notes,
                         'created_by' => $creator->id,
+                        'created_via' => 'bulk_fill',
                     ]));
-
-                    continue;
                 }
-
-                $created->push(ScheduleAssignment::query()->create([
-                    'employee_id' => $entry['employee_id'],
-                    'shift_id' => $entry['shift_id'],
-                    'work_date' => $entry['work_date'],
-                    'status' => 'scheduled',
-                    'notes' => $notes,
-                    'created_by' => $creator->id,
-                ]));
-            }
+            });
 
             $draft?->update(['status' => 'published', 'published_at' => now()]);
 

@@ -129,7 +129,7 @@ class SchedulePagesTest extends TestCase
         $this->assertDatabaseHas('schedule_assignments', [
             'employee_id' => $otherEmployee->id,
             'shift_id' => $shift->id,
-            'work_date' => $date.' 00:00:00',
+            'work_date' => $date,
         ]);
         $this->assertSame(1, ScheduleAssignment::query()
             ->where('employee_id', $manager->employee->id)

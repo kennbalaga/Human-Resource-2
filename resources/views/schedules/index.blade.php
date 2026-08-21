@@ -302,6 +302,7 @@
                 <form method="POST" action="{{ route('schedules.store') }}" id="scheduleAssignmentForm" data-store-url="{{ route('schedules.store') }}" data-update-url-template="{{ route('schedules.update', ['scheduleAssignment' => '__ID__']) }}" data-conflict-url="{{ route('schedules.conflicts') }}">
                     @csrf
                     <input type="hidden" name="_method" value="POST" data-method-field>
+                    <input type="hidden" name="recommendation_id" data-ai-recommendation-id-field>
                     <div class="modal-header"><div><p class="panel-kicker">Schedule assignment</p><h2 class="modal-title" id="scheduleAssignmentModalLabel">Assign a shift</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div @class(['modal-body', 'schedule-assignment-workspace' => $aiSchedulingEnabled, 'schedule-form-grid' => ! $aiSchedulingEnabled])>
                         @if ($aiSchedulingEnabled)

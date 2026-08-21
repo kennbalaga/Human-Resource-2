@@ -7,6 +7,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Models\ShiftSwapRequest;
 use App\Models\User;
+use App\Services\Scheduling\RosterWriteContext;
 use App\Services\ShiftSwapService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -98,20 +99,20 @@ class ScheduleEditWindowTest extends TestCase
             ->get()
             ->all();
 
-        $todaysAssignment = ScheduleAssignment::query()->create([
+        $todaysAssignment = RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
             'employee_id' => $requester->id,
             'shift_id' => $shift->id,
             'work_date' => $today->toDateString(),
             'status' => 'scheduled',
             'created_by' => $this->manager->id,
-        ]);
-        $tomorrowsAssignment = ScheduleAssignment::query()->create([
+        ]));
+        $tomorrowsAssignment = RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
             'employee_id' => $target->id,
             'shift_id' => $shift->id,
             'work_date' => $tomorrow->toDateString(),
             'status' => 'scheduled',
             'created_by' => $this->manager->id,
-        ]);
+        ]));
 
         $swap = ShiftSwapRequest::query()->create([
             'uuid' => (string) Str::uuid(),

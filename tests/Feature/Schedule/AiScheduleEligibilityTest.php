@@ -11,6 +11,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\Scheduling\EmployeeEligibilityService;
+use App\Services\Scheduling\RosterWriteContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -96,13 +97,13 @@ class AiScheduleEligibilityTest extends TestCase
         $this->assertContains('approved_leave', collect($employeeResult['reasons'])->pluck('code'));
 
         LeaveRequest::query()->delete();
-        ScheduleAssignment::query()->create([
+        RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
             'employee_id' => $this->employee->id,
             'shift_id' => $this->dayShift->id,
             'work_date' => $date,
             'status' => 'scheduled',
             'created_by' => $this->manager->id,
-        ]);
+        ]));
         $response = $this->actingAs($this->manager)->postJson(route('schedules.ai-recommendations.store'), $this->payload($date))->assertOk();
         $employeeResult = collect($response->json('data.ineligible'))->firstWhere('employee_id', $this->employee->id);
         $this->assertContains('schedule_overlap', collect($employeeResult['reasons'])->pluck('code'));

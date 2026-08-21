@@ -8,6 +8,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\ShiftSwapRequest;
 use App\Models\User;
+use App\Services\Scheduling\RosterWriteContext;
 use App\Services\Scheduling\ScheduleLockService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -133,8 +134,10 @@ class ShiftSwapService
                 throw ValidationException::withMessages(['swap' => "This swap cannot be approved: {$reasonForTarget} for {$targetEmployee->full_name} on {$requesterAssignment->shift->name}."]);
             }
 
-            $requesterAssignment->update(['employee_id' => $targetEmployee->id]);
-            $targetAssignment->update(['employee_id' => $requesterEmployee->id]);
+            RosterWriteContext::allow($reviewer, function () use ($requesterAssignment, $targetAssignment, $requesterEmployee, $targetEmployee): void {
+                $requesterAssignment->update(['employee_id' => $targetEmployee->id]);
+                $targetAssignment->update(['employee_id' => $requesterEmployee->id]);
+            });
 
             $swap->update([
                 'status' => 'approved',

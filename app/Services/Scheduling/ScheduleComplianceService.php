@@ -2,10 +2,12 @@
 
 namespace App\Services\Scheduling;
 
+use App\Models\AttendanceRecord;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\ScheduleAssignment;
+use App\Models\ScheduleAssignmentAudit;
 use App\Models\ScheduleComplianceReview;
 use App\Models\Shift;
 use App\Services\ScheduleService;
@@ -55,6 +57,13 @@ class ScheduleComplianceService
             ->get()
             ->groupBy('employee_id');
 
+        $attendance = AttendanceRecord::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->whereDate('attendance_date', '>=', $start->toDateString())
+            ->whereDate('attendance_date', '<=', $end->toDateString())
+            ->get()
+            ->groupBy('employee_id');
+
         $findings = collect();
 
         foreach ($employees as $employee) {
@@ -62,6 +71,7 @@ class ScheduleComplianceService
                 $employee,
                 $assignments->get($employee->id, collect()),
                 $approvedLeave->get($employee->id, collect()),
+                $attendance->get($employee->id, collect()),
                 $start,
                 $end,
             ));
@@ -88,9 +98,10 @@ class ScheduleComplianceService
     /**
      * @param  Collection<int, ScheduleAssignment>  $assignments  This employee's scheduled assignments, with margin
      * @param  Collection<int, LeaveRequest>  $approvedLeave
+     * @param  Collection<int, AttendanceRecord>  $attendance  This employee's attendance records within [$start, $end]
      * @return Collection<int, array<string, mixed>>
      */
-    private function employeeFindings(Employee $employee, Collection $assignments, Collection $approvedLeave, Carbon $start, Carbon $end): Collection
+    private function employeeFindings(Employee $employee, Collection $assignments, Collection $approvedLeave, Collection $attendance, Carbon $start, Carbon $end): Collection
     {
         $findings = collect();
         $inRange = $assignments->filter(fn (ScheduleAssignment $assignment) => $assignment->work_date->betweenIncluded($start, $end));
@@ -210,7 +221,101 @@ class ScheduleComplianceService
             }
         }
 
+        $findings = $findings->merge($this->provenanceFindings($employee, $inRange));
+        $findings = $findings->merge($this->adherenceFindings($employee, $attendance));
+
         return $findings->unique(fn (array $finding) => $finding['rule'].'|'.$finding['employee_id'].'|'.$finding['date']);
+    }
+
+    /**
+     * Actual-vs-planned findings (§7 of the schedule-aware attendance plan) —
+     * distinct from provenanceFindings() below, which is about who wrote the
+     * roster row, not whether the employee actually worked it as published.
+     *
+     * @param  Collection<int, AttendanceRecord>  $attendance
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function adherenceFindings(Employee $employee, Collection $attendance): Collection
+    {
+        $findings = collect();
+
+        $offShift = $attendance->where('binding_source', 'override');
+        if ($offShift->isNotEmpty()) {
+            $findings->push($this->finding(
+                'off_shift_attendance',
+                'warning',
+                "{$employee->full_name} has {$offShift->count()} attendance record(s) in this period matching no published shift.",
+                $employee->id,
+                null,
+            ));
+        }
+
+        $overridden = $attendance->whereNotNull('override_authorised_by');
+        if ($overridden->isNotEmpty()) {
+            $findings->push($this->finding(
+                'manager_overridden_attendance',
+                'warning',
+                "{$employee->full_name} has {$overridden->count()} manager-authorised unscheduled attendance record(s) in this period.",
+                $employee->id,
+                null,
+            ));
+        }
+
+        return $findings;
+    }
+
+    /**
+     * Conformance findings for the write-boundary invariant (Part B of the
+     * schedule-aware attendance plan) — not a labor-rule check like the rest
+     * of this method, but this is the one component that already writes a
+     * findings report on the read path, so it's where the doc puts them.
+     *
+     * @param  Collection<int, ScheduleAssignment>  $inRange
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function provenanceFindings(Employee $employee, Collection $inRange): Collection
+    {
+        $findings = collect();
+
+        $missingProvenance = $inRange->whereNull('created_by');
+        if ($missingProvenance->isNotEmpty()) {
+            $findings->push($this->finding(
+                'missing_provenance',
+                'error',
+                "{$employee->full_name} has {$missingProvenance->count()} schedule assignment(s) with no recorded author in this period.",
+                $employee->id,
+                null,
+            ));
+        }
+
+        $legacy = $inRange->where('created_via', 'legacy');
+        if ($legacy->isNotEmpty()) {
+            $findings->push($this->finding(
+                'legacy_provenance',
+                'warning',
+                "{$employee->full_name} has {$legacy->count()} schedule assignment(s) from before provenance tracking (legacy) in this period.",
+                $employee->id,
+                null,
+            ));
+        }
+
+        $auditedIds = ScheduleAssignmentAudit::query()
+            ->whereIn('schedule_assignment_id', $inRange->pluck('id'))
+            ->where('action', 'created')
+            ->pluck('schedule_assignment_id')
+            ->unique();
+        $unaudited = $inRange->whereNotIn('id', $auditedIds);
+        if ($unaudited->isNotEmpty()) {
+            $findings->push($this->finding(
+                'unaudited_provenance',
+                'warning',
+                "{$employee->full_name} has {$unaudited->count()} schedule assignment(s) in this period that predate audit tracking.",
+                $employee->id,
+                null,
+            ));
+        }
+
+        return $findings;
     }
 
     /** @return Collection<int, array<string, mixed>> */

@@ -28,6 +28,10 @@
         <article class="analytics-metric"><span class="analytics-metric-icon amber"><x-icon name="leave" /></span><div><span>Approved leave</span><strong>{{ number_format($metrics['approved_leave_days'], 1) }}</strong><small>Days within selected period</small></div></article>
         <article class="analytics-metric"><span class="analytics-metric-icon red"><x-icon name="clock" /></span><div><span>Late events</span><strong>{{ number_format($metrics['late_events']) }}</strong><small>Recorded late arrivals</small></div></article>
         <article class="analytics-metric"><span class="analytics-metric-icon blue"><x-icon name="calendar" /></span><div><span>Scheduled shifts</span><strong>{{ number_format($metrics['scheduled_shifts']) }}</strong><small>Coverage assignments</small></div></article>
+        <article class="analytics-metric"><span class="analytics-metric-icon green"><x-icon name="shield" /></span><div><span>Schedule adherence</span><strong>{{ number_format($metrics['schedule_adherence_rate'], 1) }}%</strong><small>On-shift punches vs. published shifts</small></div></article>
+        <article class="analytics-metric"><span class="analytics-metric-icon amber"><x-icon name="alert" /></span><div><span>Off-shift rate</span><strong>{{ number_format($metrics['off_shift_rate'], 1) }}%</strong><small>Punches matching no published shift</small></div></article>
+        <article class="analytics-metric"><span class="analytics-metric-icon red"><x-icon name="shield" /></span><div><span>Override rate</span><strong>{{ number_format($metrics['override_rate'], 1) }}%</strong><small>Manager-authorised unscheduled punches</small></div></article>
+        <article class="analytics-metric"><span class="analytics-metric-icon violet"><x-icon name="trend" /></span><div><span>Plan vs. actual</span><strong>{{ $metrics['plan_vs_actual_variance_hours'] >= 0 ? '+' : '' }}{{ number_format($metrics['plan_vs_actual_variance_hours'], 1) }}h</strong><small>Avg. worked vs. rostered, per shift</small></div></article>
     </section>
 
     <section class="analytics-grid">

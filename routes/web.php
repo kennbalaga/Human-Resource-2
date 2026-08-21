@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminTwoFactorController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Attendance\AttendanceApprovalController;
 use App\Http\Controllers\Attendance\AttendanceController;
+use App\Http\Controllers\Attendance\AttendanceOverrideController;
 use App\Http\Controllers\Attendance\AttendanceQrScanController;
 use App\Http\Controllers\Attendance\AttendanceReportController;
 use App\Http\Controllers\Attendance\BiometricSimulatorController;
@@ -52,6 +53,9 @@ Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(func
     Route::get('/reports/export-excel', [AttendanceReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::post('/records/{attendanceRecord}/approve', [AttendanceApprovalController::class, 'approve'])->name('records.approve');
     Route::post('/records/{attendanceRecord}/reject', [AttendanceApprovalController::class, 'reject'])->name('records.reject');
+    Route::get('/override', [AttendanceOverrideController::class, 'index'])->name('override.index');
+    Route::post('/override/check-in', [AttendanceOverrideController::class, 'checkIn'])->name('override.check-in');
+    Route::post('/override/check-out', [AttendanceOverrideController::class, 'checkOut'])->name('override.check-out');
 });
 
 Route::middleware('auth')->group(function () {
@@ -74,6 +78,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/system/employee-numbers', [SettingsController::class, 'updateEmployeeNumberSettings'])->name('settings.employee-numbers.update');
     Route::patch('/settings/system/two-factor-enforcement', [SettingsController::class, 'updateTwoFactorEnforcementSettings'])->name('settings.two-factor-enforcement.update');
     Route::patch('/settings/system/attendance-capture', [SettingsController::class, 'updateAttendanceCaptureSettings'])->name('settings.attendance-capture.update');
+    Route::patch('/settings/system/attendance-schedule', [SettingsController::class, 'updateAttendanceScheduleSettings'])->name('settings.attendance-schedule.update');
     Route::post('/settings/system/biometric-simulator', [BiometricSimulatorController::class, 'store'])->name('settings.biometric-simulator.store');
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
     Route::post('/settings/two-factor', [TwoFactorSettingsController::class, 'enable'])->name('two-factor.settings.enable');

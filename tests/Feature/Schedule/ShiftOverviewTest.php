@@ -10,6 +10,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Scheduling\RosterWriteContext;
 use App\Services\ShiftOverviewService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -254,12 +255,13 @@ class ShiftOverviewTest extends TestCase
 
     private function roster(Employee $employee, string $shiftCode): void
     {
-        ScheduleAssignment::query()->create([
+        RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
             'employee_id' => $employee->id,
             'shift_id' => Shift::query()->where('code', $shiftCode)->value('id'),
             'work_date' => $this->today()->toDateString(),
             'status' => 'scheduled',
-        ]);
+            'created_by' => $this->manager()->id,
+        ]));
     }
 
     private function recordAttendance(Employee $employee): void

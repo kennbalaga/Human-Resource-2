@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use App\Models\Employee;
 use App\Models\ScheduleAssignment;
 use App\Models\Shift;
+use App\Models\User;
+use App\Services\Scheduling\RosterWriteContext;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
@@ -15,6 +17,10 @@ class ShiftScheduleSeeder extends Seeder
         // The standard shift templates (Morning, Afternoon, Night, Administrative)
         // are created by the 2026_08_03_000038 migration, not here, since they are
         // protected system templates that must exist before this seeder runs.
+        // created_by is required (NOT NULL) but this seeder has no authenticated
+        // actor of its own, so demo rows are attributed to the same designated
+        // migration actor the provenance backfill uses.
+        $migrationActorId = User::query()->where('email', 'admin@hrms.local')->value('id');
         $weekStart = now(config('schedule.timezone'))->startOfWeek(Carbon::MONDAY);
         $seedAssignments = [
             ['employee' => 'SYS-2026-0001', 'shift' => 'ADMIN-0800'],
@@ -31,16 +37,18 @@ class ShiftScheduleSeeder extends Seeder
                 continue;
             }
 
-            foreach (range(0, 4) as $dayOffset) {
-                ScheduleAssignment::query()->updateOrCreate(
-                    [
-                        'employee_id' => $employee->id,
-                        'shift_id' => $shift->id,
-                        'work_date' => $weekStart->copy()->addDays($dayOffset)->toDateString(),
-                    ],
-                    ['status' => 'scheduled'],
-                );
-            }
+            RosterWriteContext::allowUnattended(function () use ($employee, $shift, $weekStart, $migrationActorId): void {
+                foreach (range(0, 4) as $dayOffset) {
+                    ScheduleAssignment::query()->updateOrCreate(
+                        [
+                            'employee_id' => $employee->id,
+                            'shift_id' => $shift->id,
+                            'work_date' => $weekStart->copy()->addDays($dayOffset)->toDateString(),
+                        ],
+                        ['status' => 'scheduled', 'created_via' => 'legacy', 'created_by' => $migrationActorId],
+                    );
+                }
+            });
         }
     }
 }

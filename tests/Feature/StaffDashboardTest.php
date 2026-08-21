@@ -13,6 +13,7 @@ use App\Models\OfficeLocation;
 use App\Models\Role;
 use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
+use App\Services\Scheduling\RosterWriteContext;
 use App\Models\Shift;
 use App\Models\Timesheet;
 use App\Models\User;
@@ -506,12 +507,13 @@ class StaffDashboardTest extends TestCase
 
     private function assign(Employee $employee, Shift $shift, Carbon $date): ScheduleAssignment
     {
-        return ScheduleAssignment::query()->create([
+        return RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
             'employee_id' => $employee->id,
             'shift_id' => $shift->id,
             'work_date' => $date->toDateString(),
             'status' => 'scheduled',
-        ]);
+            'created_by' => User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail()->id,
+        ]));
     }
 
     /** @param array<string, mixed> $attributes */

@@ -47,7 +47,7 @@ class ScheduleServiceTest extends TestCase
         $this->assertDatabaseHas('schedule_assignments', [
             'employee_id' => $this->employee->id,
             'shift_id' => $shift->id,
-            'work_date' => '2027-01-11 00:00:00',
+            'work_date' => '2027-01-11',
         ]);
     }
 
@@ -182,7 +182,7 @@ class ScheduleServiceTest extends TestCase
             'employee_id' => $assignment->employee_id,
             'shift_id' => $assignment->shift_id,
             'work_date' => $today->copy()->addMonths(6)->toDateString(),
-        ]);
+        ], $this->manager);
     }
 
     public function test_it_allows_an_assignment_on_an_upcoming_date(): void

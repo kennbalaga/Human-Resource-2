@@ -8,8 +8,10 @@ use App\Models\LeaveRequest;
 use App\Models\RecurringSchedule;
 use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
+use App\Models\ScheduleRecommendation;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Scheduling\RosterWriteContext;
 use App\Services\Scheduling\ScheduleLockService;
 use App\Services\Scheduling\StaffingRequirementService;
 use Carbon\Carbon;
@@ -70,6 +72,11 @@ class ScheduleService
         )->startOfDay();
     }
 
+    private function resolveRecommendationId(?string $uuid): ?int
+    {
+        return $uuid === null ? null : ScheduleRecommendation::query()->where('uuid', $uuid)->value('id');
+    }
+
     /**
      * @param  array{employee_id: int, shift_id: int, work_date: string, notes?: string|null}  $data
      */
@@ -83,14 +90,16 @@ class ScheduleService
             $this->ensureNoConflicts($employee, $shift, $data['work_date']);
             $this->ensureUnlocked($employee, $data['work_date']);
 
-            return ScheduleAssignment::query()->create([
+            return RosterWriteContext::allow($creator, fn () => ScheduleAssignment::query()->create([
                 'employee_id' => $employee->id,
                 'shift_id' => $shift->id,
                 'work_date' => $data['work_date'],
                 'status' => 'scheduled',
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $creator->id,
-            ]);
+                'created_via' => 'manual',
+                'source_recommendation_id' => $this->resolveRecommendationId($data['recommendation_id'] ?? null),
+            ]));
         });
     }
 
@@ -291,9 +300,9 @@ class ScheduleService
     /**
      * @param  array{employee_id: int, shift_id: int, work_date: string, notes?: string|null}  $data
      */
-    public function updateAssignment(ScheduleAssignment $assignment, array $data): ScheduleAssignment
+    public function updateAssignment(ScheduleAssignment $assignment, array $data, User $actor): ScheduleAssignment
     {
-        return DB::transaction(function () use ($assignment, $data) {
+        return DB::transaction(function () use ($assignment, $data, $actor) {
             // The assignment is leaving its current slot as well as landing in a
             // new one, so both ends of the move must be open.
             $originalEmployee = $assignment->employee()->with('department')->first();
@@ -309,12 +318,20 @@ class ScheduleService
                 $this->ensureUnlocked($originalEmployee, $assignment->work_date->toDateString());
             }
 
-            $assignment->update([
+            $changes = [
                 'employee_id' => $employee->id,
                 'shift_id' => $shift->id,
                 'work_date' => $data['work_date'],
                 'notes' => $data['notes'] ?? null,
-            ]);
+            ];
+            // Only touched when this save carries a fresh recommendation id —
+            // a plain edit must not clobber the assignment's existing
+            // provenance with null.
+            if (array_key_exists('recommendation_id', $data) && $data['recommendation_id'] !== null) {
+                $changes['source_recommendation_id'] = $this->resolveRecommendationId($data['recommendation_id']);
+            }
+
+            RosterWriteContext::allow($actor, fn () => $assignment->update($changes));
 
             return $assignment->refresh();
         });
@@ -375,17 +392,20 @@ class ScheduleService
                 'created_by' => $creator->id,
             ]);
 
-            foreach ($dates as $date) {
-                ScheduleAssignment::query()->create([
-                    'employee_id' => $employee->id,
-                    'shift_id' => $shift->id,
-                    'recurring_schedule_id' => $series->id,
-                    'work_date' => $date->toDateString(),
-                    'status' => 'scheduled',
-                    'notes' => $data['notes'] ?? null,
-                    'created_by' => $creator->id,
-                ]);
-            }
+            RosterWriteContext::allow($creator, function () use ($dates, $employee, $shift, $series, $data, $creator): void {
+                foreach ($dates as $date) {
+                    ScheduleAssignment::query()->create([
+                        'employee_id' => $employee->id,
+                        'shift_id' => $shift->id,
+                        'recurring_schedule_id' => $series->id,
+                        'work_date' => $date->toDateString(),
+                        'status' => 'scheduled',
+                        'notes' => $data['notes'] ?? null,
+                        'created_by' => $creator->id,
+                        'created_via' => 'recurring',
+                    ]);
+                }
+            });
 
             return $series->loadCount('assignments');
         });

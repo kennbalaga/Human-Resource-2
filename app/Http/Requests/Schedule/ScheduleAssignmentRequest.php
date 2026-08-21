@@ -20,6 +20,11 @@ class ScheduleAssignmentRequest extends FormRequest
             'work_date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:500'],
             'exclude_assignment_id' => ['nullable', 'integer', 'exists:schedule_assignments,id'],
+            // Set only when this save follows an AI recommendation apply —
+            // see ai-scheduling.js's applySelected(). Influence, not a
+            // strict binding: the form fields may still be hand-edited
+            // afterward before Save.
+            'recommendation_id' => ['nullable', 'string', 'exists:schedule_recommendations,uuid'],
         ];
     }
 }

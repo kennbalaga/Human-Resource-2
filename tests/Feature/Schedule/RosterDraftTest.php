@@ -162,7 +162,7 @@ class RosterDraftTest extends TestCase
         $this->assertDatabaseHas('schedule_assignments', [
             'employee_id' => $a->id,
             'shift_id' => $this->night->id,
-            'work_date' => '2027-04-05 00:00:00',
+            'work_date' => '2027-04-05',
         ]);
         $this->assertDatabaseHas('schedule_day_offs', [
             'employee_id' => $a->id,

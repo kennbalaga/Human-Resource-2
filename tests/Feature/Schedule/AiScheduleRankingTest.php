@@ -8,6 +8,7 @@ use App\Models\Position;
 use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Scheduling\RosterWriteContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -72,12 +73,12 @@ class AiScheduleRankingTest extends TestCase
 
     private function assignment(Employee $employee, Shift $shift, string $date, User $manager): void
     {
-        ScheduleAssignment::query()->create([
+        RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
             'employee_id' => $employee->id,
             'shift_id' => $shift->id,
             'work_date' => $date,
             'status' => 'scheduled',
             'created_by' => $manager->id,
-        ]);
+        ]));
     }
 }

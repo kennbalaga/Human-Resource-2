@@ -8,6 +8,7 @@ use App\Http\Requests\Schedule\ScheduleAssignmentRequest;
 use App\Http\Resources\ScheduleAssignmentResource;
 use App\Models\ScheduleAssignment;
 use App\Services\ScheduleService;
+use App\Services\Scheduling\RosterWriteContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -51,7 +52,7 @@ class ScheduleController extends Controller
     public function update(ScheduleAssignmentRequest $request, ScheduleAssignment $scheduleAssignment, ScheduleService $service): ScheduleAssignmentResource
     {
         $this->requireManager($request->user());
-        $assignment = $service->updateAssignment($scheduleAssignment, $request->validated());
+        $assignment = $service->updateAssignment($scheduleAssignment, $request->validated(), $request->user());
 
         return new ScheduleAssignmentResource($assignment->load(['employee.user', 'employee.department', 'employee.position', 'shift']));
     }
@@ -60,7 +61,7 @@ class ScheduleController extends Controller
     {
         $this->requireManager($request->user());
         $service->assertDateEditable($scheduleAssignment->work_date, 'schedule');
-        $scheduleAssignment->delete();
+        RosterWriteContext::allow($request->user(), fn () => $scheduleAssignment->delete());
 
         return response()->noContent();
     }

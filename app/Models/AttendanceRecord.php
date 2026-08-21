@@ -35,6 +35,14 @@ class AttendanceRecord extends Model
         'check_out_ip_address',
         'check_in_user_agent',
         'check_out_user_agent',
+        'schedule_assignment_id',
+        'shift_start_at',
+        'shift_end_at',
+        'binding_source',
+        'schedule_status',
+        'early_minutes',
+        'override_authorised_by',
+        'override_reason',
     ];
 
     protected function casts(): array
@@ -44,6 +52,8 @@ class AttendanceRecord extends Model
             'check_in_at' => 'datetime',
             'check_out_at' => 'datetime',
             'approved_at' => 'datetime',
+            'shift_start_at' => 'datetime',
+            'shift_end_at' => 'datetime',
         ];
     }
 
@@ -75,6 +85,16 @@ class AttendanceRecord extends Model
     public function timesheetEntry(): HasOne
     {
         return $this->hasOne(TimesheetEntry::class);
+    }
+
+    public function scheduleAssignment(): BelongsTo
+    {
+        return $this->belongsTo(ScheduleAssignment::class);
+    }
+
+    public function overrideAuthoriser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'override_authorised_by');
     }
 
     public function getWorkedHoursAttribute(): string

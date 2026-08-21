@@ -92,7 +92,8 @@ class AnalyticsController extends Controller
             ->get();
         $employeeIds = $employees->pluck('id');
         $attendance = AttendanceRecord::query()
-            ->whereBetween('attendance_date', [$from->toDateString(), $to->toDateString()])
+            ->whereDate('attendance_date', '>=', $from->toDateString())
+            ->whereDate('attendance_date', '<=', $to->toDateString())
             ->whereIn('employee_id', $employeeIds)
             ->get();
         $leaves = LeaveRequest::query()
@@ -175,6 +176,7 @@ class AnalyticsController extends Controller
                 'approved_leave_days' => round((float) $leaves->sum('analytics_days'), 1),
                 'scheduled_shifts' => $scheduled,
                 'approved_timesheets' => $timesheets->where('status', 'approved')->count(),
+                ...$this->adherenceMetrics($attendance),
             ],
             'departmentMetrics' => $departmentMetrics,
             'attendanceTrend' => $attendanceTrend,
@@ -225,6 +227,41 @@ class AnalyticsController extends Controller
         }
 
         return isset($data['chartMax']);
+    }
+
+    /**
+     * Schedule-adherence figures, computed from columns AttendanceService
+     * writes on every check-in (schedule_status, binding_source,
+     * shift_start_at/shift_end_at, override_authorised_by) — no extra query,
+     * just reductions over the $attendance collection already loaded above.
+     *
+     * Caveat: records written before schedule-aware attendance shipped hold
+     * those columns at their migration default (binding_source='scheduled',
+     * schedule_status='on_shift') rather than a real resolution outcome, so a
+     * date range reaching back before that rollout will read as misleadingly
+     * perfect here. Not backfillable — there's no way to know what an old
+     * punch would have resolved to.
+     *
+     * @param  Collection<int, AttendanceRecord>  $attendance
+     * @return array<string, float>
+     */
+    private function adherenceMetrics(Collection $attendance): array
+    {
+        $bound = $attendance->where('binding_source', 'scheduled');
+        $onShift = $bound->where('schedule_status', 'on_shift');
+        $offShift = $attendance->where('binding_source', 'override');
+        $overridden = $attendance->whereNotNull('override_authorised_by');
+
+        $variances = $bound
+            ->filter(fn (AttendanceRecord $record) => $record->shift_start_at !== null && $record->shift_end_at !== null)
+            ->map(fn (AttendanceRecord $record) => $record->worked_minutes - $record->shift_start_at->diffInMinutes($record->shift_end_at));
+
+        return [
+            'schedule_adherence_rate' => $bound->isNotEmpty() ? round($onShift->count() / $bound->count() * 100, 1) : 0.0,
+            'off_shift_rate' => $attendance->isNotEmpty() ? round($offShift->count() / $attendance->count() * 100, 1) : 0.0,
+            'override_rate' => $attendance->isNotEmpty() ? round($overridden->count() / $attendance->count() * 100, 1) : 0.0,
+            'plan_vs_actual_variance_hours' => $variances->isNotEmpty() ? round($variances->avg() / 60, 1) : 0.0,
+        ];
     }
 
     private function leaveDaysWithin(LeaveRequest $leave, Carbon $from, Carbon $to): float

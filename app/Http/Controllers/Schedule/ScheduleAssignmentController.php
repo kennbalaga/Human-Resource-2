@@ -8,6 +8,7 @@ use App\Models\ScheduleAssignment;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\PreferenceNotificationService;
 use App\Services\ScheduleService;
+use App\Services\Scheduling\RosterWriteContext;
 use App\Services\Scheduling\ScheduleLockService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,7 +33,7 @@ class ScheduleAssignmentController extends Controller
         ScheduleService $scheduleService,
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
-        $assignment = $scheduleService->updateAssignment($scheduleAssignment, $request->validated());
+        $assignment = $scheduleService->updateAssignment($scheduleAssignment, $request->validated(), $request->user());
         $this->notifyEmployee($assignment, 'updated', $notifications);
 
         return back()->with('success', 'Schedule assignment updated successfully.');
@@ -52,7 +53,7 @@ class ScheduleAssignmentController extends Controller
         if ($scheduleAssignment->employee->department !== null) {
             $locks->assertUnlocked($scheduleAssignment->employee->department, $scheduleAssignment->work_date);
         }
-        $scheduleAssignment->delete();
+        RosterWriteContext::allow($request->user(), fn () => $scheduleAssignment->delete());
         $this->notifyEmployee($scheduleAssignment, 'removed', $notifications);
 
         return back()->with('success', 'Schedule assignment removed.');

@@ -18,6 +18,7 @@ class TimesheetEntry extends Model
         'overtime_minutes',
         'late_minutes',
         'undertime_minutes',
+        'scheduled_minutes',
         'source',
         'notes',
     ];

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Settings\UpdateAccountRequest;
 use App\Http\Requests\Settings\UpdateAttendanceCaptureSettingsRequest;
+use App\Http\Requests\Settings\UpdateAttendanceScheduleSettingsRequest;
 use App\Http\Requests\Settings\UpdateEmployeeNumberSettingsRequest;
 use App\Http\Requests\Settings\UpdatePasswordRequest;
 use App\Http\Requests\Settings\UpdatePreferencesRequest;
@@ -14,6 +15,7 @@ use App\Models\Employee;
 use App\Services\AttendanceCaptureSettings;
 use App\Services\Organization\EmployeeNumberSettings;
 use App\Services\Organization\TwoFactorEnforcementSettings;
+use App\Services\Scheduling\AttendanceScheduleSettings;
 use App\Services\TwoFactorSecurityService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +31,7 @@ class SettingsController extends Controller
         EmployeeNumberSettings $employeeNumberSettings,
         AttendanceCaptureSettings $attendanceCaptureSettings,
         TwoFactorEnforcementSettings $twoFactorEnforcementSettings,
+        AttendanceScheduleSettings $attendanceScheduleSettings,
     ): View {
         $user = $request->user()->load(['roles', 'employee', 'preference']);
         $pendingEncryptionState = $twoFactor->normalizePendingEnrollment($user);
@@ -68,6 +71,12 @@ class SettingsController extends Controller
                 : null,
             'attendanceManualModeExpiresAt' => $attendanceManualModeExpiresAt,
             'attendanceSettingUpdatedBy' => $attendanceCaptureSettings->updatedBy()?->name,
+            'attendanceScheduleEarlyWindowMinutes' => $attendanceScheduleSettings->earlyWindowMinutes(),
+            'attendanceScheduleGraceMinutes' => $attendanceScheduleSettings->graceMinutes(),
+            'attendanceScheduleLateBindMinutes' => $attendanceScheduleSettings->lateBindMinutes(),
+            'attendanceScheduleAware' => $attendanceScheduleSettings->scheduleAware(),
+            'attendanceScheduleEnforcePublishedShift' => $attendanceScheduleSettings->enforcePublishedShift(),
+            'attendanceScheduleSettingUpdatedBy' => $attendanceScheduleSettings->updatedBy()?->name,
             'biometricSimulatorAvailable' => app()->environment(['local', 'testing']) && $user->hasRole('system-administrator'),
             'biometricSimulatorEmployees' => app()->environment(['local', 'testing']) && $user->hasRole('system-administrator')
                 ? Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get()
@@ -139,6 +148,21 @@ class SettingsController extends Controller
         );
 
         return back()->with('success', 'Attendance capture mode updated successfully.');
+    }
+
+    public function updateAttendanceScheduleSettings(
+        UpdateAttendanceScheduleSettingsRequest $request,
+        AttendanceScheduleSettings $attendanceScheduleSettings,
+    ): RedirectResponse {
+        $attendanceScheduleSettings->update($request->user(), [
+            'early_window_minutes' => $request->integer('early_window_minutes'),
+            'grace_minutes' => $request->integer('grace_minutes'),
+            'late_bind_minutes' => $request->integer('late_bind_minutes'),
+            'schedule_aware' => $request->boolean('schedule_aware'),
+            'enforce_published_shift' => $request->boolean('enforce_published_shift'),
+        ]);
+
+        return back()->with('success', 'Schedule-aware attendance settings updated successfully.');
     }
 
     public function updatePassword(UpdatePasswordRequest $request): RedirectResponse

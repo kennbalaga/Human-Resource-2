@@ -93,6 +93,7 @@ class TimesheetService
                 'overtime_minutes' => $record->overtime_minutes,
                 'late_minutes' => $record->late_minutes,
                 'undertime_minutes' => $record->undertime_minutes,
+                'scheduled_minutes' => $record->scheduleAssignment?->shift?->duration_minutes,
                 'source' => 'attendance',
                 'notes' => $record->notes,
             ],

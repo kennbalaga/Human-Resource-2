@@ -8,6 +8,7 @@ use App\Models\RecurringSchedule;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\PreferenceNotificationService;
 use App\Services\ScheduleService;
+use App\Services\Scheduling\RosterWriteContext;
 use App\Services\Scheduling\ScheduleLockService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -37,7 +38,7 @@ class RecurringScheduleController extends Controller
         abort_unless(Gate::forUser($request->user())->allows('workforce.view'), 403);
 
         $recurringSchedule->loadMissing(['employee.department', 'employee.user.preference', 'shift']);
-        DB::transaction(function () use ($recurringSchedule, $locks): void {
+        DB::transaction(function () use ($recurringSchedule, $locks, $request): void {
             $futureAssignments = $recurringSchedule->assignments()
                 ->whereDate('work_date', '>=', now(config('schedule.timezone'))->toDateString())
                 ->get();
@@ -48,9 +49,9 @@ class RecurringScheduleController extends Controller
                 }
             }
 
-            $recurringSchedule->assignments()
+            RosterWriteContext::allow($request->user(), fn () => $recurringSchedule->assignments()
                 ->whereDate('work_date', '>=', now(config('schedule.timezone'))->toDateString())
-                ->delete();
+                ->delete());
             $recurringSchedule->update(['status' => 'cancelled']);
         });
         $this->notifyEmployee($recurringSchedule, 'cancelled', $notifications);
