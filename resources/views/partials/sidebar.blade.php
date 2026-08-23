@@ -21,13 +21,10 @@
         ->intersect(['system-administrator', 'hr-manager', 'department-head'])
         ->isNotEmpty();
 
-    /* Shift swaps cover a clinical shift, not an office desk. A manager keeps
-       the link to review requests system-wide regardless of their own
-       department; anyone else needs to be clinical staff themselves. */
-    $sidebarCanSeeShiftSwaps = $sidebarRoles
-        ->intersect(['system-administrator', 'hr-manager', 'department-head'])
-        ->isNotEmpty()
-        || ($sidebarUser->employee?->canUseShiftSwaps() ?? false);
+    /* Shift swaps cover a clinical shift, not an office desk. The entry is a
+       staff-side tool only: an administrator or manager does not carry the link
+       on the strength of their role, only if they are clinical staff themselves. */
+    $sidebarCanSeeShiftSwaps = $sidebarUser->employee?->canUseShiftSwaps() ?? false;
 @endphp
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Primary navigation">

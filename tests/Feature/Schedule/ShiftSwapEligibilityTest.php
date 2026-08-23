@@ -19,8 +19,8 @@ use Tests\TestCase;
  * Shift swaps cover a clinical shift — a nurse cannot make the ward, a
  * colleague takes it. Administrative staff work fixed office hours with
  * nothing to trade, so the feature does not extend to them: not requesting,
- * not being asked, not even seeing the page, except as a manager reviewing
- * requests system-wide.
+ * not being asked, not even seeing the page. Managers review requests but no
+ * longer carry the sidebar link — they arrive from the notification instead.
  */
 class ShiftSwapEligibilityTest extends TestCase
 {
@@ -213,9 +213,11 @@ class ShiftSwapEligibilityTest extends TestCase
         $this->actingAs($this->clinicalEmployee->user)->get(route('dashboard'))->assertSee('Shift Swaps');
     }
 
-    public function test_the_sidebar_link_is_shown_to_a_manager(): void
+    public function test_the_sidebar_link_is_hidden_from_a_manager(): void
     {
-        $this->actingAs($this->manager)->get(route('dashboard'))->assertSee('Shift Swaps');
+        // The link is a staff-side tool. A manager still reviews requests, but
+        // reaches the page from the notification rather than the sidebar.
+        $this->actingAs($this->manager)->get(route('dashboard'))->assertDontSee('Shift Swaps');
     }
 
     public function test_the_sidebar_link_is_hidden_from_administrative_staff(): void
