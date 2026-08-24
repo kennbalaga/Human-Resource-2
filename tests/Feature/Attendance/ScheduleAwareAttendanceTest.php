@@ -42,9 +42,9 @@ class ScheduleAwareAttendanceTest extends TestCase
         $this->enableScheduleAware();
         $office = $this->office();
         $employee = $this->rosterableEmployee();
-        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2026-08-24');
+        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2027-08-24');
 
-        Carbon::setTestNow(Carbon::parse('2026-08-24 08:20:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2027-08-24 08:20:00', 'Asia/Manila'));
         $checkIn = app(AttendanceService::class)->checkIn($employee, $office, null, '127.0.0.1', 'PHPUnit');
 
         $this->assertSame('late', $checkIn->status);
@@ -54,7 +54,7 @@ class ScheduleAwareAttendanceTest extends TestCase
         $this->assertSame(5, $checkIn->late_minutes);
         $this->assertNotNull($checkIn->schedule_assignment_id);
 
-        Carbon::setTestNow(Carbon::parse('2026-08-24 17:30:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2027-08-24 17:30:00', 'Asia/Manila'));
         $checkOut = app(AttendanceService::class)->checkOut($employee, $office, null, '127.0.0.1', 'PHPUnit');
 
         // Overtime measured against the frozen shift end (17:00), not office close.
@@ -67,7 +67,7 @@ class ScheduleAwareAttendanceTest extends TestCase
         $office = $this->office();
         $employee = $this->rosterableEmployee();
 
-        Carbon::setTestNow(Carbon::parse('2026-08-24 08:00:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2027-08-24 08:00:00', 'Asia/Manila'));
 
         $this->expectException(ValidationException::class);
 
@@ -81,7 +81,7 @@ class ScheduleAwareAttendanceTest extends TestCase
         $employee = $this->rosterableEmployee();
         $manager = $this->manager();
 
-        Carbon::setTestNow(Carbon::parse('2026-08-24 08:00:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2027-08-24 08:00:00', 'Asia/Manila'));
 
         $record = app(AttendanceService::class)->checkIn(
             $employee,
@@ -108,17 +108,7 @@ class ScheduleAwareAttendanceTest extends TestCase
         $office = $this->office();
         $manager = $this->manager();
 
-        // ShiftScheduleSeeder gives the manager's own employee a real
-        // Mon-Fri ADMIN-0800 assignment for "this week" relative to
-        // whenever the suite runs, which on the date below would otherwise
-        // cover this punch and defeat the "no shift covers it" premise this
-        // test is actually about.
-        RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()
-            ->where('employee_id', $manager->employee->id)
-            ->whereDate('work_date', '2026-08-24')
-            ->delete());
-
-        Carbon::setTestNow(Carbon::parse('2026-08-24 08:00:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2027-08-24 08:00:00', 'Asia/Manila'));
 
         $this->expectException(ValidationException::class);
 
@@ -143,10 +133,10 @@ class ScheduleAwareAttendanceTest extends TestCase
         $office->update(['work_start_time' => '08:00:00', 'work_end_time' => '17:00:00', 'grace_period_minutes' => 15, 'break_minutes' => 60]);
         $employee = $this->rosterableEmployee();
 
-        Carbon::setTestNow(Carbon::parse('2026-08-24 08:00:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2027-08-24 08:00:00', 'Asia/Manila'));
         app(AttendanceService::class)->checkIn($employee, $office, null, '127.0.0.1', 'PHPUnit');
 
-        Carbon::setTestNow(Carbon::parse('2026-08-24 17:30:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2027-08-24 17:30:00', 'Asia/Manila'));
         $checkOut = app(AttendanceService::class)->checkOut($employee, $office, null, '127.0.0.1', 'PHPUnit');
 
         // No bound shift end, so the office-hours formula applies even though
@@ -163,10 +153,10 @@ class ScheduleAwareAttendanceTest extends TestCase
         // shift's 08:00 start + 15 min grace late threshold.
         $office->update(['work_start_time' => '06:00:00', 'work_end_time' => '17:00:00', 'grace_period_minutes' => 180, 'break_minutes' => 60]);
         $employee = $this->rosterableEmployee();
-        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2026-08-24');
+        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2027-08-24');
 
         // 08:20 is late against the shift (grace 08:15) but on-time against office hours.
-        Carbon::setTestNow(Carbon::parse('2026-08-24 08:20:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2027-08-24 08:20:00', 'Asia/Manila'));
         $checkIn = app(AttendanceService::class)->checkIn($employee, $office, null, '127.0.0.1', 'PHPUnit');
 
         $this->assertSame('present', $checkIn->status);
@@ -186,9 +176,9 @@ class ScheduleAwareAttendanceTest extends TestCase
         $this->enableScheduleAware();
         $office = $this->office();
         $employee = $this->rosterableEmployee();
-        $this->assign($employee, $this->shift('14:00:00', '22:00:00'), '2026-08-24');
+        $this->assign($employee, $this->shift('14:00:00', '22:00:00'), '2027-08-24');
 
-        Carbon::setTestNow(Carbon::parse('2026-08-24 09:00:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2027-08-24 09:00:00', 'Asia/Manila'));
         $checkIn = app(AttendanceService::class)->checkIn($employee, $office, null, '127.0.0.1', 'PHPUnit');
 
         $this->assertSame('override', $checkIn->binding_source);
@@ -201,12 +191,12 @@ class ScheduleAwareAttendanceTest extends TestCase
         $this->enableScheduleAware();
         $office = $this->office();
         $employee = $this->rosterableEmployee();
-        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2026-08-24');
+        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2027-08-24');
 
-        Carbon::setTestNow(Carbon::parse('2026-08-24 08:00:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2027-08-24 08:00:00', 'Asia/Manila'));
         app(AttendanceService::class)->checkIn($employee, $office, null, '127.0.0.1', 'PHPUnit');
 
-        Carbon::setTestNow(Carbon::parse('2026-08-24 17:00:00', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2027-08-24 17:00:00', 'Asia/Manila'));
         $record = app(AttendanceService::class)->checkOut($employee, $office, null, '127.0.0.1', 'PHPUnit');
 
         $timesheet = app(TimesheetService::class)->approveAttendance($record, $this->manager());

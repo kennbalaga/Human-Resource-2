@@ -33,7 +33,7 @@ class ScheduleAssignmentAuditTest extends TestCase
         $assignment = RosterWriteContext::allow($actor, fn () => ScheduleAssignment::query()->create([
             'employee_id' => $employee->id,
             'shift_id' => $shift->id,
-            'work_date' => '2026-09-10',
+            'work_date' => '2027-09-10',
             'status' => 'scheduled',
             'created_via' => 'manual',
             'created_by' => $actor->id,
@@ -65,7 +65,7 @@ class ScheduleAssignmentAuditTest extends TestCase
         $assignment = RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
             'employee_id' => $employee->id,
             'shift_id' => $shift->id,
-            'work_date' => '2026-09-11',
+            'work_date' => '2027-09-11',
             'status' => 'scheduled',
             'created_via' => 'legacy',
             'created_by' => $this->actor()->id,
@@ -83,7 +83,7 @@ class ScheduleAssignmentAuditTest extends TestCase
         $assignment = RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
             'employee_id' => $employee->id,
             'shift_id' => $shift->id,
-            'work_date' => '2026-09-12',
+            'work_date' => '2027-09-12',
             'status' => 'scheduled',
             'created_by' => $this->actor()->id,
         ]));

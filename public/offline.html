@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline · Workforce HRMS</title>
+    <meta name="theme-color" content="#176b43">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg">
+    <style>
+        /*
+         * Deliberately self-contained: the service worker serves this page when
+         * the network is gone, so it cannot rely on a stylesheet request
+         * succeeding. Colours mirror the app's light/dark tokens.
+         */
+        :root {
+            --bg: #f4f7f6;
+            --surface: #ffffff;
+            --text: #1b2923;
+            --muted: #6d7c75;
+            --border: #e3eae6;
+            --primary: #176b43;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0c1310;
+                --surface: #19231e;
+                --text: #e6efe9;
+                --muted: #93a49b;
+                --border: #26332c;
+                --primary: #7ec8a4;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 1.5rem;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+            line-height: 1.55;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: .9rem;
+            padding: 2rem;
+            max-width: 26rem;
+            text-align: center;
+            box-shadow: 0 12px 32px rgba(25, 68, 49, .07);
+        }
+
+        .mark {
+            width: 2.75rem;
+            height: 2.75rem;
+            margin: 0 auto 1rem;
+            display: grid;
+            place-items: center;
+            border-radius: .7rem;
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .mark svg { width: 1.5rem; height: 1.5rem; }
+
+        h1 { font-size: 1.25rem; margin: 0 0 .5rem; }
+        p { margin: 0 0 1.25rem; color: var(--muted); font-size: .92rem; }
+
+        button {
+            font: inherit;
+            font-weight: 600;
+            font-size: .9rem;
+            color: #fff;
+            background: var(--primary);
+            border: 0;
+            border-radius: .5rem;
+            padding: .6rem 1.4rem;
+            cursor: pointer;
+        }
+
+        button:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+        small { display: block; margin-top: 1.25rem; font-size: .78rem; color: var(--muted); }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <span class="mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16M9 21v-4h6v4M9 8h6M12 5v6" />
+            </svg>
+        </span>
+        <h1>You're offline</h1>
+        <p>
+            Workforce HRMS needs a connection to show live attendance, schedules,
+            and leave records. Your work is on the server, not this device &mdash;
+            nothing has been lost.
+        </p>
+        <button type="button" onclick="window.location.reload()">Try again</button>
+        <small>Attendance still needs a connection. Ask the entrance officer to record your time if this persists.</small>
+    </main>
+</body>
+</html>

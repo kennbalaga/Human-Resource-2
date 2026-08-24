@@ -31,7 +31,7 @@ class RosterWriteContextTest extends TestCase
         ScheduleAssignment::query()->create([
             'employee_id' => $this->employee()->id,
             'shift_id' => $this->shift()->id,
-            'work_date' => '2026-09-01',
+            'work_date' => '2027-09-01',
             'status' => 'scheduled',
             'created_by' => $this->actor()->id,
         ]);
@@ -64,7 +64,7 @@ class RosterWriteContextTest extends TestCase
         $assignment = RosterWriteContext::allow($actor, fn () => ScheduleAssignment::query()->create([
             'employee_id' => $employee->id,
             'shift_id' => $shift->id,
-            'work_date' => '2026-09-02',
+            'work_date' => '2027-09-02',
             'status' => 'scheduled',
             'created_by' => $actor->id,
         ]));
@@ -96,7 +96,7 @@ class RosterWriteContextTest extends TestCase
         ScheduleAssignment::query()->create([
             'employee_id' => $this->employee()->id,
             'shift_id' => $this->shift()->id,
-            'work_date' => '2026-09-03',
+            'work_date' => '2027-09-03',
             'status' => 'scheduled',
             'created_by' => $this->actor()->id,
         ]);
@@ -122,7 +122,7 @@ class RosterWriteContextTest extends TestCase
         $assignment = RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
             'employee_id' => $employee->id,
             'shift_id' => $shift->id,
-            'work_date' => '2026-09-04',
+            'work_date' => '2027-09-04',
             'status' => 'scheduled',
             'created_by' => $this->actor()->id,
         ]));
@@ -157,7 +157,7 @@ class RosterWriteContextTest extends TestCase
         return RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
             'employee_id' => $this->employee()->id,
             'shift_id' => $this->shift()->id,
-            'work_date' => '2026-09-05',
+            'work_date' => '2027-09-05',
             'status' => 'scheduled',
             'created_by' => $this->actor()->id,
         ]));

@@ -39,9 +39,9 @@ class ShiftResolverTest extends TestCase
     public function test_it_binds_and_classifies_on_shift_within_grace(): void
     {
         $employee = $this->employee();
-        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2026-08-24');
+        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2027-08-24');
 
-        $resolution = $this->resolve($employee, '2026-08-24 08:10:00');
+        $resolution = $this->resolve($employee, '2027-08-24 08:10:00');
 
         $this->assertTrue($resolution->isBound());
         $this->assertSame(ShiftResolution::ON_SHIFT, $resolution->scheduleStatus);
@@ -50,9 +50,9 @@ class ShiftResolverTest extends TestCase
     public function test_it_classifies_early_arrival(): void
     {
         $employee = $this->employee();
-        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2026-08-24');
+        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2027-08-24');
 
-        $resolution = $this->resolve($employee, '2026-08-24 07:30:00');
+        $resolution = $this->resolve($employee, '2027-08-24 07:30:00');
 
         $this->assertTrue($resolution->isBound());
         $this->assertSame(ShiftResolution::EARLY, $resolution->scheduleStatus);
@@ -61,9 +61,9 @@ class ShiftResolverTest extends TestCase
     public function test_it_classifies_late_arrival_within_late_bind(): void
     {
         $employee = $this->employee();
-        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2026-08-24');
+        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2027-08-24');
 
-        $resolution = $this->resolve($employee, '2026-08-24 09:30:00');
+        $resolution = $this->resolve($employee, '2027-08-24 09:30:00');
 
         $this->assertTrue($resolution->isBound());
         $this->assertSame(ShiftResolution::LATE, $resolution->scheduleStatus);
@@ -72,31 +72,31 @@ class ShiftResolverTest extends TestCase
     public function test_boundary_classification_around_grace_and_late_bind(): void
     {
         $employee = $this->employee();
-        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2026-08-24');
+        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2027-08-24');
 
         // start (08:00) — exactly on time.
-        $this->assertSame(ShiftResolution::ON_SHIFT, $this->resolve($employee, '2026-08-24 08:00:00')->scheduleStatus);
+        $this->assertSame(ShiftResolution::ON_SHIFT, $this->resolve($employee, '2027-08-24 08:00:00')->scheduleStatus);
         // start + grace (08:15) — still on time.
-        $this->assertSame(ShiftResolution::ON_SHIFT, $this->resolve($employee, '2026-08-24 08:15:00')->scheduleStatus);
+        $this->assertSame(ShiftResolution::ON_SHIFT, $this->resolve($employee, '2027-08-24 08:15:00')->scheduleStatus);
         // start + grace + 1 minute (08:16) — late.
-        $this->assertSame(ShiftResolution::LATE, $this->resolve($employee, '2026-08-24 08:16:00')->scheduleStatus);
+        $this->assertSame(ShiftResolution::LATE, $this->resolve($employee, '2027-08-24 08:16:00')->scheduleStatus);
         // start + late_bind (12:00) — still binds, still late.
-        $this->assertSame(ShiftResolution::LATE, $this->resolve($employee, '2026-08-24 12:00:00')->scheduleStatus);
+        $this->assertSame(ShiftResolution::LATE, $this->resolve($employee, '2027-08-24 12:00:00')->scheduleStatus);
         // start + late_bind + 1 minute (12:01) — outside the window entirely.
-        $this->assertFalse($this->resolve($employee, '2026-08-24 12:01:00')->isBound());
+        $this->assertFalse($this->resolve($employee, '2027-08-24 12:01:00')->isBound());
         // start - early_window (07:00) — earliest a punch still binds.
-        $this->assertSame(ShiftResolution::EARLY, $this->resolve($employee, '2026-08-24 07:00:00')->scheduleStatus);
+        $this->assertSame(ShiftResolution::EARLY, $this->resolve($employee, '2027-08-24 07:00:00')->scheduleStatus);
         // start - early_window - 1 minute (06:59) — outside the window entirely.
-        $this->assertFalse($this->resolve($employee, '2026-08-24 06:59:00')->isBound());
+        $this->assertFalse($this->resolve($employee, '2027-08-24 06:59:00')->isBound());
     }
 
     public function test_a_punch_far_outside_any_shift_window_is_unscheduled(): void
     {
         // The original defect: a 14:00-22:00 shift, badged in at 09:00.
         $employee = $this->employee();
-        $this->assign($employee, $this->shift('14:00:00', '22:00:00'), '2026-08-24');
+        $this->assign($employee, $this->shift('14:00:00', '22:00:00'), '2027-08-24');
 
-        $resolution = $this->resolve($employee, '2026-08-24 09:00:00');
+        $resolution = $this->resolve($employee, '2027-08-24 09:00:00');
 
         $this->assertFalse($resolution->isBound());
         $this->assertSame(ShiftResolution::UNSCHEDULED, $resolution->scheduleStatus);
@@ -106,32 +106,32 @@ class ShiftResolverTest extends TestCase
     public function test_overnight_shift_rolls_the_end_to_the_next_day(): void
     {
         $employee = $this->employee();
-        $this->assign($employee, $this->shift('22:00:00', '06:00:00'), '2026-08-24');
+        $this->assign($employee, $this->shift('22:00:00', '06:00:00'), '2027-08-24');
 
-        $resolution = $this->resolve($employee, '2026-08-24 22:05:00');
+        $resolution = $this->resolve($employee, '2027-08-24 22:05:00');
 
         $this->assertTrue($resolution->isBound());
         $this->assertSame(ShiftResolution::ON_SHIFT, $resolution->scheduleStatus);
-        $this->assertSame('2026-08-25 06:00:00', $resolution->end()->format('Y-m-d H:i:s'));
+        $this->assertSame('2027-08-25 06:00:00', $resolution->end()->format('Y-m-d H:i:s'));
     }
 
     public function test_approved_leave_blocks_binding_with_leave_conflict_reason(): void
     {
         $employee = $this->employee();
-        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2026-08-24');
+        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2027-08-24');
 
         LeaveRequest::query()->create([
             'uuid' => (string) Str::uuid(),
             'employee_id' => $employee->id,
             'leave_type_id' => LeaveType::query()->value('id'),
-            'start_date' => '2026-08-24',
-            'end_date' => '2026-08-24',
+            'start_date' => '2027-08-24',
+            'end_date' => '2027-08-24',
             'requested_days' => 1,
             'reason' => 'Approved for the shift resolver test.',
             'status' => 'approved',
         ]);
 
-        $resolution = $this->resolve($employee, '2026-08-24 08:10:00');
+        $resolution = $this->resolve($employee, '2027-08-24 08:10:00');
 
         $this->assertFalse($resolution->isBound());
         $this->assertSame(ShiftResolution::REASON_LEAVE_CONFLICT, $resolution->reason);
@@ -140,21 +140,21 @@ class ShiftResolverTest extends TestCase
     public function test_a_closed_attendance_record_removes_the_assignment_from_candidacy(): void
     {
         $employee = $this->employee();
-        $assignment = $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2026-08-24');
+        $assignment = $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2027-08-24');
 
         AttendanceRecord::query()->create([
             'employee_id' => $employee->id,
             'office_location_id' => 1,
-            'attendance_date' => '2026-08-24',
-            'check_in_at' => Carbon::parse('2026-08-24 08:00:00', 'Asia/Manila'),
-            'check_out_at' => Carbon::parse('2026-08-24 17:00:00', 'Asia/Manila'),
+            'attendance_date' => '2027-08-24',
+            'check_in_at' => Carbon::parse('2027-08-24 08:00:00', 'Asia/Manila'),
+            'check_out_at' => Carbon::parse('2027-08-24 17:00:00', 'Asia/Manila'),
             'check_in_method' => 'manual',
             'check_out_method' => 'manual',
             'status' => 'present',
             'schedule_assignment_id' => $assignment->id,
         ]);
 
-        $resolution = $this->resolve($employee, '2026-08-24 08:05:00');
+        $resolution = $this->resolve($employee, '2027-08-24 08:05:00');
 
         $this->assertFalse($resolution->isBound());
     }
@@ -163,10 +163,10 @@ class ShiftResolverTest extends TestCase
     {
         $employee = $this->employee();
         // Generous late-bind so both shifts remain candidates for a punch at 14:00.
-        $this->assign($employee, $this->shift('10:00:00', '14:00:00', 'SR-A'), '2026-08-24');
-        $secondAssignment = $this->assign($employee, $this->shift('14:30:00', '22:00:00', 'SR-B'), '2026-08-24');
+        $this->assign($employee, $this->shift('10:00:00', '14:00:00', 'SR-A'), '2027-08-24');
+        $secondAssignment = $this->assign($employee, $this->shift('14:30:00', '22:00:00', 'SR-B'), '2027-08-24');
 
-        $resolution = $this->resolve($employee, '2026-08-24 14:00:00', lateBindMinutes: 300);
+        $resolution = $this->resolve($employee, '2027-08-24 14:00:00', lateBindMinutes: 300);
 
         $this->assertTrue($resolution->isBound());
         $this->assertSame($secondAssignment->id, $resolution->assignment->id);
