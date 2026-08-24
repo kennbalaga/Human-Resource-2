@@ -268,6 +268,7 @@ class RosterDraftService
         return DB::transaction(function () use ($department, $entries, $creator, $notes, $draft, $rules) {
             $employeeIds = $entries->pluck('employee_id')->unique()->all();
             $employees = Employee::query()->whereKey($employeeIds)->lockForUpdate()->get()->keyBy('id');
+            $shifts = Shift::query()->whereKey($entries->pluck('shift_id')->filter()->unique()->all())->get()->keyBy('id');
 
             $dates = $entries->pluck('work_date');
             $evaluation = $this->evaluate($department, $entries, $dates->min(), $dates->max(), $rules);
@@ -313,7 +314,7 @@ class RosterDraftService
             $lockSkipped = collect();
 
             RosterWriteContext::allow($creator, function () use (
-                $entries, $blocked, $department, $employees, $locks, $notes, $creator,
+                $entries, $blocked, $department, $employees, $shifts, $locks, $notes, $creator,
                 &$created, &$dayOffs, &$lockSkipped,
             ): void {
                 foreach ($entries as $entry) {
@@ -326,7 +327,7 @@ class RosterDraftService
                         $lockSkipped->push($this->issue(
                             $entry,
                             $employees->get($entry['employee_id'])?->full_name ?? 'Unknown employee',
-                            $entry['shift_id'] !== null ? Shift::find($entry['shift_id'])?->name : null,
+                            $entry['shift_id'] !== null ? $shifts->get($entry['shift_id'])?->name : null,
                             'Administrative departments do not schedule Sundays',
                         ));
 
@@ -337,7 +338,7 @@ class RosterDraftService
                         $lockSkipped->push($this->issue(
                             $entry,
                             $employees->get($entry['employee_id'])?->full_name ?? 'Unknown employee',
-                            $entry['shift_id'] !== null ? Shift::find($entry['shift_id'])?->name : null,
+                            $entry['shift_id'] !== null ? $shifts->get($entry['shift_id'])?->name : null,
                             'Schedule locked for this period',
                         ));
 

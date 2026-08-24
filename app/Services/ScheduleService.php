@@ -8,6 +8,7 @@ use App\Models\LeaveRequest;
 use App\Models\RecurringSchedule;
 use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
+use App\Models\ScheduleLock;
 use App\Models\ScheduleRecommendation;
 use App\Models\Shift;
 use App\Models\User;
@@ -361,17 +362,63 @@ class ScheduleService
                 ]);
             }
 
+            // Every date's lock/day-off/conflict/rest rule used to run its own
+            // round trip; a quarter-long daily recurrence could mean hundreds
+            // of them for one click. Each kind is preloaded once for the whole
+            // range instead, and every date below is checked against that
+            // in-memory set — a fetch window wider than any one date's own
+            // conflict/rest window never changes the result, since the actual
+            // overlap test is time-based, not date-based.
+            $rangeStart = $dates->first();
+            $rangeEnd = $dates->last();
+            $locks = $employee->department !== null
+                ? $this->activeLocksFor($employee->department, $rangeStart, $rangeEnd)
+                : collect();
+            $dayOffDates = ScheduleDayOff::query()
+                ->where('employee_id', $employee->id)
+                ->whereBetween('work_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
+                ->pluck('work_date')
+                ->map(fn ($workDate) => Carbon::parse($workDate)->toDateString())
+                ->flip();
+            $nearbyAssignments = ScheduleAssignment::query()
+                ->with('shift')
+                ->where('employee_id', $employee->id)
+                ->where('status', 'scheduled')
+                ->whereBetween('work_date', [
+                    $rangeStart->copy()->subDays(2)->toDateString(),
+                    $rangeEnd->copy()->addDays(2)->toDateString(),
+                ])
+                ->get();
+            $minimumRestMinutes = max(0, (int) config('schedule.minimum_rest_hours')) * 60;
+
             foreach ($dates as $date) {
-                $this->ensureUnlocked($employee, $date->toDateString());
-                $this->ensureNoDayOff($employee, $date->toDateString());
-                $conflicts = $this->conflictsFor($employee, $shift, $date->toDateString());
+                $dateString = $date->toDateString();
+
+                $lock = $this->lockCovering($locks, $dateString);
+                if ($lock !== null) {
+                    throw ValidationException::withMessages([
+                        'schedule' => "{$employee->department->name} is locked from {$lock->start_date->format('M j, Y')} to {$lock->end_date->format('M j, Y')}. Unlock it before making changes to {$date->format('M j, Y')}.",
+                    ]);
+                }
+
+                if ($dayOffDates->has($dateString)) {
+                    throw ValidationException::withMessages([
+                        'schedule' => 'This employee has a scheduled day off on '.$date->format('M j, Y').'. Remove the day off before assigning a shift.',
+                    ]);
+                }
+
+                [$candidateStart, $candidateEnd] = $this->intervalFor($shift, $dateString);
+
+                $conflicts = $this->filterConflicts($nearbyAssignments, $candidateStart, $candidateEnd);
                 if ($conflicts->isNotEmpty()) {
                     $conflict = $conflicts->first();
                     throw ValidationException::withMessages([
                         'schedule' => "Recurring schedule conflicts on {$date->format('M j, Y')} with {$conflict->shift->name} ({$conflict->shift->formatted_time}).",
                     ]);
                 }
-                if ($this->restConflictsFor($employee, $shift, $date->toDateString())->isNotEmpty()) {
+
+                if ($minimumRestMinutes > 0
+                    && $this->filterRestConflicts($nearbyAssignments, $candidateStart, $candidateEnd, $minimumRestMinutes)->isNotEmpty()) {
                     throw ValidationException::withMessages([
                         'schedule' => "Recurring schedule does not provide the configured minimum rest before or after {$date->format('M j, Y')}.",
                     ]);
@@ -423,7 +470,7 @@ class ScheduleService
         [$candidateStart, $candidateEnd] = $this->intervalFor($shift, $workDate);
         $date = Carbon::parse($workDate, config('schedule.timezone'));
 
-        return ScheduleAssignment::query()
+        $assignments = ScheduleAssignment::query()
             ->with('shift')
             ->where('employee_id', $employee->id)
             ->where('status', 'scheduled')
@@ -432,7 +479,15 @@ class ScheduleService
                 $date->copy()->addDay()->toDateString(),
             ])
             ->when($excludeAssignmentId, fn ($query) => $query->where('id', '!=', $excludeAssignmentId))
-            ->get()
+            ->get();
+
+        return $this->filterConflicts($assignments, $candidateStart, $candidateEnd);
+    }
+
+    /** @param  Collection<int, ScheduleAssignment>  $assignments */
+    private function filterConflicts(Collection $assignments, Carbon $candidateStart, Carbon $candidateEnd): Collection
+    {
+        return $assignments
             ->filter(function (ScheduleAssignment $existing) use ($candidateStart, $candidateEnd) {
                 [$existingStart, $existingEnd] = $this->intervalFor($existing->shift, $existing->work_date->toDateString());
 
@@ -464,13 +519,21 @@ class ScheduleService
         [$candidateStart, $candidateEnd] = $this->intervalFor($shift, $workDate);
         $date = Carbon::parse($workDate, config('schedule.timezone'));
 
-        return ScheduleAssignment::query()
+        $assignments = ScheduleAssignment::query()
             ->with('shift')
             ->where('employee_id', $employee->id)
             ->where('status', 'scheduled')
             ->whereBetween('work_date', [$date->copy()->subDays(2)->toDateString(), $date->copy()->addDays(2)->toDateString()])
             ->when($excludeAssignmentId, fn ($query) => $query->where('id', '!=', $excludeAssignmentId))
-            ->get()
+            ->get();
+
+        return $this->filterRestConflicts($assignments, $candidateStart, $candidateEnd, $minimumMinutes);
+    }
+
+    /** @param  Collection<int, ScheduleAssignment>  $assignments */
+    private function filterRestConflicts(Collection $assignments, Carbon $candidateStart, Carbon $candidateEnd, int $minimumMinutes): Collection
+    {
+        return $assignments
             ->filter(function (ScheduleAssignment $existing) use ($candidateStart, $candidateEnd, $minimumMinutes) {
                 [$existingStart, $existingEnd] = $this->intervalFor($existing->shift, $existing->work_date->toDateString());
                 if ($candidateStart->lessThan($existingEnd) && $candidateEnd->greaterThan($existingStart)) {
@@ -872,5 +935,23 @@ class ScheduleService
             $employee->department,
             Carbon::parse($workDate, config('schedule.timezone')),
         );
+    }
+
+    /** @return Collection<int, ScheduleLock> */
+    private function activeLocksFor(Department $department, Carbon $start, Carbon $end): Collection
+    {
+        return ScheduleLock::query()
+            ->where('department_id', $department->id)
+            ->whereNull('unlocked_at')
+            ->whereDate('start_date', '<=', $end->toDateString())
+            ->whereDate('end_date', '>=', $start->toDateString())
+            ->get();
+    }
+
+    /** @param  Collection<int, ScheduleLock>  $locks */
+    private function lockCovering(Collection $locks, string $workDate): ?ScheduleLock
+    {
+        return $locks->first(fn (ScheduleLock $lock) => $workDate >= $lock->start_date->toDateString()
+            && $workDate <= $lock->end_date->toDateString());
     }
 }
