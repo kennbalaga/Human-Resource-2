@@ -84,9 +84,9 @@ class RosterWriteContextTest extends TestCase
 
         try {
             RosterWriteContext::allow($actor, function () {
-                throw new \RuntimeException('boom');
+                throw new RuntimeException('boom');
             });
-        } catch (\RuntimeException) {
+        } catch (RuntimeException) {
             // expected
         }
 

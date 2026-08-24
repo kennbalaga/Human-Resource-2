@@ -2,6 +2,7 @@
 
 namespace App\Services\Scheduling;
 
+use App\Exceptions\UnauthorisedRosterWrite;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -85,10 +86,10 @@ final class RosterWriteContext
         Log::warning('roster.unauthorised_write', [
             'event' => $event,
             'unattended' => self::$unattended,
-            'trace' => (new RuntimeException())->getTraceAsString(),
+            'trace' => (new RuntimeException)->getTraceAsString(),
         ]);
 
-        throw new \App\Exceptions\UnauthorisedRosterWrite(
+        throw new UnauthorisedRosterWrite(
             "ScheduleAssignment {$event} attempted outside RosterWriteContext::allow().",
         );
     }

@@ -10,9 +10,13 @@ $viteDevelopmentOrigins = (string) env('APP_ENV') === 'local'
 
 return [
     'production' => [
-        // Local and test environments are never blocked. In production, turning
-        // this on makes insecure runtime configuration return a generic 503.
-        'enforce' => (bool) env('SECURITY_ENFORCE_PRODUCTION', false),
+        // Local and test environments are never blocked regardless of this
+        // value (EnforceProductionSecurity also requires APP_ENV=production).
+        // The default is now "on": an environment that never set this
+        // variable at all fails safe instead of silently shipping without
+        // the guard. Set it to false explicitly only if you have a specific
+        // reason to run production without the check.
+        'enforce' => (bool) env('SECURITY_ENFORCE_PRODUCTION', true),
     ],
 
     'content_security_policy' => [

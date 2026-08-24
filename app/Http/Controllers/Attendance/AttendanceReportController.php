@@ -85,7 +85,7 @@ class AttendanceReportController extends Controller
         $filename = "attendance-{$filters['date_from']}-to-{$filters['date_to']}.xlsx";
         $lastColumn = Coordinate::stringFromColumnIndex(count(self::EXPORT_COLUMNS));
 
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Attendance');
         $sheet->fromArray(self::EXPORT_COLUMNS, null, 'A1');

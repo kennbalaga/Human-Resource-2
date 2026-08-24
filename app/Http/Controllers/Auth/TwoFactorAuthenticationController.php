@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
-use App\Models\User;
 use App\Services\TwoFactorService;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
@@ -22,20 +21,22 @@ class TwoFactorAuthenticationController extends Controller
     public function setup(Request $request): View|RedirectResponse
     {
         $user = $request->user();
-        if ($user->two_factor_enabled_at) return redirect()->route('two-factor.challenge');
+        if ($user->two_factor_enabled_at) {
+            return redirect()->route('two-factor.challenge');
+        }
         $secret = $request->session()->remember('two_factor_setup_secret', fn () => $this->twoFactor->createSecret());
         $label = rawurlencode('Workforce HRMS:'.$user->email);
         $uri = "otpauth://totp/{$label}?secret={$secret}&issuer=".rawurlencode('Workforce HRMS').'&algorithm=SHA1&digits=6&period=30';
-        
+
         $options = new QROptions([
             'outputType' => QRCode::OUTPUT_MARKUP_SVG,
             'eccLevel' => QRCode::ECC_M,
             'scale' => 5,
             'svgAddXmlHeader' => false,
         ]);
-        
+
         $qrCode = (new QRCode($options))->render($uri);
-        
+
         // The QR code is a base64 data URI, we need to add width/height to the SVG inside
         // Extract the SVG content, add width/height, and re-encode
         $svg = base64_decode(str_replace('data:image/svg+xml;base64,', '', $qrCode));
@@ -63,7 +64,10 @@ class TwoFactorAuthenticationController extends Controller
 
     public function challenge(Request $request): View|RedirectResponse
     {
-        if (! $request->user()->two_factor_enabled_at) return redirect()->route('two-factor.setup');
+        if (! $request->user()->two_factor_enabled_at) {
+            return redirect()->route('two-factor.setup');
+        }
+
         return view('auth.two-factor.challenge');
     }
 
@@ -98,12 +102,14 @@ class TwoFactorAuthenticationController extends Controller
         $user->forceFill(['two_factor_failed_attempts' => 0, 'two_factor_locked_until' => null])->save();
         $request->session()->regenerate();
         $request->session()->put('two_factor_verified_at', now()->toIso8601String());
+
         return redirect()->intended(route('dashboard'));
     }
 
     public function recoveryCodes(Request $request): View
     {
         abort_unless($request->session()->has('two_factor_recovery_codes'), 403);
+
         return view('auth.two-factor.recovery-codes', ['codes' => $request->session()->get('two_factor_recovery_codes')]);
     }
 
@@ -111,6 +117,7 @@ class TwoFactorAuthenticationController extends Controller
     {
         abort_unless($request->session()->has('two_factor_recovery_codes'), 403);
         $contents = "Workforce HRMS recovery codes\r\nStore these offline. Each code works once.\r\n\r\n".implode("\r\n", $request->session()->pull('two_factor_recovery_codes'));
+
         return response($contents, 200, ['Content-Type' => 'text/plain; charset=UTF-8', 'Content-Disposition' => 'attachment; filename="workforce-2fa-recovery-codes.txt"']);
     }
 
@@ -125,6 +132,7 @@ class TwoFactorAuthenticationController extends Controller
         DB::table('sessions')->where('user_id', $target->id)->delete();
         $target->tokens()->delete();
         $this->twoFactor->audit($request, $target, 'two_factor.reset_by_administrator', ['reset_by' => $request->user()->id]);
+
         return back()->with('success', '2FA was reset after identity verification. The employee must enroll again at next sign-in.');
     }
 }

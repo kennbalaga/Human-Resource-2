@@ -13,6 +13,7 @@ use App\Models\ScheduleRecommendation;
 use App\Models\ScheduleRecommendationDecision;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Scheduling\RosterWriteContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -186,7 +187,7 @@ class AiScheduleRecommendationLifecycleTest extends TestCase
     public function test_changed_schedule_leave_employee_shift_and_attendance_each_make_a_recommendation_stale(): void
     {
         $mutations = [
-            fn (string $date) => \App\Services\Scheduling\RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
+            fn (string $date) => RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
                 'employee_id' => $this->employee->id,
                 'shift_id' => $this->shift->id,
                 'work_date' => $date,

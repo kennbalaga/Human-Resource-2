@@ -25,11 +25,29 @@ DB_DATABASE=human_resource_2
 DB_USERNAME=hrms_app
 DB_PASSWORD=use-a-secret-manager
 SESSION_DRIVER=database
-SESSION_SECURE_COOKIE=true
 QUEUE_CONNECTION=database
 CACHE_STORE=database
 INITIAL_USER_PASSWORD=replace-before-first-seed
 TWO_FACTOR_REQUIRED_ROLES=system-administrator,hr-manager,department-head
+
+# Hardening — SESSION_SECURE_COOKIE, SESSION_ENCRYPT, and
+# SECURITY_ENFORCE_PRODUCTION all now default to true automatically once
+# APP_ENV=production, so they don't need to be set here explicitly. They're
+# listed anyway so this file is a complete picture of what's in effect —
+# override only if you have a specific reason to run production without one.
+# SESSION_SECURE_COOKIE=true
+# SESSION_ENCRYPT=true
+# SECURITY_ENFORCE_PRODUCTION=true
+
+# Malware scanning does NOT auto-enable — it depends on ClamAV actually
+# being installed and reachable. Enabling it before that's verified will
+# reject every leave attachment upload (MALWARE_SCANNING_FAIL_CLOSED=true
+# is the default). Install and verify ClamAV first, then set:
+MALWARE_SCANNING_ENABLED=true
+
+# Content-Security-Policy: start in report-only, confirm no legitimate
+# screen is flagged, then switch to enforce. See docs/SECURITY.md.
+CSP_MODE=report-only
 ```
 
 Create a least-privilege MySQL user limited to the HRMS database. Generate `APP_KEY` once with `php artisan key:generate`; preserve it across releases or encrypted application data, cookies, 2FA secrets, and recovery codes become unreadable.
@@ -66,7 +84,7 @@ find /var/www/hrms/current/storage /var/www/hrms/current/bootstrap/cache -type f
 
 ## Queue and scheduler
 
-Run a supervised process similar to:
+**A running queue worker is required, not optional.** Preference emails (attendance reminders, schedule updates, leave-status notifications) are queued (`ShouldQueue`) rather than sent inline, so without a worker running they will accumulate undelivered in the `jobs` table instead of failing loudly. Run a supervised process similar to:
 
 ```bash
 php /var/www/hrms/current/artisan queue:work --queue=default --sleep=3 --tries=3 --timeout=120
@@ -93,4 +111,4 @@ npm audit
 
 After release, verify `/up`, login/logout, privileged-role 2FA enrollment and challenge, one read-only dashboard request, queue health, scheduler logs, storage access, and database backups. Test Gemini separately; an AI provider failure must only produce a warning/event record, never an HR transaction failure.
 
-Monitor application logs, HTTP 5xx/429 rates, queue failures, database capacity, `audit_logs`, and `integration_events`. Configure encrypted off-host database and private-upload backups, then regularly test restoration.
+Monitor application logs, HTTP 5xx/429 rates, queue failures, database capacity, `audit_logs`, and `integration_events`. For uncaught exceptions specifically, set `SENTRY_LARAVEL_DSN` (sign up at sentry.io or point at a self-hosted instance) — the SDK is already wired in `bootstrap/app.php` and does nothing until a DSN is set. Configure encrypted off-host database and private-upload backups, then regularly test restoration.

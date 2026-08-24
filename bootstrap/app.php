@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Sentry\Laravel\Integration as SentryIntegration;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -76,4 +77,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return response()->json(['message' => 'An unexpected server error occurred.', 'request_id' => $request->headers->get('X-Request-ID')], 500);
         });
+
+        // No-op until SENTRY_LARAVEL_DSN is set (see .env.example) — the SDK
+        // itself checks for a configured DSN before sending anything.
+        SentryIntegration::handles($exceptions);
     })->create();

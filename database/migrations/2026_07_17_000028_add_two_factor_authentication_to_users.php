@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Schema;
  * some of these columns already present but no migration record, and a plain
  * `add column` would then abort the whole migration run.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table): void {

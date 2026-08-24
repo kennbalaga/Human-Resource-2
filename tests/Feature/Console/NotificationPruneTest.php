@@ -4,6 +4,7 @@ namespace Tests\Feature\Console;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -31,7 +32,7 @@ class NotificationPruneTest extends TestCase
         $this->assertFalse($user->notifications()->whereKey($old->id)->exists());
     }
 
-    private function createNotification(User $user, string $title): \Illuminate\Notifications\DatabaseNotification
+    private function createNotification(User $user, string $title): DatabaseNotification
     {
         return $user->notifications()->create([
             'id' => (string) Str::uuid(),

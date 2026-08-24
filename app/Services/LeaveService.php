@@ -220,5 +220,4 @@ class LeaveService
             throw ValidationException::withMessages(['leave' => 'Only pending leave requests can be reviewed.']);
         }
     }
-
 }

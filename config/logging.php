@@ -123,6 +123,15 @@ return [
             'handler' => NullHandler::class,
         ],
 
+        // Uncaught exceptions already reach Sentry via SentryIntegration::handles()
+        // in bootstrap/app.php regardless of this channel. Add 'sentry' to
+        // LOG_STACK if you also want routed Log:: calls (not just uncaught
+        // exceptions) to reach it. Inert with no SENTRY_LARAVEL_DSN set either way.
+        'sentry' => [
+            'driver' => 'sentry',
+            'level' => env('LOG_LEVEL', 'debug'),
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],

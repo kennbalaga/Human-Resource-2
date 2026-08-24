@@ -19,7 +19,7 @@ class ScheduleComplianceController extends Controller
 
         $message = match ($review->status) {
             'passed' => "Compliance check passed for {$department->name}. No issues found.",
-            'passed_with_warnings' => "Compliance check passed with ".count($review->findings)." staffing warning(s) for {$department->name}.",
+            'passed_with_warnings' => 'Compliance check passed with '.count($review->findings)." staffing warning(s) for {$department->name}.",
             default => 'Compliance check failed for '.$department->name.': '.count($review->findings).' issue(s) found. Review before locking this period.',
         };
 

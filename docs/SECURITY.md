@@ -18,7 +18,7 @@
 - Integration event logs without credentials or full provider responses.
 - Composite indexes for high-use attendance, timesheet, and leave reporting queries.
 - Aggregate-only payloads for AI analysis.
-- Production security gate (security:check) for HTTPS, secure/encrypted sessions, debug mode, CSP, malware scanning, and secret readiness. It is opt-in through SECURITY_ENFORCE_PRODUCTION=true so local HTTP development is unaffected.
+- Production security gate (security:check) for HTTPS, secure/encrypted sessions, debug mode, CSP, malware scanning, and secret readiness. SECURITY_ENFORCE_PRODUCTION, SESSION_SECURE_COOKIE, and SESSION_ENCRYPT all default to on once APP_ENV=production and only need an explicit override if you have a specific reason not to enforce them; local/testing environments are unaffected either way (the gate also requires APP_ENV=production to activate).
 - Content Security Policy starts in report-only mode and sends sanitized, rate-limited violation reports to /api/v1/security/csp-report. Review reports before changing CSP_MODE=enforce.
 - Leave attachments are scanned by the configured ClamAV driver before private storage. Production should enable MALWARE_SCANNING_ENABLED=true and keep MALWARE_SCANNING_FAIL_CLOSED=true; an unavailable scanner rejects uploads.
 - Authentication, authorization, CSRF, and rate-limit failures are recorded as sanitized security signals. Raw passwords, tokens, and employee IDs are never logged.
@@ -49,7 +49,7 @@ Uploaded leave attachments use the private local disk. Production web servers mu
 
 Employee IDs are generated from the selected department code by default. Generation locks the department row inside the employee creation transaction, considers soft-deleted historical IDs, and relies on the database unique constraint as a final safeguard. Existing IDs are immutable. Only a System Administrator can disable automatic generation from Account Settings; manual mode should be used only for controlled migrations or legacy identifiers.
 
-Before enabling the production gate, install and verify ClamAV, set SESSION_SECURE_COOKIE=true, SESSION_ENCRYPT=true, CSP_MODE=report-only (then enforce after review), and MALWARE_SCANNING_ENABLED=true. Run php artisan security:check; do not deploy while any critical check fails. Keep SECURITY_ENFORCE_PRODUCTION=false for local HTTP development.
+SESSION_SECURE_COOKIE, SESSION_ENCRYPT, and SECURITY_ENFORCE_PRODUCTION now default to true automatically once APP_ENV=production — nothing to set unless you want to override them. MALWARE_SCANNING_ENABLED remains a deliberate manual step: install and verify ClamAV first, then set it, since enabling it before ClamAV is ready will fail-closed and reject every leave attachment upload. Start CSP_MODE=report-only, review reports, then switch to enforce. Run php artisan security:check before deploying; do not deploy while any critical check fails. Local/testing environments are unaffected by any of this regardless of these values, since the gate also requires APP_ENV=production.
 
 ## Incident handling
 

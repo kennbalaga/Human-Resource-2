@@ -344,7 +344,7 @@ class ScheduleComplianceService
     }
 
     /**
-     * Mirrors {@see \App\Services\ScheduleService::weeklyRestViolated()}: Labor
+     * Mirrors {@see ScheduleService::weeklyRestViolated()}: Labor
      * Code Art. 91 requires at least 24 consecutive hours off after every six
      * consecutive workdays, measured against actual elapsed time rather than
      * calendar dates.

@@ -40,12 +40,17 @@ class PreferenceNotificationService
             return $delivered;
         }
 
+        // PreferenceMailNotification is queued (ShouldQueue), so this only
+        // ever catches a dispatch-time failure (e.g. the queue connection
+        // itself is unreachable) — a queued job returns immediately, before
+        // the mail actually sends. Real delivery failures are caught by the
+        // notification's own failed() method instead.
         try {
             $user->notify($notification);
 
             return true;
         } catch (Throwable $exception) {
-            Log::warning('A preference email could not be sent.', [
+            Log::warning('A preference email could not be dispatched.', [
                 'user_id' => $user->id,
                 'preference' => $preference,
                 'notification' => $notification::class,

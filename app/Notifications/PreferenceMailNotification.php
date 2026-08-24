@@ -3,10 +3,13 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
-class PreferenceMailNotification extends Notification
+class PreferenceMailNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -41,5 +44,20 @@ class PreferenceMailNotification extends Notification
         }
 
         return $message->line('You can change these emails from your HRMS account settings.');
+    }
+
+    /**
+     * Now that this notification is queued, PreferenceNotificationService's
+     * try/catch around ->notify() only ever catches dispatch-time failures —
+     * a queued job returns immediately, so a real delivery failure (bad SMTP
+     * credentials, etc.) surfaces here instead. Without this, that failure
+     * would go from "logged" to "silently sitting in failed_jobs."
+     */
+    public function failed(Throwable $exception): void
+    {
+        Log::warning('A queued preference email failed to send.', [
+            'subject' => $this->subject,
+            'error' => $exception->getMessage(),
+        ]);
     }
 }

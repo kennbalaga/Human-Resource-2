@@ -38,7 +38,7 @@ class ScheduleAssignmentWriteBoundaryTest extends TestCase
     public function test_only_known_sites_write_schedule_assignment_rows(): void
     {
         $root = base_path();
-        $parser = (new ParserFactory())->createForHostVersion();
+        $parser = (new ParserFactory)->createForHostVersion();
         $violations = [];
 
         foreach ($this->phpFiles($root) as $absolutePath) {
@@ -49,8 +49,8 @@ class ScheduleAssignmentWriteBoundaryTest extends TestCase
                 continue;
             }
 
-            $visitor = new ScheduleAssignmentWriteVisitor();
-            $traverser = new NodeTraverser();
+            $visitor = new ScheduleAssignmentWriteVisitor;
+            $traverser = new NodeTraverser;
             $traverser->addVisitor($visitor);
             $traverser->traverse($ast);
 
@@ -74,15 +74,15 @@ class ScheduleAssignmentWriteBoundaryTest extends TestCase
         // removes the write from one of these files, this test says so instead
         // of the allow-list silently over-permitting forever.
         $root = base_path();
-        $parser = (new ParserFactory())->createForHostVersion();
+        $parser = (new ParserFactory)->createForHostVersion();
 
         foreach (array_keys(self::ALLOWED_FILES) as $relativePath) {
             $absolutePath = $root.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
             $this->assertFileExists($absolutePath);
 
             $ast = $parser->parse(file_get_contents($absolutePath));
-            $visitor = new ScheduleAssignmentWriteVisitor();
-            $traverser = new NodeTraverser();
+            $visitor = new ScheduleAssignmentWriteVisitor;
+            $traverser = new NodeTraverser;
             $traverser->addVisitor($visitor);
             $traverser->traverse($ast);
 
@@ -95,7 +95,7 @@ class ScheduleAssignmentWriteBoundaryTest extends TestCase
     {
         $files = [];
         foreach (['app', 'database/seeders'] as $dir) {
-            $finder = (new Finder())->files()->in($root.'/'.$dir)->name('*.php');
+            $finder = (new Finder)->files()->in($root.'/'.$dir)->name('*.php');
             foreach ($finder as $file) {
                 $files[] = $file->getRealPath();
             }

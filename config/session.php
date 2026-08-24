@@ -47,7 +47,10 @@ return [
     |
     */
 
-    'encrypt' => env('SESSION_ENCRYPT', false),
+    // No explicit override defaults to on in production and off everywhere
+    // else, so a deployment that never set this variable fails safe instead
+    // of silently shipping unencrypted session data.
+    'encrypt' => env('SESSION_ENCRYPT', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------
@@ -169,7 +172,10 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // Same fail-safe pattern as 'encrypt' above: an explicit value always
+    // wins, but an environment that never set this at all gets a secure
+    // cookie in production rather than silently shipping one that isn't.
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------
