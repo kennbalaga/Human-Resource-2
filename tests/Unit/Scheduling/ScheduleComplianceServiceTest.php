@@ -41,7 +41,7 @@ class ScheduleComplianceServiceTest extends TestCase
 
     public function test_a_freshly_created_assignment_produces_no_provenance_findings(): void
     {
-        $this->assign('2026-09-14', 'manual');
+        $this->assign('2027-09-14', 'manual');
 
         $findings = $this->reviewFindings();
 
@@ -50,7 +50,7 @@ class ScheduleComplianceServiceTest extends TestCase
 
     public function test_a_legacy_assignment_produces_a_legacy_provenance_warning(): void
     {
-        $this->assign('2026-09-14', 'legacy');
+        $this->assign('2027-09-14', 'legacy');
 
         $finding = $this->reviewFindings()->firstWhere('rule', 'legacy_provenance');
 
@@ -61,7 +61,7 @@ class ScheduleComplianceServiceTest extends TestCase
 
     public function test_an_assignment_with_no_audit_row_produces_an_unaudited_provenance_warning(): void
     {
-        $assignment = $this->assign('2026-09-14', 'manual');
+        $assignment = $this->assign('2027-09-14', 'manual');
         // Simulate data that predates Layer 5 — a raw delete bypasses the
         // audit model's append-only guard, same as history that simply never
         // had a row written in the first place.
@@ -77,8 +77,8 @@ class ScheduleComplianceServiceTest extends TestCase
     {
         AttendanceRecord::query()->create([
             'employee_id' => $this->employee->id,
-            'attendance_date' => '2026-09-14',
-            'check_in_at' => '2026-09-14 09:00:00',
+            'attendance_date' => '2027-09-14',
+            'check_in_at' => '2027-09-14 09:00:00',
             'check_in_method' => 'manual',
             'status' => 'present',
             'binding_source' => 'override',
@@ -96,8 +96,8 @@ class ScheduleComplianceServiceTest extends TestCase
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
         AttendanceRecord::query()->create([
             'employee_id' => $this->employee->id,
-            'attendance_date' => '2026-09-14',
-            'check_in_at' => '2026-09-14 09:00:00',
+            'attendance_date' => '2027-09-14',
+            'check_in_at' => '2027-09-14 09:00:00',
             'check_in_method' => 'manual',
             'status' => 'present',
             'binding_source' => 'override',
@@ -116,8 +116,8 @@ class ScheduleComplianceServiceTest extends TestCase
     {
         AttendanceRecord::query()->create([
             'employee_id' => $this->employee->id,
-            'attendance_date' => '2026-09-14',
-            'check_in_at' => '2026-09-14 08:00:00',
+            'attendance_date' => '2027-09-14',
+            'check_in_at' => '2027-09-14 08:00:00',
             'check_in_method' => 'manual',
             'status' => 'present',
             'binding_source' => 'scheduled',
@@ -143,7 +143,7 @@ class ScheduleComplianceServiceTest extends TestCase
 
     private function reviewFindings(): Collection
     {
-        $review = app(ScheduleComplianceService::class)->review($this->department, '2026-09-14', '2026-09-14');
+        $review = app(ScheduleComplianceService::class)->review($this->department, '2027-09-14', '2027-09-14');
 
         return collect($review->findings)->where('employee_id', $this->employee->id);
     }

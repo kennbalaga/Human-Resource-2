@@ -24,6 +24,9 @@ class DatabaseSeeder extends Seeder
             NursingStaffSeeder::class,
             SamplePositionStaffSeeder::class,
             EmptyDepartmentStaffSeeder::class,
+            // Must stay last: it reads the whole seeded workforce to derive
+            // reporting lines from department + seniority rank.
+            ReportingLineSeeder::class,
         ]);
     }
 }

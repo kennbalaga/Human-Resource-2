@@ -16,6 +16,7 @@ use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\LeaveAttachmentController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Organization\OrgChartController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Schedule\AiScheduleRecommendationController;
@@ -61,6 +62,7 @@ Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(func
 Route::middleware('auth')->group(function () {
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::get('/organization', [EmployeeController::class, 'index'])->name('organization.index');
+    Route::get('/organization/chart', [OrgChartController::class, 'index'])->name('organization.chart');
     Route::resource('employees', EmployeeController::class)->except('destroy');
     Route::post('/employees/{employee}/two-factor/reset', [AdminTwoFactorController::class, 'reset'])->name('employees.two-factor.reset');
     Route::post('/employees/{employee}/attendance-qr/reissue', [EmployeeController::class, 'reissueAttendanceQr'])->name('employees.attendance-qr.reissue');

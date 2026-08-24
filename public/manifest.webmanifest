@@ -1,0 +1,25 @@
+{
+    "name": "Dr. Jose N. Rodriguez HRMS",
+    "short_name": "HRMS",
+    "description": "Attendance, scheduling, leave, and workforce management for Dr. Jose N. Rodriguez Memorial Hospital & Sanitarium.",
+    "start_url": "./dashboard",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "theme_color": "#176b43",
+    "background_color": "#f4f7f6",
+    "icons": [
+        {
+            "src": "./favicon.svg",
+            "type": "image/svg+xml",
+            "sizes": "any",
+            "purpose": "any"
+        },
+        {
+            "src": "./favicon.svg",
+            "type": "image/svg+xml",
+            "sizes": "any",
+            "purpose": "maskable"
+        }
+    ]
+}

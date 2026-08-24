@@ -60,7 +60,7 @@ class AnalyticsTest extends TestCase
     {
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
         [$a, $b, $c, $d] = Employee::query()->where('employment_status', 'active')->orderBy('id')->limit(4)->get();
-        $date = '2026-09-20';
+        $date = '2027-09-20';
 
         $this->record($a->id, $date, [
             'binding_source' => 'scheduled', 'schedule_status' => 'on_shift', 'status' => 'present',
