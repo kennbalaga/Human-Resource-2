@@ -3,9 +3,11 @@
 namespace Tests\Unit\Scheduling;
 
 use App\Models\AttendanceRecord;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Models\Position;
 use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Models\User;
@@ -183,7 +185,24 @@ class ShiftResolverTest extends TestCase
 
     private function employee(): Employee
     {
-        return Employee::query()->where('employment_status', 'active')->orderBy('id')->firstOrFail();
+        // A dedicated employee rather than reusing a seeded one: ShiftScheduleSeeder
+        // gives the System Administrator (the first active employee by id) a real
+        // Mon-Fri ADMIN-0800 assignment for "this week" relative to whenever the
+        // suite runs, which on the date this file's shift dates happen to land on
+        // would otherwise silently compete with the test's own fixture assignment
+        // as a second, unwanted candidate for the resolver to bind to.
+        $department = Department::query()->where('code', 'HR')->firstOrFail();
+        $position = Position::query()->where('department_id', $department->id)->firstOrFail();
+
+        return Employee::query()->create([
+            'department_id' => $department->id,
+            'position_id' => $position->id,
+            'employee_number' => 'SR-'.Str::random(8),
+            'first_name' => 'Resolver',
+            'last_name' => 'Test',
+            'employment_status' => 'active',
+            'hire_date' => '2024-01-01',
+        ]);
     }
 
     private function actor(): User

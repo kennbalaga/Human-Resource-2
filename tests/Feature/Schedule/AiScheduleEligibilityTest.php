@@ -124,7 +124,9 @@ class AiScheduleEligibilityTest extends TestCase
     public function test_candidate_evaluation_detects_wrong_department_position_and_inactive_status(): void
     {
         $this->employee->update(['employment_status' => 'inactive']);
-        $otherDepartment = Department::query()->where('code', 'IT')->firstOrFail();
+        // IT was folded into Administrative and General Services by the
+        // hospital restructure and no longer exists as its own department.
+        $otherDepartment = Department::query()->where('code', 'ADMIN')->firstOrFail();
         $otherPosition = Position::query()->where('code', 'SYS-ADMIN')->firstOrFail();
 
         $result = app(EmployeeEligibilityService::class)->evaluateCandidate(

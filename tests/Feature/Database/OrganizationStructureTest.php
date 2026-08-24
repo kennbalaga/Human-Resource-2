@@ -14,16 +14,23 @@ class OrganizationStructureTest extends TestCase
         $this->seed();
 
         $this->assertDatabaseCount('roles', 4);
-        $this->assertDatabaseCount('departments', 38);
+        // 16 active departments from the current hospital structure plus the
+        // 21 legacy placeholder codes the restructure migration soft-deletes
+        // rather than removes (schedule/employee/position history can still
+        // point at them).
+        $this->assertDatabaseCount('departments', 37);
 
-        // Four core positions from the organization seeder plus the Staff Nurse
-        // role the nursing roster is built on.
-        $this->assertDatabaseCount('positions', 5);
+        // Positions across every seeder: OrganizationSeeder's founding roles,
+        // NursingStaffSeeder's per-ward head/staff nurse pairs, and the
+        // head/staff pairs SamplePositionStaffSeeder and
+        // EmptyDepartmentStaffSeeder add for the rest of the hospital.
+        $this->assertDatabaseCount('positions', 32);
 
-        // Four founding accounts (administrator, HR manager, nursing head, HR
-        // employee) plus the twenty seeded nursing staff.
-        $this->assertDatabaseCount('users', 24);
-        $this->assertDatabaseCount('employees', 24);
+        // Every account and employee record left standing once all seeders
+        // (founding accounts, nursing roster, sample department staff, and
+        // the previously-empty departments) have run.
+        $this->assertDatabaseCount('users', 90);
+        $this->assertDatabaseCount('employees', 90);
 
         $this->assertDatabaseHas('employees', [
             'employee_number' => 'HR-2026-0001',

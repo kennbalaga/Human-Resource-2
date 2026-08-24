@@ -86,8 +86,12 @@ class WorkforceAnalyticsPreviewTest extends TestCase
 
         $response = $this->actingAs($employee)->get('/dashboard');
 
-        $response->assertOk()->assertDontSee('Key metrics at a glance');
-        $this->assertNull($response->viewData('analyticsPreview'));
+        // A viewer who can't manage the workforce is routed to the staff
+        // dashboard entirely (see DashboardController) rather than the
+        // management overview with its analytics preview nulled out, so
+        // there is no 'analyticsPreview' key in this view's data at all.
+        $response->assertOk()->assertViewIs('dashboard.staff')->assertDontSee('Key metrics at a glance');
+        $this->assertArrayNotHasKey('analyticsPreview', $response->original->getData());
     }
 
     public function test_the_window_is_the_month_to_date_the_analytics_module_defaults_to(): void

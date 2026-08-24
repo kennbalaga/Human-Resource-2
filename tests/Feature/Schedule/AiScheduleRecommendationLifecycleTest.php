@@ -42,6 +42,16 @@ class AiScheduleRecommendationLifecycleTest extends TestCase
         $this->department = Department::query()->where('code', 'HR')->firstOrFail();
         $this->position = Position::query()->where('code', 'HR-OFFICER')->firstOrFail();
         $this->shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
+        // EmptyDepartmentStaffSeeder/SamplePositionStaffSeeder also seed active
+        // HR Officers with no assignments of their own; left active, they
+        // compete as zero-workload candidates alongside whichever employee
+        // each test deliberately sets up, making the ranking depend on seed
+        // order rather than the scenario each test is actually about.
+        Employee::query()
+            ->where('department_id', $this->department->id)
+            ->where('position_id', $this->position->id)
+            ->whereNotIn('id', [$this->employee->id])
+            ->update(['employment_status' => 'inactive']);
     }
 
     public function test_generation_creates_ai_audit_record_without_saving_a_schedule(): void
