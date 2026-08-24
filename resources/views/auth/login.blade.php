@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dr. Jose N. Rodriguez Memorial Hospital - Login</title>
-    @include('partials.favicon')
+    <link rel="icon" href="{{ URL('images/DJRMHS-logo.png')}}" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -15,7 +15,7 @@
     <div class="split-screen">
         <div class="left-pane">
             <header class="logo">
-                <i class="fa-solid fa-hospital icon-logo"></i> Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium
+                <img src="{{ URL('images/DJRMHS-logo.png')}}" alt="Hospital Logo" width="60">Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium
             </header>
 
             <main class="login-container">

@@ -79,6 +79,9 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         // No-op until SENTRY_LARAVEL_DSN is set (see .env.example) — the SDK
-        // itself checks for a configured DSN before sending anything.
-        SentryIntegration::handles($exceptions);
+        // itself checks for a configured DSN before sending anything. Skipped
+        // entirely when the optional SDK is not installed in vendor/.
+        if (class_exists(SentryIntegration::class)) {
+            SentryIntegration::handles($exceptions);
+        }
     })->create();
