@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Schedule;
 
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
@@ -121,6 +122,10 @@ class SchedulePagesTest extends TestCase
             'department_id' => $payload['department_id'],
             'start_date' => $payload['start_date'],
             'end_date' => $payload['end_date'],
+            // The real roster board always scopes this to the shifts it
+            // shows; without it every other active shift in the system is
+            // graded for coverage on this date too.
+            'shift_ids' => [$shift->id],
             'entries' => $fill->json('data.entries'),
         ])
             ->assertSessionHasNoErrors()
@@ -170,7 +175,14 @@ class SchedulePagesTest extends TestCase
     public function test_bulk_periods_generate_weekly_biweekly_and_monthly_date_ranges(): void
     {
         $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
-        $employee = Employee::query()->where('employment_status', 'active')->firstOrFail();
+        // A clinical employee, not an administrative one: administrative
+        // departments never staff Sundays even with include_weekends set, so
+        // an administrative employee here would silently drop a day from
+        // every range below regardless of this test's own include_weekends.
+        $employee = Employee::query()
+            ->where('employment_status', 'active')
+            ->whereHas('department', fn ($query) => $query->where('category', '!=', Department::CATEGORY_ADMINISTRATIVE))
+            ->firstOrFail();
         $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $base = ['department_id' => $employee->department_id, 'employee_ids' => [$employee->id], 'shift_id' => $shift->id, 'include_weekends' => true];
 

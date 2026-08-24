@@ -191,6 +191,10 @@ class AiRotationScheduleTest extends TestCase
                 'department_id' => $payload['department_id'],
                 'start_date' => $dates->min(),
                 'end_date' => $dates->max(),
+                // The real roster board always scopes this to the shifts it
+                // shows; without it every other active shift in the system is
+                // graded for coverage across this date range too.
+                'shift_ids' => $this->shiftIds,
                 'entries' => $entries,
             ])
             ->assertSessionHasNoErrors();

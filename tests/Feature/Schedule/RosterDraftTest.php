@@ -14,6 +14,7 @@ use App\Services\Scheduling\RosterDraftService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class RosterDraftTest extends TestCase
@@ -141,19 +142,31 @@ class RosterDraftTest extends TestCase
     {
         $a = $this->employee('RD-0005', $this->staffPosition);
         $b = $this->employee('RD-0006', $this->chargePosition);
+        $c = $this->employee('RD-0006B', $this->staffPosition);
 
         // Deliberately lopsided: a generator would never produce this, so seeing
-        // it survive proves the reviewed roster is what gets written.
+        // it survive proves the reviewed roster is what gets written. The day
+        // off sits on the same date as the shift entries — Tier A's coverage
+        // gate below grades every relevant shift on every date the roster
+        // touches, so a day off on a date nothing else covers would trip it
+        // for reasons unrelated to what this test is actually about.
         $entries = collect([
             $this->entry($a, $this->night, '2027-04-05'),
             $this->entry($b, $this->night, '2027-04-05'),
-            ['employee_id' => $a->id, 'shift_id' => null, 'work_date' => '2027-04-06'],
+            ['employee_id' => $c->id, 'shift_id' => null, 'work_date' => '2027-04-05'],
         ]);
 
         $result = app(RosterDraftService::class)->publish(
             $this->ward,
             $entries,
             User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail(),
+            null,
+            null,
+            // Scoped to the shift this roster actually covers, the way the
+            // real endpoint always does via the request's shift_ids — every
+            // other active shift in the system would otherwise also be
+            // graded for coverage on this date and trip the Tier A gate below.
+            ['shift_ids' => [$this->night->id]],
         );
 
         $this->assertSame(2, $result['assignments']->count());
@@ -165,8 +178,8 @@ class RosterDraftTest extends TestCase
             'work_date' => '2027-04-05',
         ]);
         $this->assertDatabaseHas('schedule_day_offs', [
-            'employee_id' => $a->id,
-            'work_date' => '2027-04-06 00:00:00',
+            'employee_id' => $c->id,
+            'work_date' => '2027-04-05 00:00:00',
         ]);
         $this->assertDatabaseMissing('schedule_assignments', [
             'employee_id' => $a->id,
@@ -177,6 +190,8 @@ class RosterDraftTest extends TestCase
     public function test_publishing_leaves_out_an_entry_that_cannot_be_scheduled(): void
     {
         $employee = $this->employee('RD-0007', $this->staffPosition);
+        $second = $this->employee('RD-0007B', $this->chargePosition);
+        $third = $this->employee('RD-0007D', $this->staffPosition);
         $type = LeaveType::query()->firstOrFail();
 
         LeaveRequest::query()->create([
@@ -190,14 +205,64 @@ class RosterDraftTest extends TestCase
             'status' => 'approved',
         ]);
 
+        // Two more, unblocked entries keep this shift at its required minimum
+        // (2, from the ward's bed capacity / nurse-patient ratio) despite the
+        // leave conflict dropping one of the three, so the roster-wide Tier A
+        // coverage gate stays out of this test's way and the leave conflict
+        // is what's actually exercised: that one unschedulable entry is
+        // skipped rather than failing the whole publish.
         $result = app(RosterDraftService::class)->publish(
             $this->ward,
-            collect([$this->entry($employee, $this->morning, '2027-04-05')]),
+            collect([
+                $this->entry($employee, $this->morning, '2027-04-05'),
+                $this->entry($second, $this->morning, '2027-04-05'),
+                $this->entry($third, $this->morning, '2027-04-05'),
+            ]),
             User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail(),
+            null,
+            null,
+            ['shift_ids' => [$this->morning->id]],
         );
 
-        $this->assertSame(0, $result['assignments']->count());
+        $this->assertSame(2, $result['assignments']->count());
         $this->assertSame(1, $result['skipped']->count());
+        $this->assertSame(0, ScheduleAssignment::query()->where('employee_id', $employee->id)->count());
+    }
+
+    public function test_publishing_refuses_a_roster_that_leaves_a_shift_below_its_required_minimum(): void
+    {
+        $employee = $this->employee('RD-0007C', $this->staffPosition);
+        $type = LeaveType::query()->firstOrFail();
+
+        LeaveRequest::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'employee_id' => $employee->id,
+            'leave_type_id' => $type->id,
+            'start_date' => '2027-04-05',
+            'end_date' => '2027-04-05',
+            'requested_days' => 1,
+            'reason' => 'Approved absence',
+            'status' => 'approved',
+        ]);
+
+        // Tier A is a hard, no-override gate: a roster that leaves a shift
+        // below its required minimum coverage is refused regardless of why —
+        // even when the shortfall is a legitimate leave conflict rather than
+        // an oversight, the reviewer must staff around it before publishing.
+        try {
+            app(RosterDraftService::class)->publish(
+                $this->ward,
+                collect([$this->entry($employee, $this->morning, '2027-04-05')]),
+                User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail(),
+                null,
+                null,
+                ['shift_ids' => [$this->morning->id]],
+            );
+            $this->fail('Publishing a roster short of its required minimum staff should have been refused.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('shifts_short', $exception->errors());
+        }
+
         $this->assertSame(0, ScheduleAssignment::query()->where('employee_id', $employee->id)->count());
     }
 
@@ -205,15 +270,25 @@ class RosterDraftTest extends TestCase
     {
         $manager = User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail();
         $employee = $this->employee('RD-0008', $this->chargePosition);
+        // The ward's derived minimum is 2 (from its bed capacity / ratio), so
+        // a second entry is needed to clear the Tier A coverage gate.
+        $second = $this->employee('RD-0008B', $this->staffPosition);
 
-        $this->actingAs($manager)->post(route('schedules.roster.publish'), [
+        $response = $this->actingAs($manager)->post(route('schedules.roster.publish'), [
             'department_id' => $this->ward->id,
             'start_date' => '2027-04-05',
             'end_date' => '2027-04-05',
+            // The real roster board always scopes this to the shifts it
+            // shows, the same way it's passed directly to the service
+            // elsewhere in this file — without it every other active shift
+            // in the system is graded for coverage on this date too.
+            'shift_ids' => [$this->morning->id],
             'entries' => [
                 ['employee_id' => $employee->id, 'shift_id' => $this->morning->id, 'work_date' => '2027-04-05'],
+                ['employee_id' => $second->id, 'shift_id' => $this->morning->id, 'work_date' => '2027-04-05'],
             ],
         ])->assertRedirect();
+        $response->assertSessionDoesntHaveErrors();
 
         $this->assertDatabaseHas('schedule_assignments', [
             'employee_id' => $employee->id,

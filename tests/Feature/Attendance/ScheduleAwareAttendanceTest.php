@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Attendance;
 
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\OfficeLocation;
+use App\Models\Position;
 use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Models\User;
@@ -225,14 +227,29 @@ class ScheduleAwareAttendanceTest extends TestCase
         return User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
     }
 
-    /** An employee distinct from the manager, so override tests never self-authorise by accident. */
+    /**
+     * An employee distinct from the manager, so override tests never
+     * self-authorise by accident — and a freshly created one rather than a
+     * seeded one: ShiftScheduleSeeder gives the System Administrator (the
+     * first active employee by id) a real Mon-Fri ADMIN-0800 assignment for
+     * "this week" relative to whenever the suite runs, which on the date
+     * this file's shift dates happen to land on would otherwise silently
+     * cover punches these tests expect to find no shift for at all.
+     */
     private function rosterableEmployee(): Employee
     {
-        return Employee::query()
-            ->where('employment_status', 'active')
-            ->where('employee_number', '!=', 'HR-2026-0001')
-            ->orderBy('id')
-            ->firstOrFail();
+        $department = Department::query()->where('code', 'HR')->firstOrFail();
+        $position = Position::query()->where('department_id', $department->id)->firstOrFail();
+
+        return Employee::query()->create([
+            'department_id' => $department->id,
+            'position_id' => $position->id,
+            'employee_number' => 'SAT-'.Str::random(8),
+            'first_name' => 'Attendance',
+            'last_name' => 'Test',
+            'employment_status' => 'active',
+            'hire_date' => '2024-01-01',
+        ]);
     }
 
     private function shift(string $start, string $end): Shift

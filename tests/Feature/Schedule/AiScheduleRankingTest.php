@@ -26,6 +26,16 @@ class AiScheduleRankingTest extends TestCase
         $day = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $night = Shift::query()->where('code', 'NIGHT-2200')->firstOrFail();
         $existing = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
+        // EmptyDepartmentStaffSeeder/SamplePositionStaffSeeder also seed active
+        // HR Officers with no assignments of their own; left active, they'd tie
+        // $light for lightest workload and make the "recommended" candidate
+        // depend on seed order rather than the deliberate light/heavy contrast
+        // this test is actually about.
+        Employee::query()
+            ->where('department_id', $department->id)
+            ->where('position_id', $position->id)
+            ->whereNotIn('id', [$existing->id])
+            ->update(['employment_status' => 'inactive']);
         $light = $this->employee($department, $position, 'HR-0100', 'Light');
         $heavy = $this->employee($department, $position, 'HR-0200', 'Heavy');
 
@@ -46,7 +56,7 @@ class AiScheduleRankingTest extends TestCase
         $first->assertJsonPath('data.recommended.employee_id', $light->id)->assertJsonCount(2, 'data.alternatives');
         $recommended = $first->json('data.recommended');
         $this->assertSame($first->json('data.eligible'), $second->json('data.eligible'));
-        $this->assertSame($recommended['score'], array_sum(array_column($recommended['score_breakdown'], 'points')));
+        $this->assertSame((float) $recommended['score'], (float) array_sum(array_column($recommended['score_breakdown'], 'points')));
         $this->assertSame(40.0, (float) $recommended['score_breakdown']['eligibility']['points']);
         $this->assertArrayHasKey('weekly_workload_minutes', $recommended['metrics']);
         $this->assertArrayHasKey('rest_hours', $recommended['metrics']);

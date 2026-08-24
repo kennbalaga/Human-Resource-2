@@ -75,7 +75,11 @@ class ApiAuthenticationTest extends TestCase
         $manager = $this->userForEmployee('HR-2026-0001');
         Sanctum::actingAs($manager, ['workforce:read', 'workforce:write']);
 
-        $this->getJson('/api/v1/employees')
+        // Scoped to HR-2026-0002's own department: the directory now has 90
+        // seeded employees, more than fit on the default paginated page, so
+        // an unscoped listing can't reliably be expected to surface one
+        // specific employee_number.
+        $this->getJson('/api/v1/employees?department_id='.$manager->employee->department_id)
             ->assertOk()
             ->assertJsonFragment(['employee_number' => 'HR-2026-0002'])
             ->assertHeader('X-Content-Type-Options', 'nosniff')
