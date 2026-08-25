@@ -1,0 +1,151 @@
+/*
+ * Design tokens — the single source of truth for colour, type, spacing, and radius.
+ *
+ * Imported first in app.css so every other sheet can reference these. The dark
+ * theme overrides the colour half of this file from dark-mode.css, which wins on
+ * specificity (`html[data-theme-resolved='dark']` beats `:root`).
+ *
+ * Contrast: every text token below clears WCAG AA (4.5:1) against BOTH --hr-surface
+ * and --hr-bg. That floor is not negotiable here — most of this app's text is small,
+ * so nothing qualifies for the 3:1 large-text allowance, and the people reading it
+ * are hospital staff of mixed ages on phones as often as on desktops.
+ */
+
+:root {
+    /* ---- Brand ---- */
+    --hr-primary: #176b43;        /* 6.52:1 on white */
+    --hr-primary-dark: #0d4f30;
+    --hr-primary-soft: #eaf7f0;
+    --hr-primary-rgb: 23, 107, 67;
+    --hr-sidebar: #103d2a;
+    --hr-sidebar-deep: #0a3020;
+
+    /*
+     * ---- Surface ladder ----
+     * Light mode previously had only `--hr-bg` and `--hr-surface`, so components
+     * that needed an inset or a table head invented their own greys inline. That
+     * is the root cause of the colour sprawl. Four rungs, each a visible step.
+     */
+    --hr-bg: #f4f7f6;             /* app canvas - the floor */
+    --hr-sunken: #eef2f0;         /* inputs and insets that sit below a card */
+    --hr-surface: #ffffff;        /* cards, panels, tables */
+    --hr-surface-2: #f4f7f6;      /* table heads, chips, toolbars, dropdowns */
+    --hr-surface-3: #e7edea;      /* hover and pressed states */
+
+    /* ---- Text ---- */
+    --hr-text: #1b2923;           /* 15.13:1 on white */
+    --hr-muted: #566661;          /* 6.05:1 white / 5.62:1 canvas - was #6d7c75 at 4.38:1 (failed) */
+    --hr-subtle: #616f69;         /* 5.27:1 - timestamps and footnotes */
+
+    /* ---- Borders ----
+     * --hr-border is a hairline divider and is deliberately below 3:1: it separates,
+     * it does not carry meaning. Anywhere an edge is load-bearing (form controls,
+     * focus rings, toggle tracks) must use --hr-border-strong, which clears 3:1.
+     */
+    --hr-border: #e3eae6;
+    --hr-border-strong: #88908c;  /* 3.27:1 white / 3.04:1 canvas */
+
+    /* ---- Status ----
+     * --hr-warning is a fill/icon colour ONLY: at 2.74:1 it can never be text.
+     * Use --hr-warning-text for any warning wording.
+     */
+    --hr-success: #157347;        /* 5.87:1 - was #198754 at a marginal 4.53:1 */
+    --hr-warning: #d98b14;        /* fills and icons only - NOT text */
+    --hr-warning-text: #855806;   /* 6.18:1 - the readable counterpart */
+    --hr-danger: #c93d4e;         /* 4.93:1 */
+    --hr-info: #21619f;           /* 6.41:1 */
+    --hr-violet: #7656c9;         /* 5.32:1 */
+
+    /* ---- Tints: pill and chip backgrounds, translucent so they inherit the surface ---- */
+    --hr-tint-success: rgba(21, 115, 71, .10);
+    --hr-tint-warning: rgba(217, 139, 20, .14);
+    --hr-tint-danger: rgba(201, 61, 78, .10);
+    --hr-tint-info: rgba(33, 97, 159, .10);
+    --hr-tint-violet: rgba(118, 86, 201, .10);
+    --hr-tint-neutral: rgba(27, 41, 35, .06);
+
+    --hr-shadow: 0 12px 32px rgba(25, 68, 49, 0.07);
+
+    /*
+     * ---- Type scale ----
+     * Ten rungs replacing 81 ad-hoc values. --fs-2xs is a hard floor: nothing in
+     * this application renders below 12px. Previously 86% of text was under 14px
+     * and 12% was under 10px, which is unreadable for the intended audience.
+     *
+     * The rungs are dense between 12 and 16px on purpose. That band carries almost
+     * all of this UI's text, and collapsing it to two or three sizes would erase
+     * the hierarchy the old values were reaching for - the sizes were wrong, but
+     * the relative ordering was not.
+     */
+    --fs-2xs: 0.75rem;      /* 12px - badges, table meta, timestamps. FLOOR. */
+    --fs-xs: 0.8125rem;     /* 13px - dense table cells, captions */
+    --fs-sm: 0.875rem;      /* 14px - secondary copy, labels */
+    --fs-base: 0.9375rem;   /* 15px - body default */
+    --fs-md: 1rem;          /* 16px - lead copy, card titles */
+    --fs-lg: 1.125rem;      /* 18px - panel headings */
+    --fs-xl: 1.375rem;      /* 22px - stat values */
+    --fs-2xl: 1.5rem;       /* 24px - section headings */
+    --fs-3xl: 2rem;         /* 32px - page hero headings */
+    --fs-4xl: 2.5rem;       /* 40px - marketing hero only */
+
+    /* ---- Line height ---- */
+    --lh-tight: 1.25;       /* headings and stat values */
+    --lh-snug: 1.4;         /* compact UI: table cells, chips */
+    --lh-base: 1.55;        /* body copy - generous on purpose */
+
+    /* ---- Spacing: 4px base ---- */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 20px;
+    --sp-6: 24px;
+    --sp-7: 32px;
+    --sp-8: 40px;
+
+    /* ---- Radius: 6 values replacing 42 ----
+     * The 42 literals clustered tightly around six sizes - .55rem, .6rem, .65rem
+     * and .7rem all coexisted, differences of under 2px that no one can see but
+     * which guaranteed no two cards agreed on their corners.
+     */
+    --r-xs: 3px;      /* hairline chips, progress fills */
+    --r-sm: 6px;      /* inputs, small controls */
+    --r-md: 10px;     /* buttons, icon buttons, table cells */
+    --r-lg: 14px;     /* cards and panels */
+    --r-xl: 18px;     /* modals and dialogs */
+    --r-pill: 999px;  /* badges, avatars, toggles */
+
+    /* ---- Touch ----
+     * WCAG 2.5.5 / platform HIG minimum. This app is used on phones on the ward
+     * floor, so it is applied to every interactive control, not just the sidebar.
+     */
+    --tap-min: 44px;
+
+    /* ---- Layout ---- */
+    --sidebar-width: 272px;
+    --sidebar-collapsed-width: 84px;
+    --topbar-height: 76px;
+
+    /*
+     * ---- Breakpoints (reference) ----
+     * Custom properties cannot be used inside @media, so these are documented
+     * here and written literally at the call sites.
+     *
+     *   520px    small phone   topbar wraps, search moves to its own row
+     *   600px    phone         single-column grids
+     *   700px    large phone   heading actions stack
+     *   900px    tablet        TABLES BECOME CARDS (.table-stack)
+     *  1000px    small laptop  side panels fold under
+     *  1100px    laptop        sidebar overlays instead of pushing
+     *                          (paired with the one min-width: 1101px query)
+     *  1280px    desktop       wide grids relax
+     *
+     * Seven steps, down from eighteen. The eleven that were dropped (575, 650,
+     * 720, 750, 760, 820, 860, 968, 980, 1050, 1400) each sat within 60px of a
+     * neighbour and reflowed the page at a width nobody had chosen deliberately.
+     * They were folded into the nearest step rather than forced onto a tidier
+     * four-step scale: 1100/1101 is a matched max/min pair that has to stay
+     * where it is, and collapsing further would have moved tuned layouts by
+     * more than 100px with no way to eyeball the result.
+     */
+}

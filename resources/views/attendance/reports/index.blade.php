@@ -116,7 +116,7 @@
         </div>
 
         <div class="table-responsive">
-            <table class="dashboard-table report-table">
+            <table class="dashboard-table report-table table-stack">
                 <thead>
                     <tr>
                         <th>Date</th>
@@ -138,25 +138,25 @@
                 <tbody>
                     @forelse ($records as $record)
                         <tr>
-                            <td><strong>{{ $record->attendance_date->format('M j, Y') }}</strong></td>
-                            <td>
+                            <td data-label="Date"><strong>{{ $record->attendance_date->format('M j, Y') }}</strong></td>
+                            <td data-label="Employee">
                                 <div class="employee-cell">
                                     <span class="avatar avatar-table">{{ strtoupper(substr($record->employee->first_name, 0, 1).substr($record->employee->last_name, 0, 1)) }}</span>
                                     <div><strong>{{ $record->employee->full_name }}</strong><span>{{ $record->employee->employee_number }}</span></div>
                                 </div>
                             </td>
-                            <td>{{ $record->employee->department?->name ?? 'Unassigned' }}</td>
-                            <td>{{ $record->check_in_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('g:i A') ?? '—' }}</td>
-                            <td><strong>{{ $record->check_in_method_label }}</strong>@if($record->checkInBiometricDevice)<small>{{ $record->checkInBiometricDevice->name }}</small>@endif</td>
-                            <td>{{ $record->check_out_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('g:i A') ?? '—' }}</td>
-                            <td>@if($record->check_out_at)<strong>{{ $record->check_out_method_label }}</strong>@if($record->checkOutBiometricDevice)<small>{{ $record->checkOutBiometricDevice->name }}</small>@endif @else — @endif</td>
-                            <td>{{ $record->worked_hours }}</td>
-                            <td>{{ $record->late_minutes ? $record->late_minutes.'m' : '—' }}</td>
-                            <td>{{ $record->undertime_minutes ? $record->undertime_minutes.'m' : '—' }}</td>
-                            <td>{{ $record->overtime_minutes ? $record->overtime_minutes.'m' : '—' }}</td>
-                            <td><x-status-badge :status="$record->status" /></td>
-                            <td><x-status-badge :status="$record->approval_status" /></td>
-                            <td>
+                            <td data-label="Department">{{ $record->employee->department?->name ?? 'Unassigned' }}</td>
+                            <td data-label="In">{{ $record->check_in_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('g:i A') ?? '—' }}</td>
+                            <td data-label="In source"><strong>{{ $record->check_in_method_label }}</strong>@if($record->checkInBiometricDevice)<small>{{ $record->checkInBiometricDevice->name }}</small>@endif</td>
+                            <td data-label="Out">{{ $record->check_out_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('g:i A') ?? '—' }}</td>
+                            <td data-label="Out source">@if($record->check_out_at)<strong>{{ $record->check_out_method_label }}</strong>@if($record->checkOutBiometricDevice)<small>{{ $record->checkOutBiometricDevice->name }}</small>@endif @else — @endif</td>
+                            <td data-label="Worked">{{ $record->worked_hours }}</td>
+                            <td data-label="Late">{{ $record->late_minutes ? $record->late_minutes.'m' : '—' }}</td>
+                            <td data-label="Undertime">{{ $record->undertime_minutes ? $record->undertime_minutes.'m' : '—' }}</td>
+                            <td data-label="Overtime">{{ $record->overtime_minutes ? $record->overtime_minutes.'m' : '—' }}</td>
+                            <td data-label="Status"><x-status-badge :status="$record->status" /></td>
+                            <td data-label="Approval"><x-status-badge :status="$record->approval_status" /></td>
+                            <td data-label="Timesheet action">
                                 @if ($record->check_out_at && $record->approval_status !== 'approved' && $canManageData)
                                     <div class="attendance-approval-actions">
                                         <form method="POST" action="{{ route('attendance.records.approve', $record) }}">@csrf<button class="btn btn-sm btn-success" type="submit">Approve</button></form>

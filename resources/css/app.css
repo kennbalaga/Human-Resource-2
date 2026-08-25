@@ -1,4 +1,8 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
+
+/* Design tokens first: every sheet below references them. */
+@import './tokens.css';
+
 @import './dashboard.css';
 @import './staff-dashboard.css';
 @import './attendance.css';

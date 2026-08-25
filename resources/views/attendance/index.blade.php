@@ -176,7 +176,7 @@
             </div>
 
             <div class="table-responsive">
-                <table class="dashboard-table attendance-table">
+                <table class="dashboard-table attendance-table table-stack">
                     <thead>
                         <tr>
                             <th>Date</th>
@@ -194,15 +194,15 @@
                     <tbody>
                         @forelse ($recentRecords as $record)
                             <tr>
-                                <td><strong>{{ $record->attendance_date->format('M j, Y') }}</strong></td>
-                                <td>{{ $record->officeLocation?->name ?? 'Not available' }}</td>
-                                <td>{{ $record->check_in_at?->timezone($office->timezone)->format('g:i A') ?? '—' }}</td>
-                                <td>
+                                <td data-label="Date"><strong>{{ $record->attendance_date->format('M j, Y') }}</strong></td>
+                                <td data-label="Location">{{ $record->officeLocation?->name ?? 'Not available' }}</td>
+                                <td data-label="Check in">{{ $record->check_in_at?->timezone($office->timezone)->format('g:i A') ?? '—' }}</td>
+                                <td data-label="In source">
                                     <strong>{{ $record->check_in_method_label }}</strong>
                                     @if($record->checkInBiometricDevice)<small>{{ $record->checkInBiometricDevice->name }}</small>@endif
                                 </td>
-                                <td>{{ $record->check_out_at?->timezone($office->timezone)->format('g:i A') ?? '—' }}</td>
-                                <td>
+                                <td data-label="Check out">{{ $record->check_out_at?->timezone($office->timezone)->format('g:i A') ?? '—' }}</td>
+                                <td data-label="Out source">
                                     @if($record->check_out_at)
                                         <strong>{{ $record->check_out_method_label }}</strong>
                                         @if($record->checkOutBiometricDevice)<small>{{ $record->checkOutBiometricDevice->name }}</small>@endif
@@ -210,10 +210,10 @@
                                         —
                                     @endif
                                 </td>
-                                <td>{{ $record->worked_hours }}</td>
-                                <td>{{ $record->late_minutes ? $record->late_minutes.' min' : '—' }}</td>
-                                <td>{{ $record->overtime_minutes ? $record->overtime_minutes.' min' : '—' }}</td>
-                                <td><x-status-badge :status="$record->status" /></td>
+                                <td data-label="Worked">{{ $record->worked_hours }}</td>
+                                <td data-label="Late">{{ $record->late_minutes ? $record->late_minutes.' min' : '—' }}</td>
+                                <td data-label="Overtime">{{ $record->overtime_minutes ? $record->overtime_minutes.' min' : '—' }}</td>
+                                <td data-label="Status"><x-status-badge :status="$record->status" /></td>
                             </tr>
                         @empty
                             <tr>

@@ -25,6 +25,15 @@
        staff-side tool only: an administrator or manager does not carry the link
        on the strength of their role, only if they are clinical staff themselves. */
     $sidebarCanSeeShiftSwaps = $sidebarUser->employee?->canUseShiftSwaps() ?? false;
+
+    /* Audit logs and integrations used to be reachable only through Account
+       settings, which framed a compliance record and a system-wide integration
+       as personal preferences. They are administration, so they get their own
+       group. The gate mirrors AuditLogController::authorizeAuditAccess() and
+       IntegrationController::authorizeIntegrationAdmin(). */
+    $sidebarCanSeeAdministration = $sidebarRoles
+        ->intersect(['system-administrator', 'hr-manager'])
+        ->isNotEmpty();
 @endphp
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Primary navigation">
@@ -110,6 +119,19 @@
                 </x-sidebar-link>
                 <x-sidebar-link :href="route('analytics.index')" icon="analytics" :active="request()->routeIs('analytics.*')">
                     Workforce Analytics
+                </x-sidebar-link>
+            </div>
+        @endif
+
+        @if ($sidebarCanSeeAdministration)
+            <div class="sidebar-nav-group" role="group" aria-labelledby="sidebar-group-administration">
+                <h2 class="sidebar-nav-heading" id="sidebar-group-administration">Administration</h2>
+
+                <x-sidebar-link :href="route('integrations.index')" icon="plug" :active="request()->routeIs('integrations.*')">
+                    Integrations
+                </x-sidebar-link>
+                <x-sidebar-link :href="route('audit-logs.index')" icon="report" :active="request()->routeIs('audit-logs.*')">
+                    Audit logs
                 </x-sidebar-link>
             </div>
         @endif

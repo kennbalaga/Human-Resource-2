@@ -32,7 +32,7 @@
     display: inline-flex;
     padding: 9px 14px;
     border: 1px solid var(--hr-border);
-    border-radius: 12px;
+    border-radius: var(--r-md);
     background: var(--hr-surface);
     align-items: center;
     gap: 10px;
@@ -48,14 +48,14 @@
 .staff-heading-badge small {
     display: block;
     color: var(--hr-muted);
-    font-size: 0.6rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
 .staff-heading-badge strong {
-    font-size: 0.78rem;
+    font-size: var(--fs-sm);
     font-weight: 650;
     letter-spacing: -0.01em;
 }
@@ -65,10 +65,10 @@
     margin-bottom: 18px;
     padding: 12px 16px;
     border: 1px solid var(--hr-border);
-    border-radius: 12px;
+    border-radius: var(--r-md);
     align-items: center;
     gap: 10px;
-    font-size: 0.76rem;
+    font-size: var(--fs-sm);
 }
 
 .staff-flash .ui-icon {
@@ -79,14 +79,14 @@
 
 .staff-flash-success {
     border-color: rgba(23, 107, 67, .3);
-    color: #10583a;
-    background: #eef8f2;
+    color: var(--hr-text);
+    background: var(--hr-primary-soft);
 }
 
 .staff-flash-danger {
     border-color: rgba(201, 61, 78, .3);
-    color: #9a2b3a;
-    background: #fdf1f2;
+    color: var(--hr-danger);
+    background: var(--hr-tint-danger);
 }
 
 .staff-grid {
@@ -123,7 +123,7 @@
 
 .staff-panel-meta {
     color: var(--hr-muted);
-    font-size: 0.66rem;
+    font-size: var(--fs-2xs);
     font-weight: 600;
     white-space: nowrap;
 }
@@ -133,10 +133,10 @@
 .staff-chip {
     display: inline-flex;
     padding: 4px 10px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     align-items: center;
     gap: 5px;
-    font-size: 0.65rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
     white-space: nowrap;
 }
@@ -147,28 +147,28 @@
 }
 
 .staff-chip-success {
-    color: #0f5c39;
-    background: #e4f4ec;
+    color: var(--hr-text);
+    background: var(--hr-primary-soft);
 }
 
 .staff-chip-warning {
-    color: #8a5a08;
-    background: #fbf1de;
+    color: var(--hr-warning-text);
+    background: var(--hr-tint-warning);
 }
 
 .staff-chip-danger {
-    color: #98293a;
-    background: #fbe9ec;
+    color: var(--hr-danger);
+    background: var(--hr-tint-danger);
 }
 
 .staff-chip-info {
-    color: #22527f;
-    background: #e7f0f9;
+    color: var(--hr-info);
+    background: var(--hr-tint-info);
 }
 
 .staff-chip-idle {
-    color: #5d6a64;
-    background: #eef2f0;
+    color: var(--hr-muted);
+    background: var(--hr-sunken);
 }
 
 .staff-detail-list {
@@ -187,7 +187,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    font-size: 0.72rem;
+    font-size: var(--fs-xs);
 }
 
 .staff-detail-list li:last-child {
@@ -242,13 +242,13 @@
 .staff-figure-pair > div {
     padding: 11px 13px;
     border: 1px solid var(--hr-border);
-    border-radius: 11px;
-    background: #fafcfb;
+    border-radius: var(--r-md);
+    background: var(--hr-primary-soft);
 }
 
 .staff-figure-pair dt {
     color: var(--hr-muted);
-    font-size: 0.63rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -257,7 +257,7 @@
 .staff-figure-pair dd {
     margin: 4px 0 0;
     color: var(--hr-text);
-    font-size: 1.02rem;
+    font-size: var(--fs-md);
     font-weight: 660;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
@@ -267,11 +267,11 @@
     display: inline-flex;
     width: 100%;
     padding: 9px 14px;
-    border-radius: 10px;
+    border-radius: var(--r-md);
     align-items: center;
     justify-content: center;
     gap: 7px;
-    font-size: 0.74rem;
+    font-size: var(--fs-xs);
     font-weight: 640;
 }
 
@@ -293,7 +293,7 @@
 
 .staff-today-date {
     color: var(--hr-muted);
-    font-size: 0.66rem;
+    font-size: var(--fs-2xs);
     font-weight: 600;
 }
 
@@ -308,8 +308,8 @@
     display: flex;
     padding: 13px 15px;
     border: 1px solid var(--hr-border);
-    border-radius: 13px;
-    background: #f7fbf9;
+    border-radius: var(--r-lg);
+    background: var(--hr-primary-soft);
     align-items: center;
     gap: 12px;
 }
@@ -321,7 +321,7 @@
 
 .staff-today-state strong {
     display: block;
-    font-size: 0.98rem;
+    font-size: var(--fs-md);
     font-weight: 680;
     letter-spacing: -0.02em;
 }
@@ -330,7 +330,7 @@
     display: block;
     margin-top: 2px;
     color: var(--hr-muted);
-    font-size: 0.7rem;
+    font-size: var(--fs-xs);
 }
 
 .staff-today-state b {
@@ -387,13 +387,13 @@
     min-width: 0;
     padding: 11px 13px;
     border: 1px solid var(--hr-border);
-    border-radius: 11px;
+    border-radius: var(--r-md);
     background: var(--hr-surface);
 }
 
 .staff-today-readouts dt {
     color: var(--hr-muted);
-    font-size: 0.62rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -403,7 +403,7 @@
     margin: 5px 0 0;
     overflow: hidden;
     color: var(--hr-text);
-    font-size: 0.92rem;
+    font-size: var(--fs-base);
     font-weight: 660;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
@@ -413,22 +413,22 @@
 
 .staff-today-readouts .is-pending dd {
     color: var(--hr-muted);
-    font-size: 0.76rem;
+    font-size: var(--fs-sm);
     font-weight: 600;
 }
 
 .staff-today-note {
     margin: 0;
     color: var(--hr-muted);
-    font-size: 0.68rem;
+    font-size: var(--fs-2xs);
 }
 
 .staff-biometric {
     display: flex;
     padding: 12px 14px;
     border: 1px solid var(--hr-border);
-    border-radius: 12px;
-    background: #f8faf9;
+    border-radius: var(--r-md);
+    background: var(--hr-surface-2);
     align-items: center;
     gap: 12px;
 }
@@ -437,7 +437,7 @@
     display: grid;
     width: 34px;
     height: 34px;
-    border-radius: 10px;
+    border-radius: var(--r-md);
     color: var(--hr-primary);
     background: var(--hr-primary-soft);
     flex: none;
@@ -456,7 +456,7 @@
 
 .staff-biometric-copy strong {
     display: block;
-    font-size: 0.74rem;
+    font-size: var(--fs-xs);
     font-weight: 650;
 }
 
@@ -464,22 +464,22 @@
     display: block;
     margin-top: 2px;
     color: var(--hr-muted);
-    font-size: 0.66rem;
+    font-size: var(--fs-2xs);
 }
 
 .staff-biometric-state {
     padding: 4px 10px;
-    border-radius: 999px;
-    color: #5d6a64;
-    background: #eef2f0;
+    border-radius: var(--r-pill);
+    color: var(--hr-muted);
+    background: var(--hr-sunken);
     flex: none;
-    font-size: 0.63rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
 }
 
 .staff-biometric-state.is-online {
-    color: #0f5c39;
-    background: #e4f4ec;
+    color: var(--hr-text);
+    background: var(--hr-primary-soft);
 }
 
 .staff-source-list {
@@ -496,7 +496,7 @@
     align-items: center;
     color: var(--hr-muted);
     gap: 6px;
-    font-size: 0.67rem;
+    font-size: var(--fs-2xs);
 }
 
 .staff-source-list .ui-icon {
@@ -511,7 +511,7 @@
     margin-top: auto;
     padding: 14px 20px;
     border-top: 1px solid var(--hr-border);
-    background: #fbfcfb;
+    background: var(--hr-surface-2);
     align-items: center;
     justify-content: space-between;
     gap: 12px;
@@ -528,7 +528,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 0.64rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
 }
 
@@ -536,8 +536,8 @@
     min-width: 230px;
     padding: 8px 11px;
     border: 1px solid var(--hr-border);
-    border-radius: 9px;
-    font-size: 0.72rem;
+    border-radius: var(--r-md);
+    font-size: var(--fs-xs);
     font-weight: 400;
 }
 
@@ -545,11 +545,11 @@
     display: inline-flex;
     padding: 10px 20px;
     border: 0;
-    border-radius: 10px;
+    border-radius: var(--r-md);
     color: #fff;
     align-items: center;
     gap: 8px;
-    font-size: 0.78rem;
+    font-size: var(--fs-sm);
     font-weight: 660;
     letter-spacing: -0.01em;
 }
@@ -569,12 +569,12 @@
 }
 
 .staff-clock-button.is-out {
-    background: #b5533f;
+    background: var(--hr-danger);
 }
 
 .staff-clock-button.is-out:hover {
     color: #fff;
-    background: #9c4534;
+    background: var(--hr-danger);
 }
 
 .staff-today-closed {
@@ -583,7 +583,7 @@
     align-items: center;
     color: var(--hr-muted);
     gap: 8px;
-    font-size: 0.71rem;
+    font-size: var(--fs-xs);
 }
 
 .staff-today-closed .ui-icon {
@@ -609,7 +609,7 @@
 }
 
 .staff-shift-name strong {
-    font-size: 1.16rem;
+    font-size: var(--fs-lg);
     font-weight: 690;
     letter-spacing: -0.03em;
 }
@@ -617,17 +617,17 @@
 .staff-shift-dot {
     width: 11px;
     height: 11px;
-    border-radius: 4px;
+    border-radius: var(--r-xs);
     background: var(--shift-color, var(--hr-primary));
     flex: none;
 }
 
 .staff-shift-tag {
     padding: 3px 8px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     color: var(--hr-muted);
-    background: #eef2f0;
-    font-size: 0.6rem;
+    background: var(--hr-sunken);
+    font-size: var(--fs-2xs);
     font-weight: 650;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -639,7 +639,7 @@
     align-items: center;
     color: var(--hr-muted);
     gap: 6px;
-    font-size: 0.74rem;
+    font-size: var(--fs-xs);
 }
 
 .staff-shift-department .ui-icon {
@@ -651,7 +651,7 @@
 .staff-shift-hours {
     margin: 4px 0 10px;
     color: var(--hr-text);
-    font-size: 0.86rem;
+    font-size: var(--fs-base);
     font-weight: 650;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.015em;
@@ -663,7 +663,7 @@
     padding: 12px 15px 12px 20px;
     color: var(--hr-text);
     background: transparent;
-    font-size: 0.72rem;
+    font-size: var(--fs-xs);
     font-weight: 650;
     letter-spacing: normal;
     text-transform: none;
@@ -673,26 +673,26 @@
     display: block;
     margin-top: 1px;
     color: var(--hr-muted);
-    font-size: 0.62rem;
+    font-size: var(--fs-2xs);
     font-weight: 600;
 }
 
 .staff-shift-pill {
     display: inline-flex;
     padding: 4px 11px 4px 9px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     color: var(--hr-text);
-    background: #f1f5f3;
+    background: var(--hr-sunken);
     align-items: center;
     gap: 7px;
-    font-size: 0.68rem;
+    font-size: var(--fs-2xs);
     font-weight: 640;
 }
 
 .staff-shift-pill::before {
     width: 7px;
     height: 7px;
-    border-radius: 2px;
+    border-radius: var(--r-xs);
     background: var(--shift-color, var(--hr-muted));
     content: '';
 }
@@ -725,8 +725,8 @@
     position: relative;
     padding: 11px 13px 11px 16px;
     border: 1px solid var(--hr-border);
-    border-radius: 11px;
-    background: #fafcfb;
+    border-radius: var(--r-md);
+    background: var(--hr-primary-soft);
 }
 
 /* Identity comes from a coloured rail beside the number, never from colouring
@@ -748,7 +748,7 @@
 
 .staff-tally dt {
     color: var(--hr-muted);
-    font-size: 0.63rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -757,7 +757,7 @@
 .staff-tally dd {
     margin: 3px 0 0;
     color: var(--hr-text);
-    font-size: 1.32rem;
+    font-size: var(--fs-xl);
     font-weight: 680;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.03em;
@@ -770,13 +770,13 @@
     justify-content: space-between;
     color: var(--hr-muted);
     gap: 12px;
-    font-size: 0.7rem;
+    font-size: var(--fs-xs);
     font-weight: 600;
 }
 
 .staff-meter-head b {
     color: var(--hr-text);
-    font-size: 1.02rem;
+    font-size: var(--fs-md);
     font-weight: 680;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
@@ -787,21 +787,21 @@
 .staff-meter {
     overflow: hidden;
     height: 8px;
-    border-radius: 999px;
-    background: #dcece3;
+    border-radius: var(--r-pill);
+    background: var(--hr-surface-3);
 }
 
 .staff-meter span {
     display: block;
     height: 100%;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     background: var(--staff-present);
 }
 
 .staff-meter-note {
     margin: 8px 0 0;
     color: var(--hr-muted);
-    font-size: 0.66rem;
+    font-size: var(--fs-2xs);
 }
 
 /* ------------------------------------------------------ 5. timesheet status */
@@ -826,7 +826,7 @@
 
 .staff-status-line strong {
     display: block;
-    font-size: 0.86rem;
+    font-size: var(--fs-base);
     font-weight: 660;
     letter-spacing: -0.015em;
 }
@@ -835,16 +835,16 @@
     display: block;
     margin-top: 2px;
     color: var(--hr-muted);
-    font-size: 0.66rem;
+    font-size: var(--fs-2xs);
 }
 
 .staff-status-icon {
     display: grid;
     width: 34px;
     height: 34px;
-    border-radius: 10px;
-    color: #5d6a64;
-    background: #eef2f0;
+    border-radius: var(--r-md);
+    color: var(--hr-muted);
+    background: var(--hr-sunken);
     flex: none;
     place-items: center;
 }
@@ -854,22 +854,22 @@
     height: 18px;
 }
 
-.staff-status-success .staff-status-icon { color: #0f5c39; background: #e4f4ec; }
-.staff-status-warning .staff-status-icon { color: #8a5a08; background: #fbf1de; }
-.staff-status-danger .staff-status-icon { color: #98293a; background: #fbe9ec; }
-.staff-status-info .staff-status-icon { color: #22527f; background: #e7f0f9; }
+.staff-status-success .staff-status-icon { color: var(--hr-text); background: var(--hr-primary-soft); }
+.staff-status-warning .staff-status-icon { color: var(--hr-warning-text); background: var(--hr-tint-warning); }
+.staff-status-danger .staff-status-icon { color: var(--hr-danger); background: var(--hr-tint-danger); }
+.staff-status-info .staff-status-icon { color: var(--hr-info); background: var(--hr-tint-info); }
 
 .staff-attention-note {
     display: flex;
     margin: 0;
     padding: 10px 12px;
     border: 1px solid rgba(217, 139, 20, .32);
-    border-radius: 10px;
-    color: #7d5209;
-    background: #fdf7ec;
+    border-radius: var(--r-md);
+    color: var(--hr-warning-text);
+    background: var(--hr-tint-warning);
     align-items: flex-start;
     gap: 8px;
-    font-size: 0.68rem;
+    font-size: var(--fs-2xs);
 }
 
 .staff-attention-note .ui-icon {
@@ -896,7 +896,7 @@
     padding: 0 0 7px;
     border-bottom: 1px solid var(--hr-border);
     color: var(--hr-muted);
-    font-size: 0.61rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
     letter-spacing: 0.05em;
     text-align: right;
@@ -910,7 +910,7 @@
 .staff-leave-table th[scope='row'] {
     padding: 9px 0;
     color: var(--hr-text);
-    font-size: 0.72rem;
+    font-size: var(--fs-xs);
     font-weight: 620;
     text-align: left;
 }
@@ -918,14 +918,14 @@
 .staff-leave-table td {
     padding: 9px 0;
     color: var(--hr-muted);
-    font-size: 0.7rem;
+    font-size: var(--fs-xs);
     font-variant-numeric: tabular-nums;
     text-align: right;
 }
 
 .staff-leave-table td b {
     color: var(--hr-text);
-    font-size: 0.85rem;
+    font-size: var(--fs-base);
     font-weight: 660;
 }
 
@@ -942,7 +942,7 @@
 .staff-tracker-head {
     margin: 0 0 8px;
     color: var(--hr-muted);
-    font-size: 0.62rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -966,7 +966,7 @@
 .staff-tracker-copy strong {
     display: block;
     overflow: hidden;
-    font-size: 0.71rem;
+    font-size: var(--fs-xs);
     font-weight: 640;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -975,13 +975,13 @@
 .staff-tracker-copy small {
     display: block;
     color: var(--hr-muted);
-    font-size: 0.65rem;
+    font-size: var(--fs-2xs);
 }
 
 .staff-tracker-empty {
     margin: 0;
     color: var(--hr-muted);
-    font-size: 0.68rem;
+    font-size: var(--fs-2xs);
 }
 
 /* ------------------------------------------------------ 7. schedule changes */
@@ -994,8 +994,8 @@
     padding: 16px 20px 6px;
     border: 1px solid rgba(217, 139, 20, .45);
     border-left: 4px solid var(--hr-warning);
-    border-radius: 15px;
-    background: #fffaf1;
+    border-radius: var(--r-lg);
+    background: var(--hr-tint-warning);
     box-shadow: var(--hr-shadow);
 }
 
@@ -1010,9 +1010,9 @@
     display: grid;
     width: 36px;
     height: 36px;
-    border-radius: 11px;
-    color: #8a5a08;
-    background: #fbeed6;
+    border-radius: var(--r-md);
+    color: var(--hr-warning-text);
+    background: var(--hr-tint-warning);
     flex: none;
     place-items: center;
 }
@@ -1024,8 +1024,8 @@
 
 .staff-alert-kicker {
     margin: 0 0 3px;
-    color: #8a5a08;
-    font-size: 0.64rem;
+    color: var(--hr-warning-text);
+    font-size: var(--fs-2xs);
     font-weight: 700;
     letter-spacing: 0.09em;
     text-transform: uppercase;
@@ -1033,7 +1033,7 @@
 
 .staff-alert h2 {
     margin: 0;
-    font-size: 0.98rem;
+    font-size: var(--fs-md);
     font-weight: 670;
     letter-spacing: -0.02em;
 }
@@ -1051,7 +1051,7 @@
     display: grid;
     padding: 13px 15px;
     border: 1px solid rgba(217, 139, 20, .26);
-    border-radius: 12px;
+    border-radius: var(--r-md);
     background: var(--hr-surface);
     grid-template-columns: minmax(150px, 0.8fr) minmax(0, 1.5fr) minmax(150px, 1fr);
     align-items: center;
@@ -1060,15 +1060,15 @@
 
 .staff-change-date strong {
     display: block;
-    font-size: 0.78rem;
+    font-size: var(--fs-sm);
     font-weight: 660;
 }
 
 .staff-change-date span {
     display: block;
     margin-top: 2px;
-    color: #8a5a08;
-    font-size: 0.64rem;
+    color: var(--hr-warning-text);
+    font-size: var(--fs-2xs);
     font-weight: 650;
 }
 
@@ -1082,7 +1082,7 @@
 .staff-change-reason small {
     display: block;
     color: var(--hr-muted);
-    font-size: 0.6rem;
+    font-size: var(--fs-2xs);
     font-weight: 650;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -1091,7 +1091,7 @@
 .staff-change-swap b {
     display: block;
     margin-top: 2px;
-    font-size: 0.72rem;
+    font-size: var(--fs-xs);
     font-weight: 620;
 }
 
@@ -1108,14 +1108,14 @@
 .staff-change-arrow {
     width: 15px;
     height: 15px;
-    color: var(--hr-warning);
+    color: var(--hr-warning-text);
     flex: none;
 }
 
 .staff-change-reason b {
     display: block;
     margin-top: 2px;
-    font-size: 0.72rem;
+    font-size: var(--fs-xs);
     font-weight: 620;
 }
 
@@ -1123,17 +1123,17 @@
     display: block;
     margin-top: 2px;
     color: var(--hr-muted);
-    font-size: 0.62rem;
+    font-size: var(--fs-2xs);
 }
 
 .staff-alert-link {
     display: inline-flex;
     padding: 12px 0 10px;
-    color: #8a5a08;
+    color: var(--hr-warning-text);
     text-decoration: none;
     align-items: center;
     gap: 4px;
-    font-size: 0.69rem;
+    font-size: var(--fs-xs);
     font-weight: 650;
 }
 
@@ -1158,7 +1158,7 @@
 .staff-hero-figure b {
     display: block;
     color: var(--hr-text);
-    font-size: 2.05rem;
+    font-size: var(--fs-3xl);
     font-weight: 690;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.045em;
@@ -1169,7 +1169,7 @@
     display: block;
     margin-top: 4px;
     color: var(--hr-muted);
-    font-size: 0.68rem;
+    font-size: var(--fs-2xs);
 }
 
 /* Two touching segments, separated by surface rather than by a stroke. */
@@ -1177,8 +1177,8 @@
     display: flex;
     overflow: hidden;
     height: 10px;
-    border-radius: 999px;
-    background: #e9eeeb;
+    border-radius: var(--r-pill);
+    background: var(--hr-sunken);
     gap: 2px;
 }
 
@@ -1208,7 +1208,7 @@
     align-items: center;
     color: var(--hr-muted);
     gap: 7px;
-    font-size: 0.69rem;
+    font-size: var(--fs-xs);
 }
 
 .staff-legend b {
@@ -1220,7 +1220,7 @@
 .staff-legend-swatch {
     width: 10px;
     height: 10px;
-    border-radius: 3px;
+    border-radius: var(--r-xs);
     flex: none;
 }
 
@@ -1230,7 +1230,7 @@
 .staff-overtime-note {
     margin: 0;
     color: var(--hr-muted);
-    font-size: 0.66rem;
+    font-size: var(--fs-2xs);
 }
 
 /* ----------------------------------------------------- 9. my analytics */
@@ -1278,7 +1278,7 @@
 
 .staff-metric-copy strong {
     display: block;
-    font-size: 0.74rem;
+    font-size: var(--fs-xs);
     font-weight: 640;
 }
 
@@ -1286,12 +1286,12 @@
     display: block;
     margin-top: 1px;
     color: var(--hr-muted);
-    font-size: 0.64rem;
+    font-size: var(--fs-2xs);
 }
 
 .staff-metric > b {
     color: var(--hr-text);
-    font-size: 0.94rem;
+    font-size: var(--fs-base);
     font-weight: 670;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
@@ -1309,7 +1309,7 @@
 
 .staff-trend-figure figcaption strong {
     display: block;
-    font-size: 0.76rem;
+    font-size: var(--fs-sm);
     font-weight: 650;
 }
 
@@ -1317,7 +1317,7 @@
     display: block;
     margin-top: 2px;
     color: var(--hr-muted);
-    font-size: 0.64rem;
+    font-size: var(--fs-2xs);
 }
 
 .staff-trend {
@@ -1337,7 +1337,7 @@
     color: var(--hr-muted);
     flex-direction: column;
     justify-content: space-between;
-    font-size: 0.58rem;
+    font-size: var(--fs-2xs);
     font-variant-numeric: tabular-nums;
     text-align: right;
 }
@@ -1374,7 +1374,7 @@
     display: flex;
     min-width: 0;
     padding: 0 2px;
-    border-radius: 8px;
+    border-radius: var(--r-md);
     flex-direction: column;
     gap: 6px;
 }
@@ -1409,7 +1409,7 @@
     width: 100%;
     max-width: 24px;
     height: 2px;
-    border-radius: 2px;
+    border-radius: var(--r-xs);
     background: var(--hr-border);
 }
 
@@ -1421,7 +1421,7 @@
     left: 50%;
     margin-bottom: 4px;
     color: var(--hr-text);
-    font-size: 0.63rem;
+    font-size: var(--fs-2xs);
     font-weight: 660;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -1430,7 +1430,7 @@
 
 .staff-trend-column small {
     color: var(--hr-muted);
-    font-size: 0.6rem;
+    font-size: var(--fs-2xs);
     text-align: center;
 }
 
@@ -1451,7 +1451,7 @@
     min-width: 132px;
     padding: 9px 11px;
     border: 1px solid var(--hr-border);
-    border-radius: 10px;
+    border-radius: var(--r-md);
     background: var(--hr-surface);
     flex-direction: column;
     gap: 3px;
@@ -1468,7 +1468,7 @@
 
 .staff-trend-tooltip-month {
     color: var(--hr-text);
-    font-size: 0.66rem;
+    font-size: var(--fs-2xs);
     font-weight: 660;
 }
 
@@ -1477,7 +1477,7 @@
     justify-content: space-between;
     color: var(--hr-muted);
     gap: 14px;
-    font-size: 0.64rem;
+    font-size: var(--fs-2xs);
 }
 
 .staff-trend-tooltip-row b {
@@ -1493,19 +1493,19 @@
 .staff-trend-table-view summary {
     color: var(--hr-primary);
     cursor: pointer;
-    font-size: 0.68rem;
+    font-size: var(--fs-2xs);
     font-weight: 620;
 }
 
 .staff-trend-table-view .table-responsive {
     margin-top: 10px;
     border: 1px solid var(--hr-border);
-    border-radius: 11px;
+    border-radius: var(--r-md);
 }
 
 /* ------------------------------------------------------------- responsive */
 
-@media (max-width: 1400px) {
+@media (max-width: 1280px) {
     .staff-change {
         grid-template-columns: minmax(140px, 0.9fr) minmax(0, 1.6fr);
     }
@@ -1534,7 +1534,7 @@
     }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
     .staff-heading {
         flex-direction: column;
         align-items: flex-start;
@@ -1570,7 +1570,7 @@
     }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 700px) {
     .staff-grid-trio {
         grid-template-columns: minmax(0, 1fr);
     }

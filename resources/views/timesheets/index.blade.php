@@ -36,18 +36,18 @@
     <section class="panel workforce-table-panel">
         <div class="panel-header"><div><p class="panel-kicker">Weekly records</p><h2>Attendance-generated timesheets</h2></div><span class="history-caption">{{ $timesheets->total() }} results</span></div>
         <div class="table-responsive">
-            <table class="dashboard-table workforce-table">
+            <table class="dashboard-table workforce-table table-stack">
                 <thead><tr><th>Period</th><th>Employee</th><th>Regular</th><th>Overtime</th><th>Late</th><th>Entries</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody>
                     @forelse($timesheets as $timesheet)
                         <tr>
-                            <td><strong>{{ $timesheet->period_start->format('M j') }}–{{ $timesheet->period_end->format('M j, Y') }}</strong></td>
-                            <td><div class="employee-cell"><span class="avatar avatar-table">{{ strtoupper(substr($timesheet->employee->first_name, 0, 1).substr($timesheet->employee->last_name, 0, 1)) }}</span><div><strong>{{ $timesheet->employee->full_name }}</strong><span>{{ $timesheet->employee->employee_number }} · {{ $timesheet->employee->department?->code }}</span></div></div></td>
-                            <td>{{ $formatMinutes($timesheet->regular_minutes) }}</td>
-                            <td>{{ $formatMinutes($timesheet->overtime_minutes) }}</td>
-                            <td>{{ $timesheet->late_minutes ? $timesheet->late_minutes.'m' : '—' }}</td>
-                            <td><button class="text-action" type="button" data-bs-toggle="collapse" data-bs-target="#timesheet-{{ $timesheet->id }}">{{ $timesheet->entries->count() }} days</button></td>
-                            <td><x-status-badge :status="$timesheet->status" /></td>
+                            <td data-label="Period"><strong>{{ $timesheet->period_start->format('M j') }}–{{ $timesheet->period_end->format('M j, Y') }}</strong></td>
+                            <td data-label="Employee"><div class="employee-cell"><span class="avatar avatar-table">{{ strtoupper(substr($timesheet->employee->first_name, 0, 1).substr($timesheet->employee->last_name, 0, 1)) }}</span><div><strong>{{ $timesheet->employee->full_name }}</strong><span>{{ $timesheet->employee->employee_number }} · {{ $timesheet->employee->department?->code }}</span></div></div></td>
+                            <td data-label="Regular">{{ $formatMinutes($timesheet->regular_minutes) }}</td>
+                            <td data-label="Overtime">{{ $formatMinutes($timesheet->overtime_minutes) }}</td>
+                            <td data-label="Late">{{ $timesheet->late_minutes ? $timesheet->late_minutes.'m' : '—' }}</td>
+                            <td data-label="Entries"><button class="text-action" type="button" data-bs-toggle="collapse" data-bs-target="#timesheet-{{ $timesheet->id }}">{{ $timesheet->entries->count() }} days</button></td>
+                            <td data-label="Status"><x-status-badge :status="$timesheet->status" /></td>
                             <td>
                                 <div class="row-action-group">
                                     @if(in_array($timesheet->status, ['draft', 'rejected']) && $timesheet->employee_id === auth()->user()->employee?->id && auth()->user()->canManageData())

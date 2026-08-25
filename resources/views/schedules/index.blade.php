@@ -29,10 +29,31 @@
             <p>Plan coverage, assign recurring shifts, and prevent employee schedule conflicts.</p>
         </div>
         @if ($canManageData)
+            {{-- Four buttons of near-equal weight gave no answer to "what do I do
+                 here?". Now: one primary action, the two narrower ways to add an
+                 assignment folded behind it, and shift templates demoted to the
+                 link it always was - it navigates elsewhere, it does not act. --}}
             <div class="schedule-heading-actions">
-                <a class="btn btn-outline-primary dashboard-action" href="{{ route('shifts.index') }}"><x-icon name="repeat" /> Shift templates</a>
-                <button class="btn btn-outline-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#recurringScheduleModal"><x-icon name="repeat" /> Recurring schedule</button>
-                <button class="btn btn-outline-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#scheduleAssignmentModal"><x-icon name="plus" /> Single assignment</button>
+                <a class="schedule-heading-link" href="{{ route('shifts.index') }}"><x-icon name="repeat" /> Shift templates</a>
+
+                <div class="dropdown dashboard-action-menu">
+                    <button class="btn btn-outline-primary dashboard-action dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <x-icon name="plus" /> New assignment
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#scheduleAssignmentModal">
+                                <x-icon name="plus" /> <span>Single assignment</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#recurringScheduleModal">
+                                <x-icon name="repeat" /> <span>Recurring schedule</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
                 <button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#bulkScheduleModal"><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'users'" /> {{ $aiSchedulingEnabled ? 'AI bulk schedule' : 'Department schedule' }}</button>
             </div>
         @endif
@@ -64,21 +85,30 @@
 
             <div class="schedule-toolbar-right">
                 @if ($canManage)
+                    {{-- These selects used to submit on change. A keyboard user
+                         arrowing through departments fired a page load per
+                         keystroke, and every submission threw away the scroll
+                         position with no indication anything was happening.
+                         Filtering is now an explicit, single action. --}}
                     <form method="GET" action="{{ route('schedules.index') }}" class="schedule-inline-filters">
                         <input type="hidden" name="date" value="{{ $focusDate->toDateString() }}">
                         <input type="hidden" name="view" value="{{ $calendarView }}">
-                        <select name="department_id" aria-label="Filter by department" onchange="this.form.submit()">
+                        <select name="department_id" aria-label="Filter by department">
                             <option value="">All departments</option>
                             @foreach ($departments as $department)
                                 <option value="{{ $department->id }}" @selected(($filters['department_id'] ?? '') == $department->id)>{{ $department->name }}</option>
                             @endforeach
                         </select>
-                        <select name="employee_id" aria-label="Filter by employee" onchange="this.form.submit()">
+                        <select name="employee_id" aria-label="Filter by employee">
                             <option value="">All employees</option>
                             @foreach ($employees as $employee)
                                 <option value="{{ $employee->id }}" @selected(($filters['employee_id'] ?? '') == $employee->id)>{{ $employee->employee_number }} · {{ $employee->full_name }}</option>
                             @endforeach
                         </select>
+                        <button class="btn btn-outline-primary schedule-filter-apply" type="submit">Apply</button>
+                        @if (($filters['department_id'] ?? '') !== '' || ($filters['employee_id'] ?? '') !== '')
+                            <a class="schedule-filter-clear" href="{{ $queryFor(['department_id' => null, 'employee_id' => null]) }}">Clear</a>
+                        @endif
                     </form>
                 @endif
 

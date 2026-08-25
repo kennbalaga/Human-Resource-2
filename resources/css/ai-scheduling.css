@@ -2,9 +2,9 @@
     display: grid;
     gap: .85rem;
     padding: 1rem;
-    border: 1px solid #cfe0f8;
-    border-radius: .85rem;
-    background: #f7faff;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-tint-info);
 }
 
 .ai-scheduling-heading,
@@ -20,46 +20,46 @@
 .ai-candidate-heading > div { display: grid; }
 .ai-scheduling-heading p,
 .ai-scheduling-heading h3 { margin: 0; }
-.ai-scheduling-heading p { color: #35649b; font-size: .65rem; font-weight: 800; text-transform: uppercase; }
-.ai-scheduling-heading h3 { color: #203650; font-size: .9rem; }
-.ai-scheduling-icon { display: grid; width: 2.2rem; height: 2.2rem; border-radius: .65rem; color: #2563a9; background: #e3efff; place-items: center; }
+.ai-scheduling-heading p { color: var(--hr-primary); font-size: var(--fs-2xs); font-weight: 800; text-transform: uppercase; }
+.ai-scheduling-heading h3 { color: var(--hr-text); font-size: var(--fs-base); }
+.ai-scheduling-icon { display: grid; width: 2.2rem; height: 2.2rem; border-radius: var(--r-md); color: var(--hr-info); background: var(--hr-tint-info); place-items: center; }
 .ai-scheduling-icon svg { width: 1.15rem; }
-.ai-scheduling-advisory { margin-left: auto; padding: .25rem .55rem; border-radius: 999px; color: #71540e; background: #fff2c7; font-size: .62rem; font-weight: 800; }
-.ai-scheduling-notice { margin: 0; color: #68788c; font-size: .7rem; line-height: 1.5; }
+.ai-scheduling-advisory { margin-left: auto; padding: .25rem .55rem; border-radius: var(--r-pill); color: var(--hr-warning-text); background: var(--hr-tint-warning); font-size: var(--fs-2xs); font-weight: 800; }
+.ai-scheduling-notice { margin: 0; color: var(--hr-muted); font-size: var(--fs-xs); line-height: 1.5; }
 .ai-scheduling-controls { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
 .ai-scheduling-controls label { display: grid; gap: .35rem; }
-.ai-scheduling-controls label span { color: #536178; font-size: .68rem; font-weight: 800; }
-.ai-scheduling-controls select { width: 100%; min-height: 2.55rem; padding: .5rem .65rem; border: 1px solid #d5dfec; border-radius: .65rem; color: #27344b; background: #fff; font-size: .76rem; }
+.ai-scheduling-controls label span { color: var(--hr-muted); font-size: var(--fs-2xs); font-weight: 800; }
+.ai-scheduling-controls select { width: 100%; min-height: 2.55rem; padding: .5rem .65rem; border: 1px solid var(--hr-border); border-radius: var(--r-md); color: var(--hr-text); background: var(--hr-surface); font-size: var(--fs-sm); }
 .ai-scheduling-controls .btn { grid-column: 1 / -1; justify-self: start; }
-.ai-scheduling-status { padding: .65rem .75rem; border-radius: .6rem; color: #56677b; background: #edf2f8; font-size: .7rem; }
-.ai-scheduling-status[data-tone='success'] { color: #17633e; background: #e4f5eb; }
-.ai-scheduling-status[data-tone='warning'] { color: #805b0b; background: #fff3d2; }
-.ai-scheduling-status[data-tone='danger'] { color: #9c3340; background: #fdecef; }
+.ai-scheduling-status { padding: .65rem .75rem; border-radius: var(--r-md); color: var(--hr-muted); background: var(--hr-surface-2); font-size: var(--fs-xs); }
+.ai-scheduling-status[data-tone='success'] { color: var(--hr-text); background: var(--hr-primary-soft); }
+.ai-scheduling-status[data-tone='warning'] { color: var(--hr-warning-text); background: var(--hr-tint-warning); }
+.ai-scheduling-status[data-tone='danger'] { color: var(--hr-danger); background: var(--hr-tint-danger); }
 .ai-scheduling-results { display: grid; max-height: 25rem; gap: .8rem; overflow-y: auto; }
-.ai-result-label { margin: 0 0 .4rem; color: #607187; font-size: .65rem; font-weight: 800; text-transform: uppercase; }
-.ai-candidate { display: grid; gap: .55rem; padding: .75rem; border: 1px solid #d7e1ee; border-radius: .7rem; background: #fff; }
-.ai-candidate-primary { border-color: #89b9ef; box-shadow: 0 0 0 2px rgba(56, 125, 203, .08); }
+.ai-result-label { margin: 0 0 .4rem; color: var(--hr-muted); font-size: var(--fs-2xs); font-weight: 800; text-transform: uppercase; }
+.ai-candidate { display: grid; gap: .55rem; padding: .75rem; border: 1px solid var(--hr-border); border-radius: var(--r-md); background: var(--hr-surface); }
+.ai-candidate-primary { border-color: var(--hr-primary); box-shadow: 0 0 0 2px rgba(56, 125, 203, .08); }
 .ai-candidate-heading { justify-content: space-between; }
-.ai-candidate-heading strong { color: #25384e; font-size: .76rem; }
-.ai-candidate-heading span { color: #7b8999; font-size: .64rem; }
-.ai-candidate-heading b { color: #176b43; font-size: .75rem; }
-.ai-candidate ul { margin: 0; padding-left: 1rem; color: #657589; font-size: .66rem; }
-.ai-risk { width: max-content; padding: .22rem .48rem; border-radius: 999px; font-size: .6rem; font-weight: 800; text-transform: capitalize; }
-.ai-risk-low { color: #17633e; background: #e4f5eb; }
-.ai-risk-moderate { color: #805b0b; background: #fff3d2; }
-.ai-risk-high { color: #a43343; background: #fdecef; }
-.ai-scheduling details { border: 1px solid #dce4ee; border-radius: .65rem; background: #fff; }
-.ai-scheduling summary { padding: .65rem .75rem; color: #45566c; cursor: pointer; font-size: .7rem; font-weight: 800; }
+.ai-candidate-heading strong { color: var(--hr-text); font-size: var(--fs-sm); }
+.ai-candidate-heading span { color: var(--hr-subtle); font-size: var(--fs-2xs); }
+.ai-candidate-heading b { color: var(--hr-text); font-size: var(--fs-sm); }
+.ai-candidate ul { margin: 0; padding-left: 1rem; color: var(--hr-muted); font-size: var(--fs-2xs); }
+.ai-risk { width: max-content; padding: .22rem .48rem; border-radius: var(--r-pill); font-size: var(--fs-2xs); font-weight: 800; text-transform: capitalize; }
+.ai-risk-low { color: var(--hr-text); background: var(--hr-primary-soft); }
+.ai-risk-moderate { color: var(--hr-warning-text); background: var(--hr-tint-warning); }
+.ai-risk-high { color: var(--hr-danger); background: var(--hr-tint-danger); }
+.ai-scheduling details { border: 1px solid var(--hr-border); border-radius: var(--r-md); background: var(--hr-surface); }
+.ai-scheduling summary { padding: .65rem .75rem; color: var(--hr-muted); cursor: pointer; font-size: var(--fs-xs); font-weight: 800; }
 .ai-breakdown-row,
-.ai-ineligible-row { justify-content: space-between; padding: .5rem .75rem; border-top: 1px solid #edf1f5; color: #69798c; font-size: .66rem; }
+.ai-ineligible-row { justify-content: space-between; padding: .5rem .75rem; border-top: 1px solid var(--hr-border); color: var(--hr-muted); font-size: var(--fs-2xs); }
 .ai-ineligible-row { display: grid; gap: .15rem; }
-.ai-ineligible-row strong { color: #3f5065; }
+.ai-ineligible-row strong { color: var(--hr-muted); }
 .ai-scheduling-result-actions { flex-wrap: wrap; }
-.ai-scheduling-empty { margin: 0; color: #8a3944; font-size: .72rem; }
-.ai-scheduling-explanation { margin: 0; color: #52635b; font-size: .7rem; line-height: 1.55; }
-.ai-scheduling-rejection { padding: .8rem; border: 1px solid #efc7cd; border-radius: .7rem; background: #fff8f9; }
-.ai-scheduling-rejection label { display: block; margin-bottom: .4rem; color: #74313a; font-size: .68rem; font-weight: 800; }
-.ai-scheduling-rejection textarea { display: block; width: 100%; margin-bottom: .6rem; padding: .6rem .7rem; resize: vertical; border: 1px solid #d9b7bc; border-radius: .55rem; color: #27344b; background: #fff; font: inherit; }
+.ai-scheduling-empty { margin: 0; color: var(--hr-danger); font-size: var(--fs-xs); }
+.ai-scheduling-explanation { margin: 0; color: var(--hr-muted); font-size: var(--fs-xs); line-height: 1.55; }
+.ai-scheduling-rejection { padding: .8rem; border: 1px solid var(--hr-danger); border-radius: var(--r-md); background: var(--hr-tint-danger); }
+.ai-scheduling-rejection label { display: block; margin-bottom: .4rem; color: var(--hr-danger); font-size: var(--fs-2xs); font-weight: 800; }
+.ai-scheduling-rejection textarea { display: block; width: 100%; margin-bottom: .6rem; padding: .6rem .7rem; resize: vertical; border: 1px solid var(--hr-danger); border-radius: var(--r-md); color: var(--hr-text); background: var(--hr-surface); font: inherit; }
 
 /* Wide assignment workspace: manual controls stay separate from advisory AI output. */
 .schedule-assignment-dialog {
@@ -85,16 +85,16 @@
     overflow: hidden;
     grid-template-columns: minmax(19rem, .78fr) minmax(34rem, 1.42fr);
     gap: 1rem;
-    background: #f2f6f4;
+    background: var(--hr-surface-2);
 }
 
 .schedule-assignment-manual {
     min-width: 0;
     padding: 1rem;
     overflow-y: auto;
-    border: 1px solid #dfe7e2;
-    border-radius: .85rem;
-    background: #fff;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-surface);
 }
 
 .schedule-assignment-section-heading {
@@ -108,9 +108,9 @@
     width: 2.2rem;
     height: 2.2rem;
     flex: 0 0 auto;
-    border-radius: .65rem;
-    color: #176b43;
-    background: #e4f5eb;
+    border-radius: var(--r-md);
+    color: var(--hr-text);
+    background: var(--hr-primary-soft);
     place-items: center;
 }
 
@@ -125,22 +125,22 @@
 }
 
 .schedule-assignment-section-heading p {
-    color: #3e8162;
-    font-size: .64rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
     font-weight: 800;
     letter-spacing: .05em;
     text-transform: uppercase;
 }
 
 .schedule-assignment-section-heading h3 {
-    color: #20362b;
-    font-size: .92rem;
+    color: var(--hr-text);
+    font-size: var(--fs-base);
 }
 
 .schedule-assignment-section-copy {
     margin: .75rem 0 1rem;
-    color: #68786f;
-    font-size: .7rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
     line-height: 1.55;
 }
 
@@ -154,8 +154,8 @@
     align-items: center;
     gap: .4rem;
     margin: 0 auto 0 0;
-    color: #63736a;
-    font-size: .7rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
 }
 
 .schedule-assignment-workspace .ai-scheduling {
@@ -198,7 +198,7 @@
     bottom: 0;
     z-index: 2;
     padding: .7rem 0 .1rem;
-    background: linear-gradient(to bottom, rgba(247, 250, 255, 0), #f7faff 28%);
+    background: linear-gradient(to bottom, rgba(247, 250, 255, 0), var(--hr-tint-info) 28%);
 }
 
 html[data-theme-resolved='dark'] .ai-scheduling { border-color: #294c66; background: #101f28; }
@@ -228,7 +228,7 @@ html[data-theme-resolved='dark'] .schedule-assignment-section-copy,
 html[data-theme-resolved='dark'] .schedule-save-note { color: #a9b8b0; }
 html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-result-actions { background: linear-gradient(to bottom, rgba(16, 31, 40, 0), #101f28 28%); }
 
-@media (max-width: 1050px) {
+@media (max-width: 1100px) {
     .schedule-assignment-dialog {
         width: min(48rem, calc(100vw - 1.5rem));
         margin: .75rem auto;
@@ -257,7 +257,7 @@ html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-r
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 700px) {
     .schedule-assignment-dialog {
         width: calc(100vw - 1rem);
         margin: .5rem auto;

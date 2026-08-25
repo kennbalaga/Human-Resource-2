@@ -34,10 +34,17 @@ html[data-theme-resolved='dark'] {
      * are removed further down in favour of the surface step.
      */
     --hr-border: #26312b;
-    --hr-border-strong: #33443c; /* form controls, where an edge is load-bearing */
+    /* Was #33443c, which sat at 1.56:1 against --hr-surface - invisible as the
+       edge of a form control. A load-bearing border is a graphical object and
+       owes the viewer 3:1, so this is now measured against both grounds. */
+    --hr-border-strong: #667266; /* 3.20:1 on surface, 3.73:1 on bg */
 
     --hr-success: #88cfa9;
     --hr-warning: #dfb271;
+    /* On a dark canvas the warning hue is already light enough to be read as
+       text (8.26:1), so unlike the light theme it needs no separate text-safe
+       variant - but the token must still exist or the light value leaks in. */
+    --hr-warning-text: #dfb271;
     --hr-danger: #e79aa4;
     --hr-violet: #b6a3e0;
     --hr-info: #a3c3ea;
@@ -823,7 +830,7 @@ html[data-theme-resolved='dark'] .sidebar-link.active { background:linear-gradie
  */
 html[data-theme-resolved='dark'] .stat-detail {
     padding:2px 7px;
-    border-radius:999px;
+    border-radius:var(--r-pill);
     color:#a6dcc0;
     background:var(--hr-tint-success);
 }
