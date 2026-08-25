@@ -24,13 +24,20 @@ class DashboardTest extends TestCase
 
         $response = $this->actingAs($user)->get('/dashboard');
 
+        // The panel lists one page of the newest employees. Which employees
+        // those are is fixture data, so the row assertions follow the page the
+        // dashboard actually built rather than naming a number that reseeding
+        // could move onto page two.
+        $recentEmployees = $response->viewData('recentEmployees');
+        $listed = $recentEmployees->first();
+
         $response
             ->assertOk()
             ->assertSee('HRMS Overview')
             ->assertSee('Total employees')
             ->assertSee('Recently added employees')
             ->assertSee('Workforce by department')
-            ->assertSee('HR-2026-0001')
+            ->assertSee($listed->employee_number)
             ->assertSee('data-sidebar-collapse', false)
             ->assertSee('data-sidebar-label="Collapse sidebar"', false)
             ->assertSee('aria-label="Collapse sidebar"', false)
@@ -61,9 +68,6 @@ class DashboardTest extends TestCase
             ->assertSee('Are you still working?')
             ->assertSee('data-session-login', false);
 
-        $employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
-
-        $recentEmployees = $response->viewData('recentEmployees');
         $this->assertSame(5, $recentEmployees->perPage());
         $this->assertSame(Employee::query()->count(), $recentEmployees->total());
 
@@ -77,9 +81,9 @@ class DashboardTest extends TestCase
             ->assertSee(route('attendance.reports.index'), false)
             ->assertSee(route('departments.index'), false)
             ->assertSee(route('positions.index'), false)
-            ->assertSee(route('schedules.index', ['employee_id' => $employee->id]), false)
-            ->assertSee(route('attendance.reports.index', ['employee_id' => $employee->id]), false)
-            ->assertSee(route('leaves.index', ['employee_id' => $employee->id]), false);
+            ->assertSee(route('schedules.index', ['employee_id' => $listed->id]), false)
+            ->assertSee(route('attendance.reports.index', ['employee_id' => $listed->id]), false)
+            ->assertSee(route('leaves.index', ['employee_id' => $listed->id]), false);
     }
 
     public function test_recently_added_employees_panel_shows_five_per_page(): void

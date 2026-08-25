@@ -56,7 +56,14 @@ class DashboardController extends Controller
         // is handed to the paginator rather than paying for a second COUNT.
         $recentEmployees = Employee::query()
             ->with(['user', 'department', 'position'])
+            // Newest first, with the id breaking ties. Staff taken on in one
+            // batch — an import, or a unit opening — share a created_at to the
+            // second, and ordering on that alone leaves those rows in whatever
+            // sequence the database happens to return. Each page is its own
+            // query, so a tie can list the same employee twice or drop one
+            // between page 1 and page 2.
             ->latest()
+            ->latest('id')
             ->paginate(5, ['*'], 'employees_page', null, $counts['employees'])
             ->withQueryString()
             ->fragment('employee-overview');
