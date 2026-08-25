@@ -85,17 +85,35 @@ input {
     gap: 12px;
 }
 
+/*
+ * The hospital seal, on a white plate.
+ *
+ * The plate is not decoration. The seal is a dark-inked mark — a deep green
+ * ring carrying near-black lettering — drawn on a transparent ground. Placed
+ * straight onto the sidebar's dark gradient, the ring and the whole outer
+ * legend disappear into it and what is left reads as a smudge. Every
+ * institutional seal on dark chrome is handled this way.
+ */
 .brand-mark {
     display: grid;
     width: 44px;
     height: 44px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: var(--r-lg);
     color: #fff;
-    background: rgba(255, 255, 255, 0.1);
+    background: #fff;
     flex: none;
     place-items: center;
     overflow: hidden;
+}
+
+.brand-mark img {
+    display: block;
+    width: 34px;
+    height: 34px;
+    /* The seal is 600x589, not square. `contain` keeps it round instead of
+       stretching it a percent taller than it is wide. */
+    object-fit: contain;
 }
 
 .brand-mark > .ui-icon {
@@ -460,10 +478,30 @@ input {
     border-bottom: 1px solid rgba(217, 228, 222, 0.85);
     background: rgba(255, 255, 255, 0.94);
     box-shadow: 0 3px 12px rgba(31, 67, 50, 0.025);
-    backdrop-filter: blur(14px);
     align-items: center;
     justify-content: space-between;
     gap: 20px;
+}
+
+/*
+ * The translucency-and-blur treatment is desktop-only, and deliberately so.
+ *
+ * `backdrop-filter` makes an element the CONTAINING BLOCK for every
+ * `position: fixed` descendant. The notifications menu lives inside this bar,
+ * so with the blur applied at phone widths its bottom-sheet positioning
+ * (`inset: auto 0 0 0`) resolved against this 76px bar instead of the viewport
+ * — the sheet rendered as a slab pinned to the top of the screen. It looked
+ * precisely like a stylesheet that had failed to load, which is why it took
+ * three attempts to find.
+ *
+ * It is also a per-frame GPU cost on exactly the low-end handsets this app is
+ * aimed at, and mobile.css gives the bar an opaque background instead — a
+ * translucent bar with no blur behind it just shows content ghosting through.
+ */
+@media (min-width: 1101px) {
+    .app-topbar {
+        backdrop-filter: blur(14px);
+    }
 }
 
 .topbar-left,

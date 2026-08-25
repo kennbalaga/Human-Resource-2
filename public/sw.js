@@ -20,18 +20,41 @@
  * edit cannot quietly reintroduce HTML caching.
  */
 
-const VERSION = 'hrms-v1';
+/*
+ * Bump VERSION whenever the precache list below changes. The activate handler
+ * deletes every cache whose name is not the current one, so a bump is what
+ * evicts the previous build's assets rather than leaving them to accumulate.
+ */
+const VERSION = 'hrms-v3';
 const ASSET_CACHE = `${VERSION}-assets`;
 
 // Resolved against the worker's own scope so this works both at a document
 // root and in a subdirectory deployment.
-const OFFLINE_URL = new URL('offline.html', self.registration.scope).toString();
+const scoped = (path) => new URL(path, self.registration.scope).toString();
+
+const OFFLINE_URL = scoped('offline.html');
+
+/*
+ * The launcher icons are precached alongside the offline page for one reason:
+ * the offline page and the lock screen both show the hospital mark, and an
+ * icon fetched over a dead network is a broken image in exactly the moment the
+ * app is trying to look composed. They are content-stable, so caching them
+ * costs one fetch each, ever.
+ */
+const PRECACHE_URLS = [
+    OFFLINE_URL,
+    scoped('images/icons/icon-192.png'),
+    scoped('images/icons/logo-mark-192.png'),
+    scoped('images/icons/favicon-32.png'),
+];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches
             .open(ASSET_CACHE)
-            .then((cache) => cache.add(OFFLINE_URL))
+            // addAll is atomic — one 404 rejects the whole install and leaves
+            // the previous worker in charge, which is the safe direction.
+            .then((cache) => cache.addAll(PRECACHE_URLS))
             .then(() => self.skipWaiting()),
     );
 });
@@ -45,8 +68,16 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-/** Endpoints that must always hit the network, no matter what they look like. */
-const isNeverCached = (url) => url.pathname.includes('/api/');
+/**
+ * Endpoints that must always hit the network, no matter what they look like.
+ *
+ * The manifest does not match the asset extensions below today, so this is
+ * belt-and-braces — but it is the file that decides the installed app's icon
+ * and name, and a worker serving a stale one is invisible and maddening to
+ * debug. Adding an extension to the list below must not silently start caching
+ * it.
+ */
+const isNeverCached = (url) => url.pathname.includes('/api/') || url.pathname.endsWith('.webmanifest');
 
 /** Build output and static icons/fonts — content-hashed or version-stable. */
 const isCacheableAsset = (url) =>

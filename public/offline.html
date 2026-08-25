@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Offline · Workforce HRMS</title>
     <meta name="theme-color" content="#176b43">
-    <link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icons/favicon-32.png">
     <style>
         /*
          * Deliberately self-contained: the service worker serves this page when
@@ -36,10 +36,19 @@
 
         body {
             margin: 0;
+            /* dvh first would be ignored by the browsers that need the vh
+               fallback; declaring both in this order lets each take the last
+               value it understands. */
             min-height: 100vh;
+            min-height: 100dvh;
             display: grid;
             place-items: center;
-            padding: 1.5rem;
+            padding:
+                calc(1.5rem + env(safe-area-inset-top, 0px))
+                calc(1.5rem + env(safe-area-inset-right, 0px))
+                calc(1.5rem + env(safe-area-inset-bottom, 0px))
+                calc(1.5rem + env(safe-area-inset-left, 0px));
+            -webkit-text-size-adjust: 100%;
             background: var(--bg);
             color: var(--text);
             font-family: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -80,8 +89,20 @@
             background: var(--primary);
             border: 0;
             border-radius: .5rem;
-            padding: .6rem 1.4rem;
+            /* 44px: this is the only control on the page and it is tapped by
+               someone already frustrated, on a phone, probably one-handed. */
+            min-height: 44px;
+            padding: .6rem 1.75rem;
             cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:active { background: var(--primary); filter: brightness(.92); }
+
+        @media (max-width: 380px) {
+            .card { padding: 1.5rem 1.25rem; }
+            button { width: 100%; }
         }
 
         button:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
@@ -105,5 +126,20 @@
         <button type="button" onclick="window.location.reload()">Try again</button>
         <small>Attendance still needs a connection. Ask the entrance officer to record your time if this persists.</small>
     </main>
+
+    <script>
+        /*
+         * Inline, not a src= — this page is served precisely when no network
+         * request can succeed, so an external script would never arrive.
+         *
+         * Coming back into signal on a ward is the normal case here, and being
+         * left staring at an offline page after the wifi reconnects is the part
+         * that actually annoys people. `online` fires the moment the OS has a
+         * route again; the reload then either succeeds or lands back here.
+         */
+        window.addEventListener('online', function () {
+            window.location.reload();
+        });
+    </script>
 </body>
 </html>

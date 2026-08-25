@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="referrer" content="no-referrer">
     <title>Choose New Password - Dr. Jose N. Rodriguez Memorial Hospital</title>
     @include('partials.favicon')
@@ -14,7 +14,14 @@
     <div class="split-screen">
         <div class="left-pane">
             <header class="logo">
-                <i class="fa-solid fa-hospital icon-logo"></i> Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium
+                <img
+                    src="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826"
+                    srcset="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826 1x, {{ asset('images/icons/logo-mark-192.png') }}?v=20260826 2x"
+                    alt=""
+                    width="56"
+                    height="56"
+                    class="logo-seal"
+                > Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium
             </header>
 
             <main class="login-container">

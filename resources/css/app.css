@@ -14,3 +14,12 @@
 @import './ai-scheduling.css';
 @import './session-timeout.css';
 @import './dark-mode.css';
+
+/* The device app lock (PIN keypad + fingerprint setup). Both of its surfaces
+   are display:none until app-lock.js confirms the device qualifies. */
+@import './app-lock.css';
+
+/* Last on purpose: this is the phone/installed-app layer, and every rule in it
+   is behind a breakpoint, a coarse-pointer query, or display-mode: standalone,
+   so it overrides the sheets above only where the desktop never sees it. */
+@import './mobile.css';

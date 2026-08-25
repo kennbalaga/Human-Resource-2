@@ -27,6 +27,9 @@
             <a href="#preferences"><x-icon name="moon" /><span><strong>Appearance</strong><small>Theme, notifications, display</small></span></a>
             <a href="#two-factor"><x-icon name="shield" /><span><strong>Two-factor security</strong><small>Authenticator and recovery</small></span></a>
             <a href="#security"><x-icon name="settings" /><span><strong>Password</strong><small>Password and API tokens</small></span></a>
+            {{-- Mobile-only. app-lock.js sets data-available="true" on a touch
+                 device; on a desktop this entry is never rendered visible. --}}
+            <a href="#device-lock" data-device-lock-nav data-available="false"><x-icon name="lock" /><span><strong>App lock</strong><small>PIN and fingerprint on this device</small></span></a>
 
             @if($hasSystemSettings)
                 <p class="settings-nav-group">System administration</p>
@@ -135,6 +138,8 @@
                     <button class="btn btn-primary" type="submit">Update password</button>
                 </form>
             </article>
+
+            @include('settings.partials.device-lock')
 
             @if($canManageEmployeeNumberSettings)
                 <article class="panel settings-panel" id="system-controls">

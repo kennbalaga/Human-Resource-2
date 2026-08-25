@@ -578,3 +578,154 @@ body {
     outline: 2px solid var(--primary-blue);
     outline-offset: 2px;
 }
+
+/* ------------------------------------------------------------------------
+ * Auth pages on a phone
+ *
+ * These pages are the front door of the installed app — start_url is the
+ * dashboard, which redirects here whenever the session has lapsed — so they
+ * are as much "the mobile app" as anything behind the sign-in.
+ *
+ * Everything below is inside the breakpoint this file already reflows at, or
+ * behind a coarse-pointer query. The desktop split-screen layout is untouched.
+ * --------------------------------------------------------------------- */
+@media (max-width: 1000px) {
+    /*
+     * `height: 100vh; overflow: hidden` is correct for the desktop split
+     * screen, where the form is vertically centred and never taller than the
+     * window. On a phone it is a trap: once the soft keyboard opens, the form
+     * is taller than the viewport and there is no way to scroll to the submit
+     * button. The page has to be allowed to grow.
+     */
+    body {
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
+        overflow: auto;
+        overscroll-behavior-y: contain;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    .split-screen {
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
+    .left-pane {
+        min-height: 100dvh;
+        padding:
+            calc(1.5rem + env(safe-area-inset-top, 0px))
+            calc(1.5rem + env(safe-area-inset-right, 0px))
+            calc(1.5rem + env(safe-area-inset-bottom, 0px))
+            calc(1.5rem + env(safe-area-inset-left, 0px));
+    }
+
+    .login-container {
+        /* Centring inside a pane taller than the screen pushes the form below
+           the fold on a short handset. Top-aligned with breathing room instead. */
+        justify-content: flex-start;
+        padding-top: 2rem;
+    }
+}
+
+@media (max-width: 1000px) and (pointer: coarse) {
+    /*
+     * Safari zooms the page when a focused field's font-size is under 16px and
+     * never zooms back out — so on an iPhone, tapping the email box left the
+     * sign-in form scaled up and overflowing sideways. --fs-base is 15px, one
+     * pixel into the trap.
+     */
+    .input-group input[type="email"],
+    .input-group input[type="password"],
+    .input-group input[type="text"] {
+        font-size: 16px;
+        min-height: 48px;
+    }
+
+    /* The password reveal is a 16px glyph with no padding: a ~16px target on a
+       control people press with a thumb. */
+    .toggle-password {
+        display: grid;
+        width: 44px;
+        height: 44px;
+        right: 0.35rem;
+        place-items: center;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    button[type="submit"],
+    .btn-primary {
+        min-height: 48px;
+        touch-action: manipulation;
+    }
+
+    /* "Remember me" and "Forgot password" sit on one line as separate tap
+       targets. At their natural line height they are ~20px tall and about
+       8px apart, which is a coin-flip for a thumb. */
+    .form-actions {
+        gap: 0.75rem;
+    }
+
+    .remember-me,
+    .forgot-password,
+    .footer-links a {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+    }
+
+    /* The checkbox is the target here, not just its label. */
+    .remember-me input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+@media (max-width: 420px) {
+    .left-pane {
+        padding-right: calc(1.15rem + env(safe-area-inset-right, 0px));
+        padding-left: calc(1.15rem + env(safe-area-inset-left, 0px));
+    }
+
+    .login-header h1 {
+        font-size: var(--fs-2xl);
+    }
+
+    /* The full hospital name beside a 60px seal wraps to four lines on a 360px
+       screen and eats a third of the fold. */
+    .logo {
+        gap: 0.75rem;
+        font-size: var(--fs-sm);
+    }
+
+    .logo img {
+        width: 44px;
+    }
+
+    .footer-links {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
+
+/* The hospital seal in the auth-page header. Sized rather than left at its
+   intrinsic 600px, and given a floor so the two-line hospital name beside it
+   cannot squeeze it. */
+.logo-seal {
+    width: 56px;
+    height: 56px;
+    flex: 0 0 auto;
+    /* The source is 600x589, not square: `contain` keeps the seal round
+       instead of stretching it a percent taller than it is wide. */
+    object-fit: contain;
+}
+
+@media (max-width: 420px) {
+    .logo-seal {
+        width: 44px;
+        height: 44px;
+    }
+}

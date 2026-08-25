@@ -39,7 +39,18 @@
 <aside class="app-sidebar" id="appSidebar" aria-label="Primary navigation">
     <div class="sidebar-brand">
         <span class="brand-mark">
-            <x-icon name="hospital" />
+            {{-- The hospital's own seal. srcset carries the 2x file so it stays
+                 sharp on a phone without shipping a 300KB original to a 44px
+                 box. `alt` is empty because the brand copy beside it already
+                 names the hospital — a screen reader would otherwise read the
+                 name twice. --}}
+            <img
+                src="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826"
+                srcset="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826 1x, {{ asset('images/icons/logo-mark-192.png') }}?v=20260826 2x"
+                alt=""
+                width="34"
+                height="34"
+            >
         </span>
         <span class="brand-copy">
             <strong>Dr. Jose Rodriguez</strong>

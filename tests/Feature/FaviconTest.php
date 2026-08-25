@@ -13,7 +13,15 @@ class FaviconTest extends TestCase
     public function test_public_and_authenticated_pages_use_the_same_hospital_favicon(): void
     {
         $this->seed();
-        $faviconUrl = asset('favicon.svg').'?v=20260716';
+
+        /*
+         * The seal, not the placeholder hospital glyph this used to assert. The
+         * point of the test is unchanged: sign-in and the app behind it must
+         * show the same mark, because a tab icon that changes at the sign-in
+         * boundary looks like a different site — the exact instinct a phishing
+         * page relies on people ignoring.
+         */
+        $faviconUrl = asset('images/icons/favicon-32.png').'?v=20260826';
 
         $this->get(route('login'))->assertOk()->assertSee($faviconUrl, false);
         $this->get(route('password.request'))->assertOk()->assertSee($faviconUrl, false);
@@ -23,7 +31,12 @@ class FaviconTest extends TestCase
         $this->actingAs($user)->get(route('dashboard'))->assertOk()->assertSee($faviconUrl, false);
         $this->actingAs($user)->get(route('attendance.index'))->assertOk()->assertSee($faviconUrl, false);
 
-        $this->assertFileExists(public_path('favicon.svg'));
-        $this->assertGreaterThan(0, filesize(public_path('favicon.svg')));
+        // Every size a browser may ask for, all derived from the same source.
+        foreach ([16, 32, 48] as $size) {
+            $path = public_path("images/icons/favicon-{$size}.png");
+
+            $this->assertFileExists($path);
+            $this->assertSame([$size, $size], array_slice(getimagesize($path), 0, 2));
+        }
     }
 }

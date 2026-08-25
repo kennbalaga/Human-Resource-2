@@ -1,3 +1,20 @@
+# The web app manifest carries the installed app's name and icon. Served with
+# no Cache-Control, browsers apply heuristic caching and can hold a stale copy
+# for days, so a replaced icon keeps showing the old one long after deploy. It
+# is well under a kilobyte — revalidating it every time costs nothing.
+<IfModule mod_headers.c>
+    <FilesMatch "\.webmanifest$">
+        Header set Cache-Control "public, max-age=0, must-revalidate"
+    </FilesMatch>
+
+    # Same reasoning, same negligible size. The filenames are not
+    # content-hashed, so without this a changed favicon is invisible until the
+    # browser decides to look again.
+    <FilesMatch "^(favicon-|icon-|logo-mark-|apple-touch-icon).*\.png$">
+        Header set Cache-Control "public, max-age=86400, must-revalidate"
+    </FilesMatch>
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes

@@ -39,6 +39,49 @@ class PwaAssetsTest extends TestCase
         $this->assertStringStartsWith('./', $manifest['scope']);
     }
 
+    public function test_the_manifest_ships_real_png_icons_at_the_sizes_launchers_require(): void
+    {
+        $manifest = json_decode(file_get_contents(public_path('manifest.webmanifest')), true, 512, JSON_THROW_ON_ERROR);
+
+        $icons = collect($manifest['icons']);
+
+        /*
+         * Chromium will install an app whose only icon is an SVG, which is why
+         * this went unnoticed for so long — but iOS home screens and most
+         * Android launchers ignore SVG entirely and fall back to a generic
+         * glyph. Both purposes need a real raster at both sizes.
+         */
+        foreach ([['any', '192x192'], ['any', '512x512'], ['maskable', '192x192'], ['maskable', '512x512']] as [$purpose, $size]) {
+            $match = $icons->first(
+                fn (array $icon) => ($icon['type'] ?? null) === 'image/png'
+                    && ($icon['sizes'] ?? null) === $size
+                    && str_contains($icon['purpose'] ?? '', $purpose),
+            );
+
+            $this->assertNotNull($match, "The manifest has no {$size} PNG icon for purpose [{$purpose}].");
+
+            $path = public_path(ltrim($match['src'], './'));
+            $this->assertFileExists($path);
+
+            [$width, $height] = getimagesize($path);
+            $expected = (int) explode('x', $size)[0];
+
+            $this->assertSame($expected, $width, "{$match['src']} is {$width}px wide, not {$expected}px.");
+            $this->assertSame($expected, $height, "{$match['src']} is {$height}px tall, not {$expected}px.");
+        }
+    }
+
+    public function test_ios_gets_an_apple_touch_icon_because_it_ignores_the_manifest(): void
+    {
+        $path = public_path('images/icons/apple-touch-icon.png');
+
+        $this->assertFileExists($path, 'iOS never reads the manifest; without this file a home-screen install gets a blank glyph.');
+
+        [$width, $height] = getimagesize($path);
+        $this->assertSame(180, $width);
+        $this->assertSame(180, $height);
+    }
+
     public function test_the_offline_fallback_page_exists_and_is_self_contained(): void
     {
         $path = public_path('offline.html');
@@ -91,5 +134,15 @@ class PwaAssetsTest extends TestCase
         $response->assertSee('rel="manifest"', false);
         $response->assertSee('name="sw-url"', false);
         $response->assertSee('name="apple-mobile-web-app-capable"', false);
+        $response->assertSee('rel="apple-touch-icon"', false);
+
+        /*
+         * viewport-fit=cover is the switch that makes env(safe-area-inset-*)
+         * report a real value. Without it every safe-area calc() in mobile.css
+         * silently evaluates to zero and the topbar sits under the notch in the
+         * installed app — a failure that looks like a CSS bug but is one meta
+         * tag away.
+         */
+        $response->assertSee('viewport-fit=cover', false);
     }
 }

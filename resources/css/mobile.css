@@ -1,0 +1,1079 @@
+/*
+ * ---- Mobile / installed-PWA layer ----
+ *
+ * Everything in this file is behind a query the desktop web app does not match:
+ * a width breakpoint, `(pointer: coarse)`, or `(display-mode: standalone)`.
+ * Nothing here changes a single pixel of the 1101px-and-wider desktop layout,
+ * which is the whole point — this is a port to the phone, not a redesign.
+ *
+ * It is imported LAST in app.css so it wins over the per-feature sheets without
+ * needing !important to do it. If a rule here has to be undone, delete it from
+ * this file; no other sheet has been touched to make it work.
+ *
+ * The breakpoints reuse the seven documented in tokens.css. No new ones.
+ */
+
+/* ------------------------------------------------------------------------
+ * 1. Viewport plumbing
+ *
+ * `100vh` on a phone is the height of the viewport with the browser chrome
+ * *hidden*, so a full-height element is always taller than what you can see
+ * and the last row hides behind the URL bar. `100dvh` is the honest number.
+ * The fallback ordering matters: browsers that do not know `dvh` keep `vh`.
+ * --------------------------------------------------------------------- */
+:root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+}
+
+@media (max-width: 1100px) {
+    .app-shell {
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
+    .app-sidebar,
+    .app-main {
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+}
+
+/* Older Android WebViews and iOS builds that never learned `dvh`. app-mobile.js
+   measures `window.innerHeight` and publishes it as --app-vh; this is the only
+   place that value is consumed, and browsers with `dvh` never reach it. */
+@supports not (height: 100dvh) {
+    @media (max-width: 1100px) {
+        .app-shell,
+        .app-sidebar,
+        .app-main {
+            min-height: calc(var(--app-vh, 1vh) * 100);
+        }
+    }
+}
+
+/*
+ * ---- The horizontal-overflow guard ----
+ *
+ * One element wider than the viewport turns the ENTIRE page into a sideways
+ * scroller, and the symptom never points at the cause: every card, heading and
+ * badge on the page looks clipped at the right edge, as if the layout itself
+ * were broken. It was an absolutely-positioned dropdown running off the right
+ * side that did it here.
+ *
+ * `clip` and not `hidden`. `overflow: hidden` makes the element a scroll
+ * container, which silently kills `position: sticky` on the topbar and turns
+ * the app's own scroll position into something two elements disagree about.
+ * `clip` refuses the scroll without creating a scrollport, so sticky survives.
+ *
+ * This is a backstop, not a licence to overflow: every wide table in this app
+ * is already inside its own `.table-responsive` scroller, so nothing legitimate
+ * is being clipped away — anything this catches is a bug worth fixing at source.
+ */
+@supports (overflow: clip) {
+    @media (max-width: 1100px) {
+        html,
+        body {
+            overflow-x: clip;
+        }
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * 2. Touch behaviour
+ *
+ * Scoped to coarse pointers so a mouse user on a narrow window keeps hover
+ * affordances. Three separate problems are being fixed here:
+ *
+ *   - the 300ms tap delay (`touch-action: manipulation`),
+ *   - the grey flash Android paints over any tapped element, which fires even
+ *     on a scroll gesture and makes the whole page feel twitchy, and
+ *   - the fact that removing that flash also removes the *only* press feedback,
+ *     so an explicit :active state has to replace it.
+ * --------------------------------------------------------------------- */
+@media (hover: none) and (pointer: coarse) {
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    body {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    a,
+    button,
+    summary,
+    label,
+    [role='button'],
+    input,
+    select,
+    textarea {
+        touch-action: manipulation;
+    }
+
+    /* Feedback on press, not on hover — a phone has no hover, so a :hover-only
+       style reads as "this control is dead" until the page navigates. */
+    .btn:active:not(:disabled),
+    .icon-button:active,
+    .sidebar-link:active,
+    .dropdown-item:active,
+    .settings-section-nav a:active,
+    .settings-resource-links a:active,
+    .notification-item:active,
+    .stat-card:active {
+        transform: scale(0.975);
+        transition-duration: 40ms;
+    }
+
+    .btn,
+    .icon-button,
+    .sidebar-link,
+    .dropdown-item,
+    .settings-section-nav a,
+    .settings-resource-links a,
+    .notification-item {
+        transition: transform 140ms cubic-bezier(0.32, 0.72, 0, 1),
+                    background-color 140ms ease,
+                    border-color 140ms ease,
+                    color 140ms ease;
+    }
+
+    /* Hover styles that only fire on a "sticky hover" after a tap and then stay
+       stuck until you tap elsewhere. Neutralised rather than restyled. */
+    .settings-resource-links a:hover,
+    .settings-resource-links a:focus-visible {
+        transform: none;
+    }
+
+    /*
+     * Every interactive control clears the 44px floor tokens.css already
+     * declares. It was applied to navigation but not to the controls people
+     * actually use one-handed while walking a ward — table row actions, the
+     * dropdown items, the segmented filters.
+     */
+    .btn,
+    .icon-button,
+    .dropdown-item,
+    .dashboard-action,
+    .profile-qr-actions .btn,
+    .two-factor-actions summary {
+        min-height: var(--tap-min);
+    }
+
+    /* A checkbox or radio drawn at its intrinsic 13px is a 13px target. The
+       label is the target; give the control room inside it. */
+    .settings-toggle {
+        min-height: var(--tap-min);
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * 3. The drawer
+ *
+ * The existing transition is `transform 220ms ease`, which starts slow, ends
+ * slow, and reads as laggy next to a native sheet. The curve below is the
+ * standard "decelerate hard" easing: it leaves under the finger immediately
+ * and settles without a bounce.
+ *
+ * `will-change` is set only while the drawer is open. Left on permanently it
+ * pins a full-height composited layer in memory on every page, which is a real
+ * cost on the low-end Android handsets this is aimed at.
+ * --------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+    .app-sidebar {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+
+        /* The notch eats the brand row and the home indicator eats the profile
+           button, on precisely the phones most staff carry. */
+        padding-top: calc(18px + var(--safe-top));
+        padding-right: 16px;
+        padding-bottom: calc(18px + var(--safe-bottom));
+        padding-left: calc(16px + var(--safe-left));
+
+        transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
+                    box-shadow 280ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    body.sidebar-open .app-sidebar {
+        will-change: transform;
+    }
+
+    /* The drawer is dragging under a finger: kill the transition so it tracks
+       the touch 1:1 instead of chasing it. app-mobile.js sets this. */
+    body.sidebar-dragging .app-sidebar,
+    body.sidebar-dragging .sidebar-overlay {
+        transition: none !important;
+    }
+
+    .sidebar-overlay {
+        /* -webkit- prefix included: iOS < 15.4 still needs it and that is a
+           meaningful share of hospital-owned iPads. */
+        -webkit-backdrop-filter: blur(2px);
+        backdrop-filter: blur(2px);
+        transition: opacity 280ms cubic-bezier(0.32, 0.72, 0, 1),
+                    visibility 280ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    /* Locking the body during the drawer is what stops the page behind from
+       scrolling under the overlay. `position: fixed` would work too but loses
+       the scroll position; `overflow: hidden` plus overscroll containment does
+       not. */
+    body.sidebar-open {
+        overscroll-behavior: none;
+    }
+
+    .app-topbar {
+        /* Sticky + safe-area: without this the topbar sits *under* the status
+           bar in standalone mode and the menu button is unreachable. */
+        padding-top: var(--safe-top);
+        padding-right: calc(20px + var(--safe-right));
+        padding-left: calc(20px + var(--safe-left));
+        min-height: calc(var(--topbar-height) + var(--safe-top));
+
+        /*
+         * ---- Do not add backdrop-filter (or any filter/transform) here ----
+         *
+         * It would make this bar the containing block for the notifications
+         * menu's `position: fixed` sheet, which then anchors to the 76px
+         * topbar instead of the viewport. dashboard.css carries the full
+         * explanation; the blur now lives behind a min-width: 1101px query.
+         *
+         * Opaque, because a translucent bar with nothing blurring behind it
+         * shows the list ghosting through as it scrolls under.
+         */
+        background: var(--hr-surface);
+    }
+
+    /*
+     * The topbar controls need to read as controls.
+     *
+     * `.icon-button` and `.mobile-menu-button` both use `background:
+     * var(--hr-surface)` — the same token the bar above now uses — so on a
+     * white bar they were a white box separated only by a 1px --hr-border
+     * hairline, which is a deliberately sub-3:1 divider. The menu button in
+     * particular ended up as three floating lines with no visible target
+     * around them, on the one control that opens all navigation.
+     *
+     * One rung down the surface ladder gives a fill difference that is visible
+     * in both themes without adding a heavy outline.
+     */
+    .mobile-menu-button,
+    .topbar-actions .icon-button {
+        background: var(--hr-surface-2);
+    }
+
+    .app-content {
+        padding-right: calc(20px + var(--safe-right));
+        padding-left: calc(20px + var(--safe-left));
+    }
+
+    .app-footer {
+        padding-bottom: calc(16px + var(--safe-bottom));
+    }
+
+    /*
+     * Anchor jumps inside Settings park the target under the sticky topbar.
+     * The panels already carry scroll-margin-top; the *scroller* needs the
+     * matching padding or a keyboard/hash jump still lands short.
+     */
+    html {
+        scroll-padding-top: calc(var(--topbar-height) + var(--safe-top) + 12px);
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * 4. Scrolling containers
+ *
+ * Every horizontally-scrolling region on a phone is a trap: swipe it and the
+ * page either rubber-bands vertically or hands the gesture to the browser's
+ * back-navigation. `overscroll-behavior-x: contain` keeps the gesture inside
+ * the element it started in.
+ * --------------------------------------------------------------------- */
+@media (max-width: 900px) {
+    .table-responsive,
+    .leave-calendar-panel,
+    .attendance-plot-scroll,
+    .schedule-scroll,
+    .org-chart-viewport {
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    /* A scrollable table with no visible edge looks like a clipped table. A
+       hairline fade tells you there is more to the right. */
+    .table-responsive {
+        background:
+            linear-gradient(to right, var(--hr-surface) 30%, rgba(255, 255, 255, 0)) left center / 28px 100% no-repeat,
+            linear-gradient(to left, var(--hr-surface) 30%, rgba(255, 255, 255, 0)) right center / 28px 100% no-repeat;
+        background-attachment: local, local;
+    }
+
+    /* Stacked tables (.table-stack) are not scrollers — the gradient would sit
+       on top of a card list and dim its edges for no reason. */
+    .table-responsive:has(.table-stack) {
+        background: none;
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * 5. Forms
+ *
+ * The single highest-impact mobile fix in this file: Safari zooms the whole
+ * page in when a focused input's font-size is below 16px, and *never zooms
+ * back out*. Every form control in this app is 14px (--fs-sm), so tapping any
+ * field on an iPhone leaves the user stranded at 1.4x with the layout
+ * overflowing sideways. 16px is the threshold, not a preference.
+ * --------------------------------------------------------------------- */
+@media (max-width: 900px) {
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea,
+    .profile-settings-form input,
+    .profile-settings-form select,
+    .profile-settings-form textarea,
+    .form-control,
+    .form-select {
+        font-size: 16px;
+    }
+
+    .profile-settings-form input,
+    .profile-settings-form select,
+    .profile-settings-form textarea,
+    .form-control,
+    .form-select {
+        min-height: var(--tap-min);
+    }
+
+    /* iOS renders date/time inputs at their own intrinsic width and lets them
+       overflow the grid cell they are in. */
+    input[type='date'],
+    input[type='time'],
+    input[type='datetime-local'] {
+        width: 100%;
+        min-width: 0;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    /* Native select arrow plus a padded box, so the value never sits under it. */
+    select:not([multiple]) {
+        padding-right: 2.25rem;
+        background-position: right 0.75rem center;
+    }
+}
+
+@media (max-width: 700px) {
+    /*
+     * dashboard.css already compacts the topbar to 68px and the content gutter
+     * to 16px at this width. The safe-area longhands in the <=1100px block
+     * above are later in the cascade and would silently undo both, so the
+     * compacted values are restored here with the inset folded in.
+     */
+    .app-topbar {
+        min-height: calc(68px + var(--safe-top));
+        padding-right: calc(16px + var(--safe-right));
+        padding-left: calc(16px + var(--safe-left));
+    }
+
+    .app-content {
+        padding: 25px calc(16px + var(--safe-right)) 20px calc(16px + var(--safe-left));
+    }
+
+    /* A submit button stranded at the end of a stacked form is easy to miss and
+       hard to hit; full width is the phone convention for the primary action. */
+    .profile-settings-form > .btn,
+    .settings-inline-form > .btn,
+    .two-factor-confirm-form > .btn,
+    .two-factor-enable-form > .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .profile-settings-form,
+    .settings-resource-links,
+    .settings-security-note,
+    .two-factor-intro,
+    .two-factor-actions,
+    .two-factor-cancel-form,
+    .two-factor-recovery-codes,
+    .two-factor-setup-grid {
+        margin-right: 1rem;
+        margin-left: 1rem;
+    }
+
+    .profile-settings-form {
+        margin-right: 0;
+        margin-left: 0;
+        padding-right: 1rem;
+        padding-left: 1rem;
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * 6. Overlays: dropdowns, modals, dialogs
+ *
+ * Bootstrap positions a dropdown against its toggle. On a 360px screen the
+ * notifications and profile menus are wider than the viewport, so Popper
+ * either overflows the right edge or flips them somewhere unhelpful. Below
+ * 700px they become bottom sheets, which is both the platform convention and
+ * the only shape that reliably fits.
+ * --------------------------------------------------------------------- */
+@media (max-width: 900px) {
+    /*
+     * Only the notifications menu. The profile menu sits inside .app-sidebar,
+     * which carries `transform: translateX(-100%)` to slide the drawer — the
+     * same containing-block rule described above means a fixed sheet there
+     * would resolve against the drawer, never the viewport, and no amount of
+     * `!important` changes that. A dropup inside the drawer is the right shape
+     * for it anyway: it belongs to the drawer it was opened from.
+     */
+    .notifications-menu {
+        /*
+         * Centred, not bottom-anchored.
+         *
+         * A full-width sheet is the right shape for content that fills it. This
+         * menu's usual state is one line of text — "No unread notifications" —
+         * and a half-screen slab wrapped around a single sentence reads as a
+         * layout mistake rather than a design. Centred, the panel is only as
+         * tall as what is in it, and the dim behind it does the work of
+         * separating it from the page.
+         *
+         * `top/left/transform` rather than `inset: 0` + `margin: auto`, because
+         * the translate has to overwrite Popper's own inline transform — and an
+         * `auto` margin cannot outrank an inline declaration the way an
+         * !important translate can.
+         */
+        position: fixed !important;
+        top: 50% !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        z-index: 1055;
+        width: min(420px, calc(100vw - 32px));
+        max-width: none;
+        max-height: min(72dvh, 72vh);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        margin: 0 !important;
+        border: 1px solid var(--hr-border);
+        border-radius: var(--r-xl);
+        box-shadow: 0 24px 64px rgba(7, 28, 18, 0.42);
+        animation: hr-dialog-in 200ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .notification-list {
+        max-height: none;
+    }
+
+    /* 150px of reserved height plus 28px of padding was sized for a dropdown
+       hanging under a toolbar with a whole desktop below it. In a dialog that
+       is only as tall as its contents, it is just empty space. */
+    .notification-empty {
+        min-height: 0;
+        padding: 22px 20px;
+    }
+
+    /* Contained by the drawer, so it only needs to fit the drawer: full width
+       of it, and short enough that the account actions stay reachable above
+       the home indicator. */
+    .profile-dropdown.sidebar-profile-menu {
+        width: 100%;
+        min-width: 0;
+        max-height: 60vh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    /*
+     * Popper is left enabled, so it writes inline `position`, `top`, `left` and
+     * `transform` onto the menu. A stylesheet `!important` outranks a plain
+     * inline declaration, which is why the rules above win without having to
+     * disable Popper — and leaving Popper on is deliberate: it is the fallback
+     * that keeps the menu inside the viewport at any width this block does not
+     * cover.
+     *
+     * An earlier version disabled Popper here instead. That left the menu at
+     * `position: absolute` with Bootstrap's `[data-bs-popper] { left: 0 }`, so a
+     * 390px menu opened from a toggle near the right edge ran off the side of
+     * the page — which is what put a horizontal scrollbar on the whole
+     * dashboard and made every card look clipped.
+     */
+
+    /*
+     * The dim behind the dialog. Bootstrap gives a dropdown no backdrop, so
+     * without this the panel floats over live content with nothing separating
+     * them and the page behind still looks tappable.
+     *
+     * It hangs off the .dropdown WRAPPER, not off the menu itself, and that is
+     * not a stylistic choice. The menu is centred with
+     * `transform: translate(-50%, -50%)`, and a transform makes an element the
+     * containing block for its `position: fixed` descendants — the same rule
+     * that put the old bottom sheet at the top of the screen. A backdrop
+     * parented to the menu would therefore size itself against the menu
+     * instead of the viewport, and dim a 420px box rather than the page.
+     *
+     * The wrapper carries no transform, so `inset: 0` here means the viewport.
+     */
+    .dropdown:has(> .notifications-menu.show)::after {
+        position: fixed;
+        inset: 0;
+        z-index: 1050; /* Under the menu's 1055, over everything in the page. */
+        background: rgba(7, 28, 18, 0.42);
+        content: '';
+        animation: hr-fade-in 200ms ease;
+    }
+
+    /*
+     * Modals stay centred too, for the same reason and for consistency: two
+     * overlay shapes in one app — a dialog in the middle here, a sheet stuck to
+     * the bottom there — reads as two different apps.
+     *
+     * Centring by margin works here where it did not for the dropdown, because
+     * Bootstrap positions .modal-dialog with margins of its own and no inline
+     * transform to overwrite.
+     */
+    .modal-dialog {
+        max-width: none;
+        /* The safe-area insets keep a full-height form clear of the notch and
+           the home indicator. */
+        margin: calc(0.75rem + var(--safe-top)) calc(0.75rem + var(--safe-right))
+                calc(0.75rem + var(--safe-bottom)) calc(0.75rem + var(--safe-left));
+        min-height: calc(100% - 1.5rem - var(--safe-top) - var(--safe-bottom));
+        display: flex;
+        align-items: center;
+    }
+
+    .modal-content {
+        width: 100%;
+        max-height: calc(100dvh - 1.5rem - var(--safe-top) - var(--safe-bottom));
+        border-radius: var(--r-xl);
+    }
+
+    .modal-body {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    /* Stacked full-width actions. Side by side at this width they are two
+       ~150px targets with the destructive one under the thumb's resting spot. */
+    .modal-footer {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .modal-footer > * {
+        width: 100%;
+        margin: 0;
+        justify-content: center;
+    }
+}
+
+@keyframes hr-dialog-in {
+    from {
+        opacity: 0;
+        /* Paired with the !important translate above, so the centring is part
+           of the keyframe rather than something it fights. */
+        transform: translate(-50%, -50%) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes hr-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes hr-sheet-in {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * 7. Settings navigation
+ *
+ * At <=1000px the section nav becomes a 3-column grid of tall cards that
+ * pushes the first panel most of a screen down. A horizontal chip rail is the
+ * same information in one row, and matches how a phone normally presents
+ * section switching.
+ * --------------------------------------------------------------------- */
+@media (max-width: 700px) {
+    .settings-section-nav {
+        position: sticky;
+        top: calc(var(--topbar-height) + var(--safe-top));
+        z-index: 5;
+        display: flex;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        gap: 0.4rem;
+        padding: 0.5rem;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .settings-section-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .settings-section-nav {
+        scrollbar-width: none;
+    }
+
+    .settings-section-nav a {
+        min-height: 40px;
+        flex: 0 0 auto;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--hr-border);
+        border-radius: var(--r-pill);
+        background: var(--hr-surface-2);
+        scroll-snap-align: start;
+        white-space: nowrap;
+    }
+
+    /* The two-line label does not fit in a chip; the sub-label is decoration
+       here, and the strong half already names the section. */
+    .settings-section-nav a small {
+        display: none;
+    }
+
+    /* A group heading inside a horizontal rail becomes a divider. */
+    .settings-nav-group {
+        position: relative;
+        align-self: center;
+        width: 1px;
+        margin: 0.25rem;
+        padding: 0;
+        overflow: hidden;
+        flex: 0 0 auto;
+        color: transparent;
+        background: var(--hr-border);
+        text-indent: -999px;
+    }
+
+    .settings-nav-group:first-child {
+        display: none;
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * 8. Density
+ *
+ * Panels at <=520px keep desktop padding, so on a 360px screen roughly a fifth
+ * of the width is gutter. Tightening it is worth about one extra table column
+ * or four characters of a name before it truncates.
+ * --------------------------------------------------------------------- */
+@media (max-width: 520px) {
+    /*
+     * ---- The topbar becomes a real two-row grid ----
+     *
+     * It was a single flex row with `flex-wrap` and the search field given
+     * `order: 10` to push it onto a second line. That never actually produced
+     * two rows of the TOPBAR: the search lives inside .topbar-actions, so it
+     * wrapped inside that box instead — and .topbar-actions is `margin-left:
+     * auto`, so the "full width" search only ever spanned from the menu button
+     * to the right edge. The result was a menu button sitting in the gutter
+     * beside the search field, the two visually colliding, with a tap near the
+     * boundary landing on whichever won the pixel.
+     *
+     * `display: contents` on .topbar-actions dissolves that box so its children
+     * become grid items of the topbar itself. Now the rows are the topbar's
+     * rows: controls on one, search spanning the full width on the other. No
+     * markup changed, and nothing moved on any wider screen.
+     */
+    .app-topbar {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        grid-template-areas:
+            "menu   .      theme  bell"
+            "search search search search";
+        align-items: center;
+        min-height: 0;
+        column-gap: 6px;
+        row-gap: 8px;
+        padding-top: calc(8px + var(--safe-top));
+        padding-bottom: 10px;
+    }
+
+    .topbar-left {
+        grid-area: menu;
+        flex: none;
+    }
+
+    .topbar-actions {
+        display: contents;
+    }
+
+    /* `order` was the old wrapping mechanism and now fights the grid areas. */
+    .global-search-wrapper {
+        grid-area: search;
+        order: 0;
+        width: 100%;
+    }
+
+    .topbar-actions > .theme-toggle {
+        grid-area: theme;
+    }
+
+    /* The notifications dropdown wrapper. Its menu is `position: fixed` and
+       centred, so being a grid item here does not affect where it opens. */
+    .topbar-actions > .dropdown {
+        grid-area: bell;
+    }
+
+    /* Now that it owns its own cell, the button can hold the full 44px target
+       instead of being squeezed by whatever shared the row with it. */
+    .mobile-menu-button {
+        width: var(--tap-min);
+        height: var(--tap-min);
+        flex: none;
+    }
+
+    .app-content {
+        padding: 20px calc(14px + var(--safe-right)) 18px calc(14px + var(--safe-left));
+    }
+
+    /*
+     * A panel header is a title on the left and a badge, count or button on the
+     * right. At 360px the two fight for the same 330px and the title wins by
+     * truncating the thing that carries the number. Stacked, both get a full
+     * line and nothing is lost.
+     */
+    .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+        min-height: 0;
+        padding: 14px;
+        gap: 8px;
+    }
+
+    /* A count or status pill that has just been given its own line should sit
+       under the title, not stretched across the panel. */
+    .panel-header > .status-badge,
+    .panel-header > .history-caption,
+    .panel-header > .settings-account-id,
+    .panel-header > .two-factor-status,
+    .panel-header > .device-lock-status {
+        flex: 0 0 auto;
+    }
+
+    /* The value and its trend badge share a baseline row. "43 new this month"
+       beside a 22px number leaves the badge about 90px, so it ellipsised to
+       "43 new this m…" — the number it is reporting cut off. Wrapping puts the
+       badge on its own line with the whole width to itself. */
+    .stat-value-row {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 4px 8px;
+    }
+
+    .stat-detail {
+        overflow: visible;
+        white-space: normal;
+    }
+
+    .profile-settings-form,
+    .settings-resource-links {
+        padding-right: 0.85rem;
+        padding-left: 0.85rem;
+    }
+
+    .settings-security-note,
+    .two-factor-intro,
+    .two-factor-actions,
+    .two-factor-recovery-codes,
+    .two-factor-setup-grid,
+    .two-factor-cancel-form {
+        margin-right: 0.85rem;
+        margin-left: 0.85rem;
+    }
+
+    .profile-hero {
+        padding: 1rem;
+    }
+
+    .profile-hero-avatar {
+        width: 3.6rem;
+        height: 3.6rem;
+    }
+
+    /* The seal-and-title brand row does not fit beside a close button at this
+       width; the subtitle is the part that can go. */
+    .brand-copy small {
+        display: none;
+    }
+}
+
+/* Bootstrap's pager is a single non-wrapping row. Fifteen pages of an
+   attendance report is wider than any phone, and it sits below the table's own
+   scroller so it is not covered by that. */
+@media (max-width: 700px) {
+    .report-pagination,
+    .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px;
+    }
+
+    .report-pagination .page-link,
+    .pagination .page-link {
+        min-width: var(--tap-min);
+        min-height: var(--tap-min);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * 8b. Small phones (<=380px)
+ *
+ * A 360px handset is not a rare edge case here — it is the low-end Android the
+ * hospital actually issues. Below this width the ~14px gutters and the 22px
+ * stat value stop leaving room for the values themselves.
+ * --------------------------------------------------------------------- */
+@media (max-width: 380px) {
+    .app-content {
+        padding: 16px calc(10px + var(--safe-right)) 16px calc(10px + var(--safe-left));
+    }
+
+    .app-topbar {
+        padding-right: calc(12px + var(--safe-right));
+        padding-left: calc(12px + var(--safe-left));
+        gap: 6px;
+    }
+
+    .panel-header,
+    .stat-card {
+        padding: 12px;
+    }
+
+    /* 32px was tuned against a four-column desktop grid. In one column the
+       card has width to spare and the number is the point of the card. */
+    .stat-value {
+        font-size: var(--fs-2xl);
+    }
+
+    .page-heading h1 {
+        font-size: var(--fs-xl);
+    }
+
+    /* Three icon buttons plus a menu button at 44px each is 176px of a 360px
+       bar before any gaps. They stay tappable; the gaps give way instead. */
+    .topbar-actions {
+        gap: 4px;
+    }
+
+    /* Long department and employee names in a stacked table card were pushing
+       their own row wide. */
+    .table-stack td,
+    .table-stack th {
+        overflow-wrap: anywhere;
+    }
+
+    .profile-settings-form,
+    .settings-resource-links,
+    .device-lock-body {
+        padding-right: 0.7rem;
+        padding-left: 0.7rem;
+    }
+
+    .settings-security-note,
+    .two-factor-intro,
+    .two-factor-actions,
+    .two-factor-recovery-codes,
+    .two-factor-setup-grid,
+    .two-factor-cancel-form,
+    .device-lock-intro,
+    .device-lock-privacy {
+        margin-right: 0.7rem;
+        margin-left: 0.7rem;
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * 9. Installed app (standalone)
+ *
+ * These only apply once the PWA is launched from the home screen, so the
+ * in-browser experience is untouched.
+ * --------------------------------------------------------------------- */
+@media (display-mode: standalone) {
+    html {
+        /* No browser chrome to pull down on, so the overscroll bounce just
+           exposes the page background and reads as the app coming unstuck. */
+        overscroll-behavior-y: none;
+        background: var(--hr-bg);
+    }
+
+    /* Long-press on a heading selecting text and raising the copy/share bar is
+       a web behaviour, not an app one. Inputs and real content keep it. */
+    .app-sidebar,
+    .app-topbar,
+    .app-footer,
+    .sidebar-brand,
+    .stat-card-label,
+    .panel-kicker,
+    .eyebrow {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    .app-topbar {
+        /* Opaque rather than 94% + blur: over a scrolling list, a translucent
+           bar under a status bar shows the content ghosting through the notch
+           area on iOS. */
+        background: var(--hr-surface);
+    }
+}
+
+@media (display-mode: standalone) and (max-width: 1100px) {
+    .app-footer {
+        /* The copyright line costs a full row of a phone screen on every page
+           in an app whose whole chrome is already branded. */
+        display: none;
+    }
+
+    .app-content {
+        padding-bottom: calc(20px + var(--safe-bottom));
+    }
+}
+
+/* A phone in landscape has ~350px of height. The topbar and its safe-area
+   padding take a third of it. */
+@media (max-height: 480px) and (orientation: landscape) and (pointer: coarse) {
+    .app-topbar {
+        min-height: calc(56px + var(--safe-top));
+    }
+
+    .app-content {
+        padding-top: 16px;
+    }
+
+    .sidebar-brand {
+        min-height: 56px;
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * 10. Motion
+ *
+ * The app already honours prefers-reduced-motion and the per-user
+ * `reduce_motion` preference. Everything added above has to obey both, or the
+ * preference silently stops meaning what it says.
+ * --------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .notifications-menu,
+    .profile-dropdown {
+        animation: none;
+    }
+
+    .app-sidebar,
+    .sidebar-overlay {
+        transition-duration: 0.01ms;
+    }
+}
+
+body.reduce-motion .notifications-menu,
+body.reduce-motion .profile-dropdown {
+    animation: none;
+}
+
+/* ------------------------------------------------------------------------
+ * 11. Install prompt
+ *
+ * Rendered by pwa.js only on a coarse pointer, only when the browser has
+ * actually offered `beforeinstallprompt`, and only until dismissed once. It is
+ * a bar rather than a modal because interrupting someone mid-shift to ask them
+ * to install something is the wrong trade for a hospital app.
+ * --------------------------------------------------------------------- */
+.pwa-install-banner {
+    position: fixed;
+    inset: auto 12px calc(12px + var(--safe-bottom)) 12px;
+    z-index: 1060;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 12px 12px 16px;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-surface);
+    box-shadow: 0 16px 40px rgba(7, 28, 18, 0.24);
+    animation: hr-sheet-in 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.pwa-install-banner p {
+    display: grid;
+    margin: 0;
+    gap: 2px;
+}
+
+.pwa-install-banner strong {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+}
+
+.pwa-install-banner span {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    line-height: 1.4;
+}
+
+.pwa-install-accept {
+    min-height: 40px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: var(--r-md);
+    color: #fff;
+    background: var(--hr-primary);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+}
+
+.pwa-install-accept:active {
+    background: var(--hr-primary-dark);
+}
+
+.pwa-install-dismiss {
+    display: grid;
+    width: 36px;
+    height: 40px;
+    border: 0;
+    border-radius: var(--r-md);
+    color: var(--hr-muted);
+    background: transparent;
+    font-size: var(--fs-sm);
+    place-items: center;
+}
+
+/* A pointer device never sees this — pwa.js will not render it — but the rule
+   makes that explicit rather than relying on the script alone. */
+@media (hover: hover) and (pointer: fine) {
+    .pwa-install-banner {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pwa-install-banner {
+        animation: none;
+    }
+}

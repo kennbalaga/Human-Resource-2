@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Two-Factor Verification - Dr. Jose N. Rodriguez Memorial Hospital</title>
     @include('partials.favicon')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,7 +12,14 @@
 <body>
     <div class="split-screen">
         <div class="left-pane">
-            <header class="logo"><i class="fa-solid fa-hospital icon-logo"></i> Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium</header>
+            <header class="logo"><img
+                    src="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826"
+                    srcset="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826 1x, {{ asset('images/icons/logo-mark-192.png') }}?v=20260826 2x"
+                    alt=""
+                    width="56"
+                    height="56"
+                    class="logo-seal"
+                > Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium</header>
             <main class="login-container two-factor-challenge">
                 <div class="two-factor-challenge-icon"><i class="fa-solid fa-shield-halved"></i></div>
                 <div class="login-header">

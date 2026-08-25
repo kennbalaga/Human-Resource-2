@@ -2,9 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Dr. Jose N. Rodriguez Memorial Hospital - Login</title>
-    <link rel="icon" href="{{ URL('images/DJRMHS-logo.png')}}" type="image/png">
+    {{-- The shared partial, so this page's tab icon can never drift from the
+         rest of the app again — and so the install prompt is reachable from
+         the sign-in screen, not only from inside the app. It also replaces the
+         300KB original that was being served as a 16px favicon. --}}
+    @include('partials.favicon')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -15,7 +19,14 @@
     <div class="split-screen">
         <div class="left-pane">
             <header class="logo">
-                <img src="{{ URL('images/DJRMHS-logo.png')}}" alt="Hospital Logo" width="60">Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium
+                <img
+                    src="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826"
+                    srcset="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826 1x, {{ asset('images/icons/logo-mark-192.png') }}?v=20260826 2x"
+                    alt=""
+                    width="56"
+                    height="56"
+                    class="logo-seal"
+                > Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium
             </header>
 
             <main class="login-container">
