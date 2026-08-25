@@ -448,9 +448,24 @@ class RotationScheduleService
         $matrix = [];
         $lastShiftIds = $previousShiftIds;
 
+        // Swapping every employee at the same week boundary can leave the
+        // incoming shift with nobody on its first day. Anyone moving from a
+        // late shift to an early one is still inside the minimum-rest window
+        // that morning, so chooseDayOffs() rightly rests them all — and they
+        // sit out together, which is what left a two-shift rotation
+        // permanently short of its own coverage gate. Holding a few employees
+        // on their current shift across the changeover keeps each shift
+        // staffed through it. It is only affordable once the team is larger
+        // than one full set of shifts; below that everybody still rotates.
+        $continuityBudget = $scheduleMethod === 'rotation'
+            ? max(0, $employees->count() - $shifts->count())
+            : 0;
+
         foreach ($weeks as $weekIndex => $weekDates) {
             $counts = $shifts->mapWithKeys(fn (Shift $shift) => [$shift->id => 0]);
             $seniorCounts = $shifts->mapWithKeys(fn (Shift $shift) => [$shift->id => 0]);
+            $continuityUsed = $shifts->mapWithKeys(fn (Shift $shift) => [$shift->id => 0]);
+            $continuityLeft = $weekIndex > 0 ? $continuityBudget : 0;
 
             // Seniors are placed first so the charge cover lands where it is needed
             // before the remaining places are filled.
@@ -464,8 +479,19 @@ class RotationScheduleService
                 $lastShiftId = $lastShiftIds->get($employee->id);
                 $isSenior = (int) ($employee->position?->seniority_rank ?? 1) >= $seniorRankThreshold;
 
+                // Each shift keeps back what it needs on duty plus one, and no
+                // more, so the rest of the team still rotates. The spare covers
+                // the held-back employee who draws the changeover day as their
+                // own weekly rest day — without it the shift is right back to
+                // being empty on exactly the day this is meant to protect.
+                // Seniors are reached first by the ordering above, which also
+                // keeps the charge cover continuous across the changeover.
+                $keepsShift = $continuityLeft > 0
+                    && $lastShiftId !== null
+                    && $continuityUsed->get($lastShiftId, 0) < max(1, (int) ($requirements->get($lastShiftId)['staff'] ?? 1)) + 1;
+
                 $shift = $shifts->sortBy(function (Shift $candidate, int $index) use (
-                    $counts, $seniorCounts, $requirements, $lastShiftId, $preferredIndex, $shifts, $scheduleMethod, $isSenior
+                    $counts, $seniorCounts, $requirements, $lastShiftId, $preferredIndex, $shifts, $scheduleMethod, $isSenior, $keepsShift
                 ) {
                     $requirement = $requirements->get($candidate->id, ['staff' => 1, 'senior' => 0]);
 
@@ -477,7 +503,14 @@ class RotationScheduleService
                     $seniorShortfall = max(0, $requirement['senior'] - $seniorCounts[$candidate->id]);
                     $seniorPenalty = $isSenior && $seniorShortfall > 0 ? -($seniorShortfall * 5000) : 0;
 
-                    $repeatPenalty = $scheduleMethod === 'rotation' && $candidate->id === $lastShiftId ? 25 : 0;
+                    $repeatPenalty = match (true) {
+                        $scheduleMethod !== 'rotation', $candidate->id !== $lastShiftId => 0,
+                        // Small enough that a shift still short of its
+                        // requirement (-1000 a head) always outranks holding
+                        // someone where they are.
+                        $keepsShift => -50,
+                        default => 25,
+                    };
                     $preferenceDistance = ($index - $preferredIndex + $shifts->count()) % $shifts->count();
 
                     return $seniorPenalty + $needPenalty + $repeatPenalty + $preferenceDistance;
@@ -485,6 +518,11 @@ class RotationScheduleService
 
                 $matrix[$weekIndex][$employee->id] = $shift;
                 $counts->put($shift->id, $counts->get($shift->id) + 1);
+
+                if ($keepsShift && $shift->id === $lastShiftId) {
+                    $continuityUsed->put($shift->id, $continuityUsed->get($shift->id) + 1);
+                    $continuityLeft--;
+                }
 
                 if ($isSenior) {
                     $seniorCounts->put($shift->id, $seniorCounts->get($shift->id) + 1);

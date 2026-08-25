@@ -37,8 +37,14 @@ class DashboardTest extends TestCase
             ->assertSee('sidebar-brand-toggle', false)
             ->assertSee('Dr. Jose Rodriguez')
             ->assertDontSee('sidebar-section-label')
-            ->assertDontSee('>Integrations<', false)
-            ->assertDontSee('>Audit Logs<', false)
+            // Integrations and audit logs are no longer buried in Account
+            // settings; they sit in their own sidebar group, gated to the roles
+            // that administer them (IntegrationController::authorizeIntegrationAdmin()
+            // and AuditLogController::authorizeAuditAccess()). An HR manager
+            // holds that gate, so the group belongs on this page — the staff
+            // case below is what proves the gate still closes.
+            ->assertSee('>Integrations<', false)
+            ->assertSee('>Audit logs<', false)
             ->assertDontSee('sidebar-user', false)
             ->assertSee('data-topbar-clock', false)
             ->assertSee('data-timezone="Asia/Manila"', false)
@@ -112,6 +118,10 @@ class DashboardTest extends TestCase
             ->assertDontSee('HRMS Overview')
             ->assertDontSee('Recently added employees')
             ->assertDontSee('Workforce by department')
-            ->assertDontSee('data-dashboard-action-menu', false);
+            ->assertDontSee('data-dashboard-action-menu', false)
+            // The administration group is role-gated, so a standard employee
+            // gets neither entry in the sidebar.
+            ->assertDontSee('>Integrations<', false)
+            ->assertDontSee('>Audit logs<', false);
     }
 }

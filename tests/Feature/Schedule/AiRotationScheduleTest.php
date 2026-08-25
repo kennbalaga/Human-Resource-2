@@ -176,6 +176,17 @@ class AiRotationScheduleTest extends TestCase
         config(['ai_workforce_scheduling.enabled' => true]);
 
         $payload = $this->payload('two_weeks');
+        // A two-shift rotation only clears the Tier A coverage gate with a team
+        // behind it: each shift has to keep its minimum on duty every day,
+        // including the changeover day the rotation rests the incoming staff
+        // over. So the assistant is asked for the whole section's roster, and
+        // this test then follows one employee through it.
+        $payload['employee_ids'] = Employee::query()
+            ->where('department_id', $this->employee->department_id)
+            ->where('employment_status', 'active')
+            ->orderBy('id')
+            ->pluck('id')
+            ->all();
 
         // The reviewer publishes the roster the assistant proposed, rather than
         // the server rebuilding it at save time.
@@ -199,11 +210,18 @@ class AiRotationScheduleTest extends TestCase
             ])
             ->assertSessionHasNoErrors();
 
-        $this->assertSame(12, ScheduleAssignment::query()
+        // The section is an administrative unit, and those run Monday-Saturday,
+        // so the fortnight's two Sundays are never staffed: the twelve working
+        // days the assistant proposed are written as ten.
+        $this->assertSame(10, ScheduleAssignment::query()
             ->where('employee_id', $this->employee->id)
             ->whereDate('work_date', '>=', '2027-11-01')
             ->whereDate('work_date', '<=', '2027-11-14')
             ->count());
+        $this->assertDatabaseMissing('schedule_assignments', [
+            'employee_id' => $this->employee->id,
+            'work_date' => '2027-11-07',
+        ]);
         $this->assertSame(2, ScheduleDayOff::query()
             ->where('employee_id', $this->employee->id)
             ->whereDate('work_date', '>=', '2027-11-01')
