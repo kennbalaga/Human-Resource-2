@@ -366,15 +366,16 @@
         <div class="modal fade" id="bulkScheduleModal" tabindex="-1" aria-labelledby="bulkScheduleModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered bulk-schedule-dialog"><div class="modal-content schedule-modal-content">
                 <form method="POST" action="{{ route('schedules.roster.publish') }}" id="bulkScheduleForm" data-roster-fill-url="{{ route('schedules.roster.fill') }}" data-roster-evaluate-url="{{ route('schedules.roster.evaluate') }}" data-roster-publish-url="{{ route('schedules.roster.publish') }}" data-roster-draft-save-url="{{ route('schedules.roster.drafts.save') }}" data-roster-drafts-url="{{ route('schedules.roster.drafts') }}" data-roster-draft-discard-url-template="{{ route('schedules.roster.drafts.discard', ['rosterDraft' => '__ID__']) }}" @if($aiSchedulingEnabled) data-roster-suggest-url="{{ route('schedules.roster.suggest') }}" @endif>@csrf
-                    <div class="modal-header bulk-schedule-header"><span class="bulk-ai-icon"><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'users'" /></span><div><p class="panel-kicker">{{ $aiSchedulingEnabled ? 'AI Scheduling Assistant' : 'Department scheduling' }}</p><h2 class="modal-title" id="bulkScheduleModalLabel">Generate a bulk schedule</h2><small>Build, validate, approve, and publish one department schedule.</small></div><span class="ai-scheduling-advisory">HR approval required</span><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-                    <div class="modal-body bulk-schedule-form">
-                        <ol class="bulk-flow-steps" data-bulk-flow-steps aria-label="Bulk scheduling workflow"><li data-step-item="1" class="active"><span>1</span><strong>Department & staff</strong></li><li data-step-item="2"><span>2</span><strong>Period & rules</strong></li><li data-step-item="3"><span>3</span><strong>Draft generation</strong></li><li data-step-item="4"><span>4</span><strong>Validation</strong></li><li data-step-item="5"><span>5</span><strong>Approve & publish</strong></li></ol>
-                        <p class="bulk-schedule-intro">Choose a department and position, then select specific employees or include all active staff. {{ $aiSchedulingEnabled ? 'The assistant generates one reviewed recommendation' : 'The system generates one reviewed bulk plan' }} and never publishes automatically.</p>
+                    <div class="modal-header bulk-schedule-header"><span class="bulk-ai-icon"><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'users'" /></span><div><p class="panel-kicker">{{ $aiSchedulingEnabled ? 'AI Scheduling Assistant' : 'Department scheduling' }}</p><h2 class="modal-title" id="bulkScheduleModalLabel">Generate a bulk schedule</h2><small>Build, validate, approve, and publish one department schedule.</small><span class="ai-scheduling-advisory">HR approval required</span></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                    <div class="bulk-schedule-shell">
+                        <div class="bulk-flow-rail"><ol class="bulk-flow-steps" data-bulk-flow-steps aria-label="Bulk scheduling workflow"><li data-step-item="1" class="active"><span>1</span><strong>Department & staff</strong></li><li data-step-item="2"><span>2</span><strong>Period & rules</strong></li><li data-step-item="3"><span>3</span><strong>Draft generation</strong></li><li data-step-item="4"><span>4</span><strong>Validation</strong></li><li data-step-item="5"><span>5</span><strong>Approve & publish</strong></li></ol></div>
+                        <div class="modal-body bulk-schedule-form">
                         <div class="schedule-form-grid bulk-schedule-details bulk-step-panel" data-step-panel="1">
                             <div class="bulk-inline-step-heading full-width">
-                                <div><p>Step 1 · Department and staff</p><h3>Choose who to schedule</h3></div>
+                                <h3>Choose who to schedule</h3>
                                 <span data-bulk-selected-count>0 selected</span>
                             </div>
+                            <p class="bulk-schedule-intro full-width">Choose a department and position, then select specific employees or include all active staff. {{ $aiSchedulingEnabled ? 'The assistant generates one reviewed recommendation' : 'The system generates one reviewed bulk plan' }}.</p>
                             <label><span>Department</span><select name="department_id" data-bulk-department-filter required><option value="">Select department</option>@foreach($departments as $department)<option value="{{ $department->id }}" data-employee-count="{{ $employees->where('department_id', $department->id)->count() }}" data-category="{{ $department->category }}">{{ $department->name }}</option>@endforeach</select></label>
                             <fieldset class="bulk-position-picker full-width" data-bulk-position-picker><legend>Position</legend><p data-bulk-position-help>Select a department first</p><div data-bulk-position-options>@foreach($positions as $position)<label class="bulk-position-option" data-department-id="{{ $position->department_id }}" hidden><input type="checkbox" name="position_ids[]" value="{{ $position->id }}" data-bulk-position-filter disabled><span>{{ $position->title }}</span></label>@endforeach</div></fieldset>
                             <label class="full-width"><span>Find staff</span><input type="search" data-bulk-employee-search placeholder="Search employee name or ID" disabled></label>
@@ -400,7 +401,6 @@
                              than split across a Next button. --}}
                         <div class="bulk-step-panel bulk-step-stack" data-step-panel="2" hidden>
                             <div class="schedule-form-grid bulk-schedule-details">
-                                <div class="bulk-pattern-step-heading full-width"><span>Step 2 · Period, pattern and rules</span></div>
                                 @if($aiSchedulingEnabled)
                                     <label><span>Shift pattern</span><select name="schedule_method" data-schedule-method><option value="rotation">Rotating · AI balanced</option><option value="custom">Custom · AI optimized mix</option><option value="fixed">Fixed · same shift</option></select></label>
                                 @endif
@@ -498,11 +498,9 @@
                              the step exists so the flow it belongs to is already in
                              place when it does. --}}
                         <div class="bulk-step-panel" data-step-panel="4" hidden>
-                            <div class="bulk-pattern-step-heading"><span>Step 4 · Validation</span></div>
                         </div>
 
                         <div class="bulk-step-panel" data-step-panel="5" hidden>
-                            <div class="bulk-pattern-step-heading full-width"><span>Step 5 · Approve and publish</span></div>
                             <section class="publish-summary" data-publish-summary>
                                 <header><strong>What publishing will do</strong><span>Computed from the reviewed roster on Step 3.</span></header>
                                 <div class="publish-summary-grid" data-publish-summary-grid></div>
@@ -510,6 +508,7 @@
                             </section>
                             <label class="bulk-schedule-notes"><span>Notes</span><textarea name="notes" rows="2" maxlength="500" placeholder="Optional note for all created assignments"></textarea></label>
                             <label class="bulk-approval" data-bulk-approval-wrap hidden><input type="checkbox" data-bulk-approval><span><strong>I reviewed the summary above and approve this bulk schedule</strong><small>Publishing creates exactly the assignments and rest days summarized above, and notifies every employee they affect.</small></span></label>
+                        </div>
                         </div>
                     </div>
                     <div class="modal-footer">

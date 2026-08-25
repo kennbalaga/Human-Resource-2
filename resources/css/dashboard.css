@@ -1395,11 +1395,16 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
     justify-content: space-between;
 }
 
+/* One colour for all four cards. The tones these used to carry varied by card
+   position rather than by meaning - unlike the notification and attendance-state
+   plates, where the colour is the information. */
 .stat-icon {
     display: grid;
     width: 32px;
     height: 32px;
     border-radius: var(--r-md);
+    color: var(--hr-primary);
+    background: var(--hr-primary-soft);
     place-items: center;
 }
 
@@ -1431,26 +1436,6 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
     color: #fff;
     background: var(--hr-primary);
     transform: translateX(2px);
-}
-
-.stat-icon-primary {
-    color: var(--hr-info);
-    background: var(--hr-tint-info);
-}
-
-.stat-icon-success {
-    color: var(--hr-success);
-    background: var(--hr-primary-soft);
-}
-
-.stat-icon-violet {
-    color: var(--hr-violet);
-    background: var(--hr-tint-violet);
-}
-
-.stat-icon-amber {
-    color: var(--hr-warning-text);
-    background: var(--hr-tint-warning);
 }
 
 .stat-title {

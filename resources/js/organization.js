@@ -61,7 +61,17 @@ const initializeLiveOrganizationFilters = () => {
     });
 };
 
+/* A failed create-employee submit comes back as a normal render of the
+   directory, so the modal has to be reopened for the errors and the old input
+   inside it to be seen at all. */
+const reopenModalsWithErrors = () => {
+    document.querySelectorAll('.modal[data-open-on-error]').forEach((element) => {
+        window.bootstrap?.Modal.getOrCreateInstance(element).show();
+    });
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     initializePositionFiltering();
     initializeLiveOrganizationFilters();
+    reopenModalsWithErrors();
 });

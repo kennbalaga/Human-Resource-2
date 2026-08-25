@@ -100,6 +100,51 @@ class OrganizationManagementTest extends TestCase
         $this->actingAs($manager)->get(route('positions.create'))->assertOk()->assertSee('Create position');
     }
 
+    public function test_manager_directory_carries_the_add_employee_modal(): void
+    {
+        $this->seed();
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+
+        $this->actingAs($manager)->get(route('employees.index'))
+            ->assertOk()
+            ->assertSee('data-bs-target="#createEmployeeModal"', false)
+            ->assertSee('id="createEmployeeModal"', false)
+            // The option lists the modal's form needs are rendered with the page.
+            ->assertSee('data-position-select', false)
+            ->assertSee('No direct supervisor');
+    }
+
+    public function test_a_rejected_create_reopens_the_modal_over_the_directory(): void
+    {
+        $this->seed();
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+        $position = Position::query()->where('is_active', true)->firstOrFail();
+        $otherDepartment = Department::query()->where('is_active', true)->whereKeyNot($position->department_id)->firstOrFail();
+
+        $this->actingAs($manager)
+            ->from(route('employees.index'))
+            ->followingRedirects()
+            ->post(route('employees.store'), [
+                '_form' => 'create-employee',
+                'employee_number' => 'TEST-0002',
+                'email' => 'modal.mismatch@hrms.local',
+                'first_name' => 'Modal',
+                'last_name' => 'Mismatch',
+                'department_id' => $otherDepartment->id,
+                'position_id' => $position->id,
+                'employment_status' => 'active',
+                'hire_date' => '2026-07-16',
+            ])
+            ->assertOk()
+            ->assertSee('Employee directory')
+            ->assertSee('data-open-on-error', false)
+            // The rejected input comes back inside the reopened modal.
+            ->assertSee('value="Modal"', false)
+            ->assertSee('The selected position does not belong to the selected department.');
+
+        $this->assertDatabaseMissing('users', ['email' => 'modal.mismatch@hrms.local']);
+    }
+
     public function test_manager_can_open_position_edit_even_when_its_department_is_inactive(): void
     {
         $this->seed();

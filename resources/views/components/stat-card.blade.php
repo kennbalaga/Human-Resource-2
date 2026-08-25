@@ -2,14 +2,13 @@
     'title',
     'value',
     'icon',
-    'tone' => 'primary',
     'detail' => null,
     'href' => '#',
 ])
 
 <a class="stat-card" href="{{ $href }}" aria-label="Open {{ $title }}">
     <div class="stat-card-top">
-        <span class="stat-icon stat-icon-{{ $tone }}">
+        <span class="stat-icon">
             <x-icon :name="$icon" />
         </span>
         <span class="stat-card-link-icon" aria-hidden="true"><x-icon name="chevron-right" /></span>

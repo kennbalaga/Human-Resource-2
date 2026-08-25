@@ -10,7 +10,7 @@
             <p>View workforce identities, assignments, reporting lines, and account status.</p>
         </div>
         @if ($canManage)
-            <a class="btn btn-primary dashboard-action" href="{{ route('employees.create') }}"><x-icon name="plus" /> Add employee</a>
+            <button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#createEmployeeModal"><x-icon name="plus" /> Add employee</button>
         @endif
     </section>
 
@@ -52,4 +52,8 @@
         </div>
         @if($employees->hasPages())<div class="report-pagination">{{ $employees->onEachSide(1)->links('pagination::bootstrap-5') }}</div>@endif
     </section>
+
+    @if ($canManage)
+        @include('employees._create-modal')
+    @endif
 @endsection

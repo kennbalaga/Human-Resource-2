@@ -44,24 +44,22 @@
     box-shadow: 0 4px 14px rgba(23, 107, 67, .08);
 }
 
+/* Every tab icon is the same green, active included. The active tab is already
+   marked by its border, fill and label colour - having the icon change too made
+   four icons in three different colours across one strip. */
 .organization-tab-icon {
     display: grid;
     width: 2.15rem;
     height: 2.15rem;
     flex: 0 0 auto;
     border-radius: var(--r-md);
-    color: var(--hr-muted);
+    color: var(--hr-primary);
     background: var(--hr-sunken);
     place-items: center;
 }
 
 .organization-tab-icon svg {
     width: 1rem;
-}
-
-.organization-workspace-tabs a.active .organization-tab-icon {
-    color: #fff;
-    background: var(--hr-primary);
 }
 
 .organization-workspace-tabs a > span:last-child {
@@ -527,7 +525,7 @@ html[data-theme-resolved='dark'] .organization-workspace-tabs a {
 
 html[data-theme-resolved='dark'] .organization-workspace-tabs a:hover {
     color: var(--hr-text);
-    background: var(--hr-muted);
+    background: var(--hr-primary-soft);
 }
 
 html[data-theme-resolved='dark'] .organization-workspace-tabs a.active {
@@ -537,13 +535,8 @@ html[data-theme-resolved='dark'] .organization-workspace-tabs a.active {
 }
 
 html[data-theme-resolved='dark'] .organization-tab-icon {
-    color: var(--hr-subtle);
-    background: var(--hr-muted);
-}
-
-html[data-theme-resolved='dark'] .organization-workspace-tabs a.active .organization-tab-icon {
-    color: #fff;
-    background: var(--hr-primary);
+    color: var(--hr-primary);
+    background: var(--hr-surface-3);
 }
 
 html[data-theme-resolved='dark'] .organization-filters input,
@@ -557,8 +550,8 @@ html[data-theme-resolved='dark'] .organization-field textarea {
 }
 
 html[data-theme-resolved='dark'] .organization-field input[readonly] {
-    color: var(--hr-subtle);
-    background: var(--hr-muted);
+    color: var(--hr-muted);
+    background: var(--hr-surface-3);
 }
 
 html[data-theme-resolved='dark'] .organization-card h2,
@@ -741,4 +734,26 @@ html[data-theme-resolved='dark'] .organization-detail {
     .org-children > .org-node:last-child::after { left: -.95rem; }
     .org-chart-actions { width: 100%; }
     .org-chart-actions .btn { flex: 1; }
+}
+
+/* Add employee runs inside a modal on the directory page. The dialog already
+   supplies the frame and its own padding, so the shared fieldsets drop the
+   standalone page's panel chrome and keep only their two-column grid. */
+.organization-modal-form {
+    padding: 0;
+}
+
+.organization-modal-intro {
+    padding: 1.1rem 1.25rem 0;
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.organization-modal-form .organization-fieldset {
+    padding: 1.1rem 1.25rem;
+}
+
+.organization-modal-form .organization-field textarea {
+    min-height: 5rem;
 }

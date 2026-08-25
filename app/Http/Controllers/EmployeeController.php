@@ -52,13 +52,18 @@ class EmployeeController extends Controller
             ->when($filters['department_id'] ?? null, fn (Builder $builder, int $departmentId) => $builder->where('department_id', $departmentId))
             ->when($filters['status'] ?? null, fn (Builder $builder, string $status) => $builder->where('employment_status', $status));
 
+        $canManage = $this->canWrite($request);
+
         return view('employees.index', [
             'employees' => $query->orderBy('last_name')->orderBy('first_name')->paginate(15)->withQueryString(),
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'filters' => $filters,
-            'canManage' => $this->canWrite($request),
+            'canManage' => $canManage,
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-        ]);
+            // The add-employee modal lives on this page, so the directory needs
+            // the same option lists the create page builds — but only for the
+            // roles that actually get the modal.
+        ] + ($canManage ? $this->formData($request) : []));
     }
 
     public function show(Request $request, Employee $employee): View

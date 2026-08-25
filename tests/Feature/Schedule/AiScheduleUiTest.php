@@ -40,7 +40,7 @@ class AiScheduleUiTest extends TestCase
             ->assertSee('bulk-inline-employee-list')
             ->assertSee('Select a department to load its active employees.')
             ->assertSeeInOrder(['value="specific"', 'value="all"'], false)
-            ->assertSeeInOrder(['Step 1 · Department and staff', 'Shift pattern'])
+            ->assertSeeInOrder(['Choose who to schedule', 'Shift pattern'])
             ->assertSee('I reviewed the summary above and approve this bulk schedule')
             ->assertSee('Approve & publish', false)
             ->assertSee('Generate AI Recommendation')

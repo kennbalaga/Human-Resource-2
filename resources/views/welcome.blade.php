@@ -30,7 +30,6 @@
             title="Total employees"
             :value="number_format($stats['employees'])"
             icon="users"
-            tone="primary"
             :detail="$stats['new_this_month'].' new this month'"
             :href="route('employees.index')"
         />
@@ -38,7 +37,6 @@
             title="Active workforce"
             :value="number_format($stats['active_employees'])"
             icon="check-circle"
-            tone="success"
             detail="Ready for duty"
             :href="$canManageWorkforce ? route('attendance.reports.index') : route('attendance.index')"
         />
@@ -46,7 +44,6 @@
             title="Departments"
             :value="number_format($stats['departments'])"
             icon="building"
-            tone="violet"
             detail="Operational units"
             :href="route('departments.index')"
         />
@@ -54,7 +51,6 @@
             title="Positions"
             :value="number_format($stats['positions'])"
             icon="briefcase"
-            tone="amber"
             detail="Defined roles"
             :href="route('positions.index')"
         />

@@ -627,6 +627,23 @@
     font-size: var(--fs-lg);
 }
 
+/* These modals wrap header, body and footer in one <form>, which drops a plain
+   block between .modal-content and the three flex children a scrollable dialog
+   expects. Left alone the body has no definite height to scroll inside, so the
+   form grows past the dialog and .modal-content's overflow:hidden clips the
+   footer - Cancel and Save both - off the bottom of the screen. Hand the column
+   layout down to the form so the body scrolls and the footer stays put. */
+.modal-dialog-scrollable .schedule-modal-content > form {
+    display: flex;
+    min-height: 0;
+    max-height: 100%;
+    flex-direction: column;
+}
+
+.modal-dialog-scrollable .schedule-modal-content > form > .modal-body {
+    min-height: 0;
+}
+
 .schedule-form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1099,7 +1116,7 @@
 }
 
 .bulk-schedule-dialog {
-    width: min(74rem, calc(100vw - 2rem));
+    width: min(68rem, calc(100vw - 2rem));
     max-width: none;
     margin: 1rem auto;
 }
@@ -1112,6 +1129,21 @@
     display: grid;
     min-height: 0;
     grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+/* The rail sits beside the step body rather than above it. Five steps read as a
+   list far more naturally than as a band, and the width it borrows is width the
+   form steps were wasting on over-long fields. */
+.bulk-schedule-shell {
+    display: grid;
+    min-height: 0;
+    grid-template-columns: 13rem minmax(0, 1fr);
+}
+
+.bulk-flow-rail {
+    padding: 1.15rem 1rem;
+    border-right: 1px solid var(--hr-border);
+    background: var(--hr-surface-2);
 }
 
 .bulk-schedule-dialog .bulk-schedule-form {
@@ -1134,7 +1166,8 @@
 }
 
 .bulk-schedule-header .ai-scheduling-advisory {
-    margin-left: auto;
+    margin: .35rem 0 0;
+    justify-self: start;
 }
 
 .bulk-ai-icon {
@@ -1154,7 +1187,7 @@
 
 .bulk-flow-steps {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1.05rem;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -1162,20 +1195,24 @@
 
 .bulk-flow-steps li {
     position: relative;
-    display: flex;
-    align-items: center;
-    gap: .45rem;
+    display: grid;
+    grid-template-columns: 1.55rem minmax(0, 1fr);
+    align-items: start;
+    gap: .55rem;
     color: var(--hr-subtle);
     font-size: var(--fs-2xs);
+    line-height: 1.3;
 }
 
+/* Runs from under one pill into the next, which masks its own end. */
 .bulk-flow-steps li:not(:last-child)::after {
     position: absolute;
     z-index: 0;
-    right: .5rem;
-    left: 2rem;
-    height: 1px;
-    background: var(--hr-sunken);
+    top: 1.75rem;
+    bottom: -1.25rem;
+    left: .75rem;
+    width: 1px;
+    background: var(--hr-border-strong);
     content: '';
 }
 
@@ -1192,9 +1229,8 @@
 }
 
 .bulk-flow-steps strong {
-    z-index: 1;
-    padding-right: .35rem;
-    background: var(--hr-surface);
+    padding-top: .28rem;
+    font-weight: 600;
 }
 
 .bulk-flow-steps .active {
@@ -1240,10 +1276,18 @@
 }
 
 .bulk-schedule-intro {
+    max-width: 68ch;
     margin: 0;
     color: var(--hr-muted);
     font-size: var(--fs-sm);
     line-height: 1.5;
+}
+
+/* The dialog is sized for the Step 3 roster board, so a full-width cell here is
+   ~70rem across. A name search does not get more useful at that width - it just
+   makes the eye travel from the label to the caret. */
+.bulk-schedule-details [data-bulk-employee-search] {
+    max-width: 26rem;
 }
 
 .bulk-rule-panel {
@@ -1374,28 +1418,13 @@
 }
 
 .bulk-inline-step-heading {
-    padding: .8rem 1rem;
-    border: 1px solid var(--hr-border-strong);
-    border-radius: var(--r-md);
-    background: var(--hr-primary-soft);
+    padding: 0 0 .7rem;
+    border-bottom: 1px solid var(--hr-border);
 }
 
-.bulk-inline-step-heading p,
 .bulk-inline-step-heading h3 {
     margin: 0;
-}
-
-.bulk-inline-step-heading p {
-    color: var(--hr-text);
-    font-size: var(--fs-2xs);
-    font-weight: 800;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-}
-
-.bulk-inline-step-heading h3 {
-    margin-top: .12rem;
-    color: var(--hr-text);
+    color: var(--hr-primary);
     font-size: var(--fs-base);
 }
 
@@ -1512,7 +1541,7 @@
     padding: .8rem;
     border: 1px solid var(--hr-border);
     border-radius: var(--r-md);
-    background: var(--hr-tint-info);
+    background: var(--hr-surface-2);
 }
 
 .rotation-shift-picker legend {
@@ -1584,7 +1613,7 @@
     padding: .8rem;
     border: 1px solid var(--hr-border);
     border-radius: var(--r-md);
-    background: var(--hr-tint-info);
+    background: var(--hr-surface-2);
 }
 
 .bulk-position-picker legend {
@@ -2351,9 +2380,24 @@
         max-height: calc(100vh - 1rem);
     }
 
+    /* Too narrow for a side rail, so the steps go back over the body as a row
+       that scrolls sideways. Without a column to run down, the connector has
+       nothing to connect. */
+    .bulk-schedule-shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .bulk-flow-rail {
+        padding: .75rem 1rem;
+        border-right: 0;
+        border-bottom: 1px solid var(--hr-border);
+    }
+
     .bulk-flow-steps {
-        grid-template-columns: 1fr;
-        gap: .35rem;
+        overflow-x: auto;
+        gap: 1rem;
+        grid-auto-flow: column;
+        grid-auto-columns: max-content;
     }
 
     .bulk-flow-steps li:not(:last-child)::after {

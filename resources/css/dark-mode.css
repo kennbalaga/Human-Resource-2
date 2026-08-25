@@ -90,6 +90,7 @@ html[data-theme-resolved='dark'] .timesheet-entry-grid article { color:var(--hr-
 html[data-theme-resolved='dark'] .stat-card:hover,
 html[data-theme-resolved='dark'] .stat-card:focus-visible { border-color:transparent; background:var(--hr-surface-2); }
 html[data-theme-resolved='dark'] .stat-card-link-icon { color:#b3c2b9; border-color:transparent; background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .stat-icon { color:var(--hr-primary); background:var(--hr-primary-soft); }
 
 html[data-theme-resolved='dark'] .global-search,
 html[data-theme-resolved='dark'] .icon-button,
@@ -327,11 +328,8 @@ html[data-theme-resolved='dark'] .btn-primary.dashboard-action:hover,
 html[data-theme-resolved='dark'] .btn-primary.dashboard-action:focus { color:#0a1a12; }
 
 /* Dashboard, navigation, notifications, and common tables */
-html[data-theme-resolved='dark'] .stat-icon-primary,
 html[data-theme-resolved='dark'] .notification-primary,
 html[data-theme-resolved='dark'] .state-working { color:#a3c3ea; background:#1e2c40; }
-html[data-theme-resolved='dark'] .stat-icon-violet { color:#c0aee6; background:#2b2740; }
-html[data-theme-resolved='dark'] .stat-icon-amber,
 html[data-theme-resolved='dark'] .notification-warning { color:#e3bd7e; background:#382f1c; }
 html[data-theme-resolved='dark'] .notification-success,
 html[data-theme-resolved='dark'] .state-ready,
@@ -590,9 +588,10 @@ html[data-theme-resolved='dark'] .bulk-rule-holidays small,
 html[data-theme-resolved='dark'] .bulk-filter-field>span,
 html[data-theme-resolved='dark'] .bulk-protected-rules,
 html[data-theme-resolved='dark'] .bulk-approval small { color:#b3c2b9; }
-/* The step pill and its label mask the connector line behind them, so they have
-   to carry the modal's own surface - not the sunken step below it. */
-html[data-theme-resolved='dark'] .bulk-flow-steps strong,
+/* The rail is a recessed column beside the step body, so it steps down from the
+   modal surface while the pills sitting on it step back up - which is also what
+   masks the connector line running behind them. */
+html[data-theme-resolved='dark'] .bulk-flow-rail { border-color:var(--hr-border); background:var(--hr-surface); }
 html[data-theme-resolved='dark'] .bulk-flow-steps span { background:var(--hr-surface-2); }
 html[data-theme-resolved='dark'] .bulk-overtime-toggle { background:var(--hr-surface); }
 html[data-theme-resolved='dark'] .bulk-flow-steps li:not(:last-child)::after { background:#33443c; }
@@ -609,9 +608,7 @@ html[data-theme-resolved='dark'] .bulk-validation-details { border-color:#5c4d2a
 html[data-theme-resolved='dark'] .bulk-validation-heading,
 html[data-theme-resolved='dark'] .bulk-validation-details ul { color:#ecc98f; }
 html[data-theme-resolved='dark'] .bulk-approval { color:#a6dcc0; border-color:#2f5443; background:#1c3527; }
-html[data-theme-resolved='dark'] .bulk-inline-step-heading { border-color:#2f5443; background:#1c3527; }
-html[data-theme-resolved='dark'] .bulk-inline-step-heading p { color:#9cd9b8; }
-html[data-theme-resolved='dark'] .bulk-inline-step-heading h3,
+html[data-theme-resolved='dark'] .bulk-inline-step-heading { border-color:var(--hr-border); background:none; }
 html[data-theme-resolved='dark'] .bulk-inline-step-heading>span { color:var(--hr-text); }
 html[data-theme-resolved='dark'] .bulk-inline-employee-list { border-color:var(--hr-border); background:#131b17; }
 html[data-theme-resolved='dark'] .bulk-inline-employee-actions { color:#b3c2b9; }
@@ -847,12 +844,10 @@ html[data-theme-resolved='dark'] .status-secondary,
 html[data-theme-resolved='dark'] .shift-status.inactive { color:#c8d4cd; background:var(--hr-tint-neutral); }
 
 /* Icon plates on stat cards and metrics follow the same tint scale. */
-html[data-theme-resolved='dark'] .stat-icon-primary,
 html[data-theme-resolved='dark'] .notification-primary,
 html[data-theme-resolved='dark'] .state-working,
 html[data-theme-resolved='dark'] .analytics-metric-icon.blue,
 html[data-theme-resolved='dark'] .report-stat-blue { color:#a8c8ec; background:var(--hr-tint-info); }
-html[data-theme-resolved='dark'] .stat-icon-success,
 html[data-theme-resolved='dark'] .notification-success,
 html[data-theme-resolved='dark'] .state-ready,
 html[data-theme-resolved='dark'] .state-complete,
@@ -862,10 +857,8 @@ html[data-theme-resolved='dark'] .quick-action-icon,
 html[data-theme-resolved='dark'] .department-icon,
 html[data-theme-resolved='dark'] .analytics-metric-icon.green,
 html[data-theme-resolved='dark'] .report-stat-green { color:#a6dcc0; background:var(--hr-tint-success); }
-html[data-theme-resolved='dark'] .stat-icon-violet,
 html[data-theme-resolved='dark'] .analytics-metric-icon.violet,
 html[data-theme-resolved='dark'] .report-stat-violet { color:#c0aee6; background:var(--hr-tint-violet); }
-html[data-theme-resolved='dark'] .stat-icon-amber,
 html[data-theme-resolved='dark'] .notification-warning,
 html[data-theme-resolved='dark'] .analytics-metric-icon.amber,
 html[data-theme-resolved='dark'] .report-stat-amber { color:#e6c184; background:var(--hr-tint-warning); }
