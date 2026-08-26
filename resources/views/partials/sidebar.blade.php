@@ -54,7 +54,11 @@
         </span>
         <span class="brand-copy">
             <strong>Dr. Jose Rodriguez</strong>
-            <small>Memorial Hospital &amp; Sanitarium</small>
+            {{-- The subtitle wraps to two lines in the 272px rail. The
+                 non-breaking space keeps the ampersand tied to the word
+                 before it, so the break falls after "Hospital &" rather than
+                 leaving a line to open with a stray "&". --}}
+            <small>Memorial Hospital&nbsp;&amp; Sanitarium</small>
         </span>
         <button
             class="sidebar-brand-toggle"
