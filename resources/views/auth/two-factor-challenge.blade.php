@@ -53,7 +53,7 @@
                 <p class="two-factor-help"><i class="fa-solid fa-circle-info"></i> Codes rotate every 30 seconds. If you lost your authenticator and recovery codes, contact the System Administrator for an audited identity-verified reset.</p>
                 <a href="{{ route('login') }}" class="back-to-login"><i class="fa-solid fa-arrow-left"></i> Back to login</a>
             </main>
-            <footer class="footer-links"><span class="copyright">Copyright © {{ now()->year }} Dr. Jose N. Rodriguez MHS.</span><a href="#" class="privacy">Privacy Policy</a></footer>
+            <footer class="footer-links"><span class="copyright">&copy; {{ now()->year }} Dr. Jose N. Rodriguez MHS. All rights reserved.</span><a href="{{ route('privacy-policy') }}" class="privacy">Privacy Policy</a></footer>
         </div>
         <div class="right-pane">
             <div class="hero-content"><h2>Secure workforce access at every sign-in.</h2><p>Your authenticator code provides a second check even if a password is exposed.</p><img src="{{ URL('images/doctors.png') }}" alt="Hospital workforce illustration" class="hero-image"></div>

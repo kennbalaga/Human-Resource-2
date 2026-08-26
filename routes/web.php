@@ -37,6 +37,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
 
+/*
+ * Public on purpose: the privacy notice is linked from the login footer, and
+ * the people who most need to read it are the ones deciding whether to sign in
+ * at all. Guarding it behind `auth` would make it unreadable to exactly them.
+ */
+Route::view('/privacy-policy', 'legal.privacy-policy')->name('privacy-policy');
+
 Route::get('/dashboard', DashboardController::class)
     ->middleware('auth')
     ->name('dashboard');
