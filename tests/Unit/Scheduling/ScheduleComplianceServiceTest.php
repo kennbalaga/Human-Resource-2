@@ -31,7 +31,7 @@ class ScheduleComplianceServiceTest extends TestCase
 
         $this->seed();
         $this->department = Department::query()->where('code', 'HR')->firstOrFail();
-        $this->employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
+        $this->employee = Employee::query()->where('employee_number', 'HR-OFFICER-2026-0001')->firstOrFail();
         $this->shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
 
         // A clean slate for this employee — the seeded demo roster would

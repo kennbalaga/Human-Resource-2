@@ -23,10 +23,10 @@ class ShiftScheduleSeeder extends Seeder
         $migrationActorId = User::query()->where('email', 'admin@hrms.local')->value('id');
         $weekStart = now(config('schedule.timezone'))->startOfWeek(Carbon::MONDAY);
         $seedAssignments = [
-            ['employee' => 'SYS-2026-0001', 'shift' => 'ADMIN-0800'],
-            ['employee' => 'HR-2026-0001', 'shift' => 'ADMIN-0800'],
-            ['employee' => 'HR-2026-0002', 'shift' => 'ADMIN-0800'],
-            ['employee' => 'NUR-2026-0001', 'shift' => 'NIGHT-2200'],
+            ['employee' => 'SYS-ADMIN-2026-0001', 'shift' => 'ADMIN-0800'],
+            ['employee' => 'HR-MGR-2026-0001', 'shift' => 'ADMIN-0800'],
+            ['employee' => 'HR-OFFICER-2026-0001', 'shift' => 'ADMIN-0800'],
+            ['employee' => 'NUR-HEAD-DERM-2026-0001', 'shift' => 'NIGHT-2200'],
         ];
 
         foreach ($seedAssignments as $assignment) {

@@ -11,13 +11,13 @@ POST /api/v1/auth/token
 Content-Type: application/json
 
 {
-  "employee_id": "HR-2026-0001",
+  "employee_id": "HR-MGR-2026-0001",
   "password": "ChangeMe123!",
   "device_name": "Postman"
 }
 ```
 
-`employee_id` accepts either an employee ID (for example, `HR-2026-0001`) or the employee's work email address.
+`employee_id` accepts either an employee ID (for example, `HR-MGR-2026-0001`) or the employee's work email address.
 
 The response contains `data.token`. Send it on protected requests:
 

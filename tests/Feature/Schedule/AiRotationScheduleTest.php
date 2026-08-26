@@ -30,7 +30,7 @@ class AiRotationScheduleTest extends TestCase
         parent::setUp();
         $this->seed();
         $this->manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
-        $this->employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
+        $this->employee = Employee::query()->where('employee_number', 'HR-OFFICER-2026-0001')->firstOrFail();
         // Two rotating legs. The Administrative Shift used to stand in as the
         // second here, but a standalone office day is no longer poolable with a
         // rotating one — the two describe incompatible patterns, and pairing

@@ -44,7 +44,7 @@ class IntegrationResilienceTest extends TestCase
     public function test_removed_zapier_and_zoom_integrations_are_not_exposed(): void
     {
         $administrator = User::query()
-            ->whereHas('employee', fn ($query) => $query->where('employee_number', 'SYS-2026-0001'))
+            ->whereHas('employee', fn ($query) => $query->where('employee_number', 'SYS-ADMIN-2026-0001'))
             ->firstOrFail();
 
         $this->actingAs($administrator)

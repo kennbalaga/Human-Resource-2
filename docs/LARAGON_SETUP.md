@@ -88,7 +88,7 @@ For development scheduling, open another terminal and run `php artisan schedule:
 
 ## 7. Accounts
 
-Use `SYS-2026-0001`, `HR-2026-0001`, `NUR-2026-0001`, or `HR-2026-0002`. The development password is `ChangeMe123!` unless `INITIAL_USER_PASSWORD` was changed before seeding.
+Use `SYS-ADMIN-2026-0001`, `HR-MGR-2026-0001`, `NUR-HEAD-DERM-2026-0001`, or `HR-OFFICER-2026-0001`. The development password is `ChangeMe123!` unless `INITIAL_USER_PASSWORD` was changed before seeding.
 
 ## Pulling database changes
 

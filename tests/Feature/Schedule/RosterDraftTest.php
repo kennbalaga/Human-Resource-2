@@ -299,7 +299,7 @@ class RosterDraftTest extends TestCase
     public function test_the_roster_endpoints_refuse_an_employee_from_another_department(): void
     {
         $manager = User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail();
-        $outsider = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
+        $outsider = Employee::query()->where('employee_number', 'HR-OFFICER-2026-0001')->firstOrFail();
 
         $this->actingAs($manager)->post(route('schedules.roster.publish'), [
             'department_id' => $this->ward->id,

@@ -22,14 +22,17 @@ const initializePositionFiltering = () => {
             if (resetSelection && selected?.disabled) position.value = '';
         };
 
+        /* Mirrors EmployeeNumberGenerator: {POSITION CODE}-{HIRE YEAR}-{SEQUENCE}.
+           The sequence is only known once the row is written, so the preview
+           stops at the prefix the server is about to use. */
         const previewEmployeeNumber = () => {
             if (!generatedEmployeeNumber) return;
 
-            const departmentCode = department.selectedOptions[0]?.dataset.departmentCode;
+            const positionCode = position.selectedOptions[0]?.dataset.positionCode;
             const hireYear = hireDate?.value?.slice(0, 4) || new Date().getFullYear();
-            generatedEmployeeNumber.value = departmentCode
-                ? `${departmentCode}-${hireYear}-[next]`
-                : 'Select a department first';
+            generatedEmployeeNumber.value = positionCode
+                ? `${positionCode}-${hireYear}-[next]`
+                : 'Select a position first';
         };
 
         filterPositions();
@@ -38,6 +41,7 @@ const initializePositionFiltering = () => {
             filterPositions(true);
             previewEmployeeNumber();
         });
+        position.addEventListener('change', previewEmployeeNumber);
         hireDate?.addEventListener('change', previewEmployeeNumber);
     });
 };

@@ -25,7 +25,7 @@ class AiScheduleRankingTest extends TestCase
         $position = Position::query()->where('code', 'HR-OFFICER')->firstOrFail();
         $day = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $night = Shift::query()->where('code', 'NIGHT-2200')->firstOrFail();
-        $existing = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
+        $existing = Employee::query()->where('employee_number', 'HR-OFFICER-2026-0001')->firstOrFail();
         // EmptyDepartmentStaffSeeder/SamplePositionStaffSeeder also seed active
         // HR Officers with no assignments of their own; left active, they'd tie
         // $light for lightest workload and make the "recommended" candidate

@@ -24,7 +24,7 @@ class TwoFactorAuthenticationTest extends TestCase
 
     public function test_employee_can_start_and_confirm_authenticator_setup(): void
     {
-        $user = $this->userForEmployee('HR-2026-0002');
+        $user = $this->userForEmployee('HR-OFFICER-2026-0001');
 
         $this->actingAs($user)->post(route('two-factor.settings.enable'), [
             'current_password' => 'ChangeMe123!',
@@ -50,11 +50,11 @@ class TwoFactorAuthenticationTest extends TestCase
 
     public function test_enabled_account_must_complete_challenge_after_password(): void
     {
-        $user = $this->enableTwoFactor($this->userForEmployee('HR-2026-0002'));
+        $user = $this->enableTwoFactor($this->userForEmployee('HR-OFFICER-2026-0001'));
         $recoveryCode = $user->recoveryCodes()[0];
 
         $this->post('/login', [
-            'employee_id' => 'HR-2026-0002',
+            'employee_id' => 'HR-OFFICER-2026-0001',
             'password' => 'ChangeMe123!',
         ])->assertRedirect(route('two-factor.login'))
             ->assertSessionHas('login.id', $user->id);
@@ -72,7 +72,7 @@ class TwoFactorAuthenticationTest extends TestCase
 
     public function test_invalid_challenge_does_not_authenticate_user(): void
     {
-        $user = $this->enableTwoFactor($this->userForEmployee('HR-2026-0002'));
+        $user = $this->enableTwoFactor($this->userForEmployee('HR-OFFICER-2026-0001'));
 
         $this->withSession(['login.id' => $user->id])->post(route('two-factor.login.store'), [
             'code' => '000000',
@@ -83,10 +83,10 @@ class TwoFactorAuthenticationTest extends TestCase
 
     public function test_saved_two_factor_identity_still_requires_password_and_totp_after_session_loss(): void
     {
-        $user = $this->enableTwoFactor($this->userForEmployee('HR-2026-0002'));
+        $user = $this->enableTwoFactor($this->userForEmployee('HR-OFFICER-2026-0001'));
 
         $this->post('/login', [
-            'employee_id' => 'HR-2026-0002',
+            'employee_id' => 'HR-OFFICER-2026-0001',
             'password' => 'ChangeMe123!',
             'remember' => '1',
         ])->assertRedirect(route('two-factor.login'));
@@ -98,7 +98,7 @@ class TwoFactorAuthenticationTest extends TestCase
         $recallerName = Auth::guard('web')->getRecallerName();
         $rememberedEmployee = $login->getCookie('hrms_remembered_employee')?->getValue();
         $login
-            ->assertCookie('hrms_remembered_employee', 'HR-2026-0002')
+            ->assertCookie('hrms_remembered_employee', 'HR-OFFICER-2026-0001')
             ->assertCookieExpired($recallerName);
         $this->flushSession();
         Auth::forgetGuards();
@@ -119,11 +119,11 @@ class TwoFactorAuthenticationTest extends TestCase
         $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
             ->get(route('login'))
             ->assertOk()
-            ->assertSee('value="HR-2026-0002"', false);
+            ->assertSee('value="HR-OFFICER-2026-0001"', false);
 
         $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
             ->post(route('login'), [
-                'employee_id' => 'HR-2026-0002',
+                'employee_id' => 'HR-OFFICER-2026-0001',
                 'password' => 'ChangeMe123!',
                 'remember' => '1',
             ])->assertRedirect(route('two-factor.login'))
@@ -143,7 +143,7 @@ class TwoFactorAuthenticationTest extends TestCase
 
     public function test_pending_enrollment_using_legacy_string_encryption_is_repaired(): void
     {
-        $user = $this->userForEmployee('HR-2026-0002');
+        $user = $this->userForEmployee('HR-OFFICER-2026-0001');
         $secret = app(Google2FA::class)->generateSecretKey(32);
         $recoveryCodes = json_encode(['legacy-code-one', 'legacy-code-two'], JSON_THROW_ON_ERROR);
 
@@ -163,7 +163,7 @@ class TwoFactorAuthenticationTest extends TestCase
 
     public function test_unreadable_unconfirmed_enrollment_is_safely_reset_instead_of_crashing_settings(): void
     {
-        $user = $this->userForEmployee('HR-2026-0002');
+        $user = $this->userForEmployee('HR-OFFICER-2026-0001');
         $user->forceFill([
             'two_factor_secret' => 'belongs-to-another-application-key',
             'two_factor_recovery_codes' => 'unreadable-recovery-codes',
@@ -181,7 +181,7 @@ class TwoFactorAuthenticationTest extends TestCase
 
     public function test_unreadable_confirmed_enrollment_fails_closed_without_a_server_error(): void
     {
-        $user = $this->userForEmployee('HR-2026-0002');
+        $user = $this->userForEmployee('HR-OFFICER-2026-0001');
         $user->forceFill([
             'two_factor_secret' => 'unreadable-confirmed-secret',
             'two_factor_recovery_codes' => 'unreadable-confirmed-recovery-codes',
@@ -189,7 +189,7 @@ class TwoFactorAuthenticationTest extends TestCase
         ])->save();
 
         $this->post('/login', [
-            'employee_id' => 'HR-2026-0002',
+            'employee_id' => 'HR-OFFICER-2026-0001',
             'password' => 'ChangeMe123!',
         ])->assertRedirect(route('two-factor.login'));
 
@@ -201,7 +201,7 @@ class TwoFactorAuthenticationTest extends TestCase
     public function test_privileged_role_is_redirected_to_enrollment_until_protected(): void
     {
         config(['security.two_factor.required_roles' => ['hr-manager']]);
-        $manager = $this->userForEmployee('HR-2026-0001');
+        $manager = $this->userForEmployee('HR-MGR-2026-0001');
 
         $this->actingAs($manager)->get('/dashboard')
             ->assertRedirect(route('settings.edit').'#two-factor')
@@ -212,9 +212,9 @@ class TwoFactorAuthenticationTest extends TestCase
 
     public function test_api_token_requires_second_factor_when_account_has_it_enabled(): void
     {
-        $user = $this->enableTwoFactor($this->userForEmployee('HR-2026-0002'));
+        $user = $this->enableTwoFactor($this->userForEmployee('HR-OFFICER-2026-0001'));
         $payload = [
-            'employee_id' => 'HR-2026-0002',
+            'employee_id' => 'HR-OFFICER-2026-0001',
             'password' => 'ChangeMe123!',
             'device_name' => '2FA test client',
         ];
@@ -233,7 +233,7 @@ class TwoFactorAuthenticationTest extends TestCase
     public function test_existing_privileged_api_access_is_blocked_until_two_factor_enrollment(): void
     {
         config(['security.two_factor.required_roles' => ['hr-manager']]);
-        $manager = $this->userForEmployee('HR-2026-0001');
+        $manager = $this->userForEmployee('HR-MGR-2026-0001');
         Sanctum::actingAs($manager, ['workforce:read']);
 
         $this->getJson('/api/v1/employees')
@@ -243,8 +243,8 @@ class TwoFactorAuthenticationTest extends TestCase
 
     public function test_system_administrator_can_reset_another_users_two_factor_after_identity_verification(): void
     {
-        $administrator = $this->userForEmployee('SYS-2026-0001');
-        $target = $this->enableTwoFactor($this->userForEmployee('HR-2026-0001'));
+        $administrator = $this->userForEmployee('SYS-ADMIN-2026-0001');
+        $target = $this->enableTwoFactor($this->userForEmployee('HR-MGR-2026-0001'));
         $target->createToken('existing device');
 
         $this->actingAs($administrator)->post(route('employees.two-factor.reset', $target->employee), [

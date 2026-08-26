@@ -38,7 +38,7 @@ class AiScheduleRecommendationLifecycleTest extends TestCase
         $this->seed();
         config(['ai_workforce_scheduling.enabled' => true]);
         $this->manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
-        $this->employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
+        $this->employee = Employee::query()->where('employee_number', 'HR-OFFICER-2026-0001')->firstOrFail();
         $this->department = Department::query()->where('code', 'HR')->firstOrFail();
         $this->position = Position::query()->where('code', 'HR-OFFICER')->firstOrFail();
         $this->shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();

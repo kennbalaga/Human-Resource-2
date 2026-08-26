@@ -118,8 +118,8 @@ class EmployeeController extends Controller
 
         $employee = DB::transaction(function () use ($data, $temporaryPassword, $autoGenerateEmployeeNumber): Employee {
             if ($autoGenerateEmployeeNumber) {
-                $data['employee_number'] = $this->employeeNumberGenerator->generateForDepartment(
-                    (int) $data['department_id'],
+                $data['employee_number'] = $this->employeeNumberGenerator->generateForPosition(
+                    (int) $data['position_id'],
                     (string) $data['hire_date'],
                 );
             }

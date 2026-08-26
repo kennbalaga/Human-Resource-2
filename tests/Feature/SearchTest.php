@@ -22,7 +22,7 @@ class SearchTest extends TestCase
         $this->seed();
         $user = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
         $department = Department::query()->where('code', 'HR')->firstOrFail();
-        $employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
+        $employee = Employee::query()->where('employee_number', 'HR-OFFICER-2026-0001')->firstOrFail();
 
         // "HR" matches the shared hrms.local mail domain, so every seeded account
         // qualifies and the results list is capped before this employee appears.

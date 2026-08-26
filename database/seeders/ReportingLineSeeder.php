@@ -33,7 +33,12 @@ class ReportingLineSeeder extends Seeder
      */
     private const WORKFORCE_STATUSES = ['active', 'on_leave'];
 
-    private const ROOT_EMPLOYEE_NUMBER = 'SYS-2026-0001';
+    /**
+     * Found by position rather than by employee ID: IDs are derived from the
+     * position and hire year, so the sequence on the end of the founding
+     * administrator's ID depends on how the install was seeded.
+     */
+    private const ROOT_POSITION_CODE = 'SYS-ADMIN';
 
     public function run(): void
     {
@@ -43,7 +48,10 @@ class ReportingLineSeeder extends Seeder
                 ->whereIn('employment_status', self::WORKFORCE_STATUSES)
                 ->get();
 
-            $root = $workforce->firstWhere('employee_number', self::ROOT_EMPLOYEE_NUMBER);
+            $root = $workforce
+                ->filter(fn (Employee $employee): bool => $employee->position?->code === self::ROOT_POSITION_CODE)
+                ->sortBy('employee_number')
+                ->first();
 
             if ($root === null) {
                 return;

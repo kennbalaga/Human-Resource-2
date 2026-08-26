@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Organization\EmployeeNumberGenerator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
@@ -21,9 +22,14 @@ class InitialUserSeeder extends Seeder
             throw new RuntimeException('INITIAL_USER_PASSWORD must contain at least 12 characters.');
         }
 
+        // Each of these four is the founding account for its position, so the
+        // employee ID is simply the first of that position's intake. It is
+        // composed rather than written out so the year inside the ID always
+        // matches the hire date recorded below.
+        $hireDate = now();
+
         $accounts = [
             [
-                'employee_number' => 'SYS-2026-0001',
                 'first_name' => 'System',
                 'last_name' => 'Administrator',
                 'email' => 'admin@hrms.local',
@@ -32,7 +38,6 @@ class InitialUserSeeder extends Seeder
                 'position' => 'SYS-ADMIN',
             ],
             [
-                'employee_number' => 'HR-2026-0001',
                 'first_name' => 'HR',
                 'last_name' => 'Manager',
                 'email' => 'hr.manager@hrms.local',
@@ -41,7 +46,6 @@ class InitialUserSeeder extends Seeder
                 'position' => 'HR-MGR',
             ],
             [
-                'employee_number' => 'NUR-2026-0001',
                 'first_name' => 'Nursing',
                 'last_name' => 'Department Head',
                 'email' => 'nursing.head@hrms.local',
@@ -50,14 +54,13 @@ class InitialUserSeeder extends Seeder
                 'position' => 'NUR-HEAD-DERM',
             ],
             [
-                'employee_number' => 'HR-2026-0002',
                 'first_name' => 'HR',
                 'last_name' => 'Employee',
                 'email' => 'employee@hrms.local',
                 'role' => 'employee',
                 'department' => 'HR',
                 'position' => 'HR-OFFICER',
-                'supervisor' => 'HR-2026-0001',
+                'supervisor' => 'hr.manager@hrms.local',
             ],
         ];
 
@@ -77,23 +80,32 @@ class InitialUserSeeder extends Seeder
 
             $department = Department::query()->where('code', $account['department'])->firstOrFail();
             $position = Position::query()->where('code', $account['position'])->firstOrFail();
+            // Supervisors are named by work email rather than employee ID:
+            // IDs are derived from the position and hire year, so the exact
+            // sequence on the end of one depends on how the install was seeded.
             $supervisorId = isset($account['supervisor'])
-                ? Employee::query()->where('employee_number', $account['supervisor'])->value('id')
+                ? Employee::query()->whereHas('user', fn ($query) => $query->where('email', $account['supervisor']))->value('id')
                 : null;
 
-            Employee::query()->updateOrCreate(
-                ['employee_number' => $account['employee_number']],
-                [
-                    'user_id' => $user->id,
-                    'department_id' => $department->id,
-                    'position_id' => $position->id,
-                    'supervisor_id' => $supervisorId,
-                    'first_name' => $account['first_name'],
-                    'last_name' => $account['last_name'],
-                    'employment_status' => 'active',
-                    'hire_date' => now()->toDateString(),
-                ],
-            );
+            // Keyed on the user, not the employee ID: an employee ID is a
+            // permanent identity that the position-based standardisation
+            // migration may have rewritten, so re-seeding an existing install
+            // must update that row rather than mint a second one.
+            $employee = Employee::query()->firstOrNew(['user_id' => $user->id]);
+
+            if (! $employee->exists) {
+                $employee->employee_number = EmployeeNumberGenerator::compose($account['position'], $hireDate->year, 1);
+            }
+
+            $employee->fill([
+                'department_id' => $department->id,
+                'position_id' => $position->id,
+                'supervisor_id' => $supervisorId,
+                'first_name' => $account['first_name'],
+                'last_name' => $account['last_name'],
+                'employment_status' => 'active',
+                'hire_date' => $hireDate->toDateString(),
+            ])->save();
         }
     }
 }

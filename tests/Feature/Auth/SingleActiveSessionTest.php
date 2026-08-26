@@ -22,7 +22,7 @@ class SingleActiveSessionTest extends TestCase
     use RefreshDatabase;
 
     private const CREDENTIALS = [
-        'employee_id' => 'HR-2026-0001',
+        'employee_id' => 'HR-MGR-2026-0001',
         'password' => 'ChangeMe123!',
     ];
 
@@ -40,7 +40,7 @@ class SingleActiveSessionTest extends TestCase
         $token = session(ActiveDeviceSessionService::SESSION_KEY);
 
         $this->assertNotEmpty($token);
-        $this->assertSame($token, $this->userForEmployee('HR-2026-0001')->active_session_token);
+        $this->assertSame($token, $this->userForEmployee('HR-MGR-2026-0001')->active_session_token);
     }
 
     public function test_signing_in_while_the_account_is_open_elsewhere_is_turned_away(): void
@@ -65,16 +65,16 @@ class SingleActiveSessionTest extends TestCase
 
         // Nothing is left holding the account, which is what signs the other
         // device out the next time it asks the server for anything.
-        $this->assertNull($this->userForEmployee('HR-2026-0001')->active_session_token);
+        $this->assertNull($this->userForEmployee('HR-MGR-2026-0001')->active_session_token);
     }
 
     public function test_completing_the_two_factor_challenge_is_turned_away_the_same_way(): void
     {
-        $user = $this->enableTwoFactor($this->userForEmployee('HR-2026-0002'));
+        $user = $this->enableTwoFactor($this->userForEmployee('HR-OFFICER-2026-0001'));
         $recoveryCode = $user->recoveryCodes()[0];
 
         $this->post('/login', [
-            'employee_id' => 'HR-2026-0002',
+            'employee_id' => 'HR-OFFICER-2026-0001',
             'password' => 'ChangeMe123!',
         ])->assertRedirect(route('two-factor.login'));
 
@@ -169,7 +169,7 @@ class SingleActiveSessionTest extends TestCase
     {
         // What every session open at deploy time looks like: signed in before
         // the column existed, and no reason to be thrown out for it.
-        $user = $this->userForEmployee('HR-2026-0001');
+        $user = $this->userForEmployee('HR-MGR-2026-0001');
         $user->forceFill(['active_session_token' => null])->save();
 
         $this->actingAs($user)
@@ -184,7 +184,7 @@ class SingleActiveSessionTest extends TestCase
         $this->post('/logout')->assertRedirect('/login');
 
         $this->assertGuest();
-        $this->assertNull($this->userForEmployee('HR-2026-0001')->active_session_token);
+        $this->assertNull($this->userForEmployee('HR-MGR-2026-0001')->active_session_token);
     }
 
     public function test_a_device_whose_hold_ended_leaves_a_newer_claim_alone(): void
@@ -195,7 +195,7 @@ class SingleActiveSessionTest extends TestCase
         $this->post('/logout')->assertRedirect('/login');
 
         $this->assertGuest();
-        $this->assertSame($newerDevice, $this->userForEmployee('HR-2026-0001')->active_session_token);
+        $this->assertSame($newerDevice, $this->userForEmployee('HR-MGR-2026-0001')->active_session_token);
     }
 
     /**
@@ -206,7 +206,7 @@ class SingleActiveSessionTest extends TestCase
     {
         $token = Str::random(64);
 
-        $this->userForEmployee('HR-2026-0001')
+        $this->userForEmployee('HR-MGR-2026-0001')
             ->forceFill(['active_session_token' => $token])
             ->save();
 

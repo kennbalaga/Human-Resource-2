@@ -27,7 +27,7 @@ class ScheduleServiceTest extends TestCase
 
         $this->seed();
         $this->service = app(ScheduleService::class);
-        $this->employee = Employee::query()->where('employee_number', 'HR-2026-0002')->firstOrFail();
+        $this->employee = Employee::query()->where('employee_number', 'HR-OFFICER-2026-0001')->firstOrFail();
         $this->manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
     }
 

@@ -23,15 +23,15 @@ class EmployeeNumberGenerationTest extends TestCase
         Notification::fake();
     }
 
-    public function test_new_employee_id_is_generated_from_the_department_and_ignores_tampered_input(): void
+    public function test_new_employee_id_is_generated_from_the_position_and_ignores_tampered_input(): void
     {
         $manager = $this->manager();
-        $department = Department::query()->where('code', 'HR')->firstOrFail();
-        $position = Position::query()->where('department_id', $department->id)->firstOrFail();
+        $position = Position::query()->where('code', 'HR-OFFICER')->firstOrFail();
+        $department = $position->department;
         // Tracks the generator's next-sequence behaviour rather than the exact
-        // size of the seeded HR roster, the same way highestSequenceFor()
-        // does below for the department-independence test.
-        $expectedSequence = $this->highestHrSequence() + 1;
+        // size of the seeded HR Officer roster, the same way it does below for
+        // the position-independence test.
+        $expectedSequence = $this->highestSequenceFor($position->code) + 1;
 
         $this->actingAs($manager)->get(route('employees.create'))
             ->assertOk()
@@ -47,57 +47,69 @@ class EmployeeNumberGenerationTest extends TestCase
         $employee = Employee::query()->whereHas('user', fn ($query) => $query->where('email', 'generated.hr@hrms.local'))->firstOrFail();
 
         $response->assertRedirect(route('employees.show', $employee));
-        $this->assertSame($this->hrNumber($expectedSequence), $employee->employee_number);
+        $this->assertSame($this->employeeNumber($position->code, $expectedSequence), $employee->employee_number);
         Notification::assertSentTo($employee->user, ResetPassword::class);
     }
 
-    public function test_department_sequences_are_independent_and_never_reuse_historical_numbers(): void
+    public function test_position_sequences_are_independent_and_never_reuse_historical_numbers(): void
     {
-        // Internal Medicine (formerly the standalone Nursing department,
-        // dissolved by the hospital restructure) rather than a department
-        // with a small sample roster, so the retired-and-deleted employee
-        // below is unambiguously the highest sequence in play.
-        $department = Department::query()->where('code', 'IM')->firstOrFail();
-        $position = Position::query()->where('department_id', $department->id)->firstOrFail();
+        // Staff Nurse in Internal Medicine: one of two nursing positions in the
+        // same department, so a sequence of its own here is what shows the
+        // counter follows the position rather than the department it sits in.
+        $position = Position::query()->where('code', 'NUR-STAFF-IM')->firstOrFail();
+        $department = $position->department;
+        $headNurse = Position::query()->where('code', 'NUR-HEAD-IM')->firstOrFail();
 
-        // Sit the retired number above every seeded employee in this
-        // department so the assertion tracks the generator's behaviour
-        // rather than the size of the seeded roster.
-        $retiredSequence = $this->highestSequenceFor($department->code) + 5;
+        // Sit the retired number above every seeded employee in this position
+        // so the assertion tracks the generator's behaviour rather than the
+        // size of the seeded roster.
+        $retiredSequence = $this->highestSequenceFor($position->code) + 5;
         Employee::query()->create([
             'department_id' => $department->id,
             'position_id' => $position->id,
-            'employee_number' => $this->employeeNumber($department->code, $retiredSequence),
+            'employee_number' => $this->employeeNumber($position->code, $retiredSequence),
             'first_name' => 'Historical',
             'last_name' => 'Employee',
             'employment_status' => 'terminated',
         ])->delete();
+
+        $headNurseSequence = $this->highestSequenceFor($headNurse->code) + 1;
 
         $this->actingAs($this->manager())->post(route('employees.store'), $this->employeePayload(
             $department,
             $position,
             'generated.nurse@hrms.local',
         ))->assertRedirect();
+        $this->actingAs($this->manager())->post(route('employees.store'), $this->employeePayload(
+            $department,
+            $headNurse,
+            'generated.head.nurse@hrms.local',
+        ))->assertRedirect();
 
         $this->assertDatabaseHas('employees', [
-            'employee_number' => $this->employeeNumber($department->code, $retiredSequence + 1),
-            'department_id' => $department->id,
+            'employee_number' => $this->employeeNumber($position->code, $retiredSequence + 1),
+            'position_id' => $position->id,
+        ]);
+        // The Head Nurse alongside it carries on from its own count, untouched
+        // by the inflated Staff Nurse sequence.
+        $this->assertDatabaseHas('employees', [
+            'employee_number' => $this->employeeNumber($headNurse->code, $headNurseSequence),
+            'position_id' => $headNurse->id,
         ]);
     }
 
     public function test_employee_id_uses_the_employee_hire_year(): void
     {
-        $department = Department::query()->where('code', 'HR')->firstOrFail();
-        $position = Position::query()->where('department_id', $department->id)->firstOrFail();
+        $position = Position::query()->where('code', 'HR-OFFICER')->firstOrFail();
 
         $this->actingAs($this->manager())->post(route('employees.store'), array_merge(
-            $this->employeePayload($department, $position, 'hired.2025@hrms.local'),
+            $this->employeePayload($position->department, $position, 'hired.2025@hrms.local'),
             ['hire_date' => '2025-04-15'],
         ))->assertRedirect();
 
         $this->assertDatabaseHas('employees', [
-            'employee_number' => 'HR-2025-0001',
-            'department_id' => $department->id,
+            'employee_number' => 'HR-OFFICER-2025-0001',
+            'position_id' => $position->id,
         ]);
     }
 
@@ -158,7 +170,7 @@ class EmployeeNumberGenerationTest extends TestCase
 
     public function test_existing_employee_id_is_immutable_even_when_the_request_is_tampered(): void
     {
-        $employee = Employee::query()->with('user')->where('employee_number', 'HR-2026-0002')->firstOrFail();
+        $employee = Employee::query()->with('user')->where('employee_number', 'HR-OFFICER-2026-0001')->firstOrFail();
 
         $this->actingAs($this->manager())->put(route('employees.update', $employee), [
             'employee_number' => 'TAMPERED-0001',
@@ -171,41 +183,26 @@ class EmployeeNumberGenerationTest extends TestCase
             'hire_date' => $employee->hire_date?->toDateString(),
         ])->assertRedirect(route('employees.show', $employee));
 
-        $this->assertSame('HR-2026-0002', $employee->fresh()->employee_number);
+        $this->assertSame('HR-OFFICER-2026-0001', $employee->fresh()->employee_number);
         $this->actingAs($this->manager())->get(route('employees.edit', $employee))
             ->assertOk()
-            ->assertSee('value="HR-2026-0002" readonly', false)
+            ->assertSee('value="HR-OFFICER-2026-0001" readonly', false)
             ->assertDontSee('name="employee_number"', false);
     }
 
-    private function highestSequenceFor(string $departmentCode): int
+    private function highestSequenceFor(string $positionCode): int
     {
         return (int) Employee::query()
             ->withTrashed()
-            ->where('employee_number', 'like', $departmentCode.'-2026-%')
+            ->where('employee_number', 'like', $positionCode.'-2026-%')
             ->pluck('employee_number')
             ->map(fn (string $number): int => (int) substr($number, -4))
             ->max();
     }
 
-    private function employeeNumber(string $departmentCode, int $sequence): string
+    private function employeeNumber(string $positionCode, int $sequence): string
     {
-        return sprintf('%s-2026-%04d', $departmentCode, $sequence);
-    }
-
-    private function highestHrSequence(): int
-    {
-        return (int) Employee::query()
-            ->withTrashed()
-            ->where('employee_number', 'like', 'HR-2026-%')
-            ->pluck('employee_number')
-            ->map(fn (string $number): int => (int) substr($number, -4))
-            ->max();
-    }
-
-    private function hrNumber(int $sequence): string
-    {
-        return sprintf('HR-2026-%04d', $sequence);
+        return sprintf('%s-2026-%04d', $positionCode, $sequence);
     }
 
     /** @return array<string, mixed> */
