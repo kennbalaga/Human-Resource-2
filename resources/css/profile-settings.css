@@ -51,9 +51,19 @@
 .profile-empty-state p { margin:0; color:var(--hr-muted); font-size: var(--fs-sm); }
 .settings-layout { display:grid; grid-template-columns:15rem minmax(0,1fr); align-items:start; gap:1.25rem; }
 .settings-section-nav { position:sticky; top:calc(var(--topbar-height) + 1rem); display:grid; padding:.65rem; gap:.25rem; }
-.settings-section-nav a { display:flex; align-items:center; gap:.7rem; padding:.75rem; border-radius:var(--r-md); color:var(--hr-text); text-decoration:none; }
+.settings-section-nav a { position:relative; display:flex; align-items:center; gap:.7rem; padding:.75rem; border-radius:var(--r-md); color:var(--hr-text); text-decoration:none; transition:color .16s ease,background-color .16s ease; }
 .settings-section-nav a:hover { color:var(--hr-primary); background:var(--hr-primary-soft); }
-.settings-section-nav svg { width:1.05rem; }
+.settings-section-nav a:focus-visible { color:var(--hr-primary); background:var(--hr-primary-soft); outline:3px solid rgba(23,107,67,.2); outline-offset:2px; }
+/* The section you are reading. Without it a nav click on a page already
+   scrolled near the target looks like nothing happened. settings-nav.js keeps
+   it in sync with the scroll position. */
+.settings-section-nav a[aria-current='true'] { color:var(--hr-primary); background:var(--hr-primary-soft); }
+.settings-section-nav a[aria-current='true'] strong { font-weight:800; }
+.settings-section-nav a[aria-current='true'] small { color:var(--hr-primary); opacity:.8; }
+.settings-section-nav a[aria-current='true']::before { position:absolute; top:.6rem; bottom:.6rem; left:0; width:3px; border-radius:0 var(--r-pill) var(--r-pill) 0; background:var(--hr-primary); content:''; }
+.settings-section-nav svg { width:1.05rem; flex:none; }
+.settings-section-nav span { min-width:0; }
+.settings-section-nav strong,.settings-section-nav small { overflow-wrap:anywhere; }
 .settings-section-nav span { display:grid; }
 .settings-section-nav strong { font-size: var(--fs-xs); }
 .settings-section-nav small { color:var(--hr-subtle); font-size: var(--fs-2xs); }

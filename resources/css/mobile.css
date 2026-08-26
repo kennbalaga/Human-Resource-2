@@ -653,6 +653,18 @@
         display: none;
     }
 
+    /* The desktop marker is a bar down the left edge of a full-width row. On a
+       pill chip that reads as a stray line, so the chip fills instead. */
+    .settings-section-nav a[aria-current='true']::before {
+        display: none;
+    }
+
+    .settings-section-nav a[aria-current='true'] {
+        border-color: var(--hr-primary);
+        color: var(--hr-primary);
+        background: var(--hr-primary-soft);
+    }
+
     /* A group heading inside a horizontal rail becomes a divider. */
     .settings-nav-group {
         position: relative;
