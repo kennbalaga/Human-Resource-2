@@ -214,10 +214,16 @@ input {
 
 .sidebar-close {
     display: none;
+    /* Full tap target: this is the only way out of the drawer on a phone, and
+       at 6px of padding it measured 32x32 against a 44px minimum. */
+    width: var(--tap-min);
+    height: var(--tap-min);
     padding: 6px;
     border: 0;
+    border-radius: var(--r-md);
     color: rgba(255, 255, 255, 0.8);
     background: transparent;
+    place-items: center;
 }
 
 .sidebar-nav {
