@@ -39,7 +39,7 @@ class TwoFactorChallengeController extends Controller
         $user = User::query()->with('employee')->find($request->session()->get('login.id'));
 
         if ($user === null || ! $user->is_active || $user->employee?->employment_status !== 'active') {
-            $request->session()->forget(['login.id', 'login.remember']);
+            $request->session()->forget(['login.id', 'login.remember', 'login.identifier']);
 
             throw ValidationException::withMessages([
                 'code' => ['This account is not available for sign in.'],
@@ -63,8 +63,9 @@ class TwoFactorChallengeController extends Controller
         }
 
         $remember = (bool) $request->session()->pull('login.remember', false);
+        $identifier = $request->session()->pull('login.identifier');
         $request->session()->forget('login.id');
-        $rememberedLogin->login($user, $remember);
+        $rememberedLogin->login($user, $remember, is_string($identifier) ? $identifier : null);
         $request->session()->regenerate();
 
         $user->forceFill(['last_login_at' => now()])->save();

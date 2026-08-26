@@ -31,11 +31,20 @@ class LoginRequest extends FormRequest
         ];
     }
 
+    /**
+     * What was actually typed into the single sign-in field, so that the
+     * form can offer the same thing back next time instead of guessing.
+     */
+    public function identifier(): string
+    {
+        return trim((string) $this->input('employee_id'));
+    }
+
     public function authenticate(): User
     {
         $this->ensureIsNotRateLimited();
 
-        $identifier = trim((string) $this->input('employee_id'));
+        $identifier = $this->identifier();
         $employeeNumber = Str::upper($identifier);
         $email = Str::lower($identifier);
         $employee = Employee::query()
@@ -102,7 +111,7 @@ class LoginRequest extends FormRequest
             'event' => $event,
             'employee_id_hash' => hash_hmac(
                 'sha256',
-                Str::upper(trim((string) $this->input('employee_id'))),
+                Str::upper($this->identifier()),
                 (string) config('app.key', 'missing-app-key'),
             ),
             'ip_address' => $this->ip(),

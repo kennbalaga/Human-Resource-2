@@ -141,6 +141,39 @@ class AuthenticationTest extends TestCase
             ->assertDontSee('value="ChangeMe123!"', false);
     }
 
+    public function test_remember_me_offers_back_the_work_email_when_that_is_what_was_typed(): void
+    {
+        $login = $this->post('/login', [
+            'employee_id' => 'HR.Manager@HRMS.local',
+            'password' => 'ChangeMe123!',
+            'remember' => '1',
+        ]);
+
+        $login->assertCookie('hrms_remembered_employee', 'hr.manager@hrms.local');
+        $remembered = $login->getCookie('hrms_remembered_employee')?->getValue();
+
+        $this->post('/logout')->assertRedirect('/login');
+        Auth::forgetGuards();
+
+        $this->withCookie('hrms_remembered_employee', (string) $remembered)
+            ->get('/login')
+            ->assertOk()
+            ->assertSee('value="hr.manager@hrms.local"', false)
+            ->assertDontSee('value="HR-MGR-2026-0001"', false)
+            ->assertDontSee('value="ChangeMe123!"', false);
+    }
+
+    public function test_remember_me_replaces_the_saved_identifier_with_the_one_typed_last(): void
+    {
+        $this->withCookie('hrms_remembered_employee', 'hr.manager@hrms.local')
+            ->post('/login', [
+                'employee_id' => 'HR-MGR-2026-0001',
+                'password' => 'ChangeMe123!',
+                'remember' => '1',
+            ])
+            ->assertCookie('hrms_remembered_employee', 'HR-MGR-2026-0001');
+    }
+
     public function test_signing_in_without_remember_me_removes_a_previously_saved_employee_id(): void
     {
         $this->withCookie('hrms_remembered_employee', 'HR-MGR-2026-0001')
