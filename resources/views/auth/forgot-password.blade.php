@@ -62,8 +62,8 @@
             </main>
 
             <footer class="footer-links">
-                <span class="copyright">Copyright © 2026 Dr. Jose N. Rodriguez MHS.</span>
-                <a href="#" class="privacy">Privacy Policy</a>
+                <span class="copyright">&copy; {{ now()->year }} Dr. Jose N. Rodriguez MHS. All rights reserved.</span>
+                <a href="{{ route('privacy-policy') }}" class="privacy">Privacy Policy</a>
             </footer>
         </div>
 
