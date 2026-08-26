@@ -148,6 +148,12 @@
     overflow: hidden;
 }
 
+.organization-table-panel[aria-busy='true'] {
+    opacity: .6;
+    pointer-events: none;
+    transition: opacity .15s ease;
+}
+
 .organization-table-panel .panel-header {
     padding: 1rem 1.25rem;
 }

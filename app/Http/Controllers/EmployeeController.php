@@ -53,9 +53,17 @@ class EmployeeController extends Controller
             ->when($filters['status'] ?? null, fn (Builder $builder, string $status) => $builder->where('employment_status', $status));
 
         $canManage = $this->canWrite($request);
+        $employees = $query->orderBy('last_name')->orderBy('first_name')->paginate(15)->withQueryString();
+
+        if ($request->ajax()) {
+            return view('employees._table', [
+                'employees' => $employees,
+                'canManage' => $canManage,
+            ]);
+        }
 
         return view('employees.index', [
-            'employees' => $query->orderBy('last_name')->orderBy('first_name')->paginate(15)->withQueryString(),
+            'employees' => $employees,
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'filters' => $filters,
             'canManage' => $canManage,
