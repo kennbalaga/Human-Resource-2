@@ -83,7 +83,6 @@
         // Only the entrance scanner needs it. Badges are drawn by the server,
         // so an employee's own page carries no QR script at all.
         request()->routeIs('attendance.index') ? 'resources/js/attendance-qr.js' : null,
-        request()->routeIs('organization.chart') ? 'resources/js/org-chart.js' : null,
     ])))
     @stack('head')
 </head>

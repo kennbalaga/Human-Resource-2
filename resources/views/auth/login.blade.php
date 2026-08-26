@@ -64,7 +64,7 @@
                             name="employee_id"
                             value="{{ old('employee_id', $rememberedEmployeeId) }}"
                             autocomplete="username"
-                            placeholder="ABC-2026-0001 or name@example.com"
+                            placeholder="name@example.com"
                             required
                             autofocus
                         >
@@ -102,7 +102,7 @@
             <div class="hero-content">
                 <h2>Empower your hospital workforce with confidence.</h2>
                 <p>Log in to your management portal to coordinate staff, ensure seamless coverage, and support your healthcare professionals.</p>
-                
+
                 <img src="{{ URL('images/doctors.png')}}" alt="CRM Dashboard Preview" class="hero-image">
             </div>
             <div class="bg-shape shape-1"></div>

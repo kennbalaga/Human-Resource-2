@@ -17,9 +17,6 @@ export default defineConfig({
                 // install on a fresh checkout, most likely — takes every button
                 // in the app down with it instead of one panel.
                 'resources/js/attendance-qr.js',
-                // Loaded only on the org chart page, so it stays out of the
-                // shared bundle every other screen has to download.
-                'resources/js/org-chart.js',
                 'resources/js/pwa.js',
             ],
             refresh: true,
