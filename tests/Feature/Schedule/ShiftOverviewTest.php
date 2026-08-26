@@ -220,6 +220,96 @@ class ShiftOverviewTest extends TestCase
         );
     }
 
+    public function test_a_shift_that_has_not_opened_yet_holds_its_absences_neutral(): void
+    {
+        $this->freezeAt('05:00');
+        $this->roster($this->firstEmployee(), 'MORNING-0600');
+
+        $pool = $this->poolFor('Morning Shift');
+
+        // The head count is unchanged -- only the reading of it is. Nobody rostered
+        // onto a shift that starts in an hour has missed anything.
+        $this->assertSame(1, $pool['missing']);
+        $this->assertSame('upcoming', $pool['phase']);
+        $this->assertTrue($pool['awaiting']);
+        $this->assertSame('Starts in 1h', $pool['phase_label']);
+        $this->assertSame(0.0, $pool['elapsed']);
+    }
+
+    public function test_a_shift_inside_its_grace_window_is_still_filling(): void
+    {
+        $this->freezeAt('06:10');
+        $this->roster($this->firstEmployee(), 'MORNING-0600');
+
+        $pool = $this->poolFor('Morning Shift');
+
+        $this->assertSame('starting', $pool['phase']);
+        $this->assertSame('Just started', $pool['phase_label']);
+        $this->assertTrue($pool['awaiting']);
+        $this->assertGreaterThan(0, $pool['elapsed']);
+    }
+
+    public function test_an_absence_reads_as_missing_once_the_grace_window_closes(): void
+    {
+        $this->freezeAt('07:00');
+        $this->roster($this->firstEmployee(), 'MORNING-0600');
+
+        $pool = $this->poolFor('Morning Shift');
+
+        $this->assertSame(1, $pool['missing']);
+        $this->assertSame('active', $pool['phase']);
+        $this->assertSame('In progress', $pool['phase_label']);
+        $this->assertFalse($pool['awaiting']);
+    }
+
+    public function test_a_closed_shift_reports_as_ended(): void
+    {
+        $this->freezeAt('16:00');
+
+        $pool = $this->poolFor('Morning Shift');
+
+        $this->assertSame('ended', $pool['phase']);
+        $this->assertSame('Ended', $pool['phase_label']);
+        $this->assertFalse($pool['awaiting']);
+        $this->assertSame(1.0, $pool['elapsed']);
+    }
+
+    public function test_an_overnight_pool_is_measured_against_the_following_morning(): void
+    {
+        // 11 PM sits inside the night shift, not after it -- the window has to run
+        // past midnight rather than wrapping back on itself.
+        $this->freezeAt('23:00');
+
+        $pool = $this->poolFor('Night Shift');
+
+        $this->assertTrue($pool['crosses_midnight']);
+        $this->assertSame('active', $pool['phase']);
+        $this->assertSame('10:00 PM – 6:00 AM', $pool['span_label']);
+        $this->assertSame('8h', $pool['duration_label']);
+    }
+
+    public function test_the_panel_separates_staffed_pools_from_empty_ones(): void
+    {
+        $this->roster($this->firstEmployee(), 'MORNING-0600');
+
+        $response = $this->actingAs($this->manager())->get('/dashboard');
+
+        $response
+            ->assertOk()
+            // The staffed pool keeps its card; the rest drop to the compact strip.
+            ->assertSee('shift-pool-grid', false)
+            ->assertSee('shift-pool-quiet', false)
+            ->assertSee('Nobody rostered')
+            ->assertSee('View roster');
+    }
+
+    private function freezeAt(string $time): void
+    {
+        Carbon::setTestNow(
+            Carbon::parse($this->today()->toDateString().' '.$time, config('workforce.timezone')),
+        );
+    }
+
     /** @return array<string, mixed> */
     private function poolFor(string $name): array
     {

@@ -145,6 +145,72 @@ class OrganizationManagementTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'modal.mismatch@hrms.local']);
     }
 
+    public function test_manager_directories_carry_their_add_modals(): void
+    {
+        $this->seed();
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+
+        $this->actingAs($manager)->get(route('departments.index'))
+            ->assertOk()
+            ->assertSee('data-bs-target="#createDepartmentModal"', false)
+            ->assertSee('id="createDepartmentModal"', false)
+            // The option list the modal's form needs is rendered with the page.
+            ->assertSee('name="category"', false);
+
+        $this->actingAs($manager)->get(route('positions.index'))
+            ->assertOk()
+            ->assertSee('data-bs-target="#createPositionModal"', false)
+            ->assertSee('id="createPositionModal"', false)
+            ->assertSee('name="seniority_rank"', false);
+    }
+
+    public function test_a_rejected_department_create_reopens_the_modal_over_the_directory(): void
+    {
+        $this->seed();
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+        $existing = Department::query()->firstOrFail();
+
+        $this->actingAs($manager)
+            ->from(route('departments.index'))
+            ->followingRedirects()
+            ->post(route('departments.store'), [
+                '_form' => 'create-department',
+                'category' => 'administrative',
+                'code' => $existing->code,
+                'name' => 'Duplicate Code Unit',
+            ])
+            ->assertOk()
+            ->assertSee('data-open-on-error', false)
+            // The rejected input comes back inside the reopened modal.
+            ->assertSee('value="Duplicate Code Unit"', false);
+
+        $this->assertDatabaseMissing('departments', ['name' => 'Duplicate Code Unit']);
+    }
+
+    public function test_a_rejected_position_create_reopens_the_modal_over_the_directory(): void
+    {
+        $this->seed();
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+        $department = Department::query()->where('is_active', true)->firstOrFail();
+        $existing = Position::query()->firstOrFail();
+
+        $this->actingAs($manager)
+            ->from(route('positions.index'))
+            ->followingRedirects()
+            ->post(route('positions.store'), [
+                '_form' => 'create-position',
+                'department_id' => $department->id,
+                'code' => $existing->code,
+                'title' => 'Duplicate Code Role',
+                'seniority_rank' => 1,
+            ])
+            ->assertOk()
+            ->assertSee('data-open-on-error', false)
+            ->assertSee('value="Duplicate Code Role"', false);
+
+        $this->assertDatabaseMissing('positions', ['title' => 'Duplicate Code Role']);
+    }
+
     public function test_manager_can_open_position_edit_even_when_its_department_is_inactive(): void
     {
         $this->seed();

@@ -2195,9 +2195,71 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
     font-size: var(--fs-2xs);
 }
 
+/* The two halves of the caption used to sit side by side on one line and read as a
+   single run-on sentence. A separator makes the definition its own remark. */
+.shift-overview-note::before {
+    margin-right: 10px;
+    content: '·';
+}
+
+.shift-overview-asof {
+    margin-left: auto;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    white-space: nowrap;
+}
+
+/*
+ * Staffed pools left, the unstaffed strip right. A shift with people on it should
+ * never be squeezed by three that have nobody, and the strip has no business
+ * running the full width of the panel on its own.
+ */
+.shift-overview-body {
+    display: grid;
+    padding: 12px 20px 18px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+}
+
+.shift-overview-body.is-split {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+}
+
+.shift-legend-row {
+    display: flex;
+    align-items: baseline;
+    padding: 12px 20px 0;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+}
+
+.shift-legend {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    color: var(--hr-muted);
+    list-style: none;
+    gap: 4px 14px;
+    font-size: var(--fs-2xs);
+}
+
+.shift-legend li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.shift-legend-key {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--r-pill);
+    flex: 0 0 auto;
+}
+
 .shift-pool-grid {
     display: grid;
-    padding: 14px 20px 18px;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: 12px;
 }
@@ -2213,16 +2275,10 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
     gap: 10px;
 }
 
-/* A pool nobody was rostered onto is information, not an error -- it just recedes. */
-.shift-pool.is-unstaffed {
-    border-left-color: var(--hr-border);
-    background: var(--hr-surface-2);
-}
-
 .shift-pool-header {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
 }
 
 .shift-pool-header h3 {
@@ -2232,69 +2288,87 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
     font-weight: 650;
 }
 
-.shift-pool-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: var(--r-xs);
-    background: var(--shift-color);
-    flex: 0 0 auto;
-}
-
-.shift-pool.is-unstaffed .shift-pool-dot {
-    background: var(--hr-border-strong, var(--hr-surface-3));
-}
-
+/*
+ * The phase tag, not a status light. It only takes the shift's own colour once the
+ * shift is actually running -- an upcoming or finished pool stays grey, so a glance
+ * down the row separates the live shifts from the rest.
+ */
 .shift-pool-tag {
     margin-left: auto;
-    padding: 2px 7px;
+    padding: 2px 8px;
     border-radius: var(--r-pill);
     color: var(--hr-muted);
     background: var(--hr-sunken, var(--hr-surface-2));
     font-size: var(--fs-2xs);
     font-weight: 650;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+    white-space: nowrap;
 }
 
-.shift-pool-start {
+.shift-pool-tag.is-live {
+    color: var(--hr-text);
+    background: var(--hr-primary-soft);
+}
+
+.shift-pool-span {
     display: flex;
     margin: 0;
     align-items: baseline;
-    gap: 6px;
+    flex-wrap: wrap;
+    gap: 4px 8px;
 }
 
-.shift-pool-start span {
-    color: var(--hr-muted);
-    font-size: var(--fs-2xs);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-
-.shift-pool-start strong {
+.shift-pool-span strong {
     color: var(--hr-text);
-    font-size: var(--fs-md);
+    font-size: var(--fs-sm);
     font-weight: 650;
     font-variant-numeric: tabular-nums;
-    line-height: 1;
+    line-height: 1.2;
 }
 
-.shift-pool-start small {
+.shift-pool-span small {
     color: var(--hr-muted);
     font-size: var(--fs-2xs);
     font-variant-numeric: tabular-nums;
+}
+
+.shift-pool-overnight {
+    letter-spacing: 0.03em;
 }
 
 .shift-pool-bar {
     display: flex;
-    overflow: hidden;
+    position: relative;
     height: 6px;
     border-radius: var(--r-pill);
     background: var(--hr-sunken);
     gap: 1px;
 }
 
+/*
+ * Where the clock has reached inside the shift. Without it a 0% figure minutes
+ * after handover looks like the final word rather than a bar still filling.
+ */
+.shift-pool-now {
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    width: 2px;
+    border-radius: var(--r-pill);
+    background: var(--hr-text);
+    transform: translateX(-1px);
+}
+
 .shift-pool-fill {
     display: block;
+}
+
+/* The bar keeps its pill ends without clipping the now marker off at the edges. */
+.shift-pool-fill:first-child {
+    border-radius: var(--r-pill) 0 0 var(--r-pill);
+}
+
+.shift-pool-fill:last-of-type {
+    border-radius: 0 var(--r-pill) var(--r-pill) 0;
 }
 
 .shift-pool-fill-clocked-in {
@@ -2309,6 +2383,14 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
     background: var(--hr-danger);
 }
 
+/*
+ * Rostered, not in yet, and not late either. Same people as Missing, held in a
+ * neutral tone until the shift has run past its grace window.
+ */
+.shift-pool-fill-awaiting {
+    background: var(--hr-border-strong, var(--hr-surface-3));
+}
+
 .shift-pool-stats {
     display: grid;
     margin: 0;
@@ -2319,8 +2401,6 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
 .shift-pool-stats dt {
     color: var(--hr-muted);
     font-size: var(--fs-2xs);
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
 }
 
 .shift-pool-stats dd {
@@ -2332,11 +2412,11 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
     line-height: 1.1;
 }
 
-.shift-pool-stats .is-clocked-in dd {
-    color: var(--hr-text);
-}
-
-/* Only a non-zero Missing earns the red -- a staffed shift should read as calm. */
+/*
+ * Only a Missing that has actually been earned takes the red. A shift eleven
+ * minutes old reporting eleven absences is not an alarm, it is a shift that has
+ * only just opened.
+ */
 .shift-pool-stats .is-missing dd {
     color: var(--hr-danger);
 }
@@ -2344,6 +2424,73 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
 .shift-pool-footnote {
     margin: 0;
     color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+}
+
+.shift-pool-link {
+    display: inline-flex;
+    align-items: center;
+    margin-top: auto;
+    color: var(--hr-primary);
+    gap: 3px;
+    font-size: var(--fs-2xs);
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.shift-pool-link:hover {
+    text-decoration: underline;
+}
+
+.shift-pool-link svg {
+    width: 13px;
+    height: 13px;
+}
+
+/*
+ * Pools nobody was rostered onto. They stay on the panel -- an empty Night shift is
+ * the signal this whole panel exists to raise -- but a head count of zero needs one
+ * line, not a card with four columns of zeroes competing with the staffed shifts.
+ */
+.shift-pool-quiet {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+    list-style: none;
+    align-content: start;
+}
+
+/* Name and hours on the first line, the one thing there is to say on the second. */
+.shift-pool-quiet li {
+    display: grid;
+    padding: 11px 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 10px;
+}
+
+.shift-pool-quiet li + li {
+    border-top: 1px solid var(--hr-border);
+}
+
+.shift-pool-quiet-name {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-weight: 650;
+}
+
+.shift-pool-quiet-span {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.shift-pool-quiet-note {
+    color: var(--hr-muted);
+    grid-column: 1 / -1;
     font-size: var(--fs-2xs);
 }
 
@@ -2368,7 +2515,7 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
 }
 
 .shift-data-table {
-    min-width: 560px;
+    min-width: 660px;
 }
 
 .shift-data-table td {
@@ -2777,7 +2924,8 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
     .attendance-chart,
     .attendance-table-view > summary,
     .shift-overview-caption,
-    .shift-pool-grid,
+    .shift-legend-row,
+    .shift-overview-body,
     .shift-table-view > summary,
     .analytics-preview-caption,
     .analytics-metric-grid,
@@ -2883,7 +3031,8 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
         gap: 8px;
     }
 
-    .shift-pool-grid {
+    .shift-pool-grid,
+    .shift-overview-body.is-split {
         grid-template-columns: 1fr;
     }
 

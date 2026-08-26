@@ -3,7 +3,7 @@
 @section('content')
     <section class="page-heading">
         <div><p class="eyebrow">Organization</p><h1>Positions</h1><p>Define approved workforce roles and keep every role aligned with its department.</p></div>
-        @if($canManage)<a class="btn btn-primary dashboard-action" href="{{ route('positions.create') }}"><x-icon name="plus" /> Add position</a>@endif
+        @if($canManage)<button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#createPositionModal"><x-icon name="plus" /> Add position</button>@endif
     </section>
     @include('partials.organization-tabs')
     @include('partials.organization-feedback')
@@ -22,4 +22,8 @@
         </tbody></table></div>
         @if($positions->hasPages())<div class="report-pagination">{{ $positions->onEachSide(1)->links('pagination::bootstrap-5') }}</div>@endif
     </section>
+
+    @if ($canManage)
+        @include('positions._create-modal')
+    @endif
 @endsection

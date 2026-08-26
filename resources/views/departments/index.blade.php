@@ -3,7 +3,7 @@
 @section('content')
     <section class="page-heading">
         <div><p class="eyebrow">Organization</p><h1>Departments</h1><p>Maintain the hospital’s operational units and review their workforce capacity.</p></div>
-        @if($canManage)<a class="btn btn-primary dashboard-action" href="{{ route('departments.create') }}"><x-icon name="plus" /> Add department</a>@endif
+        @if($canManage)<button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#createDepartmentModal"><x-icon name="plus" /> Add department</button>@endif
     </section>
     @include('partials.organization-tabs')
     @include('partials.organization-feedback')
@@ -30,4 +30,8 @@
         <section class="panel"><div class="empty-table-cell"><x-icon name="building" /><strong>No matching departments</strong><span>Adjust the filters or add a department.</span></div></section>
     @endforelse
     @if($departments->hasPages())<div class="report-pagination">{{ $departments->onEachSide(1)->links('pagination::bootstrap-5') }}</div>@endif
+
+    @if ($canManage)
+        @include('departments._create-modal')
+    @endif
 @endsection
