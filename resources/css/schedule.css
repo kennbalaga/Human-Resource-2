@@ -1124,7 +1124,10 @@
 }
 
 .bulk-schedule-dialog {
-    width: min(68rem, calc(100vw - 2rem));
+    /* Matches the assignment dialog, and for the same reason: step 3 lays a
+       seven-day roster board out inside this, and every column it loses comes
+       off the names it exists to show. */
+    width: min(78rem, calc(100vw - 2rem));
     max-width: none;
     margin: 1rem auto;
 }
@@ -1145,11 +1148,15 @@
 .bulk-schedule-shell {
     display: grid;
     min-height: 0;
-    grid-template-columns: 13rem minmax(0, 1fr);
+    /* Sized to the longest step name rather than to a round number: at a fixed
+       width the divider landed wherever the leftover fell, which read as a gap
+       between the rail and the step body rather than as an edge belonging to
+       either. The padding below now sets that distance outright. */
+    grid-template-columns: max-content minmax(0, 1fr);
 }
 
 .bulk-flow-rail {
-    padding: 1.15rem 1rem;
+    padding: 1.15rem 1.45rem 1.15rem 1.05rem;
     border-right: 1px solid var(--hr-border);
     background: var(--hr-surface-2);
 }
@@ -1291,9 +1298,9 @@
     line-height: 1.5;
 }
 
-/* The dialog is sized for the Step 3 roster board, so a full-width cell here is
-   ~70rem across. A name search does not get more useful at that width - it just
-   makes the eye travel from the label to the caret. */
+/* The dialog is sized for the Step 3 roster board, so a full-width cell here
+   runs most of the screen. A name search does not get more useful at that width
+   - it just makes the eye travel from the label to the caret. */
 .bulk-schedule-details [data-bulk-employee-search] {
     max-width: 26rem;
 }
@@ -1317,14 +1324,23 @@
     font-weight: 800;
 }
 
+/* Four columns held every rule to about eleven words of width: the longer
+   labels wrapped, and the note under a field came out as a five-line ribbon of
+   the smallest type in the app. Columns wide enough to keep a label on one line
+   are what stops both, and there are few enough rules that a second row costs
+   nothing. */
 .bulk-rule-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: .7rem;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 1rem .9rem;
 }
 
+/* Start-aligned, not stretched. A field with no note under it would otherwise
+   have its own control pushed to the bottom of a row made tall by the field
+   beside it, leaving the label stranded at the top with the gap in between. */
 .bulk-rule-grid label {
     display: grid;
+    align-content: start;
     gap: .35rem;
 }
 
@@ -2603,14 +2619,21 @@
 }
 
 /* Seven weekday columns, one row of headers and one row of day cells. A week
-   at a time: a fortnight or a month is paged through rather than scrolled. */
+   at a time: a fortnight or a month is paged through rather than scrolled.
+
+   The columns have a floor. Seven equal shares of whatever is left over is not
+   a width: past a point a shift name is an ellipsis and a name is a first
+   name, and the board stops being readable well before it stops fitting. The
+   floor is set where a laptop still fits the whole week without one, so it
+   binds only below that — a phone, where the day view is the answer anyway —
+   and the week scrolls sideways rather than shrinking into nothing. */
 .roster-board-days {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(6.25rem, 1fr));
     gap: .45rem;
     align-items: start;
     max-height: 30rem;
-    overflow-y: auto;
+    overflow: auto;
 }
 
 .roster-board-days.is-day-view {
@@ -2718,11 +2741,18 @@
     background: var(--hr-tint-warning);
 }
 
+/* Name and count share a line where there is room for both. Where there is
+   not — a long shift name, or a count carrying a senior requirement as well —
+   the count drops to its own line and sits under the name it belongs to.
+   `space-between` is what puts it there: it holds the count to the right while
+   the two share a line, and to the left once the count is a line of its own,
+   where a right-aligned number reads as belonging to nothing. */
 .roster-shift > header {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0 .3rem;
+    justify-content: space-between;
+    gap: .1rem .3rem;
 }
 
 .roster-shift > header strong {
@@ -2743,7 +2773,6 @@
 }
 
 .roster-coverage {
-    margin-left: auto;
     flex: 0 0 auto;
     color: var(--hr-text);
     font-size: var(--fs-2xs);
