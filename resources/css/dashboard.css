@@ -2165,9 +2165,9 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
  * Today's shift overview -- one pool per active shift template.
  *
  * The coverage bar borrows the attendance stack's green / violet / red so the two
- * panels read as one language: clocked in, on leave, missing. Each card also flies
- * the shift's own colour on the dot and left edge, which is identity only -- never
- * a status -- so the three fills stay the only thing carrying meaning.
+ * panels read as one language: clocked in, on leave, missing. The shift's own
+ * colour is deliberately absent -- it is template identity, and on a board this
+ * dense a second run of colours only competes with the one carrying meaning.
  */
 .shift-overview {
     display: flex;
@@ -2268,7 +2268,6 @@ html[data-theme-resolved='dark'] .theme-toggle .theme-toggle-moon {
     display: flex;
     padding: 13px 14px 12px;
     border: 1px solid var(--hr-border);
-    border-left: 3px solid var(--shift-color);
     border-radius: var(--r-md);
     background: var(--hr-surface);
     flex-direction: column;

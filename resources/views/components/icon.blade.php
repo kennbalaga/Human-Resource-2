@@ -88,6 +88,13 @@
             <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
             <circle cx="12" cy="10" r="2.5" />
             @break
+        @case('mail')
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="m3.5 7 8.5 6 8.5-6" />
+            @break
+        @case('phone')
+            <path d="M7 3h3l1.5 4-2 1.5a12 12 0 0 0 6 6L17 12.5 21 14v3a2 2 0 0 1-2.2 2A17 17 0 0 1 5 5.2 2 2 0 0 1 7 3Z" />
+            @break
         @case('log-in')
             <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
             @break

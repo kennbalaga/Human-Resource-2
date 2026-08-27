@@ -225,8 +225,7 @@
 }
 
 .organization-card-header,
-.organization-card-meta,
-.organization-profile-header {
+.organization-card-meta {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -247,8 +246,7 @@
     font-weight: 800;
 }
 
-.organization-card h2,
-.organization-profile-header h2 {
+.organization-card h2 {
     margin: 0;
     color: var(--hr-text);
     font-size: var(--fs-base);
@@ -357,62 +355,551 @@
     gap: .65rem;
 }
 
-.organization-profile {
-    padding: 1.3rem;
+/* ===========================================================================
+   Employee profile — the record card
+
+   One card holds the whole employee: an identity header, a tabbed working
+   column, and a fixed information rail down the right. The rail answers
+   "who is this person" and never changes; the tabs answer "what can I do
+   about it", which is why the consequential actions — reissuing a badge,
+   resetting 2FA — live in there behind a deliberate click rather than
+   sitting open on the page the way they used to.
+
+   Every colour here is a token, so the dark theme comes for free. The one
+   exception is the active tab, whose white-on-green inverts in dark mode and
+   is restated at the bottom of this section.
+   =========================================================================== */
+
+.employee-record {
+    overflow: hidden;
+    padding: 0;
 }
 
-.organization-profile-header {
-    padding-bottom: 1.1rem;
-    border-bottom: 1px solid var(--hr-border);
-    align-items: center;
-}
-
-.organization-profile-identity {
+.employee-record-header {
     display: flex;
+    padding: 1.25rem 1.4rem;
+    border-bottom: 1px solid var(--hr-border);
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.employee-record-identity {
+    display: flex;
+    min-width: 0;
+    gap: .95rem;
+}
+
+.avatar.employee-record-avatar {
+    width: 3.4rem;
+    height: 3.4rem;
+    flex: none;
+    border-radius: var(--r-lg);
+    font-size: var(--fs-md);
+}
+
+.employee-record-headline {
+    min-width: 0;
+}
+
+.employee-record-name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+.employee-record-name h2 {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-lg);
+    font-weight: 680;
+    letter-spacing: -0.02em;
+}
+
+.employee-record-chip {
+    display: inline-flex;
+    padding: .2rem .55rem;
+    border-radius: var(--r-pill);
+    align-items: center;
+    gap: .3rem;
+    color: var(--hr-primary-dark);
+    background: var(--hr-primary-soft);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+}
+
+.employee-record-chip svg {
+    width: .85rem;
+    height: .85rem;
+}
+
+/* The three facts asked about a record before any tab is opened. */
+.employee-record-summary {
+    display: flex;
+    flex-wrap: wrap;
+    margin: .7rem 0 0;
+    gap: .35rem 1.6rem;
+}
+
+.employee-record-summary div {
+    min-width: 0;
+}
+
+.employee-record-summary dt {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+}
+
+.employee-record-summary dd {
+    overflow-wrap: anywhere;
+    margin: .1rem 0 0;
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+
+.employee-record-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: .5rem;
+}
+
+.employee-record-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20.5rem;
+}
+
+.employee-record-main {
+    min-width: 0;
+    padding: 1.25rem 1.4rem 1.5rem;
+}
+
+.employee-record-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 1.1rem;
+    gap: .4rem;
+}
+
+.employee-record-tab {
+    display: inline-flex;
+    min-height: 2.5rem;
+    padding: .45rem .9rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-pill);
+    align-items: center;
+    gap: .45rem;
+    color: var(--hr-muted);
+    background: var(--hr-surface);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    transition: color .16s ease, border-color .16s ease, background-color .16s ease;
+}
+
+.employee-record-tab svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.employee-record-tab:hover {
+    border-color: var(--hr-border-strong);
+    color: var(--hr-text);
+    background: var(--hr-primary-soft);
+}
+
+.employee-record-tab.active {
+    border-color: var(--hr-primary);
+    color: #fff;
+    background: var(--hr-primary);
+}
+
+.employee-card {
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-surface);
+}
+
+.employee-card + .employee-card {
+    margin-top: .8rem;
+}
+
+.employee-card-top {
+    display: flex;
+    padding: .95rem 1.05rem;
     align-items: center;
     gap: .85rem;
 }
 
-.organization-profile-identity .avatar {
-    width: 3.25rem;
-    height: 3.25rem;
-    border-radius: var(--r-lg);
+/* Department and position codes run from two characters to "RADIOLOGY", so the
+   mark is a minimum square that widens to fit rather than a fixed one the text
+   spills straight out of. The cap keeps the longest code from crowding out the
+   title beside it; anything past that wraps to a second line. */
+.employee-card-mark {
+    display: inline-flex;
+    min-width: 2.75rem;
+    max-width: 7.5rem;
+    height: 2.75rem;
+    flex: none;
+    padding: .25rem .5rem;
+    border-radius: var(--r-md);
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: var(--hr-primary-dark);
+    background: var(--hr-primary-soft);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    letter-spacing: .03em;
+    line-height: 1.15;
+    text-align: center;
+    overflow-wrap: anywhere;
 }
 
-.organization-profile-identity p {
-    margin: .25rem 0 0;
-    color: var(--hr-subtle);
+.employee-card-mark svg {
+    width: 1.15rem;
+    height: 1.15rem;
+}
+
+.avatar.employee-card-avatar {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: none;
+}
+
+.employee-card-title {
+    min-width: 0;
+}
+
+.employee-card-title h3 {
+    overflow-wrap: anywhere;
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-base);
+    font-weight: 660;
+}
+
+.employee-card-title p {
+    margin: .2rem 0 0;
+    color: var(--hr-muted);
     font-size: var(--fs-xs);
 }
 
-.organization-detail-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: .85rem;
-    padding-top: 1.15rem;
-}
-
-.organization-detail {
-    display: grid;
-    min-height: 4.5rem;
-    padding: .8rem;
-    border-radius: var(--r-md);
+/* The banded footer from the reference card: the facts on the left, the one
+   thing you can do with them on the right. */
+.employee-card-foot {
+    display: flex;
+    padding: .75rem 1.05rem;
+    border-top: 1px solid var(--hr-border);
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
     background: var(--hr-surface-2);
-    align-content: center;
-    gap: .25rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
 }
 
-.organization-detail span {
+.employee-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    gap: .3rem 1.4rem;
+}
+
+.employee-card-meta dt {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+}
+
+.employee-card-meta dd {
+    overflow-wrap: anywhere;
+    margin: .1rem 0 0;
+    color: var(--hr-text);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+}
+
+.employee-card-action {
+    flex: none;
+    font-size: var(--fs-xs);
+}
+
+.employee-card-inner {
+    padding: 0 1.05rem 1.05rem;
+}
+
+/* The security note and the settings form both carry a standalone panel's own
+   gutter. Inside a card the card already supplies it, so theirs is dropped. */
+.employee-card-inner .settings-security-note {
+    margin: 0 0 .9rem;
+}
+
+.employee-card-inner .profile-settings-form {
+    padding: 0;
+}
+
+.employee-record-subhead {
+    display: flex;
+    margin: 1.3rem 0 .7rem;
+    align-items: center;
+    gap: .45rem;
     color: var(--hr-subtle);
     font-size: var(--fs-2xs);
     font-weight: 700;
+    letter-spacing: .08em;
     text-transform: uppercase;
 }
 
-.organization-detail strong {
-    overflow-wrap: anywhere;
-    color: var(--hr-text);
+.employee-record-subhead span {
+    padding: .05rem .45rem;
+    border-radius: var(--r-pill);
+    color: var(--hr-primary-dark);
+    background: var(--hr-primary-soft);
+    letter-spacing: 0;
+}
+
+.employee-record-empty {
+    display: flex;
+    margin: 0;
+    padding: 1rem 1.05rem;
+    border: 1px dashed var(--hr-border-strong);
+    border-radius: var(--r-lg);
+    align-items: center;
+    gap: .5rem;
+    color: var(--hr-muted);
     font-size: var(--fs-sm);
+}
+
+.employee-record-empty svg {
+    width: 1.05rem;
+    flex: none;
+}
+
+.employee-record-side {
+    display: grid;
+    padding: 1.25rem 1.4rem 1.5rem;
+    border-left: 1px solid var(--hr-border);
+    background: var(--hr-surface-2);
+    align-content: start;
+    gap: 1.4rem;
+}
+
+.employee-side-group h3 {
+    margin: 0 0 .75rem;
+    color: var(--hr-text);
+    font-size: var(--fs-md);
+    font-weight: 660;
+}
+
+.employee-side-list {
+    display: grid;
+    margin: 0;
+    gap: .65rem;
+}
+
+.employee-side-list > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .9rem;
+}
+
+.employee-side-list dt {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: .45rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
+}
+
+.employee-side-list dt svg {
+    width: .95rem;
+    height: .95rem;
+    color: var(--hr-subtle);
+}
+
+.employee-side-list dd {
+    overflow-wrap: anywhere;
+    min-width: 0;
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-xs);
+    font-weight: 660;
+    text-align: right;
+}
+
+/* An email or a street address is longer than half a 20rem rail, and forcing it
+   to share a line only breaks it mid-word. Those rows put the value under its
+   label with the full width to itself; the short values keep the paired look. */
+.employee-side-list > div.is-stacked {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .3rem;
+}
+
+.employee-side-list > div.is-stacked dd {
+    text-align: left;
+}
+
+.employee-side-pill {
+    display: inline-block;
+    padding: .15rem .5rem;
+    border-radius: var(--r-pill);
+    color: var(--hr-primary-dark);
+    background: var(--hr-primary-soft);
+    text-decoration: none;
+}
+
+.employee-side-pill:hover {
+    color: var(--hr-primary-dark);
+    background: var(--hr-surface-3);
+}
+
+.employee-side-blank {
+    color: var(--hr-muted);
+    font-weight: 500;
+}
+
+.employee-side-restricted {
+    display: flex;
+    margin: 0;
+    align-items: center;
+    gap: .5rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
+}
+
+.employee-side-restricted svg {
+    width: 1rem;
+    flex: none;
+}
+
+/* ---------------------------------------------------------------------------
+   The slide-out the directory opens the record in.
+
+   Bootstrap's offcanvas supplies the backdrop, the focus trap, the Escape
+   handler and the scroll lock, so all that is left here is the width and
+   stripping the card's own frame — inside the drawer the drawer is the frame.
+   --------------------------------------------------------------------------- */
+
+.employee-panel {
+    --bs-offcanvas-width: min(60rem, 100vw);
+    border-left: 1px solid var(--hr-border);
+    background: var(--hr-surface);
+}
+
+/* Bootstrap spaces this header by giving .btn-close a margin-left:auto. The
+   close button sits in an actions group here, so that auto margin only pushes
+   it within the group — the group itself has to claim the gap. */
+.employee-panel-header {
+    padding: 1rem 1.4rem;
+    border-bottom: 1px solid var(--hr-border);
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.employee-panel-header > div:first-child {
+    min-width: 0;
+}
+
+.employee-panel-header .btn-close {
+    margin: 0;
+    padding: .5rem;
+}
+
+.employee-panel-header .panel-kicker {
+    margin-bottom: .2rem;
+}
+
+.employee-panel-header .offcanvas-title {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-md);
+    font-weight: 660;
+}
+
+.employee-panel-header-actions {
+    display: flex;
+    flex: none;
+    margin-left: auto;
+    align-items: center;
+    gap: .6rem;
+}
+
+.employee-panel-body {
+    display: flex;
+    padding: 0;
+    flex-direction: column;
+}
+
+/* A short record would otherwise leave the information rail floating in white
+   halfway down the drawer, so the card grows into whatever height is left.
+   Done with flex rather than min-height:100% so it does not depend on the
+   offcanvas body resolving a percentage against a flexed parent. */
+.employee-panel .employee-record {
+    display: flex;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    flex: 1 0 auto;
+    flex-direction: column;
+}
+
+.employee-panel .employee-record-body {
+    flex: 1;
+}
+
+.employee-panel-status {
+    display: flex;
+    margin: 0;
+    padding: 2.5rem 1.4rem;
+    align-items: center;
+    gap: .6rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.employee-panel-spinner {
+    width: 1.05rem;
+    height: 1.05rem;
+    flex: none;
+    border: 2px solid var(--hr-border-strong);
+    border-top-color: var(--hr-primary);
+    border-radius: var(--r-pill);
+    animation: employee-panel-spin .7s linear infinite;
+}
+
+@keyframes employee-panel-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Dark mode flips --hr-primary to a pale green, so the active tab's white
+   label would land on a light fill. Everything else here is token-driven. */
+html[data-theme-resolved='dark'] .employee-record-tab.active {
+    color: #0a1a12;
+}
+
+@media (max-width: 1000px) {
+    .employee-record-body { grid-template-columns: minmax(0, 1fr); }
+    .employee-record-side {
+        border-top: 1px solid var(--hr-border);
+        border-left: 0;
+    }
+}
+
+@media (max-width: 700px) {
+    .employee-record-header { flex-direction: column; align-items: stretch; }
+    .employee-record-actions { justify-content: flex-end; }
+    .employee-record-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+    .employee-record-tab { flex: none; }
+    .employee-card-foot { flex-direction: column; align-items: flex-start; }
+    .employee-card-action { width: 100%; }
+    .employee-side-list > div { flex-direction: column; align-items: flex-start; gap: .2rem; }
+    .employee-side-list dd { text-align: left; }
 }
 
 .global-search-results-grid {
@@ -512,8 +999,6 @@ html[data-theme-resolved='dark'] .organization-field > span,
 html[data-theme-resolved='dark'] .organization-fieldset legend,
 html[data-theme-resolved='dark'] .organization-card p,
 html[data-theme-resolved='dark'] .organization-card-counts,
-html[data-theme-resolved='dark'] .organization-profile-identity p,
-html[data-theme-resolved='dark'] .organization-detail span,
 html[data-theme-resolved='dark'] .organization-field small,
 html[data-theme-resolved='dark'] .organization-secondary {
     color: var(--hr-subtle);
@@ -556,20 +1041,14 @@ html[data-theme-resolved='dark'] .organization-field input[readonly] {
 
 html[data-theme-resolved='dark'] .organization-card h2,
 html[data-theme-resolved='dark'] .organization-category-heading h2,
-html[data-theme-resolved='dark'] .organization-profile-header h2,
 html[data-theme-resolved='dark'] .organization-card-counts strong,
-html[data-theme-resolved='dark'] .organization-checkbox strong,
-html[data-theme-resolved='dark'] .organization-detail strong {
+html[data-theme-resolved='dark'] .organization-checkbox strong {
     color: var(--hr-text);
 }
 
 html[data-theme-resolved='dark'] .organization-code {
     color: var(--hr-subtle);
     background: #123d2c;
-}
-
-html[data-theme-resolved='dark'] .organization-detail {
-    background: #0f1b16;
 }
 
 @media (max-width: 1100px) {
@@ -586,17 +1065,15 @@ html[data-theme-resolved='dark'] .organization-detail {
     .organization-card-grid,
     .global-search-results-grid,
     .organization-filters,
-    .organization-fieldset,
-    .organization-detail-grid { grid-template-columns: 1fr; }
+    .organization-fieldset { grid-template-columns: 1fr; }
     .organization-field-full,
     .organization-fieldset legend { grid-column: auto; }
-    .organization-profile-header { align-items: flex-start; flex-direction: column; }
     .organization-workspace-tabs { display:flex; overflow-x:auto; scrollbar-width:thin; }
     .organization-workspace-tabs a { min-width:14rem; }
 }
 
 /* Reuses the badge layout from My Profile; only the panel wrapper differs. */
-.employee-qr-panel .profile-qr-body { padding: 0 1.25rem 1.25rem; }
+.employee-qr-panel .profile-qr-body { padding: 0 1.05rem 1.05rem; }
 .employee-qr-panel .profile-qr-copy form { margin: 0; }
 .employee-qr-panel .profile-qr-copy .btn { display: inline-flex; align-items: center; gap: .4rem; font-size: var(--fs-xs); }
 .employee-qr-panel .profile-qr-copy .btn svg { width: 1rem; }

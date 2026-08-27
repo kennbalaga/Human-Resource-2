@@ -74,8 +74,82 @@ const reopenModalsWithErrors = () => {
     });
 };
 
+/* The directory's View button slides the employee record in over the list
+   instead of navigating, so the filters, the page, and the scroll position all
+   survive. The trigger stays a real link: modified clicks are left to the
+   browser, and anything that goes wrong falls through to the profile page
+   rather than leaving an empty drawer open.
+
+   The same handler serves the "View details" links inside the panel, which is
+   what lets a reader walk a reporting line without ever leaving the list. */
+const initializeEmployeePanel = () => {
+    const panel = document.getElementById('employeePanel');
+    if (!panel) return;
+
+    const body = panel.querySelector('[data-employee-panel-body]');
+    const fullPageLink = panel.querySelector('[data-employee-panel-full]');
+    if (!body) return;
+
+    const loadingMarkup = body.innerHTML;
+    const cache = new Map();
+    /* Clicking through several employees quickly can land the responses out of
+       order; only the newest request is allowed to paint. */
+    let latestRequest = 0;
+
+    const render = (markup) => {
+        body.innerHTML = markup;
+        body.removeAttribute('aria-busy');
+        body.scrollTop = 0;
+    };
+
+    const load = async (url) => {
+        const request = (latestRequest += 1);
+
+        if (cache.has(url)) {
+            render(cache.get(url));
+            return;
+        }
+
+        body.setAttribute('aria-busy', 'true');
+        body.innerHTML = loadingMarkup;
+
+        const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}panel=1`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        });
+
+        if (!response.ok) throw new Error(`Employee panel responded ${response.status}`);
+
+        const markup = await response.text();
+        cache.set(url, markup);
+
+        if (request === latestRequest) render(markup);
+    };
+
+    const open = (url) => {
+        if (fullPageLink) fullPageLink.href = url;
+        window.bootstrap?.Offcanvas.getOrCreateInstance(panel).show();
+
+        load(url).catch(() => {
+            window.location.href = url;
+        });
+    };
+
+    document.addEventListener('click', (event) => {
+        if (event.defaultPrevented || event.button !== 0) return;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+        const trigger = event.target.closest?.('[data-employee-panel]');
+        if (!trigger) return;
+
+        event.preventDefault();
+        open(trigger.href);
+    });
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     initializePositionFiltering();
     initializeLiveOrganizationFilters();
     reopenModalsWithErrors();
+    initializeEmployeePanel();
 });

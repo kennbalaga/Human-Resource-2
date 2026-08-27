@@ -68,9 +68,17 @@ class EmployeeController extends Controller
 
     public function show(Request $request, Employee $employee): View
     {
-        $employee->load(['user', 'department', 'position', 'supervisor', 'directReports']);
+        // The profile renders the reporting line as a card list, so the neighbours
+        // it names need their own position loaded or every row costs a query.
+        $employee->load([
+            'user.roles',
+            'department',
+            'position',
+            'supervisor.position',
+            'directReports.position',
+        ]);
 
-        return view('employees.show', [
+        $data = [
             'employee' => $employee,
             'canManage' => $this->canWrite($request),
             'canViewPrivate' => $this->canManage($request) || $request->user()->employee?->is($employee),
@@ -81,7 +89,16 @@ class EmployeeController extends Controller
                 && ! $employee->user->is($request->user())
                 && $employee->user->two_factor_secret !== null,
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-        ]);
+        ];
+
+        // The directory slides this same record in over the list rather than
+        // sending anyone away from their filters. Identical view and identical
+        // permission checks — only the page chrome around it is dropped.
+        if ($request->boolean('panel')) {
+            return view('employees._record', $data + ['inPanel' => true]);
+        }
+
+        return view('employees.show', $data);
     }
 
     /**

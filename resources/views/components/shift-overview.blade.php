@@ -77,7 +77,6 @@
                         <article
                             class="shift-pool"
                             data-phase="{{ $shift['phase'] }}"
-                            style="--shift-color: {{ $shift['color'] }}"
                             aria-labelledby="shift-pool-{{ $shift['id'] }}-title"
                         >
                             <header class="shift-pool-header">
