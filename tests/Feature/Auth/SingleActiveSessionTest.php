@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use App\Services\ActiveDeviceSessionService;
 use App\Support\SessionNotice;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -78,7 +79,11 @@ class SingleActiveSessionTest extends TestCase
             'password' => 'ChangeMe123!',
         ])->assertRedirect(route('two-factor.login'));
 
-        $user->forceFill(['active_session_token' => Str::random(64)])->save();
+        $user->forceFill([
+            'active_session_token' => Str::random(64),
+            'active_session_device_hash' => hash('sha256', Str::random(64)),
+            'active_session_last_seen_at' => now(),
+        ])->save();
 
         $this->post(route('two-factor.login.store'), ['recovery_code' => $recoveryCode])
             ->assertRedirect('/login')
@@ -170,7 +175,11 @@ class SingleActiveSessionTest extends TestCase
         // What every session open at deploy time looks like: signed in before
         // the column existed, and no reason to be thrown out for it.
         $user = $this->userForEmployee('HR-MGR-2026-0001');
-        $user->forceFill(['active_session_token' => null])->save();
+        $user->forceFill([
+            'active_session_token' => null,
+            'active_session_device_hash' => null,
+            'active_session_last_seen_at' => null,
+        ])->save();
 
         $this->actingAs($user)
             ->getJson(route('session.keep-alive'))
@@ -198,6 +207,93 @@ class SingleActiveSessionTest extends TestCase
         $this->assertSame($newerDevice, $this->userForEmployee('HR-MGR-2026-0001')->active_session_token);
     }
 
+    public function test_a_claim_left_by_a_session_that_has_since_ended_turns_nobody_away(): void
+    {
+        // Nothing announces a session ending. A browser is closed, a screen is
+        // walked away from, and the token stays behind on the account with
+        // nobody left to give it up. What tells that apart from a device still
+        // working is that nothing has stood behind it for longer than a
+        // session is allowed to live.
+        $this->openTheAccountOnAnotherDevice();
+        $this->accountLastHeardFrom(now()->subHours(2));
+
+        $this->post('/login', self::CREDENTIALS)->assertRedirect('/dashboard');
+
+        $this->assertAuthenticated();
+    }
+
+    public function test_a_claim_still_being_stood_behind_turns_a_second_device_away(): void
+    {
+        // The same reading a minute the other side of the line: heard from
+        // within the session lifetime is a device that is still there.
+        $this->openTheAccountOnAnotherDevice();
+        $this->accountLastHeardFrom(now()->subMinutes(max(1, (int) config('session.lifetime') - 1)));
+
+        $this->post('/login', self::CREDENTIALS)
+            ->assertRedirect('/login')
+            ->assertSessionHas(
+                SessionNotice::FLASH_KEY,
+                SessionNotice::AlreadyOpenElsewhere->value,
+            );
+
+        $this->assertGuest();
+    }
+
+    public function test_a_device_at_work_keeps_its_hold_from_going_stale(): void
+    {
+        $this->post('/login', self::CREDENTIALS);
+
+        // Stand the claim far enough back that it would read as abandoned, and
+        // let the device say otherwise the only way it ever does — by asking
+        // the server for something.
+        $this->accountLastHeardFrom(now()->subHours(2));
+
+        $this->getJson(route('session.keep-alive'))->assertOk();
+
+        $this->assertTrue(
+            $this->userForEmployee('HR-MGR-2026-0001')
+                ->active_session_last_seen_at
+                ->greaterThan(now()->subMinute()),
+        );
+    }
+
+    public function test_the_same_browser_coming_back_is_not_a_second_device(): void
+    {
+        $device = $this->post('/login', self::CREDENTIALS)->getCookie('hrms_device');
+
+        $this->assertNotNull($device);
+
+        // Closed and reopened well inside the session lifetime: the session it
+        // was signed in on is gone, the claim it left on the account is still
+        // minutes fresh, and the one thing carried back is the name this
+        // browser keeps for itself. That is the same person returning, not a
+        // second device, and it must not cost them a sign-in.
+        $this->flushSession();
+        Auth::forgetGuards();
+
+        $this->withCookie('hrms_device', $device->getValue())
+            ->post('/login', self::CREDENTIALS)
+            ->assertRedirect('/dashboard');
+
+        $this->assertAuthenticated();
+    }
+
+    /**
+     * Move the moment the device holding the account was last heard from,
+     * standing in for time passing with nobody at the screen.
+     */
+    private function accountLastHeardFrom(CarbonInterface $moment): void
+    {
+        $this->userForEmployee('HR-MGR-2026-0001')
+            ->forceFill(['active_session_last_seen_at' => $moment])
+            ->save();
+
+        // A real request builds the guard from scratch and reads the account
+        // back from the database; the test guard would otherwise keep serving
+        // the copy it loaded at sign-in.
+        Auth::forgetGuards();
+    }
+
     /**
      * Stand in for the account already being open on a device this test is not
      * driving: something else holds the slot, and this browser holds nothing.
@@ -207,7 +303,13 @@ class SingleActiveSessionTest extends TestCase
         $token = Str::random(64);
 
         $this->userForEmployee('HR-MGR-2026-0001')
-            ->forceFill(['active_session_token' => $token])
+            ->forceFill([
+                'active_session_token' => $token,
+                // Some browser that is not this one, heard from just now: a
+                // claim is only another device's while both of those hold.
+                'active_session_device_hash' => hash('sha256', Str::random(64)),
+                'active_session_last_seen_at' => now(),
+            ])
             ->save();
 
         return $token;

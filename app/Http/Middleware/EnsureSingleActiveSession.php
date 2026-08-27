@@ -37,7 +37,19 @@ class EnsureSingleActiveSession
         // Signing out is what a device whose hold has ended should still be
         // able to do uninterrupted; the controller releases nothing it no
         // longer holds.
-        if ($user === null || $request->routeIs('logout') || ! $this->sessions->displaced($user, $request)) {
+        if ($user === null || $request->routeIs('logout')) {
+            return $next($request);
+        }
+
+        if (! $this->sessions->displaced($user, $request)) {
+            // Holding the account is not something a device is granted once
+            // and keeps: it is this request, and every request after it,
+            // saying the device is still there. Stop asking and the hold ends
+            // on its own, which is what lets the person come back to a session
+            // they walked away from instead of being told they are already
+            // signed in somewhere.
+            $this->sessions->keepHold($user, $request);
+
             return $next($request);
         }
 
