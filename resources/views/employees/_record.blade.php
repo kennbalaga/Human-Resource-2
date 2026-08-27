@@ -18,7 +18,6 @@
         $inPanel
             ? ['label' => 'Open full profile', 'icon' => 'chevron-right', 'url' => route('employees.show', $employee)]
             : ['label' => 'Back to directory', 'icon' => 'users', 'url' => route('employees.index')],
-        ['label' => 'View org chart', 'icon' => 'building', 'url' => route('organization.chart')],
     ];
     if ($canViewPrivate && $account?->email) {
         $menuItems[] = ['label' => 'Send email', 'icon' => 'mail', 'url' => 'mailto:'.$account->email];
@@ -97,7 +96,6 @@
                                     <div><dt>Category</dt><dd>{{ str($employee->department?->category ?? 'Not set')->headline() }}</dd></div>
                                     <div><dt>Status</dt><dd>{{ $employee->department?->is_active ? 'Active' : 'Inactive' }}</dd></div>
                                 </dl>
-                                <a class="btn btn-light employee-card-action" href="{{ route('organization.chart') }}">View chart</a>
                             </div>
                         </article>
 
@@ -194,7 +192,7 @@
                                     <div class="profile-qr-copy">
                                         <p>{{ $employee->full_name }} presents this at the entrance scanner. They can download it themselves from My Profile.</p>
                                         <p class="profile-qr-warning"><x-icon name="shield" /> <span>Issue a new badge if this one has been lost, shared, or photographed. Every printed copy of their current code stops scanning immediately, and they will need to download the replacement.</span></p>
-                                        <form method="POST" action="{{ route('employees.attendance-qr.reissue', $employee) }}" onsubmit="return confirm('Issue a new attendance badge for {{ $employee->full_name }}? Their current code will stop working immediately.')">
+                                        <form method="POST" action="{{ route('employees.attendance-qr.reissue', $employee) }}" data-confirm="Issue a new attendance badge for {{ $employee->full_name }}? Their current code will stop working immediately.">
                                             @csrf
                                             <button class="btn btn-outline-primary" type="submit"><x-icon name="refresh" /> Issue new badge</button>
                                         </form>

@@ -163,6 +163,31 @@
         min-height: var(--tap-min);
     }
 
+    /*
+     * The segmented toggles the list above meant to cover but missed, measured
+     * on a 390px screen: the dashboard's 7/30-day range at 29px, the Settings
+     * section chips at 40px, and the disclosure that opens each analytics
+     * table at 41px. All three are laid out with padding alone, which is what
+     * let them drift under the floor unnoticed.
+     */
+    .attendance-range a,
+    .settings-section-nav a,
+    .calendar-view-switch a,
+    .attendance-table-view > summary,
+    .shift-table-view > summary,
+    .analytics-table-view > summary {
+        display: flex;
+        min-height: var(--tap-min);
+        align-items: center;
+    }
+
+    /* An icon button squeezed by a flex row is only tall enough, not wide
+       enough — the row actions on the dashboard tables measured 32px across. */
+    .icon-button {
+        min-width: var(--tap-min);
+        flex: none;
+    }
+
     /* A checkbox or radio drawn at its intrinsic 13px is a 13px target. The
        label is the target; give the control room inside it. */
     .settings-toggle {
@@ -298,8 +323,7 @@
     .table-responsive,
     .leave-calendar-panel,
     .attendance-plot-scroll,
-    .schedule-scroll,
-    .org-chart-viewport {
+    .schedule-scroll {
         overscroll-behavior-x: contain;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
@@ -319,6 +343,56 @@
     .table-responsive:has(.table-stack) {
         background: none;
     }
+
+    /*
+     * .dashboard-table-fit clamps every cell to one ellipsed line so the table
+     * always fits its panel. Inside a stacked card there is no width to fit
+     * and nothing to ellipse — the value should just wrap.
+     */
+    .table-stack.dashboard-table-fit th,
+    .table-stack.dashboard-table-fit td:not(.empty-table-cell) {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+    }
+
+    /* Same reason, one level down: the name and email inside an employee cell
+       carry their own ellipsis for the narrow column they used to sit in.
+       `overflow-wrap` is what actually breaks them — an email address offers a
+       layout engine no break opportunity of its own, so without it the text
+       just runs out past the card edge instead of being ellipsed there. */
+    .table-stack .employee-cell {
+        min-width: 0;
+    }
+
+    .table-stack .employee-cell > div,
+    .table-stack .employee-cell strong,
+    .table-stack .employee-cell span {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    /*
+     * A badge is a pill sized to its own label. As a grid item in a stacked
+     * card it stretches to the full value column instead, so "Active" rendered
+     * as a 200px-wide green bar with the word floating at one end. Affects
+     * every stacked table, not just this one.
+     */
+    .table-stack tbody td > .status-badge,
+    .table-stack tbody td > .employee-number {
+        justify-self: start;
+    }
+
+    /*
+     * An avatar has a fixed width but no flex-shrink of its own, so in a
+     * squeezed row every initials circle was compressed into an oval. Cheap
+     * insurance regardless of what squeezes the row.
+     */
+    .avatar {
+        flex: none;
+    }
 }
 
 /* ------------------------------------------------------------------------
@@ -331,23 +405,57 @@
  * overflowing sideways. 16px is the threshold, not a preference.
  * --------------------------------------------------------------------- */
 @media (max-width: 900px) {
-    input:not([type='checkbox']):not([type='radio']),
-    select,
-    textarea,
-    .profile-settings-form input,
-    .profile-settings-form select,
-    .profile-settings-form textarea,
+    /*
+     * `:not(#_)` costs an ID's worth of specificity and matches everything —
+     * no element is ever id="_". Without it a bare `select` (0,0,1) loses to
+     * every `.some-filter select` (0,1,1) in the feature sheets, and those set
+     * --fs-sm. That is exactly what happened: the filter bars on Leaves,
+     * Timesheets, Employees, Organization and Schedules stayed at 14px and
+     * kept the Safari zoom trap this whole section exists to close. Naming
+     * each container instead would leave the next filter bar to rediscover it.
+     */
+    input:not([type='checkbox']):not([type='radio']):not(#_),
+    select:not(#_),
+    textarea:not(#_),
     .form-control,
     .form-select {
         font-size: 16px;
     }
 
-    .profile-settings-form input,
-    .profile-settings-form select,
-    .profile-settings-form textarea,
+    /*
+     * Same specificity trick, same reason. Every filter bar in the app sets
+     * its own control height and every one of them lands just under the
+     * target: .workforce-filters 2.5rem (40px), .organization-filters 2.35rem
+     * (42px), .schedule-inline-filters (38px), .profile-settings-form 2.65rem.
+     * Listing them one by one is how four of them ended up at four different
+     * wrong heights, so this states the floor once for all of them.
+     */
+    input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not(#_),
+    select:not(#_),
     .form-control,
     .form-select {
         min-height: var(--tap-min);
+    }
+
+    /*
+     * A <select> is as wide as its longest <option>, and "RAD-TECH-2026-0001 ·
+     * Employee Name" is far wider than a phone. Its label is a grid item whose
+     * default min-width:auto lets that intrinsic width push the whole control
+     * past the panel — which has overflow:hidden, so the right-hand side of
+     * the Department and Employee filters was simply cut off with no way to
+     * scroll to it.
+     */
+    .workforce-filters label,
+    .workforce-filters {
+        min-width: 0;
+    }
+
+    .workforce-filters input,
+    .workforce-filters select,
+    .workforce-filters textarea {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
     }
 
     /* iOS renders date/time inputs at their own intrinsic width and lets them
@@ -638,7 +746,7 @@
     }
 
     .settings-section-nav a {
-        min-height: 40px;
+        min-height: var(--tap-min);
         flex: 0 0 auto;
         padding: 0.5rem 0.75rem;
         border: 1px solid var(--hr-border);
@@ -652,6 +760,18 @@
        here, and the strong half already names the section. */
     .settings-section-nav a small {
         display: none;
+    }
+
+    /* The desktop marker is a bar down the left edge of a full-width row. On a
+       pill chip that reads as a stray line, so the chip fills instead. */
+    .settings-section-nav a[aria-current='true']::before {
+        display: none;
+    }
+
+    .settings-section-nav a[aria-current='true'] {
+        border-color: var(--hr-primary);
+        color: var(--hr-primary);
+        background: var(--hr-primary-soft);
     }
 
     /* A group heading inside a horizontal rail becomes a divider. */
@@ -936,11 +1056,55 @@
         user-select: none;
     }
 
-    .app-topbar {
-        /* Opaque rather than 94% + blur: over a scrolling list, a translucent
-           bar under a status bar shows the content ghosting through the notch
-           area on iOS. */
+    /*
+     * Opaque rather than 94% + blur: over a scrolling list, a translucent bar
+     * under a status bar shows the content ghosting through the notch area on
+     * iOS. The blur that used to sit behind it is now behind a min-width:
+     * 1101px query, so the translucency here has nothing left to blur.
+     *
+     * The dark-theme selector is repeated because dark-mode.css sets
+     * `html[data-theme-resolved='dark'] .app-topbar` to rgba(25,35,30,.94) at
+     * (0,2,1), which quietly outranked the bare `.app-topbar` this rule used
+     * to be — so the installed app was still 94% translucent in dark mode,
+     * which is the one place the ghosting is most visible.
+     */
+    .app-topbar,
+    html[data-theme-resolved='dark'] .app-topbar {
         background: var(--hr-surface);
+    }
+
+    /*
+     * ---- The iOS status bar ----
+     *
+     * `apple-mobile-web-app-status-bar-style: black-translucent` does two
+     * things: it runs the page up underneath the status bar, and it paints the
+     * clock, battery and signal glyphs WHITE — permanently, with no way to ask
+     * for dark ones. The strip they sit on is this topbar's own background,
+     * and in the light theme --hr-surface is #ffffff. White on white: the
+     * status bar was blank on every installed iPhone.
+     *
+     * The safe-area strip is painted separately here, in the same colour as
+     * the theme-color meta the white glyphs were designed against. Anchors to
+     * .app-topbar, which is already position: sticky. An absolutely positioned
+     * pseudo-element does not become a containing block for the notification
+     * sheet's position: fixed — only transform/filter would, which is why the
+     * warning above forbids those and not this.
+     *
+     * On Android and on any phone without an inset, --safe-top is 0px and this
+     * paints nothing at all.
+     */
+    .app-topbar::before {
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
+        height: var(--safe-top);
+        background: #176b43;
+        content: '';
+    }
+
+    html[data-theme-resolved='dark'] .app-topbar::before {
+        background: #0a1f18;
     }
 }
 
@@ -1054,8 +1218,10 @@ body.reduce-motion .profile-dropdown {
 
 .pwa-install-dismiss {
     display: grid;
-    width: 36px;
-    height: 40px;
+    /* 36x40 on the one control that makes this bar go away, on a phone, from
+       someone who has already decided they do not want it. */
+    width: var(--tap-min);
+    height: var(--tap-min);
     border: 0;
     border-radius: var(--r-md);
     color: var(--hr-muted);

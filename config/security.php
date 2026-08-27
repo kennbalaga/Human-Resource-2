@@ -8,6 +8,12 @@ $viteDevelopmentOrigins = (string) env('APP_ENV') === 'local'
     ? ' http://localhost:* http://127.0.0.1:*'
     : '';
 
+// Kept separate from the origins above: only connect-src has a reason to name
+// a websocket scheme, and listing ws:// in script-src would be meaningless.
+$viteDevelopmentSockets = (string) env('APP_ENV') === 'local'
+    ? ' ws://localhost:* ws://127.0.0.1:*'
+    : '';
+
 return [
     'production' => [
         // Local and test environments are never blocked regardless of this
@@ -20,9 +26,11 @@ return [
     ],
 
     'content_security_policy' => [
-        // Start in report-only mode so existing screens can be observed before
-        // the policy is enforced. Supported values: off, report-only, enforce.
-        'mode' => env('CSP_MODE', 'report-only'),
+        // Enforced by default. The rollout this started as is over: every
+        // inline handler has been moved into the bundle and the two remaining
+        // inline scripts carry a nonce, so there is nothing left for
+        // report-only to discover. Supported values: off, report-only, enforce.
+        'mode' => env('CSP_MODE', 'enforce'),
         'report_uri' => env('CSP_REPORT_URI', '/api/v1/security/csp-report'),
         'directives' => [
             "default-src 'self'",
@@ -30,11 +38,26 @@ return [
             "form-action 'self'",
             "frame-ancestors 'none'",
             "object-src 'none'",
-            "script-src 'self' 'unsafe-inline'{$viteDevelopmentOrigins}",
+            // No 'unsafe-inline'. It would permit any <script> an attacker
+            // injected, which is the single thing this policy exists to stop —
+            // and a browser that sees a nonce ignores 'unsafe-inline' anyway.
+            // The nonce is minted per request by SecurityHeaders and stamped on
+            // the Vite tags and the two hand-written inline blocks.
+            "script-src 'self' 'nonce-{csp_nonce}'{$viteDevelopmentOrigins}",
+            // 'unsafe-inline' is kept here and only here. Style attributes are
+            // used throughout the Blade templates and a nonce cannot cover an
+            // attribute, so removing it would mean rewriting the markup for a
+            // far smaller prize: injected CSS cannot execute, it can only
+            // restyle. The two hosts serve Font Awesome and Inter on the
+            // signed-out pages.
             "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com{$viteDevelopmentOrigins}",
             "font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com",
             "img-src 'self' data: blob:",
-            "connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*",
+            // The dev-server and HMR websocket origins belong to `npm run dev`
+            // and were previously listed unconditionally, which shipped them in
+            // the production policy too. They now follow the same env switch as
+            // script-src and style-src.
+            "connect-src 'self'{$viteDevelopmentOrigins}{$viteDevelopmentSockets}",
             "media-src 'self'",
             "worker-src 'self' blob:",
             "manifest-src 'self'",
@@ -44,7 +67,11 @@ return [
 
     'attachments' => [
         'malware_scanning' => [
-            'enabled' => (bool) env('MALWARE_SCANNING_ENABLED', false),
+            // Same fail-safe pattern as session.encrypt and session.secure: an
+            // environment that never set the variable gets the safe value in
+            // production and the convenient one elsewhere, so a deployment
+            // cannot accept attachments unscanned merely by omission.
+            'enabled' => (bool) env('MALWARE_SCANNING_ENABLED', (string) env('APP_ENV') === 'production'),
             'driver' => env('MALWARE_SCANNING_DRIVER', 'clamav'),
             'binary' => env('CLAMAV_BINARY', 'clamscan'),
             'timeout_seconds' => (int) env('CLAMAV_TIMEOUT_SECONDS', 30),

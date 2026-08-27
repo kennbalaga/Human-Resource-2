@@ -308,8 +308,13 @@ body.reduce-motion .app-lock-dots[data-error='true'] .app-lock-dot {
  * the feature needs. On a desktop the panel and its nav entry never appear, so
  * the settings page is byte-for-byte what it was.
  * --------------------------------------------------------------------- */
+/* The nav selectors carry `.settings-section-nav` on purpose. A bare
+   `[data-device-lock-nav]` loses to `.settings-section-nav a`, which sets
+   display:flex — so on a desktop the entry stayed visible while the panel
+   below it did not, and clicking it scrolled to nothing. */
 [data-device-lock-panel],
-[data-device-lock-nav] {
+[data-device-lock-nav],
+.settings-section-nav a[data-device-lock-nav] {
     display: none;
 }
 
@@ -317,7 +322,8 @@ body.reduce-motion .app-lock-dots[data-error='true'] .app-lock-dot {
     display: block;
 }
 
-[data-device-lock-nav][data-available='true'] {
+[data-device-lock-nav][data-available='true'],
+.settings-section-nav a[data-device-lock-nav][data-available='true'] {
     display: flex;
 }
 

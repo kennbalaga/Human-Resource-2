@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Schedule;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Schedule\ScheduleAssignmentRequest;
 use App\Models\Department;
@@ -21,11 +22,14 @@ use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class ScheduleCalendarController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     public function index(Request $request, AiSchedulingFeatureSettings $aiSettings): View
     {
         $view = in_array($request->query('view'), ['month', 'week', 'list'], true)
@@ -50,6 +54,10 @@ class ScheduleCalendarController extends Controller
         if (! $canManage) {
             $assignmentsQuery->where('employee_id', $currentEmployee->id);
         } else {
+            // The supervised-department constraint goes on before the request's
+            // own department filter, so a head can narrow their view but never
+            // widen it past their unit.
+            Employee::constrainRelatedQuery($assignmentsQuery, $request->user());
             $assignmentsQuery
                 ->when($filters['department_id'] ?? null, fn (Builder $query, $departmentId) => $query
                     ->whereHas('employee', fn (Builder $employeeQuery) => $employeeQuery->where('department_id', $departmentId)))
@@ -70,6 +78,7 @@ class ScheduleCalendarController extends Controller
         if (! $canManage) {
             $dayOffQuery->where('employee_id', $currentEmployee->id);
         } else {
+            Employee::constrainRelatedQuery($dayOffQuery, $request->user());
             $dayOffQuery
                 ->when($filters['department_id'] ?? null, fn (Builder $query, $departmentId) => $query
                     ->whereHas('employee', fn (Builder $employeeQuery) => $employeeQuery->where('department_id', $departmentId)))
@@ -86,6 +95,7 @@ class ScheduleCalendarController extends Controller
         if (! $canManage) {
             $leaveQuery->where('employee_id', $currentEmployee->id);
         } else {
+            Employee::constrainRelatedQuery($leaveQuery, $request->user());
             $leaveQuery
                 ->when($filters['department_id'] ?? null, fn (Builder $query, $departmentId) => $query->whereHas('employee', fn (Builder $employeeQuery) => $employeeQuery->where('department_id', $departmentId)))
                 ->when($filters['employee_id'] ?? null, fn (Builder $query, $employeeId) => $query->where('employee_id', $employeeId));
@@ -115,6 +125,7 @@ class ScheduleCalendarController extends Controller
         $activeSeries = $canManage
             ? RecurringSchedule::query()
                 ->with(['employee.department', 'shift'])
+                ->tap(fn (Builder $query) => Employee::constrainRelatedQuery($query, $request->user()))
                 ->where('status', 'active')
                 ->whereDate('end_date', '>=', now(config('schedule.timezone'))->toDateString())
                 ->latest()
@@ -140,9 +151,9 @@ class ScheduleCalendarController extends Controller
             'assignmentsByDate' => $assignmentsByDate,
             'dayOffsByDate' => $dayOffsByDate,
             'employees' => $canManage
-                ? Employee::query()->with(['department', 'position'])->where('employment_status', 'active')->orderBy('last_name')->get()
+                ? Employee::query()->visibleTo($request->user())->with(['department', 'position'])->where('employment_status', 'active')->orderBy('last_name')->get()
                 : collect([$currentEmployee->load(['department', 'position'])]),
-            'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
+            'departments' => $this->selectableDepartments($request),
             'positions' => $canManage
                 ? Position::query()->where('is_active', true)->orderBy('title')->get()
                 : collect(),
@@ -189,6 +200,7 @@ class ScheduleCalendarController extends Controller
             ->with(['employee.department', 'shift'])
             ->whereBetween('work_date', [$validated['start'], $validated['end']])
             ->where('status', 'scheduled')
+            ->when($canManage, fn (Builder $query) => Employee::constrainRelatedQuery($query, $request->user()))
             ->when(! $canManage, fn (Builder $query) => $query->where('employee_id', $employee->id))
             ->when($canManage && ! empty($validated['employee_id']), fn (Builder $query) => $query->where('employee_id', $validated['employee_id']))
             ->when($canManage && ! empty($validated['department_id']), fn (Builder $query) => $query
@@ -287,5 +299,17 @@ class ScheduleCalendarController extends Controller
         }
 
         return [$rangeStart, $rangeEnd, $focusDate->copy()->subMonth(), $focusDate->copy()->addMonth()];
+    }
+
+    /** Only the units this account actually supervises appear in the filter. */
+    private function selectableDepartments(Request $request): Collection
+    {
+        $departmentIds = $this->supervisedDepartmentIds($request);
+
+        return Department::query()
+            ->where('is_active', true)
+            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('id', $departmentIds ?? []))
+            ->orderBy('name')
+            ->get();
     }
 }

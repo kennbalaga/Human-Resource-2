@@ -28,6 +28,7 @@ class AttendanceController extends Controller
         ]);
         $manager = $this->canManage($request->user());
         $records = AttendanceRecord::query()->with(['employee.user', 'employee.department', 'employee.position'])
+            ->when($manager, fn (Builder $query) => $this->constrainToSupervised($query, $request->user()))
             ->when(! $manager, fn (Builder $query) => $query->where('employee_id', $request->user()->employee?->id))
             ->when($manager && ! empty($validated['employee_id']), fn (Builder $query) => $query->where('employee_id', $validated['employee_id']))
             ->when($validated['date_from'] ?? null, fn (Builder $query, $date) => $query->whereDate('attendance_date', '>=', $date))
@@ -40,15 +41,14 @@ class AttendanceController extends Controller
 
     public function show(Request $request, AttendanceRecord $attendanceRecord): AttendanceResource
     {
-        $this->requireRead($request->user());
-        abort_unless($this->canManage($request->user()) || $attendanceRecord->employee_id === $request->user()->employee?->id, 403);
+        $this->requireReadFor($request->user(), $attendanceRecord->loadMissing('employee')->employee);
 
         return new AttendanceResource($attendanceRecord->load(['employee.user', 'employee.department', 'employee.position']));
     }
 
     public function approve(Request $request, AttendanceRecord $attendanceRecord, TimesheetService $service): JsonResponse
     {
-        $this->requireManager($request->user());
+        $this->requireManagerFor($request->user(), $attendanceRecord->loadMissing('employee')->employee);
         $timesheet = $service->approveAttendance($attendanceRecord, $request->user());
 
         return response()->json(['message' => 'Attendance approved.', 'timesheet_id' => $timesheet->id]);

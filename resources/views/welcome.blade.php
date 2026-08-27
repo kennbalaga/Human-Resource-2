@@ -70,7 +70,7 @@
             </div>
 
             <div class="table-responsive">
-                <table class="dashboard-table dashboard-table-fit">
+                <table class="dashboard-table dashboard-table-fit table-stack">
                     <colgroup>
                         <col style="width: 30%">
                         <col style="width: 16%">
@@ -95,7 +95,7 @@
                                 $initials = strtoupper(substr($employee->first_name, 0, 1).substr($employee->last_name, 0, 1));
                             @endphp
                             <tr>
-                                <td>
+                                <td data-label="Employee">
                                     <div class="employee-cell">
                                         <span class="avatar avatar-table">{{ $initials }}</span>
                                         <div>
@@ -104,10 +104,10 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td><span class="employee-number">{{ $employee->employee_number }}</span></td>
-                                <td>{{ $employee->department?->name ?? 'Unassigned' }}</td>
-                                <td>{{ $employee->position?->title ?? 'Unassigned' }}</td>
-                                <td><x-status-badge :status="$employee->employment_status" /></td>
+                                <td data-label="Employee ID"><span class="employee-number">{{ $employee->employee_number }}</span></td>
+                                <td data-label="Department">{{ $employee->department?->name ?? 'Unassigned' }}</td>
+                                <td data-label="Position">{{ $employee->position?->title ?? 'Unassigned' }}</td>
+                                <td data-label="Status"><x-status-badge :status="$employee->employment_status" /></td>
                                 <td>
                                     <x-dashboard-action-menu
                                         :label="'Actions for '.$employee->full_name"

@@ -8,9 +8,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Wires up employees.supervisor_id so the org chart has a real hierarchy to
- * draw. Before this, only one seeded employee out of ~320 had a supervisor,
- * which would have rendered the chart as a few hundred disconnected nodes.
+ * Wires up employees.supervisor_id so the seeded workforce has a real
+ * reporting hierarchy. Before this, only one seeded employee out of ~320 had
+ * a supervisor, leaving the rest with no reporting line at all.
  *
  * The shape is derived from data already in the database (department plus the
  * position's seniority_rank) rather than a hardcoded per-employee list, so it
@@ -27,7 +27,7 @@ class ReportingLineSeeder extends Seeder
 {
     /**
      * Someone who has left the hospital should not be made anyone's
-     * supervisor. Matches the workforce filter used by OrgChartService.
+     * supervisor.
      *
      * @var list<string>
      */

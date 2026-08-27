@@ -30,6 +30,7 @@ class ScheduleController extends Controller
         ]);
         $manager = $this->canManage($request->user());
         $records = ScheduleAssignment::query()->with(['employee.user', 'employee.department', 'employee.position', 'shift'])
+            ->when($manager, fn (Builder $query) => $this->constrainToSupervised($query, $request->user()))
             ->when(! $manager, fn (Builder $query) => $query->where('employee_id', $request->user()->employee?->id))
             ->when($manager && ! empty($validated['employee_id']), fn (Builder $query) => $query->where('employee_id', $validated['employee_id']))
             ->when($validated['date_from'] ?? null, fn (Builder $query, $date) => $query->whereDate('work_date', '>=', $date))
@@ -51,7 +52,11 @@ class ScheduleController extends Controller
 
     public function update(ScheduleAssignmentRequest $request, ScheduleAssignment $scheduleAssignment, ScheduleService $service): ScheduleAssignmentResource
     {
-        $this->requireManager($request->user());
+        // Both ends are checked: the record being edited must already be
+        // this account's to touch, and the request rules hold the new
+        // employee_id to the same departments -- otherwise an assignment could
+        // be moved onto somebody else's ward, or off one.
+        $this->requireManagerFor($request->user(), $scheduleAssignment->loadMissing('employee')->employee);
         $assignment = $service->updateAssignment($scheduleAssignment, $request->validated(), $request->user());
 
         return new ScheduleAssignmentResource($assignment->load(['employee.user', 'employee.department', 'employee.position', 'shift']));
@@ -59,7 +64,7 @@ class ScheduleController extends Controller
 
     public function destroy(Request $request, ScheduleAssignment $scheduleAssignment, ScheduleService $service): Response
     {
-        $this->requireManager($request->user());
+        $this->requireManagerFor($request->user(), $scheduleAssignment->loadMissing('employee')->employee);
         $service->assertDateEditable($scheduleAssignment->work_date, 'schedule');
         RosterWriteContext::allow($request->user(), fn () => $scheduleAssignment->delete());
 

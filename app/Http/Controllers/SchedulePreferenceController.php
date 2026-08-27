@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Requests\SchedulePreference\StorePreferredDayOffRequest;
+use App\Models\Employee;
 use App\Models\PreferredDayOff;
 use App\Models\Shift;
 use App\Notifications\PreferenceMailNotification;
@@ -15,6 +17,8 @@ use Illuminate\View\View;
 
 class SchedulePreferenceController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     public function index(Request $request): View
     {
         $employee = $request->user()->employee;
@@ -23,7 +27,7 @@ class SchedulePreferenceController extends Controller
 
         $query = PreferredDayOff::query()->with(['employee.department', 'reviewer']);
         $requests = $canManage
-            ? $query->latest()->paginate(15)->withQueryString()
+            ? Employee::constrainRelatedQuery($query, $request->user())->latest()->paginate(15)->withQueryString()
             : $query->where('employee_id', $employee->id)->latest()->paginate(15)->withQueryString();
 
         return view('schedule-preferences.index', [
@@ -75,6 +79,7 @@ class SchedulePreferenceController extends Controller
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
         abort_unless(Gate::forUser($request->user())->allows('workforce.manage'), 403);
+        $this->requireSupervision($request, $preferredDayOff->loadMissing('employee')->employee, 'workforce.manage.record');
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $preference = $service->approve($preferredDayOff, $request->user(), $validated['reviewer_notes'] ?? null);
         $this->notify($preference, 'Preferred day-off approved', $notifications);
@@ -89,6 +94,7 @@ class SchedulePreferenceController extends Controller
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
         abort_unless(Gate::forUser($request->user())->allows('workforce.manage'), 403);
+        $this->requireSupervision($request, $preferredDayOff->loadMissing('employee')->employee, 'workforce.manage.record');
         $validated = $request->validate(['reviewer_notes' => ['required', 'string', 'min:5', 'max:500']]);
         $preference = $service->reject($preferredDayOff, $request->user(), $validated['reviewer_notes']);
         $this->notify($preference, 'Preferred day-off declined', $notifications);

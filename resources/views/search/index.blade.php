@@ -15,13 +15,13 @@
         <section class="panel global-search-empty-state">
             <x-icon name="search" />
             <strong>Start typing to search</strong>
-            <span>Find employees by name, ID, or email, and departments by name or code.</span>
+            <span>Find employees by name{{ $canSearchEmail ? ', ID, or email' : ' or ID' }}, and departments by name or code.</span>
         </section>
     @elseif ($employees->isEmpty() && $departments->isEmpty())
         <section class="panel global-search-empty-state">
             <x-icon name="search" />
             <strong>No matches found</strong>
-            <span>Try a different employee name, employee ID, email, department name, or code.</span>
+            <span>Try a different employee name, employee ID,{{ $canSearchEmail ? ' email,' : '' }} department name, or code.</span>
         </section>
     @else
         <div class="global-search-results-grid">

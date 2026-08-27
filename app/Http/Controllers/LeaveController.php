@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Requests\Leave\LeaveFilterRequest;
 use App\Http\Requests\Leave\StoreLeaveRequest;
 use App\Http\Requests\Leave\StoreLeaveTypeRequest;
@@ -20,6 +21,7 @@ use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -28,6 +30,8 @@ use Illuminate\View\View;
 
 class LeaveController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     public function index(LeaveFilterRequest $request, LeaveService $service): View
     {
         $filters = $request->validated();
@@ -37,6 +41,11 @@ class LeaveController extends Controller
         $query = LeaveRequest::query()
             ->with(['employee.department', 'leaveType', 'reviewer', 'attachments'])
             ->whereYear('start_date', $filters['year'])
+            // A department head holds the same role as HR but runs one unit, so
+            // the supervised-department constraint is applied before any filter
+            // the request asks for. A department_id in the query string can
+            // narrow what they see; it can never widen it.
+            ->when($canManage, fn (Builder $builder) => Employee::constrainRelatedQuery($builder, $request->user()))
             ->when(! $canManage, fn (Builder $builder) => $builder->where('employee_id', $employee->id))
             ->when($canManage && ! empty($filters['employee_id']), fn (Builder $builder) => $builder->where('employee_id', $filters['employee_id']))
             ->when($canManage && ! empty($filters['department_id']), fn (Builder $builder) => $builder->whereHas('employee', fn (Builder $employeeQuery) => $employeeQuery->where('department_id', $filters['department_id'])))
@@ -53,6 +62,7 @@ class LeaveController extends Controller
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $monthEnd->toDateString())
             ->whereDate('end_date', '>=', $monthStart->toDateString())
+            ->when($canManage, fn (Builder $builder) => Employee::constrainRelatedQuery($builder, $request->user()))
             ->when(! $canManage, fn (Builder $builder) => $builder->where('employee_id', $employee->id))
             ->get();
 
@@ -88,8 +98,8 @@ class LeaveController extends Controller
             'balances' => $balances,
             'employee' => $employee,
             'types' => $types,
-            'employees' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
-            'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
+            'employees' => Employee::query()->visibleTo($request->user())->where('employment_status', 'active')->orderBy('last_name')->get(),
+            'departments' => $this->selectableDepartments($request),
             'calendarDays' => $calendarDays,
             'focusDate' => $focusDate,
             'filters' => $filters,
@@ -155,6 +165,7 @@ class LeaveController extends Controller
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
         $this->requireManager($request);
+        $this->requireSupervision($request, $leaveRequest->loadMissing('employee')->employee, 'workforce.manage.record');
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $leave = $service->approve($leaveRequest, $request->user(), $validated['reviewer_notes'] ?? null);
         $this->notifyEmployee($leave, 'approved', $notifications);
@@ -169,6 +180,7 @@ class LeaveController extends Controller
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
         $this->requireManager($request);
+        $this->requireSupervision($request, $leaveRequest->loadMissing('employee')->employee, 'workforce.manage.record');
         $validated = $request->validate(['reviewer_notes' => ['required', 'string', 'min:5', 'max:500']]);
         $leave = $service->reject($leaveRequest, $request->user(), $validated['reviewer_notes']);
         $this->notifyEmployee($leave, 'rejected', $notifications);
@@ -191,6 +203,22 @@ class LeaveController extends Controller
     private function canManage(Request $request): bool
     {
         return Gate::forUser($request->user())->allows('workforce.view');
+    }
+
+    /**
+     * Departments offered in the filter. A head is shown their own unit rather
+     * than the full list, so the picker matches what the query will actually
+     * return instead of offering choices that silently come back empty.
+     */
+    private function selectableDepartments(Request $request): Collection
+    {
+        $departmentIds = $this->supervisedDepartmentIds($request);
+
+        return Department::query()
+            ->where('is_active', true)
+            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('id', $departmentIds ?? []))
+            ->orderBy('name')
+            ->get();
     }
 
     private function requireManager(Request $request): void

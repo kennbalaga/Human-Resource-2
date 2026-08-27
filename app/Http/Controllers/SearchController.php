@@ -7,6 +7,7 @@ use App\Models\Employee;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class SearchController extends Controller
@@ -20,16 +21,23 @@ class SearchController extends Controller
 
         $employees = collect();
         $departments = collect();
+        // Matching on the email column turns this box into a confirmation
+        // oracle: type an address, learn whether it belongs to staff here. The
+        // directory is meant to answer "who is this person and where do they
+        // work", which name and employee number already do, so the email match
+        // is kept for the roles that handle records anyway.
+        $canSearchEmail = Gate::forUser($request->user())->allows('workforce.view');
 
         if ($query !== '') {
             $employees = Employee::query()
                 ->with(['user', 'department', 'position'])
-                ->where(function (Builder $employeeQuery) use ($query): void {
+                ->where(function (Builder $employeeQuery) use ($query, $canSearchEmail): void {
                     $employeeQuery
                         ->where('employee_number', 'like', "%{$query}%")
                         ->orWhere('first_name', 'like', "%{$query}%")
                         ->orWhere('last_name', 'like', "%{$query}%")
-                        ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->where('email', 'like', "%{$query}%"));
+                        ->when($canSearchEmail, fn (Builder $builder) => $builder
+                            ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->where('email', 'like', "%{$query}%")));
                 })
                 ->orderBy('last_name')
                 ->orderBy('first_name')
@@ -71,6 +79,7 @@ class SearchController extends Controller
             'query' => $query,
             'employees' => $employees,
             'departments' => $departments,
+            'canSearchEmail' => $canSearchEmail,
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }

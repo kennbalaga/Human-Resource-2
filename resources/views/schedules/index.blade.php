@@ -170,7 +170,7 @@
                                     <span class="more-events">+{{ $day['assignments']->count() - 3 }} more</span>
                                 @endif
                                 @foreach($day['day_offs']->take(2) as $dayOff)
-                                    <span class="schedule-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" onsubmit="return confirm('Remove this day off?')">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>
+                                    <span class="schedule-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" data-confirm="Remove this day off?">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>
                                 @endforeach
                                 @foreach($day['leaves']->take(2) as $leave)
                                     <span class="schedule-leave-event" style="--leave-color: {{ $leave->leaveType->color }}"><x-icon name="leave" /><span><strong>{{ $leave->employee->first_name }} {{ $leave->employee->last_name }}</strong><small>{{ $leave->leaveType->name }}</small></span></span>
@@ -201,7 +201,7 @@
                             @empty
                                 @if($day['leaves']->isEmpty() && $day['day_offs']->isEmpty())<span class="week-empty">No shifts</span>@endif
                             @endforelse
-                            @foreach($day['day_offs'] as $dayOff)<span class="schedule-day-off-event week-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" onsubmit="return confirm('Remove this day off?')">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>@endforeach
+                            @foreach($day['day_offs'] as $dayOff)<span class="schedule-day-off-event week-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" data-confirm="Remove this day off?">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>@endforeach
                             @foreach($day['leaves'] as $leave)<span class="schedule-leave-event week-leave-event" style="--leave-color: {{ $leave->leaveType->color }}"><x-icon name="leave" /><span><strong>{{ $leave->employee->full_name }}</strong><small>{{ $leave->leaveType->name }}</small></span></span>@endforeach
                         </div>
                     </article>
@@ -229,7 +229,7 @@
                                 </button>
                             @endforeach
                             @foreach ($dayOffsByDate->get($date, collect()) as $dayOff)
-                                <div class="schedule-list-item schedule-list-day-off"><span class="event-color"></span><span class="schedule-list-time">All day</span><span class="schedule-list-employee"><strong>{{ $dayOff->employee->full_name }}</strong><small>{{ $dayOff->employee->employee_number }} · {{ $dayOff->employee->department?->name }}</small></span><span class="schedule-list-shift">Day off</span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" onsubmit="return confirm('Remove this day off?')">@csrf @method('DELETE')<button class="icon-button subtle" type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</div>
+                                <div class="schedule-list-item schedule-list-day-off"><span class="event-color"></span><span class="schedule-list-time">All day</span><span class="schedule-list-employee"><strong>{{ $dayOff->employee->full_name }}</strong><small>{{ $dayOff->employee->employee_number }} · {{ $dayOff->employee->department?->name }}</small></span><span class="schedule-list-shift">Day off</span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" data-confirm="Remove this day off?">@csrf @method('DELETE')<button class="icon-button subtle" type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</div>
                             @endforeach
                         </div>
                     </section>
@@ -248,7 +248,7 @@
                     <article class="recurring-series-card">
                         <span class="series-color" style="background: {{ $series->shift->color }}"></span>
                         <div class="series-main"><strong>{{ $series->employee->full_name }}</strong><span>{{ $series->shift->name }} · {{ $series->shift->formatted_time }}</span><small>{{ $series->start_date->format('M j') }}–{{ $series->end_date->format('M j, Y') }} · {{ str($series->recurrence_type)->headline() }}</small></div>
-                        @if($canManageData)<form method="POST" action="{{ route('recurring-schedules.destroy', $series) }}" onsubmit="return confirm('Cancel this recurring series and remove its future assignments?')">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Cancel recurring series"><x-icon name="trash" /></button></form>@endif
+                        @if($canManageData)<form method="POST" action="{{ route('recurring-schedules.destroy', $series) }}" data-confirm="Cancel this recurring series and remove its future assignments?">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Cancel recurring series"><x-icon name="trash" /></button></form>@endif
                     </article>
                 @empty
                     <div class="compact-empty-state"><x-icon name="repeat" /><p>No active recurring schedule series.</p></div>
@@ -302,7 +302,7 @@
                 <p class="history-caption full-width" data-lock-warning hidden><x-icon name="close" /> The latest compliance check for this department failed. Locking is still allowed, but review the findings above first.</p>
                 <button class="btn btn-primary" type="submit" data-lock-submit>Lock period</button>
             </form>
-            <script>
+            <script @if(isset($cspNonce)) nonce="{{ $cspNonce }}" @endif>
                 document.querySelector('[data-lock-department]')?.addEventListener('change', (event) => {
                     const status = event.target.selectedOptions[0]?.dataset.latestReviewStatus;
                     const warning = document.querySelector('[data-lock-warning]');
@@ -317,7 +317,7 @@
                         <td>{{ $lock->start_date->format('M j, Y') }} – {{ $lock->end_date->format('M j, Y') }}</td>
                         <td>{{ $lock->lockedBy?->name ?? '—' }}</td>
                         <td>{{ $lock->locked_at->format('M j, Y g:i A') }}</td>
-                        <td><form method="POST" action="{{ route('schedule-locks.destroy', $lock) }}" onsubmit="return confirm('Unlock this period?')">@csrf @method('DELETE')<button class="btn btn-sm btn-light" type="submit">Unlock</button></form></td>
+                        <td><form method="POST" action="{{ route('schedule-locks.destroy', $lock) }}" data-confirm="Unlock this period?">@csrf @method('DELETE')<button class="btn btn-sm btn-light" type="submit">Unlock</button></form></td>
                     </tr>
                 @empty
                     <tr><td colspan="5" class="empty-table-cell"><x-icon name="shield" /><strong>No locked periods</strong><span>Locked schedules will appear here.</span></td></tr>
@@ -344,7 +344,9 @@
                                 <p class="schedule-assignment-section-copy">Set the actual shift details here. AI can recommend an employee, but these fields and the final save remain under HR control.</p>
                                 <div class="schedule-form-grid schedule-assignment-fields">
                         @endif
-                                    <label class="full-width"><span>Employee</span><select name="employee_id" required><option value="">Select employee</option>@foreach($employees as $employee)<option value="{{ $employee->id }}">{{ $employee->employee_number }} · {{ $employee->full_name }} ({{ $employee->department?->code }})</option>@endforeach</select></label>
+                                    <label><span>Department</span><select data-assignment-department-filter><option value="">All departments</option>@foreach($departments as $department)<option value="{{ $department->id }}">{{ $department->name }}</option>@endforeach</select></label>
+                                    <label><span>Position</span><select data-assignment-position-filter><option value="">All positions</option>@foreach($positions as $position)<option value="{{ $position->id }}" data-department-id="{{ $position->department_id }}">{{ $position->title }}</option>@endforeach</select></label>
+                                    <label class="full-width"><span>Employee</span><select name="employee_id" required data-assignment-employee-select><option value="">Select employee</option>@foreach($employees as $employee)<option value="{{ $employee->id }}" data-department-id="{{ $employee->department_id }}" data-position-id="{{ $employee->position_id }}">{{ $employee->employee_number }} · {{ $employee->full_name }} ({{ $employee->department?->code }})</option>@endforeach</select></label>
                                     <label><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
                                     <label><span>Work date</span><input type="date" name="work_date" value="{{ ($isEditableDate($focusDate) ? $focusDate : $firstEditableDate)->toDateString() }}" min="{{ $firstEditableDate->toDateString() }}" required></label>
                                     <label class="full-width"><span>Notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Optional assignment note"></textarea></label>
@@ -528,7 +530,9 @@
                 <form method="POST" action="{{ route('recurring-schedules.store') }}" id="recurringScheduleForm">@csrf
                     <div class="modal-header"><div><p class="panel-kicker">Recurring coverage</p><h2 class="modal-title" id="recurringScheduleModalLabel">Create recurring schedule</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body schedule-form-grid recurring-form-grid">
-                        <label><span>Employee</span><select name="employee_id" required><option value="">Select employee</option>@foreach($employees as $employee)<option value="{{ $employee->id }}">{{ $employee->employee_number }} · {{ $employee->full_name }}</option>@endforeach</select></label>
+                        <label><span>Department</span><select data-recurring-department-filter><option value="">All departments</option>@foreach($departments as $department)<option value="{{ $department->id }}">{{ $department->name }}</option>@endforeach</select></label>
+                        <label><span>Position</span><select data-recurring-position-filter><option value="">All positions</option>@foreach($positions as $position)<option value="{{ $position->id }}" data-department-id="{{ $position->department_id }}">{{ $position->title }}</option>@endforeach</select></label>
+                        <label class="full-width"><span>Employee</span><select name="employee_id" required data-recurring-employee-select><option value="">Select employee</option>@foreach($employees as $employee)<option value="{{ $employee->id }}" data-department-id="{{ $employee->department_id }}" data-position-id="{{ $employee->position_id }}">{{ $employee->employee_number }} · {{ $employee->full_name }}</option>@endforeach</select></label>
                         <label><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
                         <label><span>Starts</span><input type="date" name="start_date" value="{{ $focusDate->toDateString() }}" required></label>
                         <label><span>Ends</span><input type="date" name="end_date" value="{{ $focusDate->copy()->addMonth()->toDateString() }}" required></label>
@@ -547,7 +551,7 @@
             <div class="modal-dialog modal-dialog-centered"><div class="modal-content schedule-modal-content">
                 <div class="modal-header"><div><p class="panel-kicker">Assignment details</p><h2 class="modal-title" id="scheduleDetailModalLabel" data-detail-shift>Scheduled shift</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                 <div class="modal-body schedule-detail-grid"><div><span>Employee</span><strong data-detail-employee>—</strong></div><div><span>Employee ID</span><strong data-detail-employee-number>—</strong></div><div><span>Date</span><strong data-detail-date>—</strong></div><div><span>Shift time</span><strong data-detail-time>—</strong></div><div><span>Department</span><strong data-detail-department>—</strong></div><div><span>Series</span><strong data-detail-recurring>—</strong></div><div class="full-width"><span>Notes</span><strong data-detail-notes>—</strong></div><p class="schedule-detail-lock full-width" data-detail-lock hidden><x-icon name="lock" /><span data-detail-lock-message></span></p></div>
-                <div class="modal-footer"><form method="POST" action="#" data-delete-assignment-form onsubmit="return confirm('Remove this schedule assignment?')">@csrf @method('DELETE')<button class="btn btn-outline-danger" type="submit"><x-icon name="trash" /> Remove</button></form><button class="btn btn-outline-primary" type="button" data-edit-assignment><x-icon name="edit" /> Edit</button><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button></div>
+                <div class="modal-footer"><form method="POST" action="#" data-delete-assignment-form data-confirm="Remove this schedule assignment?">@csrf @method('DELETE')<button class="btn btn-outline-danger" type="submit"><x-icon name="trash" /> Remove</button></form><button class="btn btn-outline-primary" type="button" data-edit-assignment><x-icon name="edit" /> Edit</button><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button></div>
             </div></div>
         </div>
     @endif

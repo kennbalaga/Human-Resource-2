@@ -1,7 +1,0 @@
-@extends('auth.two-factor.layout')
-@section('title', 'Verify your identity')
-@section('content')
-<div class="text-center"><p class="text-sm font-semibold uppercase tracking-[.2em] text-blue-600">Secure sign-in</p><h1 class="mt-2 text-3xl font-bold">Verify your identity</h1><p class="mx-auto mt-3 max-w-md text-slate-600 dark:text-slate-300">Enter the six-digit code from your authenticator app, or one of your unused recovery codes.</p></div>
-@if($errors->any())<p role="alert" class="mt-6 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-200">{{ $errors->first() }}</p>@endif
-<form method="post" action="{{ route('two-factor.verify') }}" class="mx-auto mt-8 max-w-sm">@csrf<label for="code" class="block text-sm font-semibold">Authentication or recovery code</label><input id="code" name="code" inputmode="text" autocomplete="one-time-code" maxlength="20" required autofocus class="mt-2 w-full rounded-xl border border-slate-300 bg-transparent px-4 py-3 text-center font-mono text-xl tracking-[.2em] outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600"><button class="mt-5 w-full rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300">Continue securely</button></form><p class="mt-6 text-center text-sm text-slate-500">Lost your device? Contact HR or a system administrator for identity-verified assistance.</p>
-@endsection

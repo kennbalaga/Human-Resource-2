@@ -80,7 +80,10 @@ input {
     align-items: center;
     min-height: calc(var(--topbar-height) - 18px);
     margin: 0 4px 18px;
-    padding-bottom: 14px;
+    /* 6px, not 14px: the subtitle now wraps to two lines, and this is what
+       keeps the divider on the same horizontal as the topbar's bottom border
+       rather than sitting below it. Measured, not guessed. */
+    padding-bottom: 6px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     gap: 12px;
 }
@@ -183,25 +186,44 @@ input {
     font-size: var(--fs-md);
     font-weight: 650;
     letter-spacing: 0.01em;
+    line-height: 1.2;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+/*
+ * Two lines, not an ellipsis.
+ *
+ * The rail is 272px wide; once the 44px seal and the gaps are taken out, the
+ * subtitle has ~176px to work with and "Memorial Hospital & Sanitarium" needs
+ * about 180. It was losing its last word to "Sanitari...", which is a poor
+ * thing to do to the hospital's own name — and --fs-2xs is the type floor, so
+ * shrinking the way out was not available.
+ *
+ * The tightened line-height here and the brand block's reduced bottom padding
+ * are what keep the divider under this row level with the topbar's bottom
+ * edge now that the row carries a second line.
+ */
 .brand-copy small {
-    margin-top: 1px;
-    overflow: hidden;
+    margin-top: 2px;
     color: rgba(255, 255, 255, 0.68);
     font-size: var(--fs-2xs);
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.25;
+    text-wrap: balance;
 }
 
 .sidebar-close {
     display: none;
+    /* Full tap target: this is the only way out of the drawer on a phone, and
+       at 6px of padding it measured 32x32 against a 44px minimum. */
+    width: var(--tap-min);
+    height: var(--tap-min);
     padding: 6px;
     border: 0;
+    border-radius: var(--r-md);
     color: rgba(255, 255, 255, 0.8);
     background: transparent;
+    place-items: center;
 }
 
 .sidebar-nav {
@@ -413,6 +435,12 @@ input {
         overflow: hidden;
         opacity: 0;
         pointer-events: none;
+    }
+
+    /* Clamped to zero width, a wrapping subtitle breaks to one word per line
+       and makes the hidden block taller than the rail hiding it. */
+    html[data-sidebar='collapsed'] .brand-copy small {
+        white-space: nowrap;
     }
 
     /* No room for the label at this width, so the group survives as a hairline --

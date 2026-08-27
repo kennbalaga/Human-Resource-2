@@ -5,9 +5,11 @@ namespace App\Services;
 use App\Http\Middleware\EnsureSingleActiveSession;
 use App\Models\User;
 use App\Support\SessionNotice;
+use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -23,10 +25,34 @@ use Illuminate\Support\Str;
  *
  * Neither side gets to quietly keep the account while the other wonders what
  * happened: the person at each screen is told which of the two they are.
+ *
+ * Two devices at once is the only thing this is defending against, so a claim
+ * has to be able to end quietly as well as loudly. A session ends far more
+ * often by being walked away from than by being signed out of, and the device
+ * it belonged to never says so. A claim therefore stands only while the device
+ * holding it keeps being heard from, and stops standing against the browser
+ * that made it — coming back to the same browser is coming back, not arriving
+ * second.
  */
 class ActiveDeviceSessionService
 {
     public const SESSION_KEY = 'auth.active_session_token';
+
+    /**
+     * What the browser calls itself, kept far longer than any one session so
+     * that it is still there to be recognised by after the session is not.
+     */
+    private const DEVICE_COOKIE = 'hrms_device';
+
+    private const DEVICE_COOKIE_MINUTES = 60 * 24 * 365;
+
+    /**
+     * How often a device working away re-states that it is still holding the
+     * account. Often enough that a live session is never mistaken for an
+     * abandoned one, rarely enough that the once-a-second heartbeat behind it
+     * does not turn into a write per second.
+     */
+    private const HEARD_FROM_EVERY_SECONDS = 60;
 
     /**
      * Take the account's single session slot for this device.
@@ -39,7 +65,12 @@ class ActiveDeviceSessionService
         $token = Str::random(64);
 
         $request->session()->put(self::SESSION_KEY, $token);
-        $user->forceFill(['active_session_token' => $token])->save();
+
+        $user->forceFill([
+            'active_session_token' => $token,
+            'active_session_device_hash' => $this->deviceHash($request),
+            'active_session_last_seen_at' => now(),
+        ])->save();
     }
 
     /**
@@ -49,13 +80,23 @@ class ActiveDeviceSessionService
      */
     public function openElsewhere(User $user, Request $request): bool
     {
-        $claimed = $user->active_session_token;
-
-        if (! is_string($claimed) || $claimed === '') {
+        // A claim nobody has stood behind for longer than a session is allowed
+        // to live belongs to a session that has already ended — a browser
+        // closed, a screen walked away from — and holds nothing against
+        // anybody.
+        if (! $this->claimStillStands($user)) {
             return false;
         }
 
-        return ! hash_equals($claimed, $this->tokenHeldBy($request));
+        // Nor does this browser's own claim hold anything against it. Its
+        // session cookie is gone, which is the only reason it is at the login
+        // page, but it is the same device and there is no second one to
+        // protect the account from.
+        if ($this->claimHeldByThisDevice($user, $request)) {
+            return false;
+        }
+
+        return ! $this->holds($user, $request);
     }
 
     /**
@@ -87,6 +128,36 @@ class ActiveDeviceSessionService
     }
 
     /**
+     * Say that the device holding the account is still at it.
+     *
+     * A claim is only as good as the last time the device behind it was heard
+     * from, and this is that hearing: every request a signed-in device makes,
+     * down to the keep-alive it sends while nobody is touching the keyboard.
+     * Between those, the note is left as it is — the slot cannot be lost while
+     * the device is speaking often enough to keep it, and a browser that goes
+     * quiet is exactly the one that should stop holding the account.
+     */
+    public function keepHold(User $user, Request $request): void
+    {
+        if (! $this->holds($user, $request)) {
+            return;
+        }
+
+        $seen = $user->active_session_last_seen_at;
+
+        if ($seen instanceof CarbonInterface && $seen->greaterThan(now()->subSeconds(self::HEARD_FROM_EVERY_SECONDS))) {
+            return;
+        }
+
+        // Written past the model so that being present does not read as being
+        // edited: `updated_at` belongs to the account's own record, not to the
+        // heartbeat of whoever is looking at it.
+        User::query()
+            ->whereKey($user->getKey())
+            ->update(['active_session_last_seen_at' => now()]);
+    }
+
+    /**
      * Close the account on every device at once, and say where the device that
      * caused it goes now.
      *
@@ -105,7 +176,7 @@ class ActiveDeviceSessionService
             'request_id' => $request->headers->get('X-Request-ID'),
         ]);
 
-        $user->forceFill(['active_session_token' => null])->save();
+        $this->clearClaim($user);
 
         Auth::guard('web')->logout();
         $request->session()->invalidate();
@@ -128,11 +199,115 @@ class ActiveDeviceSessionService
             return;
         }
 
-        $user->forceFill(['active_session_token' => null])->save();
+        $this->clearClaim($user);
+    }
+
+    /**
+     * Whether this request is coming from the device the account is recorded
+     * against: it is carrying the claimed token, in its own session.
+     */
+    private function holds(User $user, Request $request): bool
+    {
+        $claimed = $user->active_session_token;
+
+        if (! is_string($claimed) || $claimed === '') {
+            return false;
+        }
+
+        return hash_equals($claimed, $this->tokenHeldBy($request));
+    }
+
+    /**
+     * Whether the recorded claim is still speaking for a session that exists.
+     *
+     * Nothing tells this application that a session ended, so the claim is
+     * read against the clock instead: a device last heard from longer ago than
+     * a session may live cannot still be signed in, whatever the token says.
+     */
+    private function claimStillStands(User $user): bool
+    {
+        $claimed = $user->active_session_token;
+
+        if (! is_string($claimed) || $claimed === '') {
+            return false;
+        }
+
+        $seen = $user->active_session_last_seen_at;
+
+        return $seen instanceof CarbonInterface
+            && $seen->greaterThan(now()->subMinutes($this->sessionLifetimeMinutes()));
+    }
+
+    private function claimHeldByThisDevice(User $user, Request $request): bool
+    {
+        $held = $user->active_session_device_hash;
+
+        return is_string($held) && $held !== '' && hash_equals($held, $this->deviceHash($request));
+    }
+
+    private function clearClaim(User $user): void
+    {
+        $user->forceFill([
+            'active_session_token' => null,
+            'active_session_device_hash' => null,
+            'active_session_last_seen_at' => null,
+        ])->save();
+    }
+
+    private function sessionLifetimeMinutes(): int
+    {
+        return max(1, (int) config('session.lifetime', 30));
     }
 
     private function tokenHeldBy(Request $request): string
     {
         return (string) $request->session()->get(self::SESSION_KEY, '');
+    }
+
+    /**
+     * The device is recorded by hash, never in the clear: holding the value in
+     * the cookie is the whole of what makes a browser this browser.
+     */
+    private function deviceHash(Request $request): string
+    {
+        return hash('sha256', $this->deviceId($request));
+    }
+
+    /**
+     * What this browser calls itself, minting the name if it has none yet.
+     *
+     * Answered once per request from the cookie already queued, so that the
+     * device a sign-in is weighed against is the same device it is then
+     * recorded on.
+     */
+    private function deviceId(Request $request): string
+    {
+        $existing = $request->cookie(self::DEVICE_COOKIE);
+
+        if (is_string($existing) && $existing !== '') {
+            return $existing;
+        }
+
+        $queued = Cookie::queued(self::DEVICE_COOKIE);
+
+        if ($queued !== null && $queued->getValue() !== '') {
+            return (string) $queued->getValue();
+        }
+
+        $id = Str::random(64);
+
+        Cookie::queue(
+            self::DEVICE_COOKIE,
+            $id,
+            self::DEVICE_COOKIE_MINUTES,
+            config('session.path', '/'),
+            config('session.domain'),
+            (bool) config('session.secure', false),
+            true,
+            false,
+            config('session.same_site', 'lax'),
+        );
+
+        return $id;
     }
 }

@@ -21,7 +21,7 @@ class EmployeeController extends Controller
             'status' => ['nullable', 'in:active,inactive,terminated,on_leave'],
             'per_page' => ['nullable', 'integer', 'between:1,100'],
         ]);
-        $employees = Employee::query()->with(['user', 'department', 'position'])
+        $employees = Employee::query()->visibleTo($request->user())->with(['user', 'department', 'position'])
             ->when($validated['department_id'] ?? null, fn ($query, $id) => $query->where('department_id', $id))
             ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('employment_status', $status))
             ->orderBy('last_name')->paginate($validated['per_page'] ?? 25);
@@ -31,8 +31,7 @@ class EmployeeController extends Controller
 
     public function show(Request $request, Employee $employee): EmployeeResource
     {
-        $this->requireRead($request->user());
-        abort_unless($this->canManage($request->user()) || $request->user()->employee?->is($employee), 403);
+        $this->requireReadFor($request->user(), $employee);
 
         return new EmployeeResource($employee->load(['user', 'department', 'position']));
     }

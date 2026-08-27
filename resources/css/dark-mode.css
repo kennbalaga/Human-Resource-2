@@ -222,7 +222,10 @@ html[data-theme-resolved='dark'] .profile-detail-list dd,
 html[data-theme-resolved='dark'] .settings-toggle strong,
 html[data-theme-resolved='dark'] .appearance-option strong,
 html[data-theme-resolved='dark'] .settings-section-nav a { color:var(--hr-text); }
-html[data-theme-resolved='dark'] .settings-section-nav a:hover { color:var(--hr-primary); background:#233329; }
+html[data-theme-resolved='dark'] .settings-section-nav a:hover,
+html[data-theme-resolved='dark'] .settings-section-nav a:focus-visible,
+html[data-theme-resolved='dark'] .settings-section-nav a[aria-current='true'] { color:var(--hr-primary); background:#233329; }
+html[data-theme-resolved='dark'] .settings-section-nav a[aria-current='true'] small { color:var(--hr-primary); }
 html[data-theme-resolved='dark'] .settings-toggle-list,
 html[data-theme-resolved='dark'] .settings-toggle { border-color:var(--hr-border); }
 html[data-theme-resolved='dark'] .appearance-option input:checked+span { color:#e6f1eb; border-color:var(--hr-primary); background:#20392d; box-shadow:0 0 0 3px rgba(var(--hr-primary-rgb),.16); }

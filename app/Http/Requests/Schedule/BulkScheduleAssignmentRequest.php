@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Schedule;
 
+use App\Http\Requests\Concerns\ScopesToSupervisedDepartments;
 use App\Models\Position;
 use App\Services\Scheduling\SchedulePeriodService;
 use Closure;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class BulkScheduleAssignmentRequest extends FormRequest
 {
+    use ScopesToSupervisedDepartments;
+
     protected function prepareForValidation(): void
     {
         $holidayDates = collect(preg_split('/[\s,]+/', (string) $this->input('holiday_dates_csv')))
@@ -50,7 +53,7 @@ class BulkScheduleAssignmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'department_id' => ['required', 'integer', 'exists:departments,id'],
+            'department_id' => ['required', 'integer', 'exists:departments,id', ...$this->supervisedDepartmentRules()],
             'position_ids' => ['nullable', 'array'],
             'position_ids.*' => ['integer', 'distinct', Rule::exists('positions', 'id')->where('department_id', $this->input('department_id'))],
             'employee_ids' => ['required', 'array', 'min:1', 'max:'.config('schedule.max_bulk_assignment_employees')],

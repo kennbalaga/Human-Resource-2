@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Schedule;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Schedule\ScheduleAssignmentRequest;
 use App\Models\ScheduleAssignment;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Gate;
 
 class ScheduleAssignmentController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     public function store(
         ScheduleAssignmentRequest $request,
         ScheduleService $scheduleService,
@@ -49,6 +52,7 @@ class ScheduleAssignmentController extends Controller
         abort_unless(Gate::forUser($request->user())->allows('workforce.view'), 403);
 
         $scheduleAssignment->loadMissing(['employee.department', 'employee.user.preference', 'shift']);
+        $this->requireSupervision($request, $scheduleAssignment->employee);
         $scheduleService->assertDateEditable($scheduleAssignment->work_date, 'schedule');
         if ($scheduleAssignment->employee->department !== null) {
             $locks->assertUnlocked($scheduleAssignment->employee->department, $scheduleAssignment->work_date);

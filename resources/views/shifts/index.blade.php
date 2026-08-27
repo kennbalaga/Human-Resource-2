@@ -85,7 +85,7 @@
                                     <form
                                         method="POST"
                                         action="{{ route('shifts.toggle-active', $shift) }}"
-                                        @if ($shift->is_active) onsubmit="return confirm('Deactivate this shift template? It will be hidden from new schedule assignments, but existing schedules keep this shift.')" @endif
+                                        @if ($shift->is_active) data-confirm="Deactivate this shift template? It will be hidden from new schedule assignments, but existing schedules keep this shift." @endif
                                     >
                                         @csrf @method('PATCH')
                                         <button
@@ -99,7 +99,7 @@
                                         </button>
                                     </form>
                                     @if (! $shift->is_system && $shift->assignments_count === 0)
-                                        <form method="POST" action="{{ route('shifts.destroy', $shift) }}" onsubmit="return confirm('Delete this unused shift template?')">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Delete {{ $shift->name }}" title="Delete"><x-icon name="trash" /></button></form>
+                                        <form method="POST" action="{{ route('shifts.destroy', $shift) }}" data-confirm="Delete this unused shift template?">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Delete {{ $shift->name }}" title="Delete"><x-icon name="trash" /></button></form>
                                     @endif
                                     @else
                                         <span class="shift-template-hint">View only</span>

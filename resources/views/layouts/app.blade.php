@@ -16,7 +16,7 @@
     <title>@yield('title', 'Dashboard') · Workforce HRMS</title>
     @include('partials.favicon')
 
-    <script>
+    <script @if(isset($cspNonce)) nonce="{{ $cspNonce }}" @endif>
         (() => {
             const root = document.documentElement;
             const requested = root.dataset.theme || 'system';
@@ -83,7 +83,6 @@
         // Only the entrance scanner needs it. Badges are drawn by the server,
         // so an employee's own page carries no QR script at all.
         request()->routeIs('attendance.index') ? 'resources/js/attendance-qr.js' : null,
-        request()->routeIs('organization.chart') ? 'resources/js/org-chart.js' : null,
     ])))
     @stack('head')
 </head>

@@ -13,6 +13,44 @@ const formatScheduleDate = (date) => {
     }).format(new Date(`${date}T00:00:00`));
 };
 
+// Narrows a plain employee <select> to a chosen department and/or position so
+// picking one person out of the whole roster doesn't mean scanning every
+// employee at once, mirroring the filtering the bulk roster builder already does.
+const wireEmployeeDirectoryFilter = (form, { departmentSelector, positionSelector, employeeSelector }) => {
+    if (!form) return;
+    const departmentFilter = form.querySelector(departmentSelector);
+    const positionFilter = form.querySelector(positionSelector);
+    const employeeSelect = form.querySelector(employeeSelector);
+    if (!departmentFilter || !positionFilter || !employeeSelect) return;
+
+    const positionOptions = [...positionFilter.querySelectorAll('option[data-department-id]')];
+    const employeeOptions = [...employeeSelect.querySelectorAll('option')].filter((option) => option.value);
+
+    const syncPositions = () => {
+        const departmentId = departmentFilter.value;
+        positionOptions.forEach((option) => {
+            option.hidden = Boolean(departmentId) && option.dataset.departmentId !== departmentId;
+        });
+        if (positionFilter.selectedOptions[0]?.hidden) positionFilter.value = '';
+    };
+
+    const syncEmployees = () => {
+        const departmentId = departmentFilter.value;
+        const positionId = positionFilter.value;
+        employeeOptions.forEach((option) => {
+            option.hidden = (Boolean(departmentId) && option.dataset.departmentId !== departmentId)
+                || (Boolean(positionId) && option.dataset.positionId !== positionId);
+        });
+        if (employeeSelect.selectedOptions[0]?.hidden) employeeSelect.value = '';
+    };
+
+    departmentFilter.addEventListener('change', () => {
+        syncPositions();
+        syncEmployees();
+    });
+    positionFilter.addEventListener('change', syncEmployees);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const assignmentModalElement = document.querySelector('#scheduleAssignmentModal');
     const assignmentForm = document.querySelector('#scheduleAssignmentForm');
@@ -197,6 +235,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     recurringForm?.addEventListener('change', updateRecurrenceForm);
     updateRecurrenceForm();
+
+    wireEmployeeDirectoryFilter(assignmentForm, {
+        departmentSelector: '[data-assignment-department-filter]',
+        positionSelector: '[data-assignment-position-filter]',
+        employeeSelector: '[data-assignment-employee-select]',
+    });
+    wireEmployeeDirectoryFilter(recurringForm, {
+        departmentSelector: '[data-recurring-department-filter]',
+        positionSelector: '[data-recurring-position-filter]',
+        employeeSelector: '[data-recurring-employee-select]',
+    });
 
     const bulkModalElement = document.querySelector('#bulkScheduleModal');
     const bulkForm = document.querySelector('#bulkScheduleForm');

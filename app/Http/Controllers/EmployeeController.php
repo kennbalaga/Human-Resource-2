@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Requests\Organization\SaveEmployeeRequest;
 use App\Models\Department;
 use App\Models\Employee;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -25,6 +27,8 @@ use Throwable;
 
 class EmployeeController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     public function __construct(
         private readonly EmployeeNumberGenerator $employeeNumberGenerator,
         private readonly EmployeeNumberSettings $employeeNumberSettings,
@@ -40,25 +44,41 @@ class EmployeeController extends Controller
         $query = Employee::query()->with(['user', 'department', 'position', 'supervisor']);
 
         $query
-            ->when($filters['search'] ?? null, function (Builder $builder, string $search): void {
-                $builder->where(function (Builder $searchQuery) use ($search): void {
+            ->when($filters['search'] ?? null, function (Builder $builder, string $search) use ($request): void {
+                // Matching on the email column is itself a disclosure: it lets
+                // any signed-in account confirm a colleague's address by
+                // probing for it, one guess at a time. Name and employee number
+                // are what the directory is for and stay open to everyone.
+                $canSearchEmail = Gate::forUser($request->user())->allows('workforce.view');
+
+                $builder->where(function (Builder $searchQuery) use ($search, $canSearchEmail): void {
                     $searchQuery
                         ->where('employee_number', 'like', "%{$search}%")
                         ->orWhere('first_name', 'like', "%{$search}%")
                         ->orWhere('last_name', 'like', "%{$search}%")
-                        ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->where('email', 'like', "%{$search}%"));
+                        ->when($canSearchEmail, fn (Builder $query) => $query
+                            ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->where('email', 'like', "%{$search}%")));
                 });
             })
             ->when($filters['department_id'] ?? null, fn (Builder $builder, int $departmentId) => $builder->where('department_id', $departmentId))
             ->when($filters['status'] ?? null, fn (Builder $builder, string $status) => $builder->where('employment_status', $status));
 
         $canManage = $this->canWrite($request);
+        $employees = $query->orderBy('last_name')->orderBy('first_name')->paginate(15)->withQueryString();
+
+        if ($request->ajax()) {
+            return view('employees._table', [
+                'employees' => $employees,
+                'canManage' => $canManage,
+            ]);
+        }
 
         return view('employees.index', [
-            'employees' => $query->orderBy('last_name')->orderBy('first_name')->paginate(15)->withQueryString(),
+            'employees' => $employees,
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'filters' => $filters,
             'canManage' => $canManage,
+            'canSearchEmail' => Gate::forUser($request->user())->allows('workforce.view'),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             // The add-employee modal lives on this page, so the directory needs
             // the same option lists the create page builds — but only for the
@@ -77,13 +97,21 @@ class EmployeeController extends Controller
             'supervisor.position',
             'directReports.position',
         ]);
+        $canViewPrivate = $this->canManage($request) || $request->user()->employee?->is($employee);
+        $canReissueAttendanceQr = $this->canWrite($request);
 
         $data = [
             'employee' => $employee,
             'canManage' => $this->canWrite($request),
-            'canViewPrivate' => $this->canManage($request) || $request->user()->employee?->is($employee),
-            'attendanceQrSvg' => QrEncoder::svg(app(AttendanceQrService::class)->payloadFor($employee)),
-            'canReissueAttendanceQr' => $this->canWrite($request),
+            'canViewPrivate' => $canViewPrivate,
+            // The badge panel is the only thing that renders this, and it is
+            // already gated on the same flag. Building the payload regardless
+            // meant every viewer of this page was handed a working credential
+            // in the view data whether or not the markup showed it.
+            'attendanceQrSvg' => $canReissueAttendanceQr
+                ? QrEncoder::svg(app(AttendanceQrService::class)->payloadFor($employee))
+                : null,
+            'canReissueAttendanceQr' => $canReissueAttendanceQr,
             'canResetTwoFactor' => $request->user()->hasRole('system-administrator')
                 && $employee->user !== null
                 && ! $employee->user->is($request->user())

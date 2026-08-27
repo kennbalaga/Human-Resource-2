@@ -19,11 +19,11 @@ class AuthenticatedSessionController extends Controller
 {
     public function create(Request $request, RememberedLoginService $rememberedLogin): View
     {
-        $rememberedEmployeeId = $rememberedLogin->employeeNumber($request);
+        $rememberedIdentifier = $rememberedLogin->identifier($request);
 
         return view('auth.login', [
-            'rememberedEmployeeId' => $rememberedEmployeeId,
-            'rememberedEmployeeSelected' => $rememberedEmployeeId !== null,
+            'rememberedIdentifier' => $rememberedIdentifier,
+            'rememberedIdentifierSelected' => $rememberedIdentifier !== null,
             // Redirected here by the server, or sent here by a browser that
             // had already shown the dialog and knows why it is leaving.
             'sessionNotice' => SessionNotice::fromRequestValue(
@@ -44,6 +44,7 @@ class AuthenticatedSessionController extends Controller
             $request->session()->put([
                 'login.id' => $user->getKey(),
                 'login.remember' => $request->boolean('remember'),
+                'login.identifier' => $request->identifier(),
             ]);
 
             TwoFactorAuthenticationChallenged::dispatch($user);
@@ -58,7 +59,7 @@ class AuthenticatedSessionController extends Controller
             return $activeSession->closeEverywhere($user, $request);
         }
 
-        $rememberedLogin->login($user, $request->boolean('remember'));
+        $rememberedLogin->login($user, $request->boolean('remember'), $request->identifier());
         $request->session()->regenerate();
 
         $user->forceFill([

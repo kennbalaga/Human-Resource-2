@@ -111,6 +111,10 @@
 
 .calendar-nav-button {
     width: var(--tap-min);
+    /* A flex item shrinks below its width by default. In the calendar header
+       on a 390px screen these two arrows were squeezed to 18px wide — the
+       full-target width above was being handed straight back. */
+    flex: none;
     border-radius: var(--r-md);
 }
 
@@ -188,6 +192,10 @@
 }
 
 .calendar-view-switch a {
+    /* 2rem here quietly undoes the --tap-min the shared rule above sets, which
+       is why Month/Week/List measured 32px. Kept at 2rem so the desktop
+       toolbar is unchanged; mobile.css raises it back to the full target on a
+       coarse pointer, where it actually matters. */
     min-height: 2rem;
     padding: 0 .75rem;
     border: 0;
@@ -1116,7 +1124,10 @@
 }
 
 .bulk-schedule-dialog {
-    width: min(68rem, calc(100vw - 2rem));
+    /* Matches the assignment dialog, and for the same reason: step 3 lays a
+       seven-day roster board out inside this, and every column it loses comes
+       off the names it exists to show. */
+    width: min(78rem, calc(100vw - 2rem));
     max-width: none;
     margin: 1rem auto;
 }
@@ -1137,11 +1148,15 @@
 .bulk-schedule-shell {
     display: grid;
     min-height: 0;
-    grid-template-columns: 13rem minmax(0, 1fr);
+    /* Sized to the longest step name rather than to a round number: at a fixed
+       width the divider landed wherever the leftover fell, which read as a gap
+       between the rail and the step body rather than as an edge belonging to
+       either. The padding below now sets that distance outright. */
+    grid-template-columns: max-content minmax(0, 1fr);
 }
 
 .bulk-flow-rail {
-    padding: 1.15rem 1rem;
+    padding: 1.15rem 1.45rem 1.15rem 1.05rem;
     border-right: 1px solid var(--hr-border);
     background: var(--hr-surface-2);
 }
@@ -1283,9 +1298,9 @@
     line-height: 1.5;
 }
 
-/* The dialog is sized for the Step 3 roster board, so a full-width cell here is
-   ~70rem across. A name search does not get more useful at that width - it just
-   makes the eye travel from the label to the caret. */
+/* The dialog is sized for the Step 3 roster board, so a full-width cell here
+   runs most of the screen. A name search does not get more useful at that width
+   - it just makes the eye travel from the label to the caret. */
 .bulk-schedule-details [data-bulk-employee-search] {
     max-width: 26rem;
 }
@@ -1309,14 +1324,23 @@
     font-weight: 800;
 }
 
+/* Four columns held every rule to about eleven words of width: the longer
+   labels wrapped, and the note under a field came out as a five-line ribbon of
+   the smallest type in the app. Columns wide enough to keep a label on one line
+   are what stops both, and there are few enough rules that a second row costs
+   nothing. */
 .bulk-rule-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: .7rem;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 1rem .9rem;
 }
 
+/* Start-aligned, not stretched. A field with no note under it would otherwise
+   have its own control pushed to the bottom of a row made tall by the field
+   beside it, leaving the label stranded at the top with the gap in between. */
 .bulk-rule-grid label {
     display: grid;
+    align-content: start;
     gap: .35rem;
 }
 
@@ -2595,14 +2619,21 @@
 }
 
 /* Seven weekday columns, one row of headers and one row of day cells. A week
-   at a time: a fortnight or a month is paged through rather than scrolled. */
+   at a time: a fortnight or a month is paged through rather than scrolled.
+
+   The columns have a floor. Seven equal shares of whatever is left over is not
+   a width: past a point a shift name is an ellipsis and a name is a first
+   name, and the board stops being readable well before it stops fitting. The
+   floor is set where a laptop still fits the whole week without one, so it
+   binds only below that — a phone, where the day view is the answer anyway —
+   and the week scrolls sideways rather than shrinking into nothing. */
 .roster-board-days {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(6.25rem, 1fr));
     gap: .45rem;
     align-items: start;
     max-height: 30rem;
-    overflow-y: auto;
+    overflow: auto;
 }
 
 .roster-board-days.is-day-view {
@@ -2710,17 +2741,38 @@
     background: var(--hr-tint-warning);
 }
 
+/* One line, always, at any column width down to the board's floor.
+   Two things were fighting that:
+
+   1. Wrapping the count onto its own line looked right for the one column
+      narrow enough to need it, but flex-wrap decides that by each item's
+      full, untruncated width — so a name that fit *by itself* still bumped
+      the count to a second line whenever shrinking the name by a few
+      characters would have been what kept both on the first. That left
+      "Administrative Shift" sitting alone on its row with "1/1" wasted
+      underneath it, at exactly the widths this board actually uses. Giving
+      the name a zero flex-basis (below) sidesteps the heuristic rather than
+      fighting it: no longer sized by its content up front, it has nothing
+      to overflow the line with, and only grows to fill — or shrinks to
+      ellipsize inside — whatever the dot and the count leave behind.
+
+   2. header is also a grid item of .roster-shift's own single-column grid,
+      and without min-width: 0 here that grid sized the column to header's
+      full, untruncated content regardless of what the flex-basis change
+      allows header's own children to do. The whole card then rendered at
+      that inflated width — name unshrunk, count intact, but bleeding into
+      the next day's column — instead of the width its day actually has. */
 .roster-shift > header {
     display: flex;
-    flex-wrap: wrap;
+    min-width: 0;
     align-items: center;
-    gap: 0 .3rem;
+    gap: .3rem;
 }
 
 .roster-shift > header strong {
     overflow: hidden;
     min-width: 0;
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     font-size: var(--fs-2xs);
     font-weight: 700;
     text-overflow: ellipsis;
@@ -2735,7 +2787,6 @@
 }
 
 .roster-coverage {
-    margin-left: auto;
     flex: 0 0 auto;
     color: var(--hr-text);
     font-size: var(--fs-2xs);

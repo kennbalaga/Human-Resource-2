@@ -25,7 +25,7 @@ class PreventRememberedAuthentication
         }
 
         if ($user->is_active && $user->employee()->where('employment_status', 'active')->exists()) {
-            $this->rememberedLogin->rememberIdentity($user);
+            $this->rememberedLogin->refreshIdentity($request, $user);
         }
 
         Auth::guard('web')->logout();

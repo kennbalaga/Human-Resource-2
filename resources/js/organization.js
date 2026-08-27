@@ -47,7 +47,7 @@ const initializePositionFiltering = () => {
 };
 
 const initializeLiveOrganizationFilters = () => {
-    document.querySelectorAll('form.organization-filters').forEach((form) => {
+    document.querySelectorAll('form.organization-filters:not([data-live-filters])').forEach((form) => {
         const submit = () => (form.requestSubmit ? form.requestSubmit() : form.submit());
 
         form.querySelectorAll('select').forEach((select) => {
@@ -62,6 +62,95 @@ const initializeLiveOrganizationFilters = () => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(submit, 400);
         });
+    });
+};
+
+/* Employee directory search/filter refresh the results panel via fetch
+   instead of a full page navigation, so typing doesn't reload the page. */
+const initializeLiveEmployeeDirectory = () => {
+    const form = document.querySelector('#employee-filters-form');
+    const results = document.querySelector('#employee-directory-results');
+    if (!form || !results) return;
+
+    const clearAction = form.querySelector('.organization-filter-actions');
+    let activeRequest;
+
+    const syncFormToUrl = (url) => {
+        const params = new URL(url, window.location.origin).searchParams;
+        const search = form.querySelector('input[type="search"]');
+        if (search) search.value = params.get('search') || '';
+        form.querySelectorAll('select').forEach((select) => {
+            select.value = params.get(select.name) || '';
+        });
+        if (clearAction) clearAction.hidden = !(params.get('search') || params.get('department_id') || params.get('status'));
+    };
+
+    const load = async (url, { pushHistory = true } = {}) => {
+        activeRequest?.abort();
+        const controller = new AbortController();
+        activeRequest = controller;
+
+        results.setAttribute('aria-busy', 'true');
+        try {
+            const response = await fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                signal: controller.signal,
+            });
+            if (!response.ok) return;
+
+            results.innerHTML = await response.text();
+            if (pushHistory) window.history.pushState({}, '', url);
+        } catch (error) {
+            if (error.name !== 'AbortError') throw error;
+        } finally {
+            results.removeAttribute('aria-busy');
+        }
+    };
+
+    const submit = () => {
+        const params = new URLSearchParams(new FormData(form));
+        [...params.keys()].forEach((key) => {
+            if (!params.get(key)) params.delete(key);
+        });
+        const query = params.toString();
+        load(`${form.action}${query ? `?${query}` : ''}`);
+        if (clearAction) clearAction.hidden = query === '';
+    };
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        submit();
+    });
+
+    form.querySelectorAll('select').forEach((select) => select.addEventListener('change', submit));
+
+    const search = form.querySelector('input[type="search"]');
+    let debounceTimer;
+    search?.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(submit, 400);
+    });
+
+    clearAction?.addEventListener('click', (event) => {
+        const link = event.target.closest('a');
+        if (!link) return;
+        event.preventDefault();
+        form.reset();
+        clearAction.hidden = true;
+        load(link.href);
+    });
+
+    results.addEventListener('click', (event) => {
+        const link = event.target.closest('.report-pagination a');
+        if (!link) return;
+        event.preventDefault();
+        load(link.href);
+        syncFormToUrl(link.href);
+    });
+
+    window.addEventListener('popstate', () => {
+        load(window.location.href, { pushHistory: false });
+        syncFormToUrl(window.location.href);
     });
 };
 
@@ -150,6 +239,7 @@ const initializeEmployeePanel = () => {
 document.addEventListener('DOMContentLoaded', () => {
     initializePositionFiltering();
     initializeLiveOrganizationFilters();
+    initializeLiveEmployeeDirectory();
     reopenModalsWithErrors();
     initializeEmployeePanel();
 });

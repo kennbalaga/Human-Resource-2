@@ -62,9 +62,9 @@
                             type="text"
                             id="employee_id"
                             name="employee_id"
-                            value="{{ old('employee_id', $rememberedEmployeeId) }}"
+                            value="{{ old('employee_id', $rememberedIdentifier) }}"
                             autocomplete="username"
-                            placeholder="ABC-2026-0001 or name@example.com"
+                            placeholder="name@example.com"
                             required
                             autofocus
                         >
@@ -81,7 +81,7 @@
                     <div class="form-actions">
                         <div class="remember-me">
                             <input type="hidden" name="remember" value="0">
-                            <input type="checkbox" id="remember" name="remember" value="1" @checked((bool) old('remember', $rememberedEmployeeSelected))>
+                            <input type="checkbox" id="remember" name="remember" value="1" @checked((bool) old('remember', $rememberedIdentifierSelected))>
                             <label for="remember">Remember Me</label>
                         </div>
                         <a href="{{ route('password.request') }}" class="forgot-password">Forgot Your Password?</a>
@@ -93,8 +93,8 @@
             </main>
 
             <footer class="footer-links">
-                <span class="copyright">Copyright © 2026 Dr. Jose N. Rodriguez MHS.</span>
-                <a href="#" class="privacy">Privacy Policy</a>
+                <span class="copyright">&copy; {{ now()->year }} Dr. Jose N. Rodriguez MHS. All rights reserved.</span>
+                <a href="{{ route('privacy-policy') }}" class="privacy">Privacy Policy</a>
             </footer>
         </div>
 
@@ -102,7 +102,7 @@
             <div class="hero-content">
                 <h2>Empower your hospital workforce with confidence.</h2>
                 <p>Log in to your management portal to coordinate staff, ensure seamless coverage, and support your healthcare professionals.</p>
-                
+
                 <img src="{{ URL('images/doctors.png')}}" alt="CRM Dashboard Preview" class="hero-image">
             </div>
             <div class="bg-shape shape-1"></div>
