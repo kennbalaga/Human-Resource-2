@@ -171,6 +171,17 @@
     font-weight: 600;
 }
 
+/* Sized to match the other search fields. It carried no width of its own, so
+   once the border came off, the filled shape collapsed to the browser's default
+   input width -- narrow enough to clip its own placeholder. */
+.attendance-form input[type='text'] {
+    width: 100%;
+    max-width: 26rem;
+    min-height: 2.65rem;
+    padding: .58rem .72rem;
+    font-size: var(--fs-sm);
+}
+
 .attendance-note textarea {
     width: 100%;
     padding: 10px 11px;

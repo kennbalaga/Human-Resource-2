@@ -1,0 +1,63 @@
+/*
+ * ---- One look for every field you type a query into ----
+ *
+ * Filled, borderless, and rounded: the field is a shape on the surface rather
+ * than an outline drawn on it. The topbar bar sets the pattern and everything
+ * else follows it, so a search field is recognisable as one wherever it turns
+ * up rather than being restyled per page.
+ *
+ * The dropdowns that share a filter row are included deliberately. A row with a
+ * filled search beside an outlined Department and Status reads as two different
+ * form systems that happened to land next to each other -- the fill has to be a
+ * property of the row, not of the one control that prompted it.
+ *
+ * Dark variants live in dark-mode.css with the rest of the dark theme.
+ */
+.global-search,
+.organization-filters input,
+.organization-filters select,
+.bulk-schedule-form input[data-bulk-employee-search],
+.bulk-staff-scope-field select,
+.attendance-form input[type='text'] {
+    border: 1px solid transparent;
+    border-radius: var(--r-md);
+    outline: 0;
+    color: var(--hr-text);
+    background: var(--hr-surface-2);
+    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+/*
+ * Focus lifts the field to the raised surface and adds the ring.
+ *
+ * Going lighter rather than darker is what makes the state legible without a
+ * border at rest: the field visibly separates from the panel it sits on at the
+ * moment it takes the keyboard, which a colour-only change on an already-filled
+ * control does not do.
+ */
+.global-search:focus-within,
+.organization-filters input:focus,
+.organization-filters select:focus,
+.bulk-schedule-form input[data-bulk-employee-search]:focus,
+.bulk-staff-scope-field select:focus,
+.attendance-form input[type='text']:focus {
+    border-color: rgba(23, 107, 67, 0.42);
+    background: var(--hr-surface);
+    box-shadow: 0 0 0 3px rgba(23, 107, 67, 0.08);
+}
+
+/* The magnifier is a label, not a control, so it stays quieter than the text
+   someone has typed. */
+.global-search .ui-icon {
+    color: var(--hr-subtle);
+}
+
+/*
+ * The topbar field is the one that sits on a bar rather than inside a panel, so
+ * it is also the one that can be hovered without any other control nearby to
+ * explain it. A hover step gives it the affordance the others get from being in
+ * an obvious form row.
+ */
+.global-search:hover:not(:focus-within) {
+    background: var(--hr-surface-3);
+}

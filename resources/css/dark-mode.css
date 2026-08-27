@@ -102,11 +102,29 @@ html[data-theme-resolved='dark'] .btn-light { color:var(--hr-text); border-color
 html[data-theme-resolved='dark'] .global-search:focus-within,
 html[data-theme-resolved='dark'] .icon-button:hover,
 html[data-theme-resolved='dark'] .mobile-menu-button:hover { color:var(--hr-primary); border-color:#42594d; background:#232e28; }
-/* The field is borderless on the bar in both themes; the grouped rule above
-   hands it a surface fill meant for the icon buttons it is listed with. */
-html[data-theme-resolved='dark'] .global-search { border-color:transparent; background:transparent; }
-html[data-theme-resolved='dark'] .global-search:hover { background:#202b25; }
-html[data-theme-resolved='dark'] .global-search:focus-within { border-color:#42594d; background:#232e28; }
+/*
+ * The dark half of search-fields.css: filled, borderless, one step lighter than
+ * the surface behind it. The blanket `html[dark] input` rule further down would
+ * otherwise sink these fields to #131b17, which is darker than the panel they
+ * sit on -- a hole rather than a field. Each selector here carries a class, so
+ * it outranks that bare-element rule.
+ */
+html[data-theme-resolved='dark'] .global-search,
+html[data-theme-resolved='dark'] .organization-filters input,
+html[data-theme-resolved='dark'] .organization-filters select,
+html[data-theme-resolved='dark'] .bulk-schedule-form input[data-bulk-employee-search],
+html[data-theme-resolved='dark'] .bulk-staff-scope-field select,
+html[data-theme-resolved='dark'] .attendance-form input[type='text'] { color:var(--hr-text); border-color:transparent; background:#202b25; }
+html[data-theme-resolved='dark'] .global-search:focus-within,
+html[data-theme-resolved='dark'] .organization-filters input:focus,
+html[data-theme-resolved='dark'] .organization-filters select:focus,
+html[data-theme-resolved='dark'] .bulk-schedule-form input[data-bulk-employee-search]:focus,
+html[data-theme-resolved='dark'] .bulk-staff-scope-field select:focus,
+html[data-theme-resolved='dark'] .attendance-form input[type='text']:focus { border-color:#42594d; background:#232e28; box-shadow:0 0 0 3px rgba(var(--hr-primary-rgb),.18); }
+html[data-theme-resolved='dark'] .global-search:hover:not(:focus-within) { background:#26332c; }
+html[data-theme-resolved='dark'] .global-search .ui-icon { color:#8b9a92; }
+html[data-theme-resolved='dark'] .organization-filters input::placeholder,
+html[data-theme-resolved='dark'] .attendance-form input[type='text']::placeholder { color:#8b9a92; }
 html[data-theme-resolved='dark'] .topbar-divider { background:var(--hr-border); }
 html[data-theme-resolved='dark'] .topbar-profile-button { color:var(--hr-text); }
 html[data-theme-resolved='dark'] .topbar-profile-button:hover,

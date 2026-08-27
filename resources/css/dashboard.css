@@ -673,34 +673,15 @@ input {
     font-size: var(--fs-xs);
 }
 
-/*
- * Borderless at rest, so the field reads as part of the bar rather than a
- * control sitting on it. Focus is where it earns the outline back: without
- * that, a blinking caret would be the only sign the field had taken the
- * keyboard, which is not enough on its own.
- */
+/* Layout only. The fill, radius and focus treatment are shared with every other
+   search field in the app and live in search-fields.css. */
 .global-search {
     display: flex;
     width: 100%;
     min-height: 43px;
     padding: 0 12px;
-    border: 1px solid transparent;
-    border-radius: var(--r-md);
-    color: var(--hr-subtle);
-    background: transparent;
     align-items: center;
     gap: 10px;
-    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
-}
-
-.global-search:hover {
-    background: var(--hr-surface-2);
-}
-
-.global-search:focus-within {
-    border-color: rgba(23, 107, 67, 0.42);
-    background: var(--hr-surface);
-    box-shadow: 0 0 0 3px rgba(23, 107, 67, 0.08);
 }
 
 .global-search .ui-icon {
