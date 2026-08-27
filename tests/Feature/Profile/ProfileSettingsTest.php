@@ -98,7 +98,7 @@ class ProfileSettingsTest extends TestCase
             ->assertDontSee('Display timezone');
     }
 
-    public function test_topbar_theme_toggle_endpoint_persists_a_valid_theme(): void
+    public function test_topbar_theme_control_persists_a_valid_theme(): void
     {
         $user = $this->employeeUser();
 
@@ -107,10 +107,24 @@ class ProfileSettingsTest extends TestCase
             ->assertJson(['theme' => 'dark']);
 
         $this->assertDatabaseHas('user_preferences', ['user_id' => $user->id, 'theme' => 'dark']);
-        $this->actingAs($user)->get('/dashboard')
+
+        $content = $this->actingAs($user)->get('/dashboard')
             ->assertOk()
             ->assertSee('data-theme="dark"', false)
-            ->assertSee('data-theme-toggle', false);
+            ->assertSee('data-theme-set="light"', false)
+            ->assertSee('data-theme-set="dark"', false)
+            ->assertSee('data-theme-set="system"', false)
+            ->getContent();
+
+        /*
+         * All three states are offered from the account menu, and the stored one
+         * is the single option marked selected. The count matters: the control
+         * this replaced could only express two of the three, and marking the
+         * wrong one is exactly how `system` used to read as unselected while it
+         * was the setting in force.
+         */
+        $this->assertSame(1, substr_count($content, 'aria-pressed="true"'));
+        $this->assertMatchesRegularExpression('/data-theme-set="dark"[^>]*aria-pressed="true"/', $content);
     }
 
     public function test_invalid_theme_is_rejected(): void

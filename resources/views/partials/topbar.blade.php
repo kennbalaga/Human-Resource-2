@@ -1,6 +1,14 @@
 @php
     $displayTimezone = config('workforce.timezone', 'Asia/Manila');
     $displayNow = now($displayTimezone);
+
+    $topbarUser = auth()->user();
+    $topbarTheme = $topbarUser->preference->theme;
+    $topbarInitials = collect(explode(' ', $topbarUser->name))
+        ->filter()
+        ->take(2)
+        ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
+        ->implode('');
 @endphp
 
 <header class="app-topbar">
@@ -9,6 +17,32 @@
             <x-icon name="menu" />
             <span class="visually-hidden">Open navigation</span>
         </button>
+    </div>
+
+    {{-- A direct child of the bar rather than a member of .topbar-actions: the
+         phone breakpoint lays the topbar out as a grid and gives the field its
+         own full-width row, which only works while it is a grid item of the
+         bar itself. --}}
+    <div class="global-search-wrapper" data-global-search>
+        <form class="global-search" method="GET" action="{{ route('search.index') }}" role="search" autocomplete="off">
+            <x-icon name="search" />
+            <label class="visually-hidden" for="globalSearchInput">Search employees and departments</label>
+            <input
+                id="globalSearchInput"
+                type="text"
+                name="q"
+                value="{{ request('q') }}"
+                placeholder="Search anything here"
+                autocomplete="off"
+                data-global-search-input
+                role="combobox"
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                aria-controls="globalSearchDropdown"
+            >
+        </form>
+
+        <div id="globalSearchDropdown" class="global-search-dropdown" data-global-search-dropdown hidden></div>
     </div>
 
     <div class="topbar-actions">
@@ -27,41 +61,7 @@
             </span>
         </time>
 
-        <div class="global-search-wrapper" data-global-search>
-            <form class="global-search" method="GET" action="{{ route('search.index') }}" role="search" autocomplete="off">
-                <x-icon name="search" />
-                <label class="visually-hidden" for="globalSearchInput">Search employees and departments</label>
-                <input
-                    id="globalSearchInput"
-                    type="text"
-                    name="q"
-                    value="{{ request('q') }}"
-                    placeholder="Search ..."
-                    autocomplete="off"
-                    data-global-search-input
-                    role="combobox"
-                    aria-expanded="false"
-                    aria-haspopup="listbox"
-                    aria-controls="globalSearchDropdown"
-                >
-            </form>
-
-            <div id="globalSearchDropdown" class="global-search-dropdown" data-global-search-dropdown hidden></div>
-        </div>
-
-        <button
-            class="icon-button theme-toggle"
-            type="button"
-            data-theme-toggle
-            data-theme-update-url="{{ route('settings.theme.update') }}"
-            aria-label="Switch colour theme"
-            title="Switch colour theme"
-        >
-            <x-icon name="sun" class="theme-toggle-icon theme-toggle-sun" />
-            <x-icon name="moon" class="theme-toggle-icon theme-toggle-moon" />
-        </button>
-
-        <div class="dropdown">
+        <div class="dropdown topbar-notifications">
             <button class="icon-button notification-button" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open notifications">
                 <x-icon name="bell" />
                 @if ($notificationUnreadCount > 0)
@@ -131,6 +131,59 @@
                 </div>
 
                 <a class="notification-footer" href="{{ route('notifications.index') }}">View all notifications</a>
+            </div>
+        </div>
+
+        <span class="topbar-divider" aria-hidden="true"></span>
+
+        <div class="dropdown topbar-profile">
+            {{-- `outside` so choosing a theme below does not close the menu out
+                 from under the choice. The other items all navigate away, so
+                 the menu's state after a click on them is moot either way. --}}
+            <button class="topbar-profile-button" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Open account menu">
+                <span class="avatar avatar-sm">{{ $topbarInitials }}</span>
+                <span class="topbar-profile-name">{{ $topbarUser->name }}</span>
+                <x-icon name="chevron-down" class="topbar-profile-caret" />
+            </button>
+
+            <div class="dropdown-menu dropdown-menu-end profile-dropdown topbar-profile-menu">
+                <div class="profile-dropdown-header">
+                    <span class="avatar">{{ $topbarInitials }}</span>
+                    <div>
+                        <strong>{{ $topbarUser->name }}</strong>
+                        <span>{{ $currentRole ?? 'Employee' }}</span>
+                    </div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="{{ route('profile.show') }}"><x-icon name="users" /> My profile</a>
+                <a class="dropdown-item" href="{{ route('settings.edit') }}"><x-icon name="settings" /> Account settings</a>
+                <div class="dropdown-divider"></div>
+                {{-- Three options rather than a flip, so "System" is reachable
+                     from here and not just from Account settings. Every button
+                     carries the persist URL because theme.js reads it off the
+                     button that was clicked. --}}
+                <div class="theme-choice">
+                    <span class="theme-choice-label" id="topbarThemeLabel">Appearance</span>
+                    <div class="theme-choice-options" role="group" aria-labelledby="topbarThemeLabel">
+                        @foreach (['light' => ['sun', 'Light'], 'dark' => ['moon', 'Dark'], 'system' => ['settings', 'System']] as $value => [$icon, $label])
+                            <button
+                                class="theme-choice-option"
+                                type="button"
+                                data-theme-set="{{ $value }}"
+                                data-theme-update-url="{{ route('settings.theme.update') }}"
+                                aria-pressed="{{ $topbarTheme === $value ? 'true' : 'false' }}"
+                            >
+                                <x-icon :name="$icon" />
+                                <span>{{ $label }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button class="dropdown-item text-danger" type="submit"><x-icon name="logout" /> Log out</button>
+                </form>
             </div>
         </div>
     </div>

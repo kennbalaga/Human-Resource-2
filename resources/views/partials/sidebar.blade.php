@@ -1,10 +1,5 @@
 @php
     $sidebarUser = auth()->user();
-    $sidebarInitials = collect(explode(' ', $sidebarUser->name))
-        ->filter()
-        ->take(2)
-        ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
-        ->implode('');
 
     $sidebarRoles = $sidebarUser->roles->pluck('slug');
     $sidebarCanManageShifts = $sidebarRoles->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
@@ -151,35 +146,4 @@
             </div>
         @endif
     </nav>
-
-    <div class="sidebar-footer">
-        <div class="dropup sidebar-profile">
-            <button class="sidebar-profile-button" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Open account menu">
-                <span class="avatar avatar-sm">{{ $sidebarInitials }}</span>
-                <span class="sidebar-profile-copy">
-                    <strong>{{ $sidebarUser->name }}</strong>
-                    <small>{{ $sidebarUser->email }}</small>
-                </span>
-                <x-icon name="more-vertical" class="sidebar-profile-caret" />
-            </button>
-
-            <div class="dropdown-menu profile-dropdown sidebar-profile-menu">
-                <div class="profile-dropdown-header">
-                    <span class="avatar">{{ $sidebarInitials }}</span>
-                    <div>
-                        <strong>{{ $sidebarUser->name }}</strong>
-                        <span>{{ $currentRole ?? 'Employee' }}</span>
-                    </div>
-                </div>
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="{{ route('profile.show') }}"><x-icon name="users" /> My profile</a>
-                <a class="dropdown-item" href="{{ route('settings.edit') }}"><x-icon name="settings" /> Account settings</a>
-                <div class="dropdown-divider"></div>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button class="dropdown-item text-danger" type="submit"><x-icon name="logout" /> Log out</button>
-                </form>
-            </div>
-        </div>
-    </div>
 </aside>

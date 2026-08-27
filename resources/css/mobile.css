@@ -534,12 +534,15 @@
  * --------------------------------------------------------------------- */
 @media (max-width: 900px) {
     /*
-     * Only the notifications menu. The profile menu sits inside .app-sidebar,
-     * which carries `transform: translateX(-100%)` to slide the drawer — the
-     * same containing-block rule described above means a fixed sheet there
-     * would resolve against the drawer, never the viewport, and no amount of
-     * `!important` changes that. A dropup inside the drawer is the right shape
-     * for it anyway: it belongs to the drawer it was opened from.
+     * Only the notifications menu. The account menu is a plain anchored
+     * dropdown: it is a short, fixed list of three destinations, and a
+     * half-screen dialog around three links reads as a mistake for the same
+     * reason the bottom-sheet shape was rejected for notifications below.
+     *
+     * (It used to be excluded for a harder reason — it lived inside
+     * .app-sidebar, whose `transform` made it the containing block for any
+     * fixed descendant. It sits in the topbar now, so that no longer applies
+     * and this is a free choice.)
      */
     .notifications-menu {
         /*
@@ -588,12 +591,11 @@
         padding: 22px 20px;
     }
 
-    /* Contained by the drawer, so it only needs to fit the drawer: full width
-       of it, and short enough that the account actions stay reachable above
-       the home indicator. */
-    .profile-dropdown.sidebar-profile-menu {
-        width: 100%;
-        min-width: 0;
+    /* Anchored under the account button now rather than filling a drawer, so it
+       sizes to its own contents -- and stays short enough that Log out is
+       reachable above the home indicator. */
+    .profile-dropdown.topbar-profile-menu {
+        min-width: 232px;
         max-height: 60vh;
         overflow-y: auto;
         overscroll-behavior: contain;
@@ -806,23 +808,23 @@
      *
      * It was a single flex row with `flex-wrap` and the search field given
      * `order: 10` to push it onto a second line. That never actually produced
-     * two rows of the TOPBAR: the search lives inside .topbar-actions, so it
+     * two rows of the TOPBAR: the search was a child of .topbar-actions, so it
      * wrapped inside that box instead — and .topbar-actions is `margin-left:
      * auto`, so the "full width" search only ever spanned from the menu button
      * to the right edge. The result was a menu button sitting in the gutter
      * beside the search field, the two visually colliding, with a tap near the
      * boundary landing on whichever won the pixel.
      *
-     * `display: contents` on .topbar-actions dissolves that box so its children
-     * become grid items of the topbar itself. Now the rows are the topbar's
-     * rows: controls on one, search spanning the full width on the other. No
-     * markup changed, and nothing moved on any wider screen.
+     * The field is now a direct child of the bar, and `display: contents` on
+     * .topbar-actions dissolves that box so the remaining controls become grid
+     * items too. Every cell below is a cell of the topbar itself: controls on
+     * one row, search spanning the full width on the other.
      */
     .app-topbar {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto auto;
         grid-template-areas:
-            "menu   .      theme  bell"
+            "menu   .      bell   account"
             "search search search search";
         align-items: center;
         min-height: 0;
@@ -848,14 +850,29 @@
         width: 100%;
     }
 
-    .topbar-actions > .theme-toggle {
-        grid-area: theme;
+    /* The notifications dropdown wrapper. Its menu is `position: fixed` and
+       centred, so being a grid item here does not affect where it opens.
+       Named specifically: the account menu is a `.dropdown` in this same
+       container, and the two would otherwise stack in one cell. */
+    .topbar-actions > .topbar-notifications {
+        grid-area: bell;
     }
 
-    /* The notifications dropdown wrapper. Its menu is `position: fixed` and
-       centred, so being a grid item here does not affect where it opens. */
-    .topbar-actions > .dropdown {
-        grid-area: bell;
+    .topbar-actions > .topbar-profile {
+        grid-area: account;
+    }
+
+    /* No room for a name beside everything else on the top row, so the account
+       button falls back to the avatar alone. The name is still the first thing
+       in the menu it opens. */
+    .topbar-profile-name {
+        display: none;
+    }
+
+    /* It only ever separated tools from account on one row; with the search on
+       its own row below, it is a hairline between two things already spaced. */
+    .topbar-divider {
+        display: none;
     }
 
     /* Now that it owns its own cell, the button can hold the full 44px target

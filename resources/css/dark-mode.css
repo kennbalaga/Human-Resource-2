@@ -102,6 +102,22 @@ html[data-theme-resolved='dark'] .btn-light { color:var(--hr-text); border-color
 html[data-theme-resolved='dark'] .global-search:focus-within,
 html[data-theme-resolved='dark'] .icon-button:hover,
 html[data-theme-resolved='dark'] .mobile-menu-button:hover { color:var(--hr-primary); border-color:#42594d; background:#232e28; }
+/* The field is borderless on the bar in both themes; the grouped rule above
+   hands it a surface fill meant for the icon buttons it is listed with. */
+html[data-theme-resolved='dark'] .global-search { border-color:transparent; background:transparent; }
+html[data-theme-resolved='dark'] .global-search:hover { background:#202b25; }
+html[data-theme-resolved='dark'] .global-search:focus-within { border-color:#42594d; background:#232e28; }
+html[data-theme-resolved='dark'] .topbar-divider { background:var(--hr-border); }
+html[data-theme-resolved='dark'] .topbar-profile-button { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .topbar-profile-button:hover,
+html[data-theme-resolved='dark'] .topbar-profile-button[aria-expanded='true'] { background:#202b25; }
+html[data-theme-resolved='dark'] .topbar-profile-name { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .topbar-profile-caret { color:#b3c2b9; }
+html[data-theme-resolved='dark'] .theme-choice-label { color:#b3c2b9; }
+html[data-theme-resolved='dark'] .theme-choice-options { background:#1b2520; }
+html[data-theme-resolved='dark'] .theme-choice-option { color:#b3c2b9; }
+html[data-theme-resolved='dark'] .theme-choice-option:hover { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .theme-choice-option[aria-pressed='true'] { color:#dff7e9; background:#2b5340; box-shadow:none; }
 /*
  * The blanket `html[dark] input { background; border }` rule below outranks
  * `.global-search input`'s own transparent reset (two element selectors beat

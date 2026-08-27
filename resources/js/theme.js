@@ -5,16 +5,18 @@ function resolveTheme(theme) {
     return theme === 'system' ? (systemTheme.matches ? 'dark' : 'light') : theme;
 }
 
+/*
+ * Against `theme`, the stored preference, and never `themeResolved`.
+ *
+ * The two differ precisely on `system`, which resolves to light or dark and so
+ * would never match its own button -- leaving the option the user is actually
+ * on reading as unselected, and one of the other two falsely reading as chosen.
+ */
 function updateThemeOptions() {
+    const selected = root.dataset.theme || 'system';
+
     document.querySelectorAll('[data-theme-set]').forEach((button) => {
-        button.setAttribute('aria-pressed', root.dataset.themeResolved === button.dataset.themeSet ? 'true' : 'false');
-    });
-
-    const label = root.dataset.themeResolved === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
-
-    document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
-        button.setAttribute('aria-label', label);
-        button.setAttribute('title', label);
+        button.setAttribute('aria-pressed', selected === button.dataset.themeSet ? 'true' : 'false');
     });
 }
 
@@ -43,7 +45,15 @@ async function persistTheme(button, theme) {
 async function selectTheme(button, next) {
     const previous = root.dataset.theme || 'system';
 
-    if (root.dataset.themeResolved === next) {
+    /*
+     * Also the stored value. Comparing the resolved one dropped the change
+     * whenever the new choice already matched what was on screen: on System
+     * with a dark device, choosing Dark hit `resolved === 'dark'` and returned
+     * here, so nothing was saved. The screen looked right, and the preference
+     * stayed System -- so the app followed the device back to light later,
+     * against an explicit choice the user had made and watched appear to land.
+     */
+    if (previous === next) {
         return;
     }
 
@@ -64,12 +74,6 @@ async function selectTheme(button, next) {
 
 document.querySelectorAll('[data-theme-set]').forEach((button) => {
     button.addEventListener('click', () => selectTheme(button, button.dataset.themeSet));
-});
-
-document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
-    button.addEventListener('click', () => {
-        selectTheme(button, root.dataset.themeResolved === 'dark' ? 'light' : 'dark');
-    });
 });
 
 document.querySelectorAll('input[name="theme"]').forEach((input) => {
