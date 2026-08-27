@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Schedule;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ShiftSwap\StoreShiftSwapRequest;
 use App\Models\Employee;
@@ -17,6 +18,8 @@ use Illuminate\View\View;
 
 class ShiftSwapController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     public function index(Request $request): View
     {
         $employee = $request->user()->employee;
@@ -24,8 +27,8 @@ class ShiftSwapController extends Controller
         $canManage = Gate::forUser($request->user())->allows('workforce.manage');
 
         // Shift swaps exist to cover a clinical shift, not an office desk.
-        // A manager keeps access to review requests system-wide regardless of
-        // their own department; anyone else needs to be clinical staff, or
+        // A manager keeps access to review requests for the units they run;
+        // anyone else needs to be clinical staff, or
         // there is nothing here for them to see at all.
         abort_unless($canManage || $employee->canUseShiftSwaps(), 403);
 
@@ -39,6 +42,12 @@ class ShiftSwapController extends Controller
             $baseQuery->where(function ($builder) use ($employee) {
                 $builder->where('requester_employee_id', $employee->id)->orWhere('target_employee_id', $employee->id);
             });
+        } else {
+            // A swap is between two people. A reviewer sees it when the side
+            // that raised it is theirs to supervise -- the two are in the same
+            // department by construction, since the picker only ever offers
+            // colleagues from the requester's own unit.
+            Employee::constrainRelatedQuery($baseQuery, $request->user(), 'requesterEmployee');
         }
 
         $requests = (clone $baseQuery)->latest()->paginate(15)->withQueryString();
@@ -131,6 +140,7 @@ class ShiftSwapController extends Controller
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
         abort_unless(Gate::forUser($request->user())->allows('workforce.manage'), 403);
+        $this->requireSupervision($request, $shiftSwapRequest->loadMissing('requesterEmployee')->requesterEmployee, 'workforce.manage.record');
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $swap = $service->approve($shiftSwapRequest, $request->user(), $validated['reviewer_notes'] ?? null);
 
@@ -151,6 +161,7 @@ class ShiftSwapController extends Controller
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
         abort_unless(Gate::forUser($request->user())->allows('workforce.manage'), 403);
+        $this->requireSupervision($request, $shiftSwapRequest->loadMissing('requesterEmployee')->requesterEmployee, 'workforce.manage.record');
         $validated = $request->validate(['reviewer_notes' => ['required', 'string', 'min:5', 'max:500']]);
         $swap = $service->reject($shiftSwapRequest, $request->user(), $validated['reviewer_notes']);
 

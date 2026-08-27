@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Schedule;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Schedule\RecurringScheduleRequest;
 use App\Models\RecurringSchedule;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Gate;
 
 class RecurringScheduleController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     public function store(
         RecurringScheduleRequest $request,
         ScheduleService $scheduleService,
@@ -38,6 +41,7 @@ class RecurringScheduleController extends Controller
         abort_unless(Gate::forUser($request->user())->allows('workforce.view'), 403);
 
         $recurringSchedule->loadMissing(['employee.department', 'employee.user.preference', 'shift']);
+        $this->requireSupervision($request, $recurringSchedule->employee);
         DB::transaction(function () use ($recurringSchedule, $locks, $request): void {
             $futureAssignments = $recurringSchedule->assignments()
                 ->whereDate('work_date', '>=', now(config('schedule.timezone'))->toDateString())

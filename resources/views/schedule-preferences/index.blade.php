@@ -50,7 +50,7 @@
                             <form method="POST" action="{{ route('schedule-preferences.reject-day-off', $preference) }}" class="inline-review-form">@csrf<input name="reviewer_notes" minlength="5" placeholder="Reason" required><button class="btn btn-sm btn-outline-danger">Reject</button></form>
                         @endif
                         @if(in_array($preference->status, ['pending', 'approved']) && ($preference->employee_id === $employee->id || $canManageData))
-                            <form method="POST" action="{{ route('schedule-preferences.cancel-day-off', $preference) }}" onsubmit="return confirm('Cancel this request?')">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>
+                            <form method="POST" action="{{ route('schedule-preferences.cancel-day-off', $preference) }}" data-confirm="Cancel this request?">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>
                         @endif
                     </div></td>
                 </tr>

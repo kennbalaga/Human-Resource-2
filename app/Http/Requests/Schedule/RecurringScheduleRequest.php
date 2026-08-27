@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Schedule;
 
+use App\Http\Requests\Concerns\ScopesToSupervisedDepartments;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class RecurringScheduleRequest extends FormRequest
 {
+    use ScopesToSupervisedDepartments;
+
     public function authorize(): bool
     {
         return $this->user() !== null && Gate::forUser($this->user())->allows('workforce.view');
@@ -24,7 +27,7 @@ class RecurringScheduleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'employee_id' => ['required', 'integer', 'exists:employees,id', ...$this->supervisedEmployeeRules()],
             'shift_id' => ['required', 'integer', 'exists:shifts,id'],
             'start_date' => ['bail', 'required', 'date'],
             'end_date' => [

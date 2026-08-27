@@ -33,7 +33,17 @@ class AuthController extends Controller
             })
             ->first();
 
-        if (! $user || ! $user->is_active || $user->employee?->employment_status !== 'active' || ! Hash::check($validated['password'], $user->password)) {
+        // Hashed unconditionally, including when no such account exists: bcrypt
+        // dominates the cost of this endpoint, so skipping it for an unknown
+        // employee number makes that case answer measurably faster and turns
+        // the token endpoint into a staff-enumeration oracle. Same reasoning as
+        // LoginRequest::authenticate().
+        $passwordMatches = Hash::check(
+            $validated['password'],
+            $user?->password ?? self::unknownAccountHash(),
+        );
+
+        if (! $user || ! $user->is_active || $user->employee?->employment_status !== 'active' || ! $passwordMatches) {
             Log::notice('HRMS API authentication failure.', [
                 'event' => 'authentication.failure',
                 'employee_id_hash' => hash_hmac(
@@ -86,6 +96,34 @@ class AuthController extends Controller
                 'user' => new EmployeeResource($user->employee),
             ],
         ], 201);
+    }
+
+    /**
+     * A valid bcrypt digest no password produces, for the comparison above when
+     * the account is missing. Held in a static so it costs one hash per process
+     * rather than one per failed attempt — otherwise the unknown-account branch
+     * becomes the slower one and leaks the same fact in reverse. Built with
+     * password_hash() rather than the Hash facade because it is spent, never
+     * stored.
+     */
+    private static function unknownAccountHash(): string
+    {
+        static $hash = null;
+
+        if ($hash !== null) {
+            return $hash;
+        }
+
+        // password_hash() directly rather than Hash::make(): this value exists
+        // only to be spent, never to be stored or verified, and going through
+        // the hasher would make the anti-enumeration path depend on whatever
+        // the container currently binds for hashing. The cost still tracks the
+        // configured rounds, so raising them does not quietly reopen the gap.
+        return $hash = password_hash(
+            'hrms/no-such-account/'.Str::random(32),
+            PASSWORD_BCRYPT,
+            ['cost' => (int) config('hashing.bcrypt.rounds', 12)],
+        );
     }
 
     public function logout(Request $request): JsonResponse

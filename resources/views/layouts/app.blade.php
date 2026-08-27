@@ -16,7 +16,7 @@
     <title>@yield('title', 'Dashboard') · Workforce HRMS</title>
     @include('partials.favicon')
 
-    <script>
+    <script @if(isset($cspNonce)) nonce="{{ $cspNonce }}" @endif>
         (() => {
             const root = document.documentElement;
             const requested = root.dataset.theme || 'system';

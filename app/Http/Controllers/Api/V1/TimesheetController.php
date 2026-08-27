@@ -25,6 +25,7 @@ class TimesheetController extends Controller
         ]);
         $manager = $this->canManage($request->user());
         $records = Timesheet::query()->with(['employee.user', 'employee.department', 'employee.position', 'entries'])
+            ->when($manager, fn (Builder $query) => $this->constrainToSupervised($query, $request->user()))
             ->when(! $manager, fn (Builder $query) => $query->where('employee_id', $request->user()->employee?->id))
             ->when($manager && ! empty($validated['employee_id']), fn (Builder $query) => $query->where('employee_id', $validated['employee_id']))
             ->when($validated['status'] ?? null, fn (Builder $query, $status) => $query->where('status', $status))
@@ -35,8 +36,7 @@ class TimesheetController extends Controller
 
     public function show(Request $request, Timesheet $timesheet): TimesheetResource
     {
-        $this->requireRead($request->user());
-        abort_unless($this->canManage($request->user()) || $timesheet->employee_id === $request->user()->employee?->id, 403);
+        $this->requireReadFor($request->user(), $timesheet->loadMissing('employee')->employee);
 
         return new TimesheetResource($timesheet->load(['employee.user', 'employee.department', 'employee.position', 'entries']));
     }
@@ -51,7 +51,7 @@ class TimesheetController extends Controller
 
     public function approve(Request $request, Timesheet $timesheet, TimesheetService $service): TimesheetResource
     {
-        $this->requireManager($request->user());
+        $this->requireManagerFor($request->user(), $timesheet->loadMissing('employee')->employee);
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $timesheet = $service->review($timesheet, $request->user(), 'approved', $validated['reviewer_notes'] ?? null);
 
@@ -60,7 +60,7 @@ class TimesheetController extends Controller
 
     public function reject(Request $request, Timesheet $timesheet, TimesheetService $service): TimesheetResource
     {
-        $this->requireManager($request->user());
+        $this->requireManagerFor($request->user(), $timesheet->loadMissing('employee')->employee);
         $validated = $request->validate(['reviewer_notes' => ['required', 'string', 'min:5', 'max:500']]);
         $timesheet = $service->review($timesheet, $request->user(), 'rejected', $validated['reviewer_notes']);
 

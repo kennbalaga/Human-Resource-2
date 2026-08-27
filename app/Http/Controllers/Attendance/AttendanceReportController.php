@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Attendance;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Attendance\AttendanceReportRequest;
 use App\Models\AttendanceRecord;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -18,6 +21,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceReportController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     private const EXPORT_COLUMNS = [
         'Date', 'Employee ID', 'Employee', 'Department', 'Check In', 'Check Out',
         'Check In Source', 'Check In Device', 'Check Out Source', 'Check Out Device',
@@ -27,7 +32,7 @@ class AttendanceReportController extends Controller
     public function index(AttendanceReportRequest $request): View
     {
         $filters = $request->validated();
-        $query = $this->reportQuery($filters);
+        $query = $this->reportQuery($filters, $request->user());
 
         $summary = [
             'records' => (clone $query)->count(),
@@ -40,7 +45,7 @@ class AttendanceReportController extends Controller
         ];
 
         if ($filters['date_from'] === $filters['date_to']) {
-            $employeesQuery = Employee::query()->where('employment_status', 'active');
+            $employeesQuery = Employee::query()->visibleTo($request->user())->where('employment_status', 'active');
             if (! empty($filters['department_id'])) {
                 $employeesQuery->where('department_id', $filters['department_id']);
             }
@@ -52,8 +57,8 @@ class AttendanceReportController extends Controller
             'records' => $query->latest('attendance_date')->latest('check_in_at')->paginate(20)->withQueryString(),
             'summary' => $summary,
             'filters' => $filters,
-            'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
-            'employees' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
+            'departments' => $this->selectableDepartments($request),
+            'employees' => Employee::query()->visibleTo($request->user())->where('employment_status', 'active')->orderBy('last_name')->get(),
             'canManageData' => $request->user()->canManageData(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
@@ -63,7 +68,7 @@ class AttendanceReportController extends Controller
     public function export(AttendanceReportRequest $request): StreamedResponse
     {
         $filters = $request->validated();
-        $records = $this->reportQuery($filters)->latest('attendance_date')->lazy();
+        $records = $this->reportQuery($filters, $request->user())->latest('attendance_date')->lazy();
         $filename = "attendance-{$filters['date_from']}-to-{$filters['date_to']}.csv";
 
         return response()->streamDownload(function () use ($records): void {
@@ -81,7 +86,7 @@ class AttendanceReportController extends Controller
     public function exportExcel(AttendanceReportRequest $request): StreamedResponse
     {
         $filters = $request->validated();
-        $records = $this->reportQuery($filters)->latest('attendance_date')->latest('check_in_at')->get();
+        $records = $this->reportQuery($filters, $request->user())->latest('attendance_date')->latest('check_in_at')->get();
         $filename = "attendance-{$filters['date_from']}-to-{$filters['date_to']}.xlsx";
         $lastColumn = Coordinate::stringFromColumnIndex(count(self::EXPORT_COLUMNS));
 
@@ -110,7 +115,7 @@ class AttendanceReportController extends Controller
     public function exportPdf(AttendanceReportRequest $request): Response
     {
         $filters = $request->validated();
-        $records = $this->reportQuery($filters)->latest('attendance_date')->latest('check_in_at')->get();
+        $records = $this->reportQuery($filters, $request->user())->latest('attendance_date')->latest('check_in_at')->get();
         $filename = "attendance-{$filters['date_from']}-to-{$filters['date_to']}.pdf";
 
         $pdf = Pdf::loadView('attendance.reports.pdf', [
@@ -148,9 +153,13 @@ class AttendanceReportController extends Controller
     /**
      * @param  array<string, mixed>  $filters
      */
-    private function reportQuery(array $filters): Builder
+    private function reportQuery(array $filters, ?User $user): Builder
     {
         return AttendanceRecord::query()
+            // First constraint on the query, ahead of the request's own
+            // filters, so a department head's report — on screen, as CSV, as
+            // Excel, as PDF — cannot reach past their own unit.
+            ->tap(fn (Builder $query) => Employee::constrainRelatedQuery($query, $user))
             ->with(['employee.user', 'employee.department', 'employee.position', 'officeLocation', 'checkInBiometricDevice', 'checkOutBiometricDevice'])
             ->whereDate('attendance_date', '>=', $filters['date_from'])
             ->whereDate('attendance_date', '<=', $filters['date_to'])
@@ -173,5 +182,17 @@ class AttendanceReportController extends Controller
                     $sourceQuery->where('check_in_method', $method)->orWhere('check_out_method', $method);
                 });
             });
+    }
+
+    /** Only the units this account actually supervises appear in the filter. */
+    private function selectableDepartments(AttendanceReportRequest $request): Collection
+    {
+        $departmentIds = $this->supervisedDepartmentIds($request);
+
+        return Department::query()
+            ->where('is_active', true)
+            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('id', $departmentIds ?? []))
+            ->orderBy('name')
+            ->get();
     }
 }

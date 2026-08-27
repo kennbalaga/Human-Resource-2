@@ -8,7 +8,7 @@
     @include('partials.organization-feedback')
     <section class="panel organization-profile">
         <div class="organization-profile-header">
-            <div class="organization-profile-identity"><span class="avatar">{{ strtoupper(substr($employee->first_name, 0, 1).substr($employee->last_name, 0, 1)) }}</span><div><h2>{{ $employee->full_name }}</h2><p>{{ $employee->employee_number }} · {{ $employee->user?->email ?? 'No linked email' }}</p></div></div>
+            <div class="organization-profile-identity"><span class="avatar">{{ strtoupper(substr($employee->first_name, 0, 1).substr($employee->last_name, 0, 1)) }}</span><div><h2>{{ $employee->full_name }}</h2><p>{{ $employee->employee_number }}@if($canViewPrivate) · {{ $employee->user?->email ?? 'No linked email' }}@elseif($employee->department) · {{ $employee->department->name }}@endif</p></div></div>
             <x-status-badge :status="str($employee->employment_status)->replace('_', ' ')" />
         </div>
         <div class="organization-detail-grid">
@@ -31,7 +31,7 @@
                 <div class="profile-qr-copy">
                     <p>{{ $employee->full_name }} presents this at the entrance scanner. They can download it themselves from My Profile.</p>
                     <p class="profile-qr-warning"><x-icon name="shield" /> <span>Issue a new badge if this one has been lost, shared, or photographed. Every printed copy of their current code stops scanning immediately, and they will need to download the replacement.</span></p>
-                    <form method="POST" action="{{ route('employees.attendance-qr.reissue', $employee) }}" onsubmit="return confirm('Issue a new attendance badge for {{ $employee->full_name }}? Their current code will stop working immediately.')">
+                    <form method="POST" action="{{ route('employees.attendance-qr.reissue', $employee) }}" data-confirm="Issue a new attendance badge for {{ $employee->full_name }}? Their current code will stop working immediately.">
                         @csrf
                         <button class="btn btn-outline-primary" type="submit"><x-icon name="refresh" /> Issue new badge</button>
                     </form>

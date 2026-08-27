@@ -32,6 +32,7 @@ class LeaveController extends Controller
         ]);
         $manager = $this->canManage($request->user());
         $records = LeaveRequest::query()->with(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments'])
+            ->when($manager, fn (Builder $query) => $this->constrainToSupervised($query, $request->user()))
             ->when(! $manager, fn (Builder $query) => $query->where('employee_id', $request->user()->employee?->id))
             ->when($manager && ! empty($validated['employee_id']), fn (Builder $query) => $query->where('employee_id', $validated['employee_id']))
             ->when($validated['status'] ?? null, fn (Builder $query, $status) => $query->where('status', $status))
@@ -42,8 +43,7 @@ class LeaveController extends Controller
 
     public function show(Request $request, LeaveRequest $leaveRequest): LeaveRequestResource
     {
-        $this->requireRead($request->user());
-        abort_unless($this->canManage($request->user()) || $leaveRequest->employee_id === $request->user()->employee?->id, 403);
+        $this->requireReadFor($request->user(), $leaveRequest->loadMissing('employee')->employee);
 
         return new LeaveRequestResource($leaveRequest->load(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments']));
     }
@@ -87,7 +87,7 @@ class LeaveController extends Controller
 
     public function approve(Request $request, LeaveRequest $leaveRequest, LeaveService $service): LeaveRequestResource
     {
-        $this->requireManager($request->user());
+        $this->requireManagerFor($request->user(), $leaveRequest->loadMissing('employee')->employee);
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $leave = $service->approve($leaveRequest, $request->user(), $validated['reviewer_notes'] ?? null);
 
@@ -96,7 +96,7 @@ class LeaveController extends Controller
 
     public function reject(Request $request, LeaveRequest $leaveRequest, LeaveService $service): LeaveRequestResource
     {
-        $this->requireManager($request->user());
+        $this->requireManagerFor($request->user(), $leaveRequest->loadMissing('employee')->employee);
         $validated = $request->validate(['reviewer_notes' => ['required', 'string', 'min:5', 'max:500']]);
         $leave = $service->reject($leaveRequest, $request->user(), $validated['reviewer_notes']);
 

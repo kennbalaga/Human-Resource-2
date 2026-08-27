@@ -29,10 +29,25 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Local tunnels such as ngrok terminate HTTPS before forwarding to the
-        // application on 127.0.0.1. Trust that local proxy so Laravel keeps
-        // the original HTTPS scheme when generating asset and form URLs.
-        $middleware->trustProxies(at: ['127.0.0.1']);
+        // Which proxies may speak for the client through X-Forwarded-*.
+        //
+        // The loopback default is what a local tunnel (ngrok, cloudflared)
+        // terminates on, and trusting it keeps the original HTTPS scheme in
+        // generated asset and form URLs. A real deployment sits behind a load
+        // balancer at some other address, so this is read from the environment
+        // rather than pinned: too narrow and every generated URL falls back to
+        // http, too wide and a client picks its own X-Forwarded-For — which is
+        // the value the login rate limiter keys on and the audit log records.
+        //
+        // TRUSTED_PROXIES accepts a comma-separated list, or the single value
+        // "*" for the case where the platform guarantees every request already
+        // passed through its edge (Cloud Run, Heroku, App Platform).
+        $trustedProxies = array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('TRUSTED_PROXIES', '127.0.0.1')),
+        ), fn (string $proxy): bool => $proxy !== ''));
+
+        $middleware->trustProxies(at: $trustedProxies === ['*'] ? '*' : $trustedProxies);
         $middleware->prepend(EnforceProductionSecurity::class);
         $middleware->authenticateSessions();
         $middleware->web(append: [

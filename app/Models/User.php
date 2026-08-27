@@ -82,6 +82,77 @@ class User extends Authenticatable
     }
 
     /**
+     * Roles that run the whole organisation. Everyone else with a supervisory
+     * role runs one unit and must not read or write another unit's records.
+     *
+     * @var array<int, string>
+     */
+    public const ORGANISATION_WIDE_ROLES = ['system-administrator', 'hr-manager'];
+
+    /**
+     * Departments whose workforce records this account may touch.
+     *
+     * `null` means "every department" and is deliberately distinct from an
+     * empty array: null is org-wide authority, `[]` is no supervisory reach at
+     * all. Callers must therefore test for null explicitly rather than relying
+     * on emptiness, which is why `scopeVisibleTo()` and `supervises()` exist —
+     * so that distinction is made in one place instead of at every call site.
+     *
+     * A department head supervises the unit they are posted to. Their own
+     * employee row is the only record of that posting, so a head without an
+     * employee row, or without a department on it, supervises nothing rather
+     * than everything.
+     *
+     * @return array<int, int>|null
+     */
+    public function supervisedDepartmentIds(): ?array
+    {
+        if ($this->hasAnyRole(self::ORGANISATION_WIDE_ROLES)) {
+            return null;
+        }
+
+        if (! $this->hasRole('department-head')) {
+            return [];
+        }
+
+        $departmentId = $this->employee?->department_id;
+
+        return $departmentId === null ? [] : [(int) $departmentId];
+    }
+
+    /**
+     * Whether this account may act on the given employee's workforce records.
+     *
+     * An employee with no department is visible only to the org-wide roles: a
+     * department head has no unit in common with them, so there is nothing to
+     * place them under that head's authority.
+     */
+    public function supervises(?Employee $employee): bool
+    {
+        if ($employee === null) {
+            return false;
+        }
+
+        $departmentIds = $this->supervisedDepartmentIds();
+
+        if ($departmentIds === null) {
+            return true;
+        }
+
+        return $employee->department_id !== null
+            && in_array((int) $employee->department_id, $departmentIds, true);
+    }
+
+    /**
+     * Whether this account sees the whole organisation rather than one unit.
+     * Used for the screens that show a department picker at all.
+     */
+    public function hasOrganisationWideReach(): bool
+    {
+        return $this->supervisedDepartmentIds() === null;
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

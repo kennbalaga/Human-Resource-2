@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Requests\Analytics\AnalyticsRequest;
 use App\Models\AttendanceRecord;
 use App\Models\Department;
@@ -21,13 +22,15 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnalyticsController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     public function index(AnalyticsRequest $request): View
     {
-        $data = $this->cachedAnalytics($request->validated());
+        $data = $this->cachedAnalytics($request->validated(), $this->supervisedDepartmentIds($request));
 
         return view('analytics.index', $data + [
             'filters' => $request->validated(),
-            'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
+            'departments' => $this->selectableDepartments($request),
             'canManageData' => $request->user()->canManageData(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
@@ -38,7 +41,7 @@ class AnalyticsController extends Controller
     public function aiInsights(AnalyticsRequest $request, GeminiAnalyticsService $service): RedirectResponse
     {
         $filters = $request->validated();
-        $analytics = $this->cachedAnalytics($filters);
+        $analytics = $this->cachedAnalytics($filters, $this->supervisedDepartmentIds($request));
         $result = $service->generateInsights([
             'period' => ['from' => $filters['date_from'], 'to' => $filters['date_to']],
             'metrics' => $analytics['metrics'],
@@ -55,7 +58,7 @@ class AnalyticsController extends Controller
     public function export(AnalyticsRequest $request): StreamedResponse
     {
         $filters = $request->validated();
-        $data = $this->cachedAnalytics($filters);
+        $data = $this->cachedAnalytics($filters, $this->supervisedDepartmentIds($request));
 
         return response()->streamDownload(function () use ($data, $filters): void {
             $output = fopen('php://output', 'w');
@@ -80,14 +83,19 @@ class AnalyticsController extends Controller
         }, 'workforce-analytics-'.$filters['date_from'].'-to-'.$filters['date_to'].'.csv', ['Content-Type' => 'text/csv']);
     }
 
-    /** @param array<string, mixed> $filters @return array<string, mixed> */
-    private function analytics(array $filters): array
+    /**
+     * @param  array<string, mixed>  $filters
+     * @param  array<int, int>|null  $departmentIds  null for the org-wide roles
+     * @return array<string, mixed>
+     */
+    private function analytics(array $filters, ?array $departmentIds): array
     {
         $from = Carbon::parse($filters['date_from']);
         $to = Carbon::parse($filters['date_to']);
         $departmentId = $filters['department_id'] ?? null;
         $employees = Employee::query()
             ->where('employment_status', 'active')
+            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('department_id', $departmentIds ?? []))
             ->when($departmentId, fn (Builder $query) => $query->where('department_id', $departmentId))
             ->get();
         $employeeIds = $employees->pluck('id');
@@ -120,6 +128,7 @@ class AnalyticsController extends Controller
 
         $departments = Department::query()
             ->where('is_active', true)
+            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('id', $departmentIds ?? []))
             ->when($departmentId, fn (Builder $query) => $query->whereKey($departmentId))
             ->orderBy('name')
             ->get();
@@ -187,11 +196,20 @@ class AnalyticsController extends Controller
     }
 
     /** @param array<string, mixed> $filters @return array<string, mixed> */
-    private function cachedAnalytics(array $filters): array
+    /**
+     * @param  array<string, mixed>  $filters
+     * @param  array<int, int>|null  $departmentIds  null for the org-wide roles
+     * @return array<string, mixed>
+     */
+    private function cachedAnalytics(array $filters, ?array $departmentIds): array
     {
-        $key = 'analytics.dataset.v2.'.hash('sha256', json_encode($filters));
-        $resolver = function () use ($filters): array {
-            $data = $this->analytics($filters);
+        // The reach is part of the key, not just the filters. Without it the
+        // first head to load a period would populate a cache entry that the
+        // next head -- or a plain HR request for the whole hospital -- would
+        // then be served out of.
+        $key = 'analytics.dataset.v3.'.hash('sha256', json_encode([$filters, $departmentIds]));
+        $resolver = function () use ($filters, $departmentIds): array {
+            $data = $this->analytics($filters, $departmentIds);
 
             foreach (['departmentMetrics', 'attendanceTrend', 'leaveMix', 'timesheetStatuses'] as $field) {
                 $data[$field] = $data[$field]->values()->all();
@@ -275,6 +293,18 @@ class AnalyticsController extends Controller
     }
 
     /** @param array<string, mixed> $filters */
+    /** Only the units this account actually supervises appear in the filter. */
+    private function selectableDepartments(AnalyticsRequest $request): Collection
+    {
+        $departmentIds = $this->supervisedDepartmentIds($request);
+
+        return Department::query()
+            ->where('is_active', true)
+            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('id', $departmentIds ?? []))
+            ->orderBy('name')
+            ->get();
+    }
+
     private function insightCacheKey(int $userId, array $filters): string
     {
         return 'analytics.ai.'.hash('sha256', $userId.'|'.json_encode($filters));

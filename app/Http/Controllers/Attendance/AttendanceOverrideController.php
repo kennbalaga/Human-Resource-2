@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Attendance;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Attendance\AttendanceOverrideRequest;
 use App\Models\AttendanceRecord;
@@ -22,6 +23,8 @@ use Illuminate\View\View;
  */
 class AttendanceOverrideController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     public function index(Request $request): View
     {
         abort_unless(Gate::forUser($request->user())->allows('attendance.override'), 403);
@@ -34,6 +37,7 @@ class AttendanceOverrideController extends Controller
 
         if ($query !== '') {
             $employees = Employee::query()
+                ->visibleTo($request->user())
                 ->where('employment_status', '!=', 'inactive')
                 ->where(function ($builder) use ($query) {
                     $builder->where('employee_number', 'like', "%{$query}%")
@@ -54,7 +58,11 @@ class AttendanceOverrideController extends Controller
 
     public function checkIn(AttendanceOverrideRequest $request, AttendanceService $attendanceService): RedirectResponse
     {
+        // employee_id arrives in the request body, so the posted id is checked
+        // rather than trusted — the search above only hides names, it does not
+        // stop a head typing an id from another ward.
         $employee = Employee::query()->findOrFail($request->integer('employee_id'));
+        $this->requireSupervision($request, $employee, 'attendance.override.record');
         $office = OfficeLocation::query()->where('is_active', true)->findOrFail($request->integer('office_location_id'));
 
         $record = $attendanceService->checkIn(
@@ -79,6 +87,7 @@ class AttendanceOverrideController extends Controller
     public function checkOut(AttendanceOverrideRequest $request, AttendanceService $attendanceService): RedirectResponse
     {
         $employee = Employee::query()->findOrFail($request->integer('employee_id'));
+        $this->requireSupervision($request, $employee, 'attendance.override.record');
         $office = OfficeLocation::query()->where('is_active', true)->findOrFail($request->integer('office_location_id'));
 
         $today = now()->timezone($office->timezone)->toDateString();

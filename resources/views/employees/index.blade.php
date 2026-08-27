@@ -19,7 +19,7 @@
     @include('partials.organization-feedback')
 
     <form class="panel organization-filters" method="GET" action="{{ route('employees.index') }}" id="employee-filters-form" data-live-filters>
-        <label><span>Search employees</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="Name, employee ID, or email" @if(!empty($filters['search'])) autofocus @endif></label>
+        <label><span>Search employees</span><input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="{{ $canSearchEmail ? 'Name, employee ID, or email' : 'Name or employee ID' }}" @if(!empty($filters['search'])) autofocus @endif></label>
         <label><span>Department</span><select name="department_id"><option value="">All departments</option>@foreach($departments as $department)<option value="{{ $department->id }}" @selected(($filters['department_id'] ?? null) == $department->id)>{{ $department->name }}</option>@endforeach</select></label>
         <label><span>Status</span><select name="status"><option value="">All statuses</option>@foreach(['active' => 'Active', 'on_leave' => 'On leave', 'inactive' => 'Inactive', 'terminated' => 'Terminated'] as $value => $label)<option value="{{ $value }}" @selected(($filters['status'] ?? null) === $value)>{{ $label }}</option>@endforeach</select></label>
         <div class="organization-filter-actions" @if(!request()->hasAny(['search', 'department_id', 'status'])) hidden @endif><a class="btn btn-light" href="{{ route('employees.index') }}">Clear</a></div>

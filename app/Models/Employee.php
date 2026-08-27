@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -56,6 +57,67 @@ class Employee extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * Narrow a query to the employees the given account supervises.
+     *
+     * The org-wide roles get the query back untouched; a department head gets
+     * their own unit. Anyone else supervises nobody, and `whereRaw('0 = 1')`
+     * says so as a query rather than as an empty `whereIn`, which some drivers
+     * are happy to optimise into a full table scan of nothing while others
+     * treat as a syntax problem.
+     *
+     * @param  Builder<Employee>  $query
+     * @return Builder<Employee>
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        // Deliberately not `$user?->supervisedDepartmentIds() ?? []`: that
+        // coalesce cannot tell "there is no user" from the null the org-wide
+        // roles legitimately return, and would quietly reduce HR to seeing
+        // nothing. The absent user is handled on its own line.
+        if ($user === null) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        $departmentIds = $user->supervisedDepartmentIds();
+
+        if ($departmentIds === null) {
+            return $query;
+        }
+
+        if ($departmentIds === []) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereIn('department_id', $departmentIds);
+    }
+
+    /**
+     * The same narrowing, applied to a query on a model that merely belongs to
+     * an employee — attendance, leave, timesheets, schedule assignments. Saves
+     * every caller repeating the `whereHas` wrapper around scopeVisibleTo.
+     *
+     * @param  Builder<covariant Model>  $query
+     */
+    public static function constrainRelatedQuery(Builder $query, ?User $user, string $relation = 'employee'): Builder
+    {
+        if ($user === null) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        $departmentIds = $user->supervisedDepartmentIds();
+
+        if ($departmentIds === null) {
+            return $query;
+        }
+
+        if ($departmentIds === []) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereHas($relation, fn (Builder $employeeQuery) => $employeeQuery->whereIn('department_id', $departmentIds));
     }
 
     /**

@@ -56,10 +56,24 @@ class LoginRequest extends FormRequest
             ->first();
 
         $user = $employee?->user;
+
+        // The hash comparison runs on every attempt, including the ones where
+        // no such employee exists, because bcrypt is the expensive part of this
+        // method and short-circuiting past it is measurable from outside. An
+        // unknown employee number would otherwise answer noticeably faster than
+        // a real one with the wrong password, which turns the sign-in form into
+        // a way to enumerate staff — and these employee numbers run in sequence.
+        $passwordMatches = Hash::check(
+            (string) $this->input('password'),
+            $user?->password ?? self::unknownAccountHash(),
+        );
+
+        // Evaluated after the hash for the same reason: a suspended account and
+        // a non-existent one must cost the same.
         $authenticated = $user !== null
             && $user->is_active
             && $employee->employment_status === 'active'
-            && Hash::check((string) $this->input('password'), $user->password);
+            && $passwordMatches;
 
         if (! $authenticated) {
             RateLimiter::hit($this->throttleKey());
@@ -77,6 +91,34 @@ class LoginRequest extends FormRequest
         }
 
         return $user;
+    }
+
+    /**
+     * A valid bcrypt digest that no password produces, used as the comparison
+     * target when the account does not exist.
+     *
+     * Computed once per process and held in a static: producing a digest is
+     * itself a bcrypt round, so minting one per failed attempt would make the
+     * missing account the *slower* branch and simply invert the same signal.
+     */
+    private static function unknownAccountHash(): string
+    {
+        static $hash = null;
+
+        if ($hash !== null) {
+            return $hash;
+        }
+
+        // password_hash() directly rather than Hash::make(): this value exists
+        // only to be spent, never to be stored or verified, and going through
+        // the hasher would make the anti-enumeration path depend on whatever
+        // the container currently binds for hashing. The cost still tracks the
+        // configured rounds, so raising them does not quietly reopen the gap.
+        return $hash = password_hash(
+            'hrms/no-such-account/'.Str::random(32),
+            PASSWORD_BCRYPT,
+            ['cost' => (int) config('hashing.bcrypt.rounds', 12)],
+        );
     }
 
     public function ensureIsNotRateLimited(): void

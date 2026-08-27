@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Schedule;
 
+use App\Http\Requests\Concerns\ScopesToSupervisedDepartments;
 use App\Models\Position;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Rule;
  */
 class RosterDraftRequest extends FormRequest
 {
+    use ScopesToSupervisedDepartments;
+
     protected function prepareForValidation(): void
     {
         $holidayDates = collect(preg_split('/[\s,]+/', (string) $this->input('holiday_dates_csv')))
@@ -38,7 +41,7 @@ class RosterDraftRequest extends FormRequest
         $overtimeAllowed = $this->boolean('overtime_allowed');
 
         return [
-            'department_id' => ['required', 'integer', 'exists:departments,id'],
+            'department_id' => ['required', 'integer', 'exists:departments,id', ...$this->supervisedDepartmentRules()],
             'position_ids' => ['nullable', 'array'],
             'position_ids.*' => ['integer', 'distinct', Rule::exists('positions', 'id')->where('department_id', $this->input('department_id'))],
             'start_date' => ['required', 'date'],

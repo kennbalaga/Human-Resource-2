@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Requests\Timesheet\TimesheetFilterRequest;
 use App\Models\Department;
 use App\Models\Employee;
@@ -10,11 +11,14 @@ use App\Services\TimesheetService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TimesheetController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     public function index(TimesheetFilterRequest $request): View
     {
         $filters = $request->validated();
@@ -33,8 +37,8 @@ class TimesheetController extends Controller
             'filters' => $filters,
             'canManage' => $canManage,
             'canManageData' => $canManage && $request->user()->canManageData(),
-            'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
-            'employees' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
+            'departments' => $this->selectableDepartments($request),
+            'employees' => Employee::query()->visibleTo($request->user())->where('employment_status', 'active')->orderBy('last_name')->get(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'notifications' => collect(),
         ]);
@@ -50,6 +54,7 @@ class TimesheetController extends Controller
     public function approve(Request $request, Timesheet $timesheet, TimesheetService $service): RedirectResponse
     {
         $this->requireManager($request);
+        $this->requireSupervision($request, $timesheet->loadMissing('employee')->employee, 'workforce.manage.record');
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $service->review($timesheet, $request->user(), 'approved', $validated['reviewer_notes'] ?? null);
 
@@ -59,6 +64,7 @@ class TimesheetController extends Controller
     public function reject(Request $request, Timesheet $timesheet, TimesheetService $service): RedirectResponse
     {
         $this->requireManager($request);
+        $this->requireSupervision($request, $timesheet->loadMissing('employee')->employee, 'workforce.manage.record');
         $validated = $request->validate(['reviewer_notes' => ['required', 'string', 'min:5', 'max:500']]);
         $service->review($timesheet, $request->user(), 'rejected', $validated['reviewer_notes']);
 
@@ -87,6 +93,9 @@ class TimesheetController extends Controller
             ->with(['employee.department', 'entries.attendanceRecord.officeLocation', 'reviewer'])
             ->whereDate('period_end', '>=', $filters['date_from'])
             ->whereDate('period_start', '<=', $filters['date_to'])
+            // Applied before the request's own filters: a department_id in the
+            // query string narrows a head's view, it never widens it.
+            ->when($canManage, fn (Builder $query) => Employee::constrainRelatedQuery($query, $request->user()))
             ->when(! $canManage, fn (Builder $query) => $query->where('employee_id', $request->user()->employee?->id))
             ->when($canManage && ! empty($filters['employee_id']), fn (Builder $query) => $query->where('employee_id', $filters['employee_id']))
             ->when($canManage && ! empty($filters['department_id']), fn (Builder $query) => $query->whereHas('employee', fn (Builder $employeeQuery) => $employeeQuery->where('department_id', $filters['department_id'])))
@@ -96,6 +105,18 @@ class TimesheetController extends Controller
     private function canManage(Request $request): bool
     {
         return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
+    }
+
+    /** Only the units this account actually supervises appear in the filter. */
+    private function selectableDepartments(Request $request): Collection
+    {
+        $departmentIds = $this->supervisedDepartmentIds($request);
+
+        return Department::query()
+            ->where('is_active', true)
+            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('id', $departmentIds ?? []))
+            ->orderBy('name')
+            ->get();
     }
 
     private function requireManager(Request $request): void

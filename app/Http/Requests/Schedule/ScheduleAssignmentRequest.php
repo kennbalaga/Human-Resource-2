@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Schedule;
 
+use App\Http\Requests\Concerns\ScopesToSupervisedDepartments;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 
 class ScheduleAssignmentRequest extends FormRequest
 {
+    use ScopesToSupervisedDepartments;
+
     public function authorize(): bool
     {
         return $this->user() !== null && Gate::forUser($this->user())->allows('workforce.view');
@@ -15,7 +18,7 @@ class ScheduleAssignmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'employee_id' => ['required', 'integer', 'exists:employees,id', ...$this->supervisedEmployeeRules()],
             'shift_id' => ['required', 'integer', 'exists:shifts,id'],
             'work_date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:500'],

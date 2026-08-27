@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Schedule;
 
+use App\Http\Requests\Concerns\ScopesToSupervisedDepartments;
 use App\Models\Position;
 use App\Models\Shift;
 use App\Services\Scheduling\SchedulePeriodService;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Rule;
 
 class RotationScheduleRequest extends FormRequest
 {
+    use ScopesToSupervisedDepartments;
+
     protected function prepareForValidation(): void
     {
         $holidayDates = collect(preg_split('/[\s,]+/', (string) $this->input('holiday_dates_csv')))
@@ -42,7 +45,7 @@ class RotationScheduleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'department_id' => ['required', 'integer', 'exists:departments,id'],
+            'department_id' => ['required', 'integer', 'exists:departments,id', ...$this->supervisedDepartmentRules()],
             'employee_ids' => ['required', 'array', 'min:1', 'max:'.config('schedule.max_bulk_assignment_employees')],
             'employee_ids.*' => ['required', 'integer', 'distinct', Rule::exists('employees', 'id')->where('department_id', $this->input('department_id'))],
             'shift_ids' => ['required', 'array', 'min:1', 'max:10', $this->shiftPoolIsCoherent()],

@@ -43,7 +43,7 @@
                             <form method="POST" action="{{ route('shift-swaps.reject', $swap) }}" class="inline-review-form">@csrf<input name="reviewer_notes" minlength="5" placeholder="Reason" required><button class="btn btn-sm btn-outline-danger">Reject</button></form>
                         @endif
                         @if(in_array($swap->status, ['pending_target', 'pending_manager']) && ($swap->requester_employee_id === $employee->id || $canManageData))
-                            <form method="POST" action="{{ route('shift-swaps.cancel', $swap) }}" onsubmit="return confirm('Cancel this swap request?')">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>
+                            <form method="POST" action="{{ route('shift-swaps.cancel', $swap) }}" data-confirm="Cancel this swap request?">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>
                         @endif
                     </div></td>
                 </tr>

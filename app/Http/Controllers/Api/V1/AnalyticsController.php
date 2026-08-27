@@ -25,7 +25,7 @@ class AnalyticsController extends Controller
             'date_to' => ['required', 'date', 'after_or_equal:date_from'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
         ]);
-        $employeeIds = Employee::query()->where('employment_status', 'active')
+        $employeeIds = Employee::query()->visibleTo($request->user())->where('employment_status', 'active')
             ->when($validated['department_id'] ?? null, fn ($query, $id) => $query->where('department_id', $id))->pluck('id');
         $attendance = AttendanceRecord::query()->whereIn('employee_id', $employeeIds)->whereBetween('attendance_date', [$validated['date_from'], $validated['date_to']]);
 

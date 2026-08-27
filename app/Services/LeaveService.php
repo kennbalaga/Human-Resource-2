@@ -118,9 +118,10 @@ class LeaveService
     public function cancel(LeaveRequest $request, User $user): LeaveRequest
     {
         // Cancelling your own request is self-service. Cancelling somebody
-        // else's is a review action, so it needs write access as well as reach.
+        // else's is a review action, so it needs write access as well as reach
+        // — and reach stops at the unit the reviewer actually supervises.
         if ($request->employee_id !== $user->employee?->id
-            && ! Gate::forUser($user)->allows('workforce.manage')) {
+            && ! Gate::forUser($user)->allows('workforce.manage.record', [$request->loadMissing('employee')->employee])) {
             abort(403);
         }
 

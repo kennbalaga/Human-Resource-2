@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Employee;
 use App\Models\User;
 use App\Services\Security\AttachmentMalwareScanner;
 use App\Services\Security\ClamAvAttachmentScanner;
@@ -107,5 +108,25 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('attendance.override', fn (User $user) => $user->hasAnyRole([
             'system-administrator', 'hr-manager', 'department-head',
         ]) && $user->canManageData());
+
+        // The role gates above answer "may this account use the supervisory
+        // screens at all". These two answer the question that actually protects
+        // one unit's records from another's: "may it act on THIS employee".
+        // A department head passes the role gate for the whole organisation and
+        // must still be turned away at every record outside their own unit.
+        //
+        // A null employee fails both. A record whose employee has been detached
+        // is not a record anyone but the org-wide roles may reach into.
+        Gate::define('workforce.view.record', fn (User $user, ?Employee $employee) => $user->hasAnyRole([
+            'system-administrator', 'hr-manager', 'department-head',
+        ]) && $user->supervises($employee));
+
+        Gate::define('workforce.manage.record', fn (User $user, ?Employee $employee) => $user->hasAnyRole([
+            'system-administrator', 'hr-manager', 'department-head',
+        ]) && $user->canManageData() && $user->supervises($employee));
+
+        Gate::define('attendance.override.record', fn (User $user, ?Employee $employee) => $user->hasAnyRole([
+            'system-administrator', 'hr-manager', 'department-head',
+        ]) && $user->canManageData() && $user->supervises($employee));
     }
 }

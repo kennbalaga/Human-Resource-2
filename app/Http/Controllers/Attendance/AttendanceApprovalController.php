@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Attendance;
 
+use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
 use App\Services\TimesheetService;
@@ -10,9 +11,12 @@ use Illuminate\Http\Request;
 
 class AttendanceApprovalController extends Controller
 {
+    use ScopesWorkforceAccess;
+
     public function approve(Request $request, AttendanceRecord $attendanceRecord, TimesheetService $service): RedirectResponse
     {
         $this->authorizeManager($request);
+        $this->requireSupervision($request, $attendanceRecord->loadMissing('employee')->employee, 'workforce.manage.record');
         $service->approveAttendance($attendanceRecord, $request->user());
 
         return back()->with('success', 'Attendance approved and added to the employee timesheet.');
@@ -21,6 +25,7 @@ class AttendanceApprovalController extends Controller
     public function reject(Request $request, AttendanceRecord $attendanceRecord, TimesheetService $service): RedirectResponse
     {
         $this->authorizeManager($request);
+        $this->requireSupervision($request, $attendanceRecord->loadMissing('employee')->employee, 'workforce.manage.record');
         $validated = $request->validate(['rejection_reason' => ['required', 'string', 'min:5', 'max:500']]);
         $service->rejectAttendance($attendanceRecord, $request->user(), $validated['rejection_reason']);
 
