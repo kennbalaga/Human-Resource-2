@@ -9,6 +9,7 @@ use App\Models\ShiftSwapRequest;
 use App\Models\User;
 use App\Services\Scheduling\RosterWriteContext;
 use App\Services\ShiftSwapService;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -36,11 +37,12 @@ class ScheduleEditWindowTest extends TestCase
     {
         $today = now(config('schedule.timezone'))->startOfDay();
 
+        // Both days are written here rather than fished out of the seed. The
+        // seeded roster only runs Monday to Friday of the current week, so a
+        // weekend run used to find neither day and skip its way to a pass
+        // without asserting anything at all.
         foreach ([$today, $today->copy()->subDay()] as $date) {
-            $assignment = ScheduleAssignment::query()->whereDate('work_date', $date->toDateString())->first();
-            if ($assignment === null) {
-                continue;
-            }
+            $assignment = $this->assignmentOn($date);
 
             $this->actingAs($this->manager)
                 ->delete(route('schedules.destroy', $assignment))
@@ -72,9 +74,10 @@ class ScheduleEditWindowTest extends TestCase
 
     public function test_an_upcoming_assignment_can_still_be_removed(): void
     {
-        $assignment = ScheduleAssignment::query()
-            ->whereDate('work_date', '>', now(config('schedule.timezone'))->toDateString())
-            ->firstOrFail();
+        // Same reason: the seeded week ends on Friday, so from Friday onwards
+        // there is nothing ahead of today to delete and the lookup failed the
+        // test on the calendar rather than on the rule under test.
+        $assignment = $this->assignmentOn(now(config('schedule.timezone'))->startOfDay()->addDay());
 
         $this->actingAs($this->manager)
             ->delete(route('schedules.destroy', $assignment))
@@ -130,5 +133,28 @@ class ScheduleEditWindowTest extends TestCase
         $this->assertSame('approved', $swap->refresh()->status);
         $this->assertSame($target->id, $todaysAssignment->refresh()->employee_id);
         $this->assertSame($requester->id, $tomorrowsAssignment->refresh()->employee_id);
+    }
+
+    /**
+     * A roster row on the given date, for someone with nothing else booked
+     * either side of it, written past the same unattended-write guard the
+     * seeder uses so a past date is still reachable.
+     */
+    private function assignmentOn(CarbonInterface $date): ScheduleAssignment
+    {
+        $shift = Shift::query()->where('is_active', true)->firstOrFail();
+        $employee = Employee::query()
+            ->where('employment_status', 'active')
+            ->whereDoesntHave('scheduleAssignments', fn ($query) => $query
+                ->whereBetween('work_date', [$date->copy()->subDay(), $date->copy()->addDay()]))
+            ->firstOrFail();
+
+        return RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
+            'employee_id' => $employee->id,
+            'shift_id' => $shift->id,
+            'work_date' => $date->toDateString(),
+            'status' => 'scheduled',
+            'created_by' => $this->manager->id,
+        ]));
     }
 }
