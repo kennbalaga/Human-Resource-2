@@ -2741,24 +2741,38 @@
     background: var(--hr-tint-warning);
 }
 
-/* Name and count share a line where there is room for both. Where there is
-   not — a long shift name, or a count carrying a senior requirement as well —
-   the count drops to its own line and sits under the name it belongs to.
-   `space-between` is what puts it there: it holds the count to the right while
-   the two share a line, and to the left once the count is a line of its own,
-   where a right-aligned number reads as belonging to nothing. */
+/* One line, always, at any column width down to the board's floor.
+   Two things were fighting that:
+
+   1. Wrapping the count onto its own line looked right for the one column
+      narrow enough to need it, but flex-wrap decides that by each item's
+      full, untruncated width — so a name that fit *by itself* still bumped
+      the count to a second line whenever shrinking the name by a few
+      characters would have been what kept both on the first. That left
+      "Administrative Shift" sitting alone on its row with "1/1" wasted
+      underneath it, at exactly the widths this board actually uses. Giving
+      the name a zero flex-basis (below) sidesteps the heuristic rather than
+      fighting it: no longer sized by its content up front, it has nothing
+      to overflow the line with, and only grows to fill — or shrinks to
+      ellipsize inside — whatever the dot and the count leave behind.
+
+   2. header is also a grid item of .roster-shift's own single-column grid,
+      and without min-width: 0 here that grid sized the column to header's
+      full, untruncated content regardless of what the flex-basis change
+      allows header's own children to do. The whole card then rendered at
+      that inflated width — name unshrunk, count intact, but bleeding into
+      the next day's column — instead of the width its day actually has. */
 .roster-shift > header {
     display: flex;
-    flex-wrap: wrap;
+    min-width: 0;
     align-items: center;
-    justify-content: space-between;
-    gap: .1rem .3rem;
+    gap: .3rem;
 }
 
 .roster-shift > header strong {
     overflow: hidden;
     min-width: 0;
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     font-size: var(--fs-2xs);
     font-weight: 700;
     text-overflow: ellipsis;
