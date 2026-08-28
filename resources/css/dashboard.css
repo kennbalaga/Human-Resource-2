@@ -1599,9 +1599,34 @@ input {
     flex-direction: column;
 }
 
+/*
+ * Both cards stay level with each other, and the shorter one's slack is spent
+ * rather than left as a hole.
+ *
+ * Five employee rows and six department rows are never the same height, so the
+ * grid's stretch has to put the difference somewhere. Growing the scroll
+ * container alone is what opened the void between the last table row and the
+ * pagination: the container got taller, the table inside it did not.
+ */
 .dashboard-grid .table-responsive,
 .dashboard-grid .department-list {
     flex: 1;
+}
+
+/*
+ * So the table grows with its container and the rows share the extra height
+ * between them. `height` on a table is a minimum, not a cap, so a table that
+ * is already taller than the space is left alone to scroll as before.
+ *
+ * Guarded, because slack that reads as breathing room across five rows reads
+ * as a banner across one. Below four rows the card is simply allowed to end
+ * short. The empty state is the deliberate exception -- "No employees yet"
+ * centred in the full card is the one case where filling the space is the
+ * whole point.
+ */
+.dashboard-grid .dashboard-table:has(tbody tr:nth-child(4)),
+.dashboard-grid .dashboard-table:has(.empty-table-cell) {
+    height: 100%;
 }
 
 .panel {
