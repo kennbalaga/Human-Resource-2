@@ -64,7 +64,18 @@ class EmployeeController extends Controller
             ->when($filters['status'] ?? null, fn (Builder $builder, string $status) => $builder->where('employment_status', $status));
 
         $canManage = $this->canWrite($request);
-        $employees = $query->orderBy('last_name')->orderBy('first_name')->paginate(15)->withQueryString();
+        // The filters, and only the filters. `withQueryString()` would drag the
+        // `employee` parameter into every page link too, so paging away from the
+        // first page and then reloading would pop the panel open again.
+        $employees = $query->orderBy('last_name')->orderBy('first_name')->paginate(15)
+            ->appends(array_filter($filters, static fn ($value) => $value !== null));
+
+        // A failed edit submit lands back here rather than on a page of its own,
+        // so the directory has to be able to rebuild that employee's modal with
+        // the errors and the rejected input still inside it.
+        $editEmployee = $canManage && old('_form') === 'edit-employee'
+            ? Employee::query()->with('user')->find(old('_form_employee'))
+            : null;
 
         if ($request->ajax()) {
             return view('employees._table', [
@@ -80,14 +91,28 @@ class EmployeeController extends Controller
             'canManage' => $canManage,
             'canSearchEmail' => Gate::forUser($request->user())->allows('workforce.view'),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-            // The add-employee modal lives on this page, so the directory needs
-            // the same option lists the create page builds — but only for the
-            // roles that actually get the modal.
-        ] + ($canManage ? $this->formData($request) : []));
+            'editEmployee' => $editEmployee,
+            // The add- and edit-employee modals live on this page, so the
+            // directory needs the same option lists the create page builds —
+            // but only for the roles that actually get the modals.
+        ] + ($canManage ? $this->formData($request, $editEmployee) : []));
     }
 
-    public function show(Request $request, Employee $employee): View
+    /**
+     * The employee record, as the fragment the directory slides in over the list.
+     *
+     * There is no standalone profile page behind it any more. This URL is still
+     * the record's address — global search results, bookmarks and older links all
+     * point here — so a plain hit on it lands on the directory with the panel
+     * already open on this employee, rather than 404ing on a page that was
+     * deleted.
+     */
+    public function show(Request $request, Employee $employee): View|RedirectResponse
     {
+        if (! $request->boolean('panel')) {
+            return redirect()->route('employees.index', ['employee' => $employee->id]);
+        }
+
         // The profile renders the reporting line as a card list, so the neighbours
         // it names need their own position loaded or every row costs a query.
         $employee->load([
@@ -119,14 +144,7 @@ class EmployeeController extends Controller
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ];
 
-        // The directory slides this same record in over the list rather than
-        // sending anyone away from their filters. Identical view and identical
-        // permission checks — only the page chrome around it is dropped.
-        if ($request->boolean('panel')) {
-            return view('employees._record', $data + ['inPanel' => true]);
-        }
-
-        return view('employees.show', $data);
+        return view('employees._record', $data);
     }
 
     /**
@@ -144,7 +162,7 @@ class EmployeeController extends Controller
         $codes->regenerate($employee);
 
         return redirect()
-            ->route('employees.show', $employee)
+            ->route('employees.index', ['employee' => $employee->id])
             ->with('success', "A new attendance badge was issued for {$employee->full_name}. Their previous code no longer scans — ask them to download the new one.");
     }
 
@@ -192,16 +210,24 @@ class EmployeeController extends Controller
             $message .= ' This local/testing environment uses the configured development default password.';
         }
 
-        return redirect()->route('employees.show', $employee)->with('success', $message);
+        return redirect()->route('employees.index', ['employee' => $employee->id])->with('success', $message);
     }
 
     public function edit(Request $request, Employee $employee): View
     {
         $this->requireManager($request);
 
-        return view('employees.edit', $this->formData($request, $employee) + [
-            'employee' => $employee->load('user'),
-        ]);
+        $data = $this->formData($request, $employee) + ['employee' => $employee->load('user')];
+
+        // Editing happens over the directory, so the same form is served as a
+        // bare fragment for the modal to swallow. The full page stays here for
+        // a middle-click, a copied link, or a browser running without our
+        // scripts — the same arrangement the create form already has.
+        if ($request->boolean('modal')) {
+            return view('employees._edit-modal-form', $data);
+        }
+
+        return view('employees.edit', $data);
     }
 
     public function update(SaveEmployeeRequest $request, Employee $employee): RedirectResponse
@@ -233,7 +259,7 @@ class EmployeeController extends Controller
             $this->syncRoleForPosition($user, (int) $data['position_id']);
         });
 
-        return redirect()->route('employees.show', $employee)->with('success', 'Employee profile updated successfully.');
+        return redirect()->route('employees.index', ['employee' => $employee->id])->with('success', 'Employee profile updated successfully.');
     }
 
     /** @return array<string, mixed> */

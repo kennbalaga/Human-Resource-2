@@ -5,5 +5,5 @@
 
     @include('employees._form-fields')
 
-    <div class="organization-form-footer"><a class="btn btn-light" href="{{ $editing ? route('employees.show', $employee) : route('employees.index') }}">Cancel</a><button class="btn btn-primary" type="submit">{{ $editing ? 'Save changes' : 'Create employee' }}</button></div>
+    <div class="organization-form-footer"><a class="btn btn-light" href="{{ route('employees.index') }}">Cancel</a><button class="btn btn-primary" type="submit">{{ $editing ? 'Save changes' : 'Create employee' }}</button></div>
 </form>

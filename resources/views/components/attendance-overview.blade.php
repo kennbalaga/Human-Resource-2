@@ -16,8 +16,14 @@
         <div class="attendance-range" role="group" aria-label="Attendance trend range">
             @foreach (\App\Services\AttendanceOverviewService::RANGES as $range)
                 @php $isActive = $overview['days'] === $range; @endphp
+                {{-- `employees_page` is dropped rather than carried. The two
+                     widgets share one URL, so switching the chart to 30 days
+                     used to keep the employee panel on whatever page it was
+                     left on -- a range change silently repaginating an
+                     unrelated table. Null keys are omitted by the query
+                     builder, which is how the parameter is cleared. --}}
                 <a
-                    href="{{ request()->fullUrlWithQuery(['attendance_days' => $range]) }}#attendance-overview"
+                    href="{{ request()->fullUrlWithQuery(['attendance_days' => $range, 'employees_page' => null]) }}#attendance-overview"
                     @class(['is-active' => $isActive])
                     @if ($isActive) aria-current="true" @endif
                 >{{ $range }} days</a>

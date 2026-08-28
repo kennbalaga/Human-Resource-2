@@ -1,5 +1,7 @@
-const initializePositionFiltering = () => {
-    document.querySelectorAll('[data-employee-assignment]').forEach((form) => {
+/* `root` is the whole document on load, and the modal's content when a form has
+   just been fetched into it - that form is not in the DOM when this first runs. */
+const initializePositionFiltering = (root = document) => {
+    root.querySelectorAll('[data-employee-assignment]').forEach((form) => {
         const department = form.querySelector('[data-department-select]');
         const position = form.querySelector('[data-position-select]');
         const generatedEmployeeNumber = form.querySelector('[data-generated-employee-number]');
@@ -176,7 +178,6 @@ const initializeEmployeePanel = () => {
     if (!panel) return;
 
     const body = panel.querySelector('[data-employee-panel-body]');
-    const fullPageLink = panel.querySelector('[data-employee-panel-full]');
     if (!body) return;
 
     const loadingMarkup = body.innerHTML;
@@ -216,11 +217,15 @@ const initializeEmployeePanel = () => {
     };
 
     const open = (url) => {
-        if (fullPageLink) fullPageLink.href = url;
         window.bootstrap?.Offcanvas.getOrCreateInstance(panel).show();
 
+        /* Navigating to the record's own URL used to be the fallback here. It
+           cannot be any more: that URL now redirects back to this page with the
+           panel set to open, so a fetch that keeps failing would bounce between
+           the two forever. The failure is reported where the record would be. */
         load(url).catch(() => {
-            window.location.href = url;
+            body.removeAttribute('aria-busy');
+            body.innerHTML = '<p class="employee-panel-status">This employee profile could not be loaded. Close the panel and try again.</p>';
         });
     };
 
@@ -234,6 +239,81 @@ const initializeEmployeePanel = () => {
         event.preventDefault();
         open(trigger.href);
     });
+
+    /* Arriving from a copied link, a global search result, or straight after a
+       save: the server sent us here with the record to show. */
+    const initial = panel.dataset.employeePanelInitial;
+    if (initial) open(initial);
+};
+
+/* Edit opens over the directory too, so a correction never costs the reader
+   their filters or their place in the list. One shell serves every row: the
+   form is fetched for whichever employee was clicked.
+
+   The trigger stays a real link to the full edit page, so a middle-click, a
+   copied link, or a browser without our scripts all still get a working form. */
+const initializeEmployeeEditModal = () => {
+    const modal = document.getElementById('editEmployeeModal');
+    if (!modal) return;
+
+    const content = modal.querySelector('[data-employee-edit-body]');
+    if (!content) return;
+
+    const loadingMarkup = modal.querySelector('[data-employee-edit-loading]')?.innerHTML ?? '';
+    /* Clicking Edit on several rows in quick succession can land the responses
+       out of order; only the newest request is allowed to paint. */
+    let latestRequest = 0;
+
+    const load = async (url) => {
+        const request = (latestRequest += 1);
+        content.innerHTML = loadingMarkup;
+
+        const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}modal=1`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        });
+
+        if (!response.ok) throw new Error(`Employee edit form responded ${response.status}`);
+
+        const markup = await response.text();
+        if (request !== latestRequest) return;
+
+        content.innerHTML = markup;
+        /* The department/position pairing is wired at load time, and this form
+           did not exist then. Nothing else on the page is touched. */
+        initializePositionFiltering(content);
+    };
+
+    const show = (url) => {
+        window.bootstrap?.Modal.getOrCreateInstance(modal).show();
+
+        load(url).catch(() => {
+            window.location.href = url;
+        });
+    };
+
+    document.addEventListener('click', (event) => {
+        if (event.defaultPrevented || event.button !== 0) return;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+        const trigger = event.target.closest?.('[data-employee-edit]');
+        if (!trigger) return;
+
+        event.preventDefault();
+
+        /* Edit is also offered from inside the open profile panel. Bootstrap's
+           scroll lock is not reference counted, so a panel still closing behind
+           an open modal would hand the body's scrollbar back underneath it -
+           the modal waits for the panel to finish leaving. */
+        const openPanel = document.querySelector('.offcanvas.show');
+        if (!openPanel) {
+            show(trigger.href);
+            return;
+        }
+
+        openPanel.addEventListener('hidden.bs.offcanvas', () => show(trigger.href), { once: true });
+        window.bootstrap?.Offcanvas.getOrCreateInstance(openPanel).hide();
+    });
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -242,4 +322,5 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeLiveEmployeeDirectory();
     reopenModalsWithErrors();
     initializeEmployeePanel();
+    initializeEmployeeEditModal();
 });

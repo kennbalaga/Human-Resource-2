@@ -10,6 +10,32 @@
 html {
     scroll-behavior: smooth;
     scrollbar-gutter: stable;
+    /* The platform's default scrollbar is a 17px slab of chrome sitting against
+       the page on every screen. Thin, with no track, it reads as an indicator
+       rather than a piece of furniture. Both properties inherit, so this is the
+       app's scrollbar everywhere - the few places that hide theirs outright
+       (`.sidebar-nav`, `.global-search-dropdown`) still override it. The thumb
+       colour is a token, and both themes define it on this same element, so the
+       scrollbar follows the theme with no dark-mode rule of its own. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--hr-border-strong) transparent;
+}
+
+/* The gutter above holds the scrollbar's width open permanently, scrollable
+   page or not. Bootstrap's modal and offcanvas do not know that: they hide the
+   document scrollbar and then write an inline padding-right on the body to
+   compensate for space that was never actually given up. Counted twice, the
+   whole shell jumps one scrollbar width left on every open. `.modal` gets the
+   same treatment from Modal._adjustDialog when the dialog itself overflows.
+   The gutter is the single source of truth here; the arithmetic is refused.
+   `!important` is not decoration - Bootstrap sets these inline. */
+body {
+    padding-right: 0 !important;
+}
+
+.modal {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
 }
 
 body.app-body {
@@ -452,9 +478,13 @@ input {
     gap: 14px;
 }
 
+/* The bar carries 30px of side padding and 44px controls; spacing its own
+   contents at a third of that padding is what made the cluster read as one
+   crowded lump. Narrower breakpoints override this gap and the phone layout
+   dissolves the box entirely, so this is the wide-screen figure only. */
 .topbar-actions {
     justify-content: flex-end;
-    gap: 10px;
+    gap: 16px;
 }
 
 /* The search field absorbs the squeeze on narrow screens, never the icon buttons. */
@@ -463,12 +493,16 @@ input {
     flex: none;
 }
 
-/* The hairline that separates the tools from the account, as in the reference. */
+/* The hairline that separates the tools from the account, as in the reference.
+   The margin came down as the gap above went up: at 10px it was compensating
+   for the tightness, and kept at 4px it would now hold the account group out
+   further than the rest of the strip. The space around the rule is real now, so
+   the rule does not have to manufacture it. */
 .topbar-divider {
     width: 1px;
     height: 26px;
     flex: none;
-    margin: 0 4px;
+    margin: 0 2px;
     background: var(--hr-border);
 }
 
@@ -1061,38 +1095,42 @@ input {
     background: var(--hr-primary-soft);
 }
 
+/* Underline tabs, matching the employee record's strip. See the note there for
+   why the border sits on every tab rather than only the active one. */
 .notification-filter-tabs {
     display: flex;
     margin-bottom: 14px;
     flex-wrap: wrap;
-    gap: 8px;
+    border-bottom: 1px solid var(--hr-border);
+    gap: 4px;
 }
 
 .notification-filter-tab {
     display: inline-flex;
-    padding: 6px 12px;
-    border: 1px solid var(--hr-border);
-    border-radius: var(--r-pill);
+    padding: 8px 12px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    border-radius: 0;
     color: var(--hr-muted);
-    background: var(--hr-surface, #fff);
+    background: transparent;
     align-items: center;
     gap: 6px;
     text-decoration: none;
     font-size: var(--fs-xs);
     font-weight: 600;
-    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+    transition: color 150ms ease, border-color 150ms ease;
 }
 
 .notification-filter-tab:hover,
 .notification-filter-tab:focus-visible {
     color: var(--hr-text);
-    background: var(--hr-primary-soft);
+    border-bottom-color: var(--hr-border-strong);
 }
 
 .notification-filter-tab.is-active {
-    border-color: var(--hr-primary);
-    color: var(--hr-primary-dark, var(--hr-primary));
-    background: var(--hr-primary-soft);
+    color: var(--hr-primary);
+    border-bottom-color: var(--hr-primary);
 }
 
 .notification-filter-count {
@@ -1428,8 +1466,7 @@ input {
 }
 
 .stat-card,
-.panel,
-.quick-actions {
+.panel {
     border: 1px solid var(--hr-border);
     background: var(--hr-surface);
     box-shadow: var(--hr-shadow);
@@ -1530,10 +1567,12 @@ input {
     letter-spacing: -0.04em;
 }
 
+/* Neutral by default. `.stat-detail-up` / `.stat-detail-down` colour the line
+   only where a comparison was actually made -- see the stat-card component. */
 .stat-detail {
     display: inline-flex;
     overflow: hidden;
-    color: var(--hr-success);
+    color: var(--hr-muted);
     align-items: center;
     gap: 2px;
     font-size: var(--fs-2xs);
@@ -1580,8 +1619,7 @@ input {
     gap: 16px;
 }
 
-.panel-header h2,
-.quick-actions h2 {
+.panel-header h2 {
     margin: 0;
     color: var(--hr-text);
     font-size: var(--fs-base);
@@ -2410,16 +2448,47 @@ input {
     background: var(--hr-violet);
 }
 
+/*
+ * The absent share is unfilled track, not a fill of its own.
+ *
+ * All three counts used to paint as saturated segments, and because they
+ * partition the assigned pool exactly, every bar came out 100% wide: a shift
+ * where nobody had clocked in drew exactly as much bar as one where everybody
+ * had, with only the hue telling a total failure from a perfect shift. Length
+ * is the fastest channel the eye has and it was carrying nothing - worse, a
+ * solid full bar reads as "complete", the opposite of what it meant.
+ *
+ * Now only people actually accounted for paint over the track, so the coloured
+ * length IS the coverage figure. Missing keeps a tint because an empty bar and
+ * an empty-and-late bar are not the same news; it stays well below the fills so
+ * it still reads as ground. The tone is not the only carrier of that state -
+ * the stat label, its red numeral and the footnote all say it too.
+ */
 .shift-pool-fill-missing {
-    background: var(--hr-danger);
+    background: rgba(201, 61, 78, .3);
 }
 
 /*
- * Rostered, not in yet, and not late either. Same people as Missing, held in a
- * neutral tone until the shift has run past its grace window.
+ * Rostered, not in yet, and not late either. Same people as Missing, left as
+ * plain track until the shift has run past its grace window.
  */
 .shift-pool-fill-awaiting {
-    background: var(--hr-border-strong, var(--hr-surface-3));
+    background: transparent;
+}
+
+/*
+ * Both of the above are unfilled bar, which is the whole point - but an 8px dot
+ * of "unfilled" is invisible against the panel. In the legend they are drawn as
+ * outlined swatches instead: an outline is the empty part of the bar, a solid
+ * dot is a fill.
+ */
+.shift-legend-key.shift-pool-fill-missing,
+.shift-legend-key.shift-pool-fill-awaiting {
+    box-shadow: inset 0 0 0 1px var(--hr-border-strong);
+}
+
+.shift-legend-key.shift-pool-fill-awaiting {
+    background: var(--hr-sunken);
 }
 
 .shift-pool-stats {
@@ -2737,80 +2806,6 @@ input {
     flex: 0 0 auto;
 }
 
-.quick-actions {
-    display: flex;
-    padding: 20px 22px;
-    border-radius: var(--r-lg);
-    align-items: center;
-    justify-content: space-between;
-    gap: 25px;
-}
-
-.quick-action-copy {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: 14px;
-}
-
-.quick-action-icon {
-    position: relative;
-    display: grid;
-    width: 45px;
-    height: 45px;
-    border-radius: var(--r-md);
-    color: var(--hr-primary);
-    background: var(--hr-primary-soft);
-    flex: 0 0 auto;
-    place-items: center;
-}
-
-/* 44px target without changing the painted size - see .tap-target. */
-.quick-action-icon::after {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: var(--tap-min);
-    height: var(--tap-min);
-    transform: translate(-50%, -50%);
-    content: "";
-}
-
-
-.quick-action-copy > div > p:last-child {
-    max-width: 700px;
-    margin: 5px 0 0;
-    color: var(--hr-muted);
-    font-size: var(--fs-xs);
-    line-height: 1.5;
-}
-
-.quick-action-meta {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 8px;
-}
-
-.quick-action-meta span {
-    display: inline-flex;
-    padding: 7px 9px;
-    border-radius: var(--r-md);
-    color: var(--hr-muted);
-    background: var(--hr-surface-2);
-    align-items: center;
-    gap: 5px;
-    font-size: var(--fs-2xs);
-    font-weight: 550;
-    white-space: nowrap;
-}
-
-.quick-action-meta .ui-icon {
-    width: 14px;
-    height: 14px;
-    color: var(--hr-success);
-}
-
 .app-footer {
     display: flex;
     min-height: 58px;
@@ -2893,15 +2888,6 @@ input {
 
     .department-panel {
         max-width: none;
-    }
-
-    .quick-actions {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .quick-action-meta {
-        justify-content: flex-start;
     }
 }
 
@@ -3031,19 +3017,6 @@ input {
 
     .page-heading h1 {
         font-size: var(--fs-2xl);
-    }
-
-    .quick-actions {
-        padding: 18px;
-    }
-
-    .quick-action-copy {
-        align-items: flex-start;
-    }
-
-    .quick-action-icon {
-        width: 38px;
-        height: 38px;
     }
 
     .attendance-overview .panel-header {
@@ -3211,4 +3184,482 @@ input {
 /* On the sidebar's dark ground the green ring disappears; white reads there. */
 .app-sidebar :where(a, button, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
     outline-color: #fff;
+}
+
+/* ==========================================================================
+   Skip link
+   --------------------------------------------------------------------------
+   Off-screen until it takes focus, then anchored over the topbar. It is the
+   first focusable element on every page, so it has to be invisible until it
+   is wanted and unmissable the moment it is.
+   ========================================================================== */
+
+.skip-link {
+    position: fixed;
+    z-index: 1080;
+    top: var(--sp-2);
+    left: var(--sp-2);
+    padding: 10px 16px;
+    transform: translateY(-200%);
+    border-radius: var(--r-md);
+    color: #fff;
+    background: var(--hr-primary);
+    box-shadow: var(--hr-shadow);
+    font-size: var(--fs-sm);
+    font-weight: 620;
+    text-decoration: none;
+    transition: transform 140ms ease;
+}
+
+.skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid var(--hr-text);
+    outline-offset: 2px;
+    color: #fff;
+}
+
+/* The landmark is only focusable so the skip link can land on it; it should
+   never draw a ring for a mouse user who happened to click inside it. */
+.app-content:focus {
+    outline: none;
+}
+
+/* ==========================================================================
+   Stat card detail
+   --------------------------------------------------------------------------
+   The detail line used to be green in every case, because every card was
+   assumed to be reporting an improvement. It reads muted by default now, and
+   only takes a colour when a real comparison sits behind it.
+   ========================================================================== */
+
+.stat-detail-up {
+    color: var(--hr-success);
+}
+
+.stat-detail-down {
+    color: var(--hr-danger);
+}
+
+/* ==========================================================================
+   Employee name as a link
+   --------------------------------------------------------------------------
+   Matches the <strong> it replaces exactly, so the row is unchanged until it
+   is pointed at. The record's URL redirects into the directory with the panel
+   already open, which is why this reads as a link and not as a button.
+   ========================================================================== */
+
+.employee-cell-link {
+    overflow: hidden;
+    color: var(--hr-text);
+    font-size: var(--fs-xs);
+    font-weight: 650;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.employee-cell-link:hover,
+.employee-cell-link:focus-visible {
+    color: var(--hr-primary);
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Pending approvals
+   --------------------------------------------------------------------------
+   Two groups side by side inside the wide column, each an inset card with its
+   own count, its own oldest-first list and its own way into the module that
+   answers it.
+   ========================================================================== */
+
+.approval-queue-total {
+    display: inline-flex;
+    padding: 4px 12px;
+    border-radius: var(--r-pill);
+    color: var(--hr-primary);
+    background: var(--hr-primary-soft);
+    align-items: baseline;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.approval-queue-total strong {
+    font-size: var(--fs-md);
+    font-weight: 700;
+}
+
+.approval-queue-total small {
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+}
+
+/* The front of the queue has been waiting long enough to stop reading as
+   routine. Warning tint, not danger: it is late, not lost. */
+.approval-queue-total.is-overdue {
+    color: var(--hr-warning-text);
+    background: var(--hr-tint-warning);
+}
+
+.approval-queue-caption {
+    display: flex;
+    margin: 0;
+    padding: 13px 20px 0;
+    color: var(--hr-muted);
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: var(--fs-2xs);
+    flex-wrap: wrap;
+}
+
+.approval-queue-oldest {
+    color: var(--hr-warning-text);
+    font-weight: 620;
+}
+
+.approval-queue-groups {
+    display: grid;
+    padding: 14px 20px 18px;
+    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex: 1;
+}
+
+.approval-group {
+    display: flex;
+    overflow: hidden;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface-2);
+    flex-direction: column;
+}
+
+/* A group with nothing in it keeps its place -- an HR manager reading "0
+   timesheets" learns something -- but stops competing for attention. */
+.approval-group.is-clear {
+    background: transparent;
+}
+
+.approval-group-header {
+    display: flex;
+    padding: 12px 13px;
+    align-items: center;
+    gap: 10px;
+}
+
+.approval-group-icon {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    border-radius: var(--r-md);
+    color: var(--hr-primary);
+    background: var(--hr-primary-soft);
+    place-items: center;
+}
+
+.approval-group-icon .ui-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.approval-group-header > div {
+    min-width: 0;
+    flex: 1;
+}
+
+.approval-group-header h3 {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-xs);
+    font-weight: 650;
+}
+
+.approval-group-header p {
+    margin: 2px 0 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+}
+
+.approval-group-count {
+    color: var(--hr-text);
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.approval-group.is-clear .approval-group-count {
+    color: var(--hr-subtle);
+}
+
+.approval-item-list {
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--hr-border);
+    list-style: none;
+}
+
+.approval-item {
+    display: flex;
+    padding: 10px 13px;
+    border-bottom: 1px solid var(--hr-border);
+    color: inherit;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.approval-item:hover,
+.approval-item:focus-visible {
+    background: var(--hr-surface-3);
+}
+
+.approval-item-main {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.approval-item-main strong {
+    overflow: hidden;
+    color: var(--hr-text);
+    font-size: var(--fs-2xs);
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.approval-item-meta {
+    margin-top: 2px;
+    overflow: hidden;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.approval-item-age {
+    display: inline-flex;
+    flex: none;
+    color: var(--hr-subtle);
+    align-items: center;
+    gap: 3px;
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.approval-item-age.is-stale {
+    color: var(--hr-warning-text);
+}
+
+.approval-item-age .ui-icon {
+    width: 13px;
+    height: 13px;
+}
+
+.approval-group-more,
+.approval-group-link {
+    display: flex;
+    min-height: 38px;
+    padding: 0 13px;
+    color: var(--hr-primary);
+    align-items: center;
+    gap: 3px;
+    font-size: var(--fs-2xs);
+    font-weight: 620;
+    text-decoration: none;
+}
+
+.approval-group-more {
+    border-bottom: 1px solid var(--hr-border);
+    color: var(--hr-muted);
+}
+
+.approval-group-link {
+    margin-top: auto;
+}
+
+.approval-group-more:hover,
+.approval-group-link:hover {
+    text-decoration: underline;
+}
+
+.approval-group-more .ui-icon,
+.approval-group-link .ui-icon {
+    width: 13px;
+    height: 13px;
+}
+
+.approval-queue-empty {
+    flex: 1;
+}
+
+/* ==========================================================================
+   Who is not on the floor
+   --------------------------------------------------------------------------
+   The names behind two of the shift board's counts. Two stacked blocks in the
+   narrow column, each capped at five names with the remainder as a link.
+   ========================================================================== */
+
+.today-exceptions-asof {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    white-space: nowrap;
+}
+
+.exception-block {
+    padding: 12px 19px;
+    border-bottom: 1px solid var(--hr-border);
+}
+
+.exception-block:last-of-type {
+    border-bottom: 0;
+    flex: 1;
+}
+
+.exception-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.exception-block-header h3 {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-xs);
+    font-weight: 650;
+}
+
+.exception-count {
+    display: inline-grid;
+    min-width: 26px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: var(--r-pill);
+    color: var(--hr-muted);
+    background: var(--hr-tint-neutral);
+    place-items: center;
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Only the unaccounted count turns: an approved leave is a plan, not a
+   problem, and colouring both would flatten the difference. */
+.exception-count.is-alert {
+    color: var(--hr-warning-text);
+    background: var(--hr-tint-warning);
+}
+
+.exception-empty {
+    margin: 7px 0 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    line-height: var(--lh-snug);
+}
+
+.exception-list {
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.exception-item {
+    display: flex;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--hr-border);
+    color: inherit;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.exception-list li:last-child .exception-item {
+    border-bottom: 0;
+}
+
+.exception-item:hover strong,
+.exception-item:focus-visible strong {
+    color: var(--hr-primary);
+    text-decoration: underline;
+}
+
+.exception-item-main {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.exception-item-main strong {
+    overflow: hidden;
+    color: var(--hr-text);
+    font-size: var(--fs-2xs);
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.exception-item-meta {
+    margin-top: 2px;
+    overflow: hidden;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.exception-item-tag {
+    flex: none;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.exception-more {
+    display: inline-flex;
+    margin-top: 7px;
+    color: var(--hr-primary);
+    align-items: center;
+    gap: 3px;
+    font-size: var(--fs-2xs);
+    font-weight: 620;
+    text-decoration: none;
+}
+
+.exception-more:hover {
+    text-decoration: underline;
+}
+
+.exception-more .ui-icon {
+    width: 13px;
+    height: 13px;
+}
+
+/*
+ * The two approval groups fold before the grid column holding them does, or
+ * each ends up about 150px wide. Below 900px the dashboard grid is already a
+ * single full-width column, so they can afford to sit side by side again --
+ * until the phone breakpoint, where they stack for good.
+ */
+@media (max-width: 1280px) {
+    .approval-queue-groups {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .approval-queue-groups {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .approval-queue-groups {
+        grid-template-columns: 1fr;
+    }
 }

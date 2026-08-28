@@ -483,26 +483,36 @@
     padding: 1.25rem 1.4rem 1.5rem;
 }
 
+/* Underline tabs. The strip carries the hairline the tabs sit on, so the
+   selection reads as a position along one continuous rule rather than as four
+   separate objects competing with the cards below them. */
 .employee-record-tabs {
     display: flex;
     flex-wrap: wrap;
     margin-bottom: 1.1rem;
-    gap: .4rem;
+    border-bottom: 1px solid var(--hr-border);
+    gap: .25rem;
 }
 
 .employee-record-tab {
     display: inline-flex;
     min-height: 2.5rem;
-    padding: .45rem .9rem;
-    border: 1px solid var(--hr-border);
-    border-radius: var(--r-pill);
+    padding: .45rem .75rem;
+    border: 0;
+    /* Kept on every tab and only coloured on the active one: adding the border
+       on selection instead would shift each label two pixels as it is picked. */
+    border-bottom: 2px solid transparent;
+    /* Pulls the tab's own line onto the strip's hairline rather than leaving it
+       stranded a pixel below. */
+    margin-bottom: -1px;
+    border-radius: 0;
     align-items: center;
     gap: .45rem;
     color: var(--hr-muted);
-    background: var(--hr-surface);
+    background: transparent;
     font-size: var(--fs-sm);
     font-weight: 600;
-    transition: color .16s ease, border-color .16s ease, background-color .16s ease;
+    transition: color .16s ease, border-color .16s ease;
 }
 
 .employee-record-tab svg {
@@ -511,15 +521,13 @@
 }
 
 .employee-record-tab:hover {
-    border-color: var(--hr-border-strong);
     color: var(--hr-text);
-    background: var(--hr-primary-soft);
+    border-bottom-color: var(--hr-border-strong);
 }
 
 .employee-record-tab.active {
-    border-color: var(--hr-primary);
-    color: #fff;
-    background: var(--hr-primary);
+    color: var(--hr-primary);
+    border-bottom-color: var(--hr-primary);
 }
 
 .employee-card {
@@ -883,11 +891,6 @@
     to { transform: rotate(360deg); }
 }
 
-/* Dark mode flips --hr-primary to a pale green, so the active tab's white
-   label would land on a light fill. Everything else here is token-driven. */
-html[data-theme-resolved='dark'] .employee-record-tab.active {
-    color: #0a1a12;
-}
 
 @media (max-width: 1000px) {
     .employee-record-body { grid-template-columns: minmax(0, 1fr); }

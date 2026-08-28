@@ -1,17 +1,26 @@
 {{-- The employee record slides in over the directory so the list, its filters,
-     and the scroll position all survive a look at somebody's profile.
+     and the scroll position all survive a look at somebody's profile. This is
+     the only place a profile is shown; there is no page behind it.
 
-     The View button keeps its real href throughout: a middle-click, a copied
-     link, a failed fetch, or a browser running without our scripts all still
-     land on the full profile page. --}}
-<div class="offcanvas offcanvas-end employee-panel" tabindex="-1" id="employeePanel" aria-labelledby="employeePanelLabel">
+     The View button keeps its real href throughout, because that URL is still
+     the record's address — following it for real just bounces back here with
+     the panel already open, which is what makes a copied link or a global
+     search result still work. `data-employee-panel-initial` is how it arrives
+     that way. --}}
+@php($initialPanelEmployee = request()->integer('employee'))
+<div
+    class="offcanvas offcanvas-end employee-panel"
+    tabindex="-1"
+    id="employeePanel"
+    aria-labelledby="employeePanelLabel"
+    @if($initialPanelEmployee) data-employee-panel-initial="{{ route('employees.show', $initialPanelEmployee) }}" @endif
+>
     <div class="offcanvas-header employee-panel-header">
         <div>
             <p class="panel-kicker">Organization · Employees</p>
             <h2 class="offcanvas-title" id="employeePanelLabel">Employee profile</h2>
         </div>
         <div class="employee-panel-header-actions">
-            <a class="btn btn-light btn-sm" data-employee-panel-full href="{{ route('employees.index') }}">Open full page</a>
             <button class="btn-close" type="button" data-bs-dismiss="offcanvas" aria-label="Close employee profile"></button>
         </div>
     </div>

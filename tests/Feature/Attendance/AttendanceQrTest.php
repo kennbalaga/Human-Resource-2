@@ -342,14 +342,14 @@ class AttendanceQrTest extends TestCase
     {
         $lost = $this->codes->payloadFor($this->employee);
 
-        $this->actingAs($this->manager)->get(route('employees.show', $this->employee))
+        $this->actingAs($this->manager)->get(route('employees.show', [$this->employee, 'panel' => 1]))
             ->assertOk()
             ->assertSee('Attendance badge')
             ->assertSee('Issue new badge');
 
         $this->actingAs($this->manager)
             ->post(route('employees.attendance-qr.reissue', $this->employee))
-            ->assertRedirect(route('employees.show', $this->employee))
+            ->assertRedirect(route('employees.index', ['employee' => $this->employee->id]))
             ->assertSessionHasNoErrors();
 
         // The badge in someone's wallet stops working the moment HR reissues.

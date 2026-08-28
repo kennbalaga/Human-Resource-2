@@ -33,5 +33,6 @@
 
     @if ($canManage)
         @include('employees._create-modal')
+        @include('employees._edit-modal')
     @endif
 @endsection

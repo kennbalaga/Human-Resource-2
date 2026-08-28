@@ -46,7 +46,7 @@ class EmployeeNumberGenerationTest extends TestCase
 
         $employee = Employee::query()->whereHas('user', fn ($query) => $query->where('email', 'generated.hr@hrms.local'))->firstOrFail();
 
-        $response->assertRedirect(route('employees.show', $employee));
+        $response->assertRedirect(route('employees.index', ['employee' => $employee->id]));
         $this->assertSame($this->employeeNumber($position->code, $expectedSequence), $employee->employee_number);
         Notification::assertSentTo($employee->user, ResetPassword::class);
     }
@@ -181,7 +181,7 @@ class EmployeeNumberGenerationTest extends TestCase
             'position_id' => $employee->position_id,
             'employment_status' => $employee->employment_status,
             'hire_date' => $employee->hire_date?->toDateString(),
-        ])->assertRedirect(route('employees.show', $employee));
+        ])->assertRedirect(route('employees.index', ['employee' => $employee->id]));
 
         $this->assertSame('HR-OFFICER-2026-0001', $employee->fresh()->employee_number);
         $this->actingAs($this->manager())->get(route('employees.edit', $employee))

@@ -14,7 +14,7 @@
                     <td data-label="Position">{{ $employee->position?->title ?? 'Unassigned' }}</td>
                     <td data-label="Supervisor">{{ $employee->supervisor?->full_name ?? 'None' }}</td>
                     <td data-label="Status"><x-status-badge :status="str($employee->employment_status)->replace('_', ' ')" /></td>
-                    <td><div class="organization-row-actions"><a class="btn btn-sm btn-light" data-employee-panel href="{{ route('employees.show', $employee) }}">View</a>@if($canManage)<a class="btn btn-sm btn-outline-primary" href="{{ route('employees.edit', $employee) }}">Edit</a>@endif</div></td>
+                    <td><div class="organization-row-actions"><a class="btn btn-sm btn-light" data-employee-panel href="{{ route('employees.show', $employee) }}">View</a>@if($canManage)<a class="btn btn-sm btn-outline-primary" data-employee-edit href="{{ route('employees.edit', $employee) }}">Edit</a>@endif</div></td>
                 </tr>
             @empty
                 <tr><td colspan="7" class="empty-table-cell"><x-icon name="users" /><strong>No matching employees</strong><span>Adjust the filters or add a new employee.</span></td></tr>

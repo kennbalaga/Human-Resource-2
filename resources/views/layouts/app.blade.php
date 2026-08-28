@@ -87,6 +87,11 @@
     @stack('head')
 </head>
 <body class="app-body {{ $uiPreference->compact_navigation ? 'compact-navigation' : '' }} {{ $uiPreference->reduce_motion ? 'reduce-motion' : '' }}">
+    {{-- The sidebar puts a dozen links in front of the content on every page. A
+         keyboard or screen-reader user had to walk all of them to reach the
+         thing they navigated here for. Off-screen until focused. --}}
+    <a class="skip-link" href="#appContent">Skip to main content</a>
+
     <div class="app-shell">
         @include('partials.sidebar')
 
@@ -95,7 +100,10 @@
         <div class="app-main">
             @include('partials.topbar')
 
-            <main class="app-content">
+            {{-- `tabindex="-1"` is what makes the skip link actually move focus:
+                 without it the browser scrolls to the landmark and leaves the
+                 keyboard where it was, back in the sidebar. --}}
+            <main class="app-content" id="appContent" tabindex="-1">
                 @yield('content')
             </main>
 

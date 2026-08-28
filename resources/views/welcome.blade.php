@@ -15,29 +15,56 @@
         // back to the leading word of the display name.
         $greetingUser = auth()->user();
         $greetingName = $greetingUser->employee?->first_name ?: str($greetingUser->name)->explode(' ')->first();
+
+        // The headcount card is the only one with a real comparison behind it, so
+        // it is the only one that earns an arrow.
+        $newThisMonth = $stats['new_this_month'];
+        $newLastMonth = $stats['new_last_month'];
+        $hireTrend = match (true) {
+            $newThisMonth > $newLastMonth => 'up',
+            $newThisMonth < $newLastMonth => 'down',
+            default => null,
+        };
+        $hireTrendLabel = $hireTrend === null
+            ? null
+            : ($hireTrend === 'up' ? 'Up from ' : 'Down from ').$newLastMonth.' last month';
     @endphp
 
     <section class="page-heading">
         <div>
             <p class="eyebrow">HRMS Overview</p>
             <h1>{{ $greeting }}, {{ $greetingName }}.</h1>
-            <p>Here’s what’s happening across your hospital workforce today.</p>
+            {{-- The date is stated here rather than left to the topbar clock. The
+                 sentence claims to describe "today" and every panel below it is
+                 dated, so the page should say which day it means. --}}
+            <p>{{ $greetingNow->format('l, F j, Y') }} · here’s what’s happening across your hospital workforce.</p>
         </div>
+        @if ($canManageWorkforce)
+            <a class="btn btn-primary dashboard-action" href="{{ route('employees.create') }}">
+                <x-icon name="plus" /> Add employee
+            </a>
+        @endif
     </section>
+
+    {{-- Approving a timesheet or reissuing a badge can redirect back here. Without
+         this the confirmation was written to the session and silently dropped. --}}
+    @include('partials.organization-feedback')
 
     <section class="stats-grid" aria-label="Workforce summary">
         <x-stat-card
             title="Total employees"
             :value="number_format($stats['employees'])"
             icon="users"
-            :detail="$stats['new_this_month'].' new this month'"
+            :detail="$newThisMonth.' new this month'"
+            :trend="$hireTrend"
+            :trend-label="$hireTrendLabel"
             :href="route('employees.index')"
         />
         <x-stat-card
             title="Active workforce"
             :value="number_format($stats['active_employees'])"
             icon="check-circle"
-            detail="Ready for duty"
+            :detail="$stats['active_share'].'% of headcount'"
             :href="$canManageWorkforce ? route('attendance.reports.index') : route('attendance.index')"
         />
         <x-stat-card
@@ -55,6 +82,16 @@
             :href="route('positions.index')"
         />
     </section>
+
+    {{-- Decisions before description. What a manager has to answer, and who is
+         missing from the floor, both lose their value the later they are read;
+         the charts below them are just as true after lunch. --}}
+    @if ($approvals && $exceptions)
+        <div class="dashboard-grid">
+            <x-approval-queue :queue="$approvals" />
+            <x-today-exceptions :exceptions="$exceptions" />
+        </div>
+    @endif
 
     <x-shift-overview :overview="$shiftOverview" />
 
@@ -99,7 +136,18 @@
                                     <div class="employee-cell">
                                         <span class="avatar avatar-table">{{ $initials }}</span>
                                         <div>
-                                            <strong>{{ $employee->full_name }}</strong>
+                                            {{-- The record's own address. There is no profile page
+                                                 behind it any more: following it lands on the
+                                                 directory with this employee's panel already open,
+                                                 which is what the directory's own View button does
+                                                 without the navigation. The name was previously
+                                                 dead text, leaving the row's overflow menu as the
+                                                 only way through to the person. --}}
+                                            @if ($canManageWorkforce)
+                                                <a class="employee-cell-link" href="{{ route('employees.show', $employee) }}">{{ $employee->full_name }}</a>
+                                            @else
+                                                <strong>{{ $employee->full_name }}</strong>
+                                            @endif
                                             <span>{{ $employee->user?->email ?? 'No linked email' }}</span>
                                         </div>
                                     </div>
@@ -109,18 +157,23 @@
                                 <td data-label="Position">{{ $employee->position?->title ?? 'Unassigned' }}</td>
                                 <td data-label="Status"><x-status-badge :status="$employee->employment_status" /></td>
                                 <td>
-                                    <x-dashboard-action-menu
-                                        :label="'Actions for '.$employee->full_name"
-                                        :items="$canManageWorkforce ? [
-                                            ['label' => 'View schedule', 'url' => route('schedules.index', ['employee_id' => $employee->id]), 'icon' => 'calendar'],
-                                            ['label' => 'View attendance', 'url' => route('attendance.reports.index', ['employee_id' => $employee->id]), 'icon' => 'clock'],
-                                            ['label' => 'View leave records', 'url' => route('leaves.index', ['employee_id' => $employee->id]), 'icon' => 'leave'],
-                                        ] : [
-                                            ['label' => 'Open my schedule', 'url' => route('schedules.index'), 'icon' => 'calendar'],
-                                            ['label' => 'Open my attendance', 'url' => route('attendance.index'), 'icon' => 'clock'],
-                                            ['label' => 'Open my leave requests', 'url' => route('leaves.index'), 'icon' => 'leave'],
-                                        ]"
-                                    />
+                                    {{-- Only a manager gets a menu here. The other branch used to
+                                         offer "Open my schedule" and "Open my attendance", which
+                                         are the viewer's own records rather than this row's — and
+                                         the only non-managers who reach this page at all are
+                                         accounts with no workforce profile, so those links led
+                                         nowhere useful for exactly the people who saw them. --}}
+                                    @if ($canManageWorkforce)
+                                        <x-dashboard-action-menu
+                                            :label="'Actions for '.$employee->full_name"
+                                            :items="[
+                                                ['label' => 'View employee', 'url' => route('employees.show', $employee), 'icon' => 'users'],
+                                                ['label' => 'View schedule', 'url' => route('schedules.index', ['employee_id' => $employee->id]), 'icon' => 'calendar'],
+                                                ['label' => 'View attendance', 'url' => route('attendance.reports.index', ['employee_id' => $employee->id]), 'icon' => 'clock'],
+                                                ['label' => 'View leave records', 'url' => route('leaves.index', ['employee_id' => $employee->id]), 'icon' => 'leave'],
+                                            ]"
+                                        />
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -143,23 +196,22 @@
             <a href="{{ route('employees.index') }}" class="panel-footer-link">View all employees <x-icon name="chevron-right" /></a>
         </section>
 
-        <aside class="panel department-panel" id="department-overview">
+        <aside class="panel department-panel">
             <div class="panel-header">
                 <div>
                     <p class="panel-kicker">Organization</p>
                     <h2>Workforce by department</h2>
                 </div>
-                <x-dashboard-action-menu
-                    label="Department options"
-                    :items="$canManageWorkforce ? [
-                        ['label' => 'Open workforce analytics', 'url' => route('analytics.index'), 'icon' => 'analytics'],
-                        ['label' => 'Filter schedules by department', 'url' => route('schedules.index'), 'icon' => 'calendar'],
-                        ['label' => 'Open attendance reports', 'url' => route('attendance.reports.index'), 'icon' => 'report'],
-                    ] : [
-                        ['label' => 'Open schedule calendar', 'url' => route('schedules.index'), 'icon' => 'calendar'],
-                        ['label' => 'Open leave management', 'url' => route('leaves.index'), 'icon' => 'leave'],
-                    ]"
-                />
+                @if ($canManageWorkforce)
+                    <x-dashboard-action-menu
+                        label="Department options"
+                        :items="[
+                            ['label' => 'Open workforce analytics', 'url' => route('analytics.index'), 'icon' => 'analytics'],
+                            ['label' => 'Filter schedules by department', 'url' => route('schedules.index'), 'icon' => 'calendar'],
+                            ['label' => 'Open attendance reports', 'url' => route('attendance.reports.index'), 'icon' => 'report'],
+                        ]"
+                    />
+                @endif
             </div>
 
             <div class="department-list">
@@ -197,19 +249,4 @@
     @if ($analyticsPreview)
         <x-workforce-analytics-preview :preview="$analyticsPreview" />
     @endif
-
-    <section class="quick-actions" id="position-overview">
-        <div class="quick-action-copy">
-            <span class="quick-action-icon"><x-icon name="briefcase" /></span>
-            <div>
-                <p class="panel-kicker">Organization readiness</p>
-                <h2>Your HRMS foundation is ready.</h2>
-                <p>Roles, departments, positions, employees, and secure session authentication are connected.</p>
-            </div>
-        </div>
-        <div class="quick-action-meta">
-            <span><x-icon name="check-circle" /> {{ $stats['positions'] }} positions configured</span>
-            <span><x-icon name="check-circle" /> {{ $stats['departments'] }} departments active</span>
-        </div>
-    </section>
 @endsection

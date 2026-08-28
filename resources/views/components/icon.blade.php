@@ -76,6 +76,13 @@
         @case('arrow-up')
             <path d="m18 15-6-6-6 6" />
             @break
+        @case('arrow-down')
+            <path d="m6 9 6 6 6-6" />
+            @break
+        @case('inbox')
+            <path d="M3 12h5l1.5 3h5L16 12h5" />
+            <path d="M5.5 5h13l2.5 7v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z" />
+            @break
         @case('hospital')
             <path d="M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16M9 21v-4h6v4M9 8h6M12 5v6" />
             @break

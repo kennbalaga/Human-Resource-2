@@ -51,7 +51,7 @@ class ShiftOverviewService
      * rather than simply not in yet. Long enough to cover a handover and a queue
      * at the terminal, short enough that a real no-show still surfaces early.
      */
-    private const GRACE_MINUTES = 30;
+    public const GRACE_MINUTES = 30;
 
     /**
      * @return array{

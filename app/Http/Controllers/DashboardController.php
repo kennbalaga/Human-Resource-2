@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\Employee;
-use App\Models\LeaveRequest;
 use App\Models\Position;
-use App\Models\Timesheet;
 use App\Models\User;
+use App\Services\ApprovalQueueService;
 use App\Services\AttendanceOverviewService;
+use App\Services\DailyExceptionsService;
 use App\Services\ShiftOverviewService;
 use App\Services\StaffDashboardService;
 use App\Services\WorkforceAnalyticsPreviewService;
@@ -24,6 +24,8 @@ class DashboardController extends Controller
         ShiftOverviewService $shiftOverview,
         WorkforceAnalyticsPreviewService $analyticsPreview,
         StaffDashboardService $staffDashboard,
+        ApprovalQueueService $approvalQueue,
+        DailyExceptionsService $dailyExceptions,
     ): View {
         $canManageWorkforce = $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
 
@@ -38,7 +40,6 @@ class DashboardController extends Controller
             return view('dashboard.staff', [
                 'dashboard' => $staffDashboard->forEmployee($employee),
                 'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-                'notifications' => collect(),
             ]);
         }
 
@@ -51,6 +52,15 @@ class DashboardController extends Controller
             'departments' => $counts['departments'],
             'positions' => $counts['positions'],
             'new_this_month' => $counts['new_this_month'],
+            // Carried so the headcount card can point its arrow at a real
+            // comparison. A card that always points up is not reporting a trend.
+            'new_last_month' => $counts['new_last_month'],
+            // Share of the workforce that is actually available for duty. The card
+            // used to fill this slot with the fixed words "Ready for duty", which
+            // said nothing the title had not already said.
+            'active_share' => $counts['employees'] > 0
+                ? (int) round($activeEmployees / $counts['employees'] * 100)
+                : 0,
         ];
 
         // The employee total is already known from the summary query above, so it
@@ -81,41 +91,22 @@ class DashboardController extends Controller
             ->limit(6)
             ->get();
 
-        $notifications = collect([
-            [
-                'tone' => 'success',
-                'icon' => 'check-circle',
-                'title' => 'Workforce modules are connected',
-                'message' => 'Schedules, attendance, timesheets, leave, and analytics are available.',
-                'time' => 'Today',
-            ],
-            [
-                'tone' => 'primary',
-                'icon' => 'users',
-                'title' => $activeEmployees.' active employees',
-                'message' => 'Employee profiles are available in the workforce database.',
-                'time' => 'Today',
-            ],
-            [
-                'tone' => 'warning',
-                'icon' => 'clock',
-                'title' => $counts['submitted_timesheets'].' timesheets awaiting review',
-                'message' => $counts['pending_leave_requests'].' leave requests are also pending approval.',
-                'time' => 'Action required',
-            ],
-        ]);
-
         return view('welcome', [
             'stats' => $stats,
             'recentEmployees' => $recentEmployees,
             'departments' => $departments,
             'canManageWorkforce' => $canManageWorkforce,
-            'notifications' => $notifications,
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'attendanceOverview' => $attendanceOverview->forRange(
                 (int) $request->integer('attendance_days', AttendanceOverviewService::RANGES[0]),
             ),
             'shiftOverview' => $shiftOverview->forToday(),
+            // The two action panels lead the page, and both are closed to a viewer
+            // who cannot approve or investigate anything. Neither is built for
+            // them: an empty approvals queue shown to somebody with no authority
+            // to clear it is noise, and the exceptions panel names individuals.
+            'approvals' => $canManageWorkforce ? $approvalQueue->forUser($request->user()) : null,
+            'exceptions' => $canManageWorkforce ? $dailyExceptions->forToday($request->user()) : null,
             // The analytics module is closed to everyone outside these roles, so the
             // preview is neither built nor rendered for a viewer who cannot open it.
             'analyticsPreview' => $canManageWorkforce ? $analyticsPreview->forCurrentMonth() : null,
@@ -143,8 +134,14 @@ class DashboardController extends Controller
             'positions' => Position::query()->where('is_active', true),
             'new_this_month' => Employee::query()->visibleTo($user)
                 ->whereBetween('hire_date', [now()->startOfMonth(), now()->endOfMonth()]),
-            'submitted_timesheets' => Employee::constrainRelatedQuery(Timesheet::query()->where('status', 'submitted'), $user),
-            'pending_leave_requests' => Employee::constrainRelatedQuery(LeaveRequest::query()->where('status', 'pending'), $user),
+            // The baseline the headcount card's arrow is measured against. Last
+            // month is the only comparison available that does not need a history
+            // table: hire dates are recorded, headcount at a past date is not.
+            'new_last_month' => Employee::query()->visibleTo($user)
+                ->whereBetween('hire_date', [
+                    now()->subMonthNoOverflow()->startOfMonth(),
+                    now()->subMonthNoOverflow()->endOfMonth(),
+                ]),
         ];
 
         $query = DB::query();

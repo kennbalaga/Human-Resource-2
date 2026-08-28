@@ -1,8 +1,7 @@
-{{-- The employee record card. Rendered as the body of the profile page and,
-     with $inPanel, as the fragment the directory slides in over the list, so
-     the two can never drift apart. --}}
+{{-- The employee record card, rendered as the fragment the directory slides in
+     over the list. This is the whole of the profile now — the standalone page it
+     used to share has been removed. --}}
 @php
-    $inPanel = $inPanel ?? false;
     $account = $employee->user;
     $initials = strtoupper(substr($employee->first_name, 0, 1).substr($employee->last_name, 0, 1));
     $employeeRole = $account?->roles->first()?->name;
@@ -13,12 +12,10 @@
     $directReports = $employee->directReports;
 
     // The record header carries the two affordances the reference layout has:
-    // one primary action, everything else folded behind the overflow menu.
-    $menuItems = [
-        $inPanel
-            ? ['label' => 'Open full profile', 'icon' => 'chevron-right', 'url' => route('employees.show', $employee)]
-            : ['label' => 'Back to directory', 'icon' => 'users', 'url' => route('employees.index')],
-    ];
+    // one primary action, everything else folded behind the overflow menu. The
+    // menu can now come out empty — its only guaranteed entry used to be the
+    // link to the page that no longer exists — so it is rendered conditionally.
+    $menuItems = [];
     if ($canViewPrivate && $account?->email) {
         $menuItems[] = ['label' => 'Send email', 'icon' => 'mail', 'url' => 'mailto:'.$account->email];
     }
@@ -55,9 +52,11 @@
                 </div>
             </div>
             <div class="employee-record-actions">
-                <x-dashboard-action-menu label="More employee options" :items="$menuItems" />
+                @if($menuItems)
+                    <x-dashboard-action-menu label="More employee options" :items="$menuItems" />
+                @endif
                 @if($canManage)
-                    <a class="btn btn-primary dashboard-action" href="{{ route('employees.edit', $employee) }}"><x-icon name="edit" /> Edit employee</a>
+                    <a class="btn btn-primary dashboard-action" data-employee-edit href="{{ route('employees.edit', $employee) }}"><x-icon name="edit" /> Edit employee</a>
                 @elseif($canViewPrivate && $account?->email)
                     <a class="btn btn-primary dashboard-action" href="mailto:{{ $account->email }}"><x-icon name="mail" /> Send email</a>
                 @endif
