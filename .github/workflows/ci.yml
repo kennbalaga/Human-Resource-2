@@ -66,6 +66,79 @@ jobs:
       - name: Run test suite
         run: php artisan test
 
+  php-tests-mysql:
+    name: PHP tests (MySQL)
+    runs-on: ubuntu-latest
+
+    # The default suite runs on in-memory SQLite for speed, but production is
+    # MySQL. Driver differences (JSON path predicates, strict-mode column and
+    # date handling, index limits) are invisible to a SQLite-only run, so the
+    # same suite is replayed here against the engine the application actually
+    # ships on.
+    services:
+      mysql:
+        image: mysql:9.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: hrms_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, mysqli, gd, fileinfo, intl, curl, bcmath
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      # phpunit.xml declares DB_CONNECTION/DB_DATABASE without force="true", so
+      # a real environment variable takes precedence over the SQLite defaults.
+      - name: Run test suite against MySQL
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: hrms_test
+          DB_USERNAME: root
+          DB_PASSWORD: root
+        run: php artisan test
+
   frontend-build:
     name: Frontend build
     runs-on: ubuntu-latest
