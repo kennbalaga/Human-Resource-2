@@ -74,15 +74,18 @@ class AttendanceCaptureSettings
         ?string $reason = null,
         ?CarbonInterface $expiresAt = null,
     ): AttendanceSetting {
-        $setting = AttendanceSetting::query()->updateOrCreate(
-            ['id' => 1],
-            [
-                'capture_mode' => $mode,
-                'manual_mode_reason' => $mode === self::EMERGENCY_MANUAL ? $reason : null,
-                'manual_mode_expires_at' => $mode === self::EMERGENCY_MANUAL ? $expiresAt : null,
-                'updated_by' => $user->id,
-            ],
-        );
+        // One settings row, found rather than assumed. The id was previously
+        // pinned to 1, but the primary key is not fillable, so the row was
+        // created with whatever the auto-increment counter held and a later
+        // find(1) then missed it -- silently reverting to the .env default.
+        $setting = AttendanceSetting::query()->oldest('id')->firstOrNew();
+        $setting->fill([
+            'capture_mode' => $mode,
+            'manual_mode_reason' => $mode === self::EMERGENCY_MANUAL ? $reason : null,
+            'manual_mode_expires_at' => $mode === self::EMERGENCY_MANUAL ? $expiresAt : null,
+            'updated_by' => $user->id,
+        ]);
+        $setting->save();
 
         $this->setting = $setting->load('updater');
         $this->loaded = true;
@@ -101,6 +104,6 @@ class AttendanceCaptureSettings
             return null;
         }
 
-        return $this->setting = AttendanceSetting::query()->with('updater')->find(1);
+        return $this->setting = AttendanceSetting::query()->with('updater')->oldest('id')->first();
     }
 }

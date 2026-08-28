@@ -47,17 +47,20 @@ class AttendanceScheduleSettings
      */
     public function update(User $user, array $data): AttendanceScheduleSetting
     {
-        $setting = AttendanceScheduleSetting::query()->updateOrCreate(
-            ['id' => 1],
-            [
-                'early_window_minutes' => $data['early_window_minutes'],
-                'grace_minutes' => $data['grace_minutes'],
-                'late_bind_minutes' => $data['late_bind_minutes'],
-                'schedule_aware' => $data['schedule_aware'],
-                'enforce_published_shift' => $data['enforce_published_shift'],
-                'updated_by' => $user->id,
-            ],
-        );
+        // One settings row, found rather than assumed. The id was previously
+        // pinned to 1, but the primary key is not fillable, so the row was
+        // created with whatever the auto-increment counter held and a later
+        // find(1) then missed it -- silently reverting to the .env default.
+        $setting = AttendanceScheduleSetting::query()->oldest('id')->firstOrNew();
+        $setting->fill([
+            'early_window_minutes' => $data['early_window_minutes'],
+            'grace_minutes' => $data['grace_minutes'],
+            'late_bind_minutes' => $data['late_bind_minutes'],
+            'schedule_aware' => $data['schedule_aware'],
+            'enforce_published_shift' => $data['enforce_published_shift'],
+            'updated_by' => $user->id,
+        ]);
+        $setting->save();
 
         $this->setting = $setting->load('updater');
         $this->loaded = true;
@@ -76,6 +79,6 @@ class AttendanceScheduleSettings
             return null;
         }
 
-        return $this->setting = AttendanceScheduleSetting::query()->with('updater')->find(1);
+        return $this->setting = AttendanceScheduleSetting::query()->with('updater')->oldest('id')->first();
     }
 }

@@ -54,14 +54,17 @@ class AiSchedulingFeatureSettings
 
     public function update(User $user, bool $assistantEnabled, bool $geminiExplanationsEnabled): AiSchedulingSetting
     {
-        $setting = AiSchedulingSetting::query()->updateOrCreate(
-            ['id' => 1],
-            [
-                'assistant_enabled' => $assistantEnabled,
-                'gemini_explanations_enabled' => $assistantEnabled && $geminiExplanationsEnabled,
-                'updated_by' => $user->id,
-            ],
-        );
+        // One settings row, found rather than assumed. The id was previously
+        // pinned to 1, but the primary key is not fillable, so the row was
+        // created with whatever the auto-increment counter held and a later
+        // find(1) then missed it -- silently reverting to the .env default.
+        $setting = AiSchedulingSetting::query()->oldest('id')->firstOrNew();
+        $setting->fill([
+            'assistant_enabled' => $assistantEnabled,
+            'gemini_explanations_enabled' => $assistantEnabled && $geminiExplanationsEnabled,
+            'updated_by' => $user->id,
+        ]);
+        $setting->save();
 
         $this->setting = $setting->load('updater');
         $this->loaded = true;
@@ -109,6 +112,6 @@ class AiSchedulingFeatureSettings
             return null;
         }
 
-        return $this->setting = AiSchedulingSetting::query()->find(1);
+        return $this->setting = AiSchedulingSetting::query()->oldest('id')->first();
     }
 }

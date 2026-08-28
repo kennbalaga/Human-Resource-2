@@ -42,13 +42,16 @@ class TwoFactorEnforcementSettings
 
     public function update(User $user, bool $enabled): TwoFactorEnforcementSetting
     {
-        $setting = TwoFactorEnforcementSetting::query()->updateOrCreate(
-            ['id' => 1],
-            [
-                'enabled' => $enabled,
-                'updated_by' => $user->id,
-            ],
-        );
+        // One settings row, found rather than assumed. The id was previously
+        // pinned to 1, but the primary key is not fillable, so the row was
+        // created with whatever the auto-increment counter held and a later
+        // find(1) then missed it -- silently reverting to the .env default.
+        $setting = TwoFactorEnforcementSetting::query()->oldest('id')->firstOrNew();
+        $setting->fill([
+            'enabled' => $enabled,
+            'updated_by' => $user->id,
+        ]);
+        $setting->save();
 
         $this->setting = $setting->load('updater');
         $this->loaded = true;
@@ -80,6 +83,6 @@ class TwoFactorEnforcementSettings
             return null;
         }
 
-        return $this->setting = TwoFactorEnforcementSetting::query()->find(1);
+        return $this->setting = TwoFactorEnforcementSetting::query()->oldest('id')->first();
     }
 }
