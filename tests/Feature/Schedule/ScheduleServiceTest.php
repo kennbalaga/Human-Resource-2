@@ -7,6 +7,8 @@ use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\ScheduleService;
+use App\Services\Scheduling\RosterWriteContext;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -171,10 +173,12 @@ class ScheduleServiceTest extends TestCase
         $today = now(config('schedule.timezone'))->startOfDay();
 
         // A roster published before today still holds today's assignments; the
-        // service just may no longer move them.
-        $assignment = ScheduleAssignment::query()
-            ->whereDate('work_date', $today->toDateString())
-            ->firstOrFail();
+        // service just may no longer move them. The assignment is written here
+        // rather than fished out of the seed: the seeded roster only runs
+        // Monday to Friday of the current week, so on a weekend there was no
+        // row dated today and the lookup failed the test on the calendar
+        // instead of on the rule it exists to check.
+        $assignment = $this->assignmentOn($today);
 
         $this->expectException(ValidationException::class);
 
@@ -228,5 +232,28 @@ class ScheduleServiceTest extends TestCase
             $this->assertDatabaseCount('recurring_schedules', 0);
             $this->assertDatabaseCount('schedule_assignments', 21);
         }
+    }
+
+    /**
+     * Write an assignment on a given date through the same unattended-write
+     * guard the seeder uses, so a test depending on "today" does not depend on
+     * which weekday it happens to run.
+     */
+    private function assignmentOn(CarbonInterface $date): ScheduleAssignment
+    {
+        $shift = Shift::query()->where('is_active', true)->firstOrFail();
+        $employee = Employee::query()
+            ->where('employment_status', 'active')
+            ->whereDoesntHave('scheduleAssignments', fn ($query) => $query
+                ->whereBetween('work_date', [$date->copy()->subDay(), $date->copy()->addDay()]))
+            ->firstOrFail();
+
+        return RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
+            'employee_id' => $employee->id,
+            'shift_id' => $shift->id,
+            'work_date' => $date->toDateString(),
+            'status' => 'scheduled',
+            'created_by' => $this->manager->id,
+        ]));
     }
 }
