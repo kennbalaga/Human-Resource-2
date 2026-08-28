@@ -1003,11 +1003,11 @@
         padding: 12px;
     }
 
-    /* 32px was tuned against a four-column desktop grid. In one column the
-       card has width to spare and the number is the point of the card. */
-    .stat-value {
-        font-size: var(--fs-2xl);
-    }
+    /* The bump to --fs-2xl that used to sit here assumed the stats grid went
+       to a single column at this width. It no longer does — it stays 2x2 all
+       the way down so the actionable panels are not pushed off the first
+       screen — and at roughly 160px of card there is no width to spare. The
+       base --fs-xl carries it. */
 
     .page-heading h1 {
         font-size: var(--fs-xl);

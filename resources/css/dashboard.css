@@ -2975,10 +2975,16 @@ input {
         width: min(86vw, 300px);
     }
 
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
+    /*
+     * .stats-grid deliberately does NOT drop to one column here. Four stacked
+     * cards ran to roughly 420px, so a phone had to scroll past headcount,
+     * active workforce, departments and positions — none of which change more
+     * than monthly — before reaching the approvals queue and today's absences.
+     * The 2-column grid inherited from the 1280px breakpoint halves that and
+     * puts the actionable panels back on the first screen. The cards carry it:
+     * .stat-value-row already wraps and .stat-detail already un-ellipsises at
+     * this width, both in mobile.css.
+     */
 
     /*
      * Search used to be display:none here, which took the single most useful

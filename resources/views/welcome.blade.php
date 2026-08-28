@@ -97,6 +97,17 @@
 
     <x-attendance-overview :overview="$attendanceOverview" :can-manage-workforce="$canManageWorkforce" />
 
+    {{-- Kept next to the attendance chart above rather than below the directory.
+         The two do the same job over a widening window — trailing 7/30 days,
+         then month to date — and a navigation panel wedged between them broke
+         the run. --}}
+    @if ($analyticsPreview)
+        <x-workforce-analytics-preview :preview="$analyticsPreview" />
+    @endif
+
+    {{-- Last on purpose: this is the exit ramp. Everything above answers a
+         question about the workforce; this one is how the reader leaves the
+         dashboard for the record they came to find. --}}
     <div class="dashboard-grid">
         <section class="panel panel-wide" id="employee-overview">
             <div class="panel-header">
@@ -245,8 +256,4 @@
             <a href="{{ route('departments.index') }}" class="department-footer-link">{{ $canManageWorkforce ? 'Manage' : 'View' }} departments <x-icon name="chevron-right" /></a>
         </aside>
     </div>
-
-    @if ($analyticsPreview)
-        <x-workforce-analytics-preview :preview="$analyticsPreview" />
-    @endif
 @endsection
