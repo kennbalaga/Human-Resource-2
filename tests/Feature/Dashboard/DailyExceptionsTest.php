@@ -6,6 +6,7 @@ use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Models\OfficeLocation;
 use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\Shift;
@@ -226,7 +227,7 @@ class DailyExceptionsTest extends TestCase
     {
         AttendanceRecord::query()->create([
             'employee_id' => $employee->id,
-            'office_location_id' => 1,
+            'office_location_id' => OfficeLocation::query()->value('id'),
             'attendance_date' => $this->today()->toDateString(),
             'check_in_at' => $this->today()->copy()->setTime(6, 5),
             'check_in_method' => 'manual',

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Attendance;
 
+use App\Models\OfficeLocation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -42,13 +43,13 @@ class AttendancePagesTest extends TestCase
         $user = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
 
         $response = $this->actingAs($user)->post('/attendance/check-in', [
-            'office_location_id' => 1,
+            'office_location_id' => OfficeLocation::query()->value('id'),
         ]);
 
         $response->assertRedirect('/attendance')->assertSessionHasNoErrors();
         $this->assertDatabaseHas('attendance_records', [
             'employee_id' => $user->employee->id,
-            'office_location_id' => 1,
+            'office_location_id' => OfficeLocation::query()->value('id'),
         ]);
     }
 

@@ -3,6 +3,9 @@
 namespace Tests\Feature\Integrations;
 
 use App\Models\AiSchedulingSetting;
+use App\Models\Department;
+use App\Models\Position;
+use App\Models\Shift;
 use App\Models\User;
 use App\Services\Scheduling\AiSchedulingFeatureSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,7 +50,6 @@ class AiSchedulingSettingsTest extends TestCase
         ])->assertRedirect()->assertSessionHas('success');
 
         $this->assertDatabaseHas('ai_scheduling_settings', [
-            'id' => 1,
             'assistant_enabled' => true,
             'gemini_explanations_enabled' => false,
             'updated_by' => $this->administrator->id,
@@ -77,9 +79,9 @@ class AiSchedulingSettingsTest extends TestCase
             ->assertSee('Save assignment');
 
         $this->actingAs($this->manager)->postJson(route('schedules.ai-recommendations.store'), [
-            'department_id' => 1,
-            'position_id' => 1,
-            'shift_id' => 1,
+            'department_id' => Department::query()->value('id'),
+            'position_id' => Position::query()->value('id'),
+            'shift_id' => Shift::query()->value('id'),
             'work_date' => '2027-10-01',
         ])->assertNotFound();
     }

@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Models\OfficeLocation;
 use App\Models\Position;
 use App\Models\ScheduleAssignment;
 use App\Models\Shift;
@@ -144,7 +145,7 @@ class ShiftResolverTest extends TestCase
 
         AttendanceRecord::query()->create([
             'employee_id' => $employee->id,
-            'office_location_id' => 1,
+            'office_location_id' => OfficeLocation::query()->value('id'),
             'attendance_date' => '2027-08-24',
             'check_in_at' => Carbon::parse('2027-08-24 08:00:00', 'Asia/Manila'),
             'check_out_at' => Carbon::parse('2027-08-24 17:00:00', 'Asia/Manila'),

@@ -6,6 +6,7 @@ use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Models\OfficeLocation;
 use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\Shift;
@@ -186,7 +187,7 @@ class AttendanceOverviewTest extends TestCase
     {
         AttendanceRecord::query()->create([
             'employee_id' => $employee->id,
-            'office_location_id' => 1,
+            'office_location_id' => OfficeLocation::query()->value('id'),
             'attendance_date' => $date->toDateString(),
             'check_in_at' => $date->copy()->setTime(8, 0),
             'check_in_method' => 'manual',
