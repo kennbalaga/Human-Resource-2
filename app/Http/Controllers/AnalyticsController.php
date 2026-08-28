@@ -11,6 +11,7 @@ use App\Models\LeaveRequest;
 use App\Models\ScheduleAssignment;
 use App\Models\Timesheet;
 use App\Services\Integrations\GeminiAnalyticsService;
+use App\Support\SpreadsheetExport;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -62,22 +63,22 @@ class AnalyticsController extends Controller
 
         return response()->streamDownload(function () use ($data, $filters): void {
             $output = fopen('php://output', 'w');
-            fputcsv($output, ['Workforce Analytics Report']);
-            fputcsv($output, ['Period', $filters['date_from'].' to '.$filters['date_to']]);
-            fputcsv($output, []);
-            fputcsv($output, ['Metric', 'Value']);
+            SpreadsheetExport::writeCsvRow($output, ['Workforce Analytics Report']);
+            SpreadsheetExport::writeCsvRow($output, ['Period', $filters['date_from'].' to '.$filters['date_to']]);
+            SpreadsheetExport::writeCsvRow($output, []);
+            SpreadsheetExport::writeCsvRow($output, ['Metric', 'Value']);
             foreach ($data['metrics'] as $label => $value) {
-                fputcsv($output, [str($label)->headline()->toString(), $value]);
+                SpreadsheetExport::writeCsvRow($output, [str($label)->headline()->toString(), $value]);
             }
-            fputcsv($output, []);
-            fputcsv($output, ['Department', 'Active Employees', 'Attendance Records', 'Attendance Rate', 'Average Worked Hours', 'Approved Leave Days']);
+            SpreadsheetExport::writeCsvRow($output, []);
+            SpreadsheetExport::writeCsvRow($output, ['Department', 'Active Employees', 'Attendance Records', 'Attendance Rate', 'Average Worked Hours', 'Approved Leave Days']);
             foreach ($data['departmentMetrics'] as $department) {
-                fputcsv($output, [$department['name'], $department['employees'], $department['attendance'], $department['attendance_rate'], $department['average_hours'], $department['leave_days']]);
+                SpreadsheetExport::writeCsvRow($output, [$department['name'], $department['employees'], $department['attendance'], $department['attendance_rate'], $department['average_hours'], $department['leave_days']]);
             }
-            fputcsv($output, []);
-            fputcsv($output, ['Date', 'Attendance Records', 'Late Records', 'Worked Hours']);
+            SpreadsheetExport::writeCsvRow($output, []);
+            SpreadsheetExport::writeCsvRow($output, ['Date', 'Attendance Records', 'Late Records', 'Worked Hours']);
             foreach ($data['attendanceTrend'] as $day) {
-                fputcsv($output, [$day['date'], $day['records'], $day['late'], $day['hours']]);
+                SpreadsheetExport::writeCsvRow($output, [$day['date'], $day['records'], $day['late'], $day['hours']]);
             }
             fclose($output);
         }, 'workforce-analytics-'.$filters['date_from'].'-to-'.$filters['date_to'].'.csv', ['Content-Type' => 'text/csv']);

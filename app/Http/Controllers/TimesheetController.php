@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Timesheet;
 use App\Services\TimesheetService;
+use App\Support\SpreadsheetExport;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,9 +79,9 @@ class TimesheetController extends Controller
 
         return response()->streamDownload(function () use ($records): void {
             $output = fopen('php://output', 'w');
-            fputcsv($output, ['Period Start', 'Period End', 'Employee ID', 'Employee', 'Department', 'Status', 'Regular Minutes', 'Overtime Minutes', 'Late Minutes', 'Undertime Minutes']);
+            SpreadsheetExport::writeCsvRow($output, ['Period Start', 'Period End', 'Employee ID', 'Employee', 'Department', 'Status', 'Regular Minutes', 'Overtime Minutes', 'Late Minutes', 'Undertime Minutes']);
             foreach ($records as $timesheet) {
-                fputcsv($output, [$timesheet->period_start->toDateString(), $timesheet->period_end->toDateString(), $timesheet->employee->employee_number, $timesheet->employee->full_name, $timesheet->employee->department?->name, $timesheet->status, $timesheet->regular_minutes, $timesheet->overtime_minutes, $timesheet->late_minutes, $timesheet->undertime_minutes]);
+                SpreadsheetExport::writeCsvRow($output, [$timesheet->period_start->toDateString(), $timesheet->period_end->toDateString(), $timesheet->employee->employee_number, $timesheet->employee->full_name, $timesheet->employee->department?->name, $timesheet->status, $timesheet->regular_minutes, $timesheet->overtime_minutes, $timesheet->late_minutes, $timesheet->undertime_minutes]);
             }
             fclose($output);
         }, 'timesheets-'.$filters['date_from'].'-to-'.$filters['date_to'].'.csv', ['Content-Type' => 'text/csv']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\SpreadsheetExport;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -43,9 +44,9 @@ class AuditLogController extends Controller
 
         return response()->streamDownload(function () use ($logs): void {
             $output = fopen('php://output', 'w');
-            fputcsv($output, ['Timestamp', 'User', 'Action', 'Method', 'Path', 'Subject Type', 'Subject ID', 'IP Address', 'HTTP Status']);
+            SpreadsheetExport::writeCsvRow($output, ['Timestamp', 'User', 'Action', 'Method', 'Path', 'Subject Type', 'Subject ID', 'IP Address', 'HTTP Status']);
             foreach ($logs as $log) {
-                fputcsv($output, [$log->created_at->toIso8601String(), $log->user?->name, $log->action, $log->method, $log->path, $log->subject_type, $log->subject_id, $log->ip_address, $log->response_status]);
+                SpreadsheetExport::writeCsvRow($output, [$log->created_at->toIso8601String(), $log->user?->name, $log->action, $log->method, $log->path, $log->subject_type, $log->subject_id, $log->ip_address, $log->response_status]);
             }
             fclose($output);
         }, 'audit-logs-'.now()->format('Y-m-d-His').'.csv', ['Content-Type' => 'text/csv']);

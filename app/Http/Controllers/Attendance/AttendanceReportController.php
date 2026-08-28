@@ -9,6 +9,7 @@ use App\Models\AttendanceRecord;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\User;
+use App\Support\SpreadsheetExport;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
@@ -73,10 +74,10 @@ class AttendanceReportController extends Controller
 
         return response()->streamDownload(function () use ($records): void {
             $output = fopen('php://output', 'w');
-            fputcsv($output, self::EXPORT_COLUMNS);
+            SpreadsheetExport::writeCsvRow($output, self::EXPORT_COLUMNS);
 
             foreach ($records as $record) {
-                fputcsv($output, $this->recordRow($record));
+                SpreadsheetExport::writeCsvRow($output, $this->recordRow($record));
             }
 
             fclose($output);
@@ -99,7 +100,9 @@ class AttendanceReportController extends Controller
 
         $row = 2;
         foreach ($records as $record) {
-            $sheet->fromArray($this->recordRow($record), null, "A{$row}");
+            // Not fromArray(): it binds values by inspection, so a name
+            // beginning with "=" would be stored as a live formula.
+            SpreadsheetExport::writeXlsxRow($sheet, $this->recordRow($record), $row);
             $row++;
         }
 
