@@ -45,7 +45,7 @@ For Gmail SMTP, use the isolated `gmail` mailer documented in `docs/GMAIL_PASSWO
 
 Audit and integration tables grow over time. Define an organization-approved retention policy and archive/delete old records through a reviewed scheduled command; do not silently purge legally required audit data.
 
-Uploaded leave attachments use the private local disk. Production web servers must never expose `storage/app/private` directly. Downloads must continue through authorized application routes.
+Uploaded leave attachments use the disk named by `WORKFORCE_ATTACHMENT_DISK`, which defaults to the private local disk and is kept separate from `FILESYSTEM_DISK` so a public default disk cannot expose them. Whichever disk is configured must not be web-served — on the local disk, production web servers must never expose `storage/app/private` directly. Downloads must continue through authorized application routes.
 
 Employee IDs are generated from the selected department code by default. Generation locks the department row inside the employee creation transaction, considers soft-deleted historical IDs, and relies on the database unique constraint as a final safeguard. Existing IDs are immutable. Only a System Administrator can disable automatic generation from Account Settings; manual mode should be used only for controlled migrations or legacy identifiers.
 

@@ -48,9 +48,21 @@ MALWARE_SCANNING_ENABLED=true
 # Content-Security-Policy: start in report-only, confirm no legitimate
 # screen is flagged, then switch to enforce. See docs/SECURITY.md.
 CSP_MODE=report-only
+
+# Where leave attachments are written. See "Attachment storage" below before
+# deploying to anything with an ephemeral filesystem.
+WORKFORCE_ATTACHMENT_DISK=local
 ```
 
 Create a least-privilege MySQL user limited to the HRMS database. Generate `APP_KEY` once with `php artisan key:generate`; preserve it across releases or encrypted application data, cookies, 2FA secrets, and recovery codes become unreadable.
+
+## Attachment storage
+
+Leave attachments are the only user-uploaded files this app keeps, and they are medical certificates and fit notes. `WORKFORCE_ATTACHMENT_DISK` selects the disk they are written to; it is deliberately separate from `FILESYSTEM_DISK` so that pointing the app's general default at a public disk can never make a medical record reachable by URL. Whatever you choose must not be web-served: on the default `local` disk that means never exposing `storage/app/private`.
+
+The default `local` disk is correct on a server with a real filesystem — a VM or anything with a persistent volume mounted over `storage/app`. It is wrong on a platform with an ephemeral filesystem (containers rebuilt per deploy), where every attachment is destroyed on the next release while its database row survives, leaving a download route that 404s. On those platforms either mount a persistent volume at `storage/app` or configure the `s3` disk and set `WORKFORCE_ATTACHMENT_DISK=s3`.
+
+Each attachment records the disk it was written to, so changing this setting affects only new uploads and older files stay reachable. Existing files are not migrated for you — copy them to the new disk yourself before repointing it, or their rows will break.
 
 ## Release commands
 

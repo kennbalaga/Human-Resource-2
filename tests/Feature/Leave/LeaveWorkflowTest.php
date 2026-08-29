@@ -87,7 +87,8 @@ class LeaveWorkflowTest extends TestCase
 
     public function test_sick_leave_accepts_and_secures_attachment(): void
     {
-        Storage::fake('local');
+        $disk = config('workforce.attachment_disk');
+        Storage::fake($disk);
         $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
         $sick = LeaveType::query()->where('code', 'SICK')->firstOrFail();
 
@@ -100,7 +101,38 @@ class LeaveWorkflowTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         $attachment = LeaveRequest::query()->firstOrFail()->attachments()->firstOrFail();
-        Storage::disk('local')->assertExists($attachment->path);
+        Storage::disk($disk)->assertExists($attachment->path);
+        $this->actingAs($employee)->get(route('leave-attachments.download', $attachment))->assertOk();
+    }
+
+    /**
+     * A host with an ephemeral filesystem loses every attachment on redeploy,
+     * so the storage target has to be a deployment setting rather than a
+     * hardcoded disk. Uses 's3' purely as a disk name that is not the default.
+     */
+    public function test_attachments_follow_the_configured_disk(): void
+    {
+        config()->set('workforce.attachment_disk', 's3');
+        Storage::fake('local');
+        Storage::fake('s3');
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $sick = LeaveType::query()->where('code', 'SICK')->firstOrFail();
+
+        $this->actingAs($employee)->post('/leaves', [
+            'leave_type_id' => $sick->id,
+            'start_date' => '2027-07-05',
+            'end_date' => '2027-07-05',
+            'reason' => 'Medical rest advised by physician.',
+            'attachments' => [UploadedFile::fake()->create('medical-certificate.pdf', 100, 'application/pdf')],
+        ])->assertSessionHasNoErrors();
+
+        $attachment = LeaveRequest::query()->firstOrFail()->attachments()->firstOrFail();
+        $this->assertSame('s3', $attachment->disk);
+        Storage::disk('s3')->assertExists($attachment->path);
+        Storage::disk('local')->assertMissing($attachment->path);
+
+        // The download reads the disk recorded on the row, so attachments
+        // uploaded before a disk change stay reachable after one.
         $this->actingAs($employee)->get(route('leave-attachments.download', $attachment))->assertOk();
     }
 

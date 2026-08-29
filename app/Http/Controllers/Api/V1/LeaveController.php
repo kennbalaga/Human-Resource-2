@@ -69,11 +69,12 @@ class LeaveController extends Controller
         }
 
         $leave = $service->create($request->user()->employee, $data);
+        $disk = config('workforce.attachment_disk');
         foreach ($request->file('attachments', []) as $file) {
-            $path = $file->storeAs('leave-attachments/'.$leave->uuid, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
+            $path = $file->storeAs('leave-attachments/'.$leave->uuid, Str::uuid().'.'.$file->getClientOriginalExtension(), $disk);
             LeaveAttachment::query()->create([
                 'leave_request_id' => $leave->id,
-                'disk' => 'local',
+                'disk' => $disk,
                 'path' => $path,
                 'original_name' => $file->getClientOriginalName(),
                 'mime_type' => $file->getMimeType(),
