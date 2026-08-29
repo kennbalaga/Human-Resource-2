@@ -1,7 +1,9 @@
 {{-- The live clock, lifted out of the topbar and set down in the dashboard's
      heading row the way the reference does: a label and the hour, held against
-     the right edge opposite the greeting. The dashboard only — it is a thing
-     you glance at on the way in, not a fixture of every screen.
+     the right edge opposite the greeting. Both dashboards run it — the overview
+     and the staff one — so the hour reads the same whoever signs in. The
+     dashboards only, though: it is a thing you glance at on the way in, not a
+     fixture of every screen.
 
      It keeps the topbar's data attributes because dashboard.js still drives it
      by those, ticking it forward from the server's epoch rather than the

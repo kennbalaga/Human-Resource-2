@@ -17,15 +17,13 @@
             <div>
                 <p class="eyebrow">My workday</p>
                 <h1>{{ $greeting }}, {{ $dashboard['employee']['first_name'] }}.</h1>
-                <p>{{ $dashboard['today']['date_label'] }} · {{ $dashboard['employee']['position'] ?? 'Staff' }}@if ($dashboard['employee']['department']) · {{ $dashboard['employee']['department'] }}@endif</p>
+                {{-- The date used to lead this line. The clock opposite carries
+                     it now, ticking, so printing it here as well only said the
+                     same day twice at either end of one row. What is left is
+                     the part the clock cannot say: who you are on shift as. --}}
+                <p>{{ $dashboard['employee']['position'] ?? 'Staff' }}@if ($dashboard['employee']['department']) · {{ $dashboard['employee']['department'] }}@endif</p>
             </div>
-            <span class="staff-heading-badge">
-                <x-icon name="users" />
-                <span>
-                    <small>Employee ID</small>
-                    <strong>{{ $dashboard['employee']['employee_number'] }}</strong>
-                </span>
-            </span>
+            @include('partials.current-time')
         </section>
 
         @if (session('success'))
