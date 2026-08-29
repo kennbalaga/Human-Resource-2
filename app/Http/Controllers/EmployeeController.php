@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Requests\Organization\SaveEmployeeRequest;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\LeaveBalance;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
@@ -125,6 +126,41 @@ class EmployeeController extends Controller
         $canViewPrivate = $this->canManage($request) || $request->user()->employee?->is($employee);
         $canReissueAttendanceQr = $this->canWrite($request);
 
+        // What the profile can answer about a person beyond where they sit on
+        // the chart: what they are owed, when they last worked, and what they
+        // are rostered for next. All three are the employee's own record rather
+        // than the directory's, so they are gathered only for a viewer already
+        // cleared to read this employee's private details — and never queried
+        // at all for anyone else.
+        $timeOff = null;
+        $attendance = null;
+
+        if ($canViewPrivate) {
+            $year = now()->year;
+
+            $timeOff = [
+                'year' => $year,
+                // Sorted here rather than in SQL: ordering by the type's name
+                // would need a join, and a person holds a handful of these.
+                'balances' => $employee->leaveBalances()->where('year', $year)->with('leaveType')->get()
+                    ->sortBy(fn (LeaveBalance $balance) => $balance->leaveType?->name)
+                    ->values(),
+                'requests' => $employee->leaveRequests()->with('leaveType')
+                    ->orderByDesc('start_date')->limit(5)->get(),
+            ];
+
+            $attendance = [
+                // The office location comes along because check-in times are
+                // stored in UTC and only mean anything in the timezone of the
+                // door they were scanned at.
+                'records' => $employee->attendanceRecords()->with('officeLocation')
+                    ->orderByDesc('attendance_date')->limit(6)->get(),
+                'upcoming' => $employee->scheduleAssignments()->with('shift')
+                    ->where('work_date', '>=', now(config('schedule.timezone'))->toDateString())
+                    ->orderBy('work_date')->limit(5)->get(),
+            ];
+        }
+
         $data = [
             'employee' => $employee,
             'canManage' => $this->canWrite($request),
@@ -137,6 +173,8 @@ class EmployeeController extends Controller
                 ? QrEncoder::svg(app(AttendanceQrService::class)->payloadFor($employee))
                 : null,
             'canReissueAttendanceQr' => $canReissueAttendanceQr,
+            'timeOff' => $timeOff,
+            'attendance' => $attendance,
             'canResetTwoFactor' => $request->user()->hasRole('system-administrator')
                 && $employee->user !== null
                 && ! $employee->user->is($request->user())

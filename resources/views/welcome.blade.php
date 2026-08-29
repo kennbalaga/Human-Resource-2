@@ -34,16 +34,13 @@
         <div>
             <p class="eyebrow">HRMS Overview</p>
             <h1>{{ $greeting }}, {{ $greetingName }}.</h1>
-            {{-- The date is stated here rather than left to the topbar clock. The
-                 sentence claims to describe "today" and every panel below it is
-                 dated, so the page should say which day it means. --}}
-            <p>{{ $greetingNow->format('l, F j, Y') }} · here’s what’s happening across your hospital workforce.</p>
+            {{-- No date here. The sentence claims to describe "today" and needs
+                 the page to say which day it means, but the clock opposite now
+                 does that — printing it at both ends of the same row only said
+                 it twice. --}}
+            <p>Here’s what’s happening across your hospital workforce.</p>
         </div>
-        @if ($canManageWorkforce)
-            <a class="btn btn-primary dashboard-action" href="{{ route('employees.create') }}">
-                <x-icon name="plus" /> Add employee
-            </a>
-        @endif
+        @include('partials.current-time')
     </section>
 
     {{-- Approving a timesheet or reissuing a badge can redirect back here. Without

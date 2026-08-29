@@ -1,36 +1,56 @@
 {{-- The employee record card, rendered as the fragment the directory slides in
      over the list. This is the whole of the profile now — the standalone page it
-     used to share has been removed. --}}
+     used to share has been removed.
+
+     The layout follows the staff-detail reference: identity across the top, the
+     information rail down the left where it reads as the record's own summary,
+     and the tabbed sections filling the space beside it. --}}
 @php
     $account = $employee->user;
     $initials = strtoupper(substr($employee->first_name, 0, 1).substr($employee->last_name, 0, 1));
-    $employeeRole = $account?->roles->first()?->name;
     $hireDate = $employee->hire_date;
     $tenure = $hireDate?->isPast()
         ? $hireDate->diffForHumans(['syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE, 'parts' => 2, 'join' => true])
         : null;
     $directReports = $employee->directReports;
 
-    // The record header carries the two affordances the reference layout has:
-    // one primary action, everything else folded behind the overflow menu. The
-    // menu can now come out empty — its only guaranteed entry used to be the
-    // link to the page that no longer exists — so it is rendered conditionally.
-    $menuItems = [];
-    if ($canViewPrivate && $account?->email) {
-        $menuItems[] = ['label' => 'Send email', 'icon' => 'mail', 'url' => 'mailto:'.$account->email];
-    }
+    // Writing to somebody is the most-reached-for thing on a profile, so it is
+    // a button of its own beside Edit rather than a line inside an overflow
+    // menu — which is what the reference does with its two header actions, and
+    // which left the menu holding nothing worth a click.
+    $canEmail = $canViewPrivate && $account?->email;
+
+    // Days are stored to two decimals but read as "1.5" and "3", never "3.00".
+    $days = fn ($value) => rtrim(rtrim(number_format((float) $value, 1), '0'), '.');
+
+    // A check-in is stored in UTC and only means anything in the timezone of
+    // the door it was scanned at.
+    $clock = fn (?\Carbon\CarbonInterface $at, $record) => $at
+        ?->timezone($record->officeLocation?->timezone ?? config('schedule.timezone'))
+        ->format('g:i A') ?? '—';
 
     // Tabs are built from what this viewer is actually allowed to act on, so the
     // strip never shows a section that would render empty.
     $tabs = [
         ['id' => 'employment', 'label' => 'Employment', 'icon' => 'briefcase'],
-        ['id' => 'reporting', 'label' => 'Reporting line', 'icon' => 'users'],
+        ['id' => 'reporting', 'label' => 'Reporting', 'icon' => 'users'],
     ];
+    if ($canViewPrivate) {
+        $tabs[] = ['id' => 'time-off', 'label' => 'Time off', 'icon' => 'leave'];
+        $tabs[] = ['id' => 'attendance', 'label' => 'Attendance', 'icon' => 'clock'];
+    }
+
+    // The strip only has room for a single row, and the administrative sections
+    // are the ones nobody opens twice a day, so they fold into a menu at the end
+    // of it rather than pushing the whole strip onto a second line. They stay
+    // one press of that menu away — the menu holds them directly, with no
+    // submenu and nothing to scroll past.
+    $menuTabs = [];
     if ($canReissueAttendanceQr) {
-        $tabs[] = ['id' => 'badge', 'label' => 'Attendance badge', 'icon' => 'fingerprint'];
+        $menuTabs[] = ['id' => 'badge', 'label' => 'Attendance badge', 'icon' => 'fingerprint'];
     }
     if ($canResetTwoFactor) {
-        $tabs[] = ['id' => 'security', 'label' => 'Security', 'icon' => 'shield'];
+        $menuTabs[] = ['id' => 'security', 'label' => 'Security', 'icon' => 'shield'];
     }
 @endphp
 
@@ -39,31 +59,77 @@
             <div class="employee-record-identity">
                 <span class="avatar employee-record-avatar">{{ $initials }}</span>
                 <div class="employee-record-headline">
-                    <div class="employee-record-name">
-                        <h2>{{ $employee->full_name }}</h2>
-                        @if($employeeRole)<span class="employee-record-chip"><x-icon name="shield" /> {{ str($employeeRole)->headline() }}</span>@endif
-                        <x-status-badge :status="str($employee->employment_status)->replace('_', ' ')" />
-                    </div>
-                    <dl class="employee-record-summary">
-                        <div><dt>Employee ID</dt><dd>{{ $employee->employee_number }}</dd></div>
-                        <div><dt>Hire date</dt><dd>{{ $hireDate?->format('j F Y') ?? 'Not recorded' }}</dd></div>
-                        <div><dt>Assigned to</dt><dd>{{ $employee->department?->name ?? 'Unassigned' }}</dd></div>
-                    </dl>
+                    {{-- Name and identifier only. That this is an employee is
+                         what the directory is; the employment status is a row of
+                         its own in the rail, and saying it twice a hand's width
+                         apart only made the header louder. --}}
+                    <h2 class="employee-record-name">{{ $employee->full_name }}</h2>
+                    <p class="employee-record-id">Employee ID: <span>{{ $employee->employee_number }}</span></p>
                 </div>
             </div>
             <div class="employee-record-actions">
-                @if($menuItems)
-                    <x-dashboard-action-menu label="More employee options" :items="$menuItems" />
+                {{-- Outlined next to Edit, solid when it is the only thing this
+                     viewer can do, so the header always has one filled button. --}}
+                @if($canEmail)
+                    <a class="btn {{ $canManage ? 'btn-outline-primary' : 'btn-primary' }} dashboard-action" href="mailto:{{ $account->email }}"><x-icon name="mail" /> Send email</a>
                 @endif
                 @if($canManage)
                     <a class="btn btn-primary dashboard-action" data-employee-edit href="{{ route('employees.edit', $employee) }}"><x-icon name="edit" /> Edit employee</a>
-                @elseif($canViewPrivate && $account?->email)
-                    <a class="btn btn-primary dashboard-action" href="mailto:{{ $account->email }}"><x-icon name="mail" /> Send email</a>
                 @endif
             </div>
         </header>
 
         <div class="employee-record-body">
+            {{-- The information rail leads, the way the reference puts the facts
+                 about a person to the left of whatever section is open. --}}
+            <aside class="employee-record-side">
+                <section class="employee-side-group">
+                    <h3><x-icon name="users" /> Personal Information</h3>
+                    <dl class="employee-side-list">
+                        <div><dt><x-icon name="calendar" /> Hire date</dt><dd>{{ $hireDate?->format('j M, Y') ?? 'Not recorded' }}</dd></div>
+                        <div><dt><x-icon name="clock" /> Service</dt><dd>{{ $tenure ?? 'Not yet counted' }}</dd></div>
+                        <div><dt><x-icon name="check-circle" /> Status</dt><dd>{{ str($employee->employment_status)->replace('_', ' ')->headline() }}</dd></div>
+                    </dl>
+                </section>
+
+                <section class="employee-side-group">
+                    <h3><x-icon name="map-pin" /> Address &amp; Contact Information</h3>
+                    @if($canViewPrivate)
+                        <dl class="employee-side-list">
+                            {{-- A work address is wider than the rail, so it is
+                                 given a break opportunity after the @: without
+                                 one the only place left to wrap is the middle of
+                                 the domain. --}}
+                            <div><dt><x-icon name="mail" /> Email</dt><dd>@if($account?->email)<a class="employee-side-pill" href="mailto:{{ $account->email }}">{!! str_replace('@', '@<wbr>', e($account->email)) !!}</a>@else<span class="employee-side-blank">Not recorded</span>@endif</dd></div>
+                            <div><dt><x-icon name="phone" /> Phone</dt><dd>@if($employee->contact_number)<a class="employee-side-pill" href="tel:{{ $employee->contact_number }}">{{ $employee->contact_number }}</a>@else<span class="employee-side-blank">Not recorded</span>@endif</dd></div>
+                            <div><dt><x-icon name="map-pin" /> Location</dt><dd>{{ $employee->address ?: 'Not recorded' }}</dd></div>
+                        </dl>
+                    @else
+                        <p class="employee-side-restricted"><x-icon name="lock" /> Contact details are visible to HR managers and to the employee themselves.</p>
+                    @endif
+                </section>
+
+                <section class="employee-side-group">
+                    <h3><x-icon name="briefcase" /> Employment Information</h3>
+                    <dl class="employee-side-list">
+                        <div><dt><x-icon name="building" /> Department</dt><dd>{{ $employee->department?->name ?? 'Unassigned' }}</dd></div>
+                        <div><dt><x-icon name="briefcase" /> Position</dt><dd>{{ $employee->position?->title ?? 'Unassigned' }}</dd></div>
+                        <div><dt><x-icon name="users" /> Supervisor</dt><dd>{{ $employee->supervisor?->full_name ?? 'None assigned' }}</dd></div>
+                    </dl>
+                </section>
+
+                @if($canViewPrivate)
+                    <section class="employee-side-group">
+                        <h3><x-icon name="lock" /> Account &amp; Access</h3>
+                        <dl class="employee-side-list">
+                            <div><dt><x-icon name="lock" /> Access</dt><dd>{{ $account?->is_active ? 'Enabled' : 'Disabled' }}</dd></div>
+                            <div><dt><x-icon name="shield" /> Two-factor</dt><dd>{{ $account?->two_factor_secret ? 'Enabled' : 'Not enabled' }}</dd></div>
+                            <div><dt><x-icon name="clock" /> Last sign-in</dt><dd>{{ $account?->last_login_at?->format('M j, Y · g:i A') ?? 'No recorded sign-in' }}</dd></div>
+                        </dl>
+                    </section>
+                @endif
+            </aside>
+
             <div class="employee-record-main">
                 <nav class="employee-record-tabs" role="tablist" aria-label="Employee record sections">
                     @foreach($tabs as $tab)
@@ -78,6 +144,39 @@
                             aria-selected="{{ $loop->first ? 'true' : 'false' }}"
                         ><x-icon :name="$tab['icon']" /> <span>{{ $tab['label'] }}</span></button>
                     @endforeach
+
+                    @if($menuTabs)
+                        {{-- .nav-item and .dropdown are what Bootstrap's tab plugin
+                             looks for to carry the selection out to the toggle: pick a
+                             section in here and the button underlines like any other
+                             tab. .dropdown-toggle is what keeps the button itself from
+                             being counted as one. --}}
+                        <div class="nav-item dropdown dashboard-action-menu employee-record-tab-menu">
+                            <button
+                                class="employee-record-tab dropdown-toggle"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                data-bs-auto-close="true"
+                                data-dashboard-action-menu
+                                aria-expanded="false"
+                                aria-label="More sections"
+                            ><x-icon name="more" /></button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                @foreach($menuTabs as $tab)
+                                    <button
+                                        class="dropdown-item"
+                                        id="employee-tab-{{ $tab['id'] }}"
+                                        type="button"
+                                        role="tab"
+                                        data-bs-toggle="tab"
+                                        data-bs-target="#employee-pane-{{ $tab['id'] }}"
+                                        aria-controls="employee-pane-{{ $tab['id'] }}"
+                                        aria-selected="false"
+                                    ><x-icon :name="$tab['icon']" /> <span>{{ $tab['label'] }}</span></button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </nav>
 
                 <div class="tab-content employee-record-panes">
@@ -176,6 +275,123 @@
                         @endforelse
                     </div>
 
+                    @if($canViewPrivate)
+                        <div class="tab-pane fade" id="employee-pane-time-off" role="tabpanel" aria-labelledby="employee-tab-time-off" tabindex="0">
+                            <article class="employee-card">
+                                <div class="employee-card-top">
+                                    <span class="employee-card-mark"><x-icon name="leave" /></span>
+                                    <div class="employee-card-title">
+                                        <h3>Leave credits</h3>
+                                        <p>{{ $timeOff['year'] }} entitlement</p>
+                                    </div>
+                                </div>
+                                @if($timeOff['balances']->isNotEmpty())
+                                    <div class="employee-card-table">
+                                        <table class="dashboard-table dashboard-table-fit">
+                                            <caption class="visually-hidden">Leave credits for {{ $timeOff['year'] }}</caption>
+                                            <thead>
+                                                <tr><th scope="col">Leave type</th><th scope="col">Available</th><th scope="col">Used</th><th scope="col">Entitled</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($timeOff['balances'] as $balance)
+                                                    <tr>
+                                                        <th scope="row">{{ $balance->leaveType?->name ?? 'Unknown type' }}</th>
+                                                        <td><b>{{ $days($balance->available_days) }}</b></td>
+                                                        <td>{{ $days($balance->used_days) }}</td>
+                                                        {{-- What was carried in counts towards the year's entitlement, so it is shown as one figure rather than two. --}}
+                                                        <td>{{ $days((float) $balance->entitled_days + (float) $balance->carried_over_days) }}</td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <div class="employee-card-inner"><p class="employee-record-empty"><x-icon name="leave" /> No leave credits have been opened for {{ $timeOff['year'] }}.</p></div>
+                                @endif
+                            </article>
+
+                            <p class="employee-record-subhead">Recent requests <span>{{ $timeOff['requests']->count() }}</span></p>
+
+                            @forelse($timeOff['requests'] as $leaveRequest)
+                                <article class="employee-card">
+                                    <div class="employee-card-top">
+                                        <span class="employee-card-mark"><x-icon name="leave" /></span>
+                                        <div class="employee-card-title">
+                                            <h3>{{ $leaveRequest->leaveType?->name ?? 'Leave' }}</h3>
+                                            <p>{{ $leaveRequest->start_date?->format('j M Y') }} – {{ $leaveRequest->end_date?->format('j M Y') }}</p>
+                                        </div>
+                                        <x-status-badge :status="str($leaveRequest->status)->replace('_', ' ')" />
+                                    </div>
+                                    <div class="employee-card-foot">
+                                        <dl class="employee-card-meta">
+                                            <div><dt>Days</dt><dd>{{ $days($leaveRequest->requested_days) }}</dd></div>
+                                            <div><dt>Filed</dt><dd>{{ $leaveRequest->created_at?->format('j M Y') ?? 'Not recorded' }}</dd></div>
+                                        </dl>
+                                    </div>
+                                </article>
+                            @empty
+                                <p class="employee-record-empty"><x-icon name="leave" /> This employee has not filed any leave.</p>
+                            @endforelse
+                        </div>
+
+                        <div class="tab-pane fade" id="employee-pane-attendance" role="tabpanel" aria-labelledby="employee-tab-attendance" tabindex="0">
+                            <article class="employee-card">
+                                <div class="employee-card-top">
+                                    <span class="employee-card-mark"><x-icon name="clock" /></span>
+                                    <div class="employee-card-title">
+                                        <h3>Recent attendance</h3>
+                                        <p>Most recent recorded days</p>
+                                    </div>
+                                </div>
+                                @if($attendance['records']->isNotEmpty())
+                                    <div class="employee-card-table">
+                                        <table class="dashboard-table dashboard-table-fit">
+                                            <caption class="visually-hidden">Most recent attendance records for {{ $employee->full_name }}</caption>
+                                            <thead>
+                                                <tr><th scope="col">Date</th><th scope="col">In</th><th scope="col">Out</th><th scope="col">Status</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($attendance['records'] as $record)
+                                                    <tr>
+                                                        <th scope="row">{{ $record->attendance_date?->format('j M Y') ?? 'Undated' }}</th>
+                                                        <td>{{ $clock($record->check_in_at, $record) }}</td>
+                                                        <td>{{ $clock($record->check_out_at, $record) }}</td>
+                                                        <td>{{ str($record->status)->replace('_', ' ')->headline() }}@if($record->late_minutes) · {{ $record->late_minutes }}m late @endif</td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <div class="employee-card-inner"><p class="employee-record-empty"><x-icon name="clock" /> No attendance has been recorded for this employee yet.</p></div>
+                                @endif
+                            </article>
+
+                            <p class="employee-record-subhead">Upcoming shifts <span>{{ $attendance['upcoming']->count() }}</span></p>
+
+                            @forelse($attendance['upcoming'] as $assignment)
+                                <article class="employee-card">
+                                    <div class="employee-card-top">
+                                        <span class="employee-card-mark"><x-icon name="calendar" /></span>
+                                        <div class="employee-card-title">
+                                            <h3>{{ $assignment->work_date?->format('l, j F Y') ?? 'Undated' }}</h3>
+                                            <p>{{ $assignment->shift?->name ?? 'Shift unassigned' }}</p>
+                                        </div>
+                                        <x-status-badge :status="str($assignment->status)->replace('_', ' ')" />
+                                    </div>
+                                    <div class="employee-card-foot">
+                                        <dl class="employee-card-meta">
+                                            <div><dt>Hours</dt><dd>@if($assignment->shift){{ \Illuminate\Support\Carbon::parse($assignment->shift->start_time)->format('g:i A') }} – {{ \Illuminate\Support\Carbon::parse($assignment->shift->end_time)->format('g:i A') }}@else Not set @endif</dd></div>
+                                            <div><dt>Shift code</dt><dd>{{ $assignment->shift?->code ?? 'Not set' }}</dd></div>
+                                        </dl>
+                                    </div>
+                                </article>
+                            @empty
+                                <p class="employee-record-empty"><x-icon name="calendar" /> Nothing is rostered for this employee from today onwards.</p>
+                            @endforelse
+                        </div>
+                    @endif
+
                     @if($canReissueAttendanceQr)
                         <div class="tab-pane fade" id="employee-pane-badge" role="tabpanel" aria-labelledby="employee-tab-badge" tabindex="0">
                             <article class="employee-card employee-qr-panel">
@@ -225,42 +441,5 @@
                     @endif
                 </div>
             </div>
-
-            <aside class="employee-record-side">
-                <section class="employee-side-group">
-                    <h3>Personal Information</h3>
-                    @if($canViewPrivate)
-                        <dl class="employee-side-list">
-                            <div class="is-stacked"><dt><x-icon name="mail" /> Email address</dt><dd>@if($account?->email)<a class="employee-side-pill" href="mailto:{{ $account->email }}">{{ $account->email }}</a>@else<span class="employee-side-blank">Not recorded</span>@endif</dd></div>
-                            <div><dt><x-icon name="phone" /> Contact number</dt><dd>@if($employee->contact_number)<a class="employee-side-pill" href="tel:{{ $employee->contact_number }}">{{ $employee->contact_number }}</a>@else<span class="employee-side-blank">Not recorded</span>@endif</dd></div>
-                            <div class="is-stacked"><dt><x-icon name="map-pin" /> Home address</dt><dd>{{ $employee->address ?: 'Not recorded' }}</dd></div>
-                        </dl>
-                    @else
-                        <p class="employee-side-restricted"><x-icon name="lock" /> Contact details are visible to HR managers and to the employee themselves.</p>
-                    @endif
-                </section>
-
-                <section class="employee-side-group">
-                    <h3>Employment Information</h3>
-                    <dl class="employee-side-list">
-                        <div><dt><x-icon name="building" /> Department</dt><dd>{{ $employee->department?->name ?? 'Unassigned' }}</dd></div>
-                        <div><dt><x-icon name="briefcase" /> Position</dt><dd>{{ $employee->position?->title ?? 'Unassigned' }}</dd></div>
-                        <div><dt><x-icon name="users" /> Supervisor</dt><dd>{{ $employee->supervisor?->full_name ?? 'None assigned' }}</dd></div>
-                        <div><dt><x-icon name="calendar" /> Hire date</dt><dd>{{ $hireDate?->format('F j, Y') ?? 'Not recorded' }}</dd></div>
-                        <div><dt><x-icon name="check-circle" /> Employment status</dt><dd>{{ str($employee->employment_status)->replace('_', ' ')->headline() }}</dd></div>
-                    </dl>
-                </section>
-
-                @if($canViewPrivate)
-                    <section class="employee-side-group">
-                        <h3>Account &amp; Access</h3>
-                        <dl class="employee-side-list">
-                            <div><dt><x-icon name="lock" /> Account access</dt><dd>{{ $account?->is_active ? 'Enabled' : 'Disabled' }}</dd></div>
-                            <div><dt><x-icon name="shield" /> Two-factor</dt><dd>{{ $account?->two_factor_secret ? 'Enabled' : 'Not enabled' }}</dd></div>
-                            <div><dt><x-icon name="clock" /> Last sign-in</dt><dd>{{ $account?->last_login_at?->format('M j, Y · g:i A') ?? 'No recorded sign-in' }}</dd></div>
-                        </dl>
-                    </section>
-                @endif
-            </aside>
         </div>
     </section>

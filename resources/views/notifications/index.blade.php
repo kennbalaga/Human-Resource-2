@@ -91,6 +91,6 @@
     </section>
 
     @if($notificationPage->hasPages())
-        <div class="report-pagination">{{ $notificationPage->links() }}</div>
+        <div class="report-pagination">{{ $notificationPage->links('pagination::bootstrap-5') }}</div>
     @endif
 @endsection

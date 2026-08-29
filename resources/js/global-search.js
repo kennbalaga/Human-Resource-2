@@ -119,4 +119,25 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (event) => {
         if (!wrapper.contains(event.target)) closeDropdown();
     });
+
+    /* The shortcut the chip in the field advertises. K rather than the F the
+       reference bar prints: F is find-in-page in every browser, and taking it
+       would cost more than the search field is worth. */
+    const hint = wrapper.querySelector('[data-global-search-hint]');
+    const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+
+    if (hint && isMac) {
+        hint.textContent = '⌘ K';
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'k' && event.key !== 'K') return;
+        if (!(isMac ? event.metaKey : event.ctrlKey)) return;
+        /* Ctrl+Shift+K and Ctrl+Alt+K belong to the browser's own tools. */
+        if (event.shiftKey || event.altKey) return;
+
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
 });

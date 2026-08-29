@@ -190,17 +190,24 @@
     gap: 1rem;
 }
 
+/* Wider than it was: with the divider gone, this gap is the only thing telling
+   one group of departments from the next. */
 .organization-category-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2.25rem;
 }
 
+/* No rule under the heading. It ran the full width of the grid whatever was
+   below it, so a group holding one card trailed a line off across the empty
+   two thirds, and with the cards starting immediately under it the line read as
+   something stray resting on them rather than as a heading's underscore. The
+   gap between groups separates them on its own. */
 .organization-category-heading {
     display: flex;
     justify-content: space-between;
     align-items: end;
     gap: 1rem;
-    padding: 0 .15rem .65rem;
-    border-bottom: 1px solid var(--hr-border);
+    padding: 0 .15rem;
+    margin-bottom: .85rem;
 }
 
 .organization-category-heading .eyebrow {
@@ -364,10 +371,10 @@
 /* ===========================================================================
    Employee profile — the record card
 
-   One card holds the whole employee: an identity header, a tabbed working
-   column, and a fixed information rail down the right. The rail answers
-   "who is this person" and never changes; the tabs answer "what can I do
-   about it", which is why the consequential actions — reissuing a badge,
+   One card holds the whole employee: an identity header, a fixed information
+   rail down the left, and the tabbed working column beside it. The rail
+   answers "who is this person" and never changes; the tabs answer "what can I
+   do about it", which is why the consequential actions — reissuing a badge,
    resetting 2FA — live in there behind a deliberate click rather than
    sitting open on the page the way they used to.
 
@@ -400,7 +407,9 @@
     width: 3.4rem;
     height: 3.4rem;
     flex: none;
-    border-radius: var(--r-lg);
+    /* Round, as the reference has it: the one circle on a screen made of
+       rectangles is what makes the header read as a person rather than a row. */
+    border-radius: var(--r-pill);
     font-size: var(--fs-md);
 }
 
@@ -409,13 +418,7 @@
 }
 
 .employee-record-name {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: .5rem;
-}
-
-.employee-record-name h2 {
+    overflow-wrap: anywhere;
     margin: 0;
     color: var(--hr-text);
     font-size: var(--fs-lg);
@@ -423,47 +426,20 @@
     letter-spacing: -0.02em;
 }
 
-.employee-record-chip {
-    display: inline-flex;
-    padding: .2rem .55rem;
-    border-radius: var(--r-pill);
-    align-items: center;
-    gap: .3rem;
-    color: var(--hr-primary-dark);
-    background: var(--hr-primary-soft);
-    font-size: var(--fs-2xs);
-    font-weight: 700;
-}
-
-.employee-record-chip svg {
-    width: .85rem;
-    height: .85rem;
-}
-
-/* The three facts asked about a record before any tab is opened. */
-.employee-record-summary {
-    display: flex;
-    flex-wrap: wrap;
-    margin: .7rem 0 0;
-    gap: .35rem 1.6rem;
-}
-
-.employee-record-summary div {
-    min-width: 0;
-}
-
-.employee-record-summary dt {
-    color: var(--hr-subtle);
-    font-size: var(--fs-2xs);
-    font-weight: 600;
-}
-
-.employee-record-summary dd {
+/* The one line under the name in the reference header. Everything else it used
+   to repeat — hire date, department — is a row in the rail now, so the header
+   carries only the identifier you would read a record out by. */
+.employee-record-id {
     overflow-wrap: anywhere;
-    margin: .1rem 0 0;
-    color: var(--hr-text);
-    font-size: var(--fs-sm);
+    margin: .35rem 0 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
     font-weight: 600;
+}
+
+.employee-record-id span {
+    color: var(--hr-text);
+    font-weight: 700;
 }
 
 .employee-record-actions {
@@ -473,9 +449,12 @@
     gap: .5rem;
 }
 
+/* Rail first, sections second — the reading order of the reference layout. The
+   rail is wide enough that a department name or a signed-in timestamp still
+   finishes on one line beside its label. */
 .employee-record-body {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 20.5rem;
+    grid-template-columns: 20.5rem minmax(0, 1fr);
 }
 
 .employee-record-main {
@@ -488,7 +467,9 @@
    separate objects competing with the cards below them. */
 .employee-record-tabs {
     display: flex;
-    flex-wrap: wrap;
+    /* One row, always. What will not fit is in the menu at the end of it, so
+       there is nothing left to wrap onto a second line. */
+    flex-wrap: nowrap;
     margin-bottom: 1.1rem;
     border-bottom: 1px solid var(--hr-border);
     gap: .25rem;
@@ -497,7 +478,9 @@
 .employee-record-tab {
     display: inline-flex;
     min-height: 2.5rem;
-    padding: .45rem .75rem;
+    /* Trimmed from .75rem: five items have to share one row at the width the
+       panel opens to, and the gutters are where the room comes from. */
+    padding: .45rem .65rem;
     border: 0;
     /* Kept on every tab and only coloured on the active one: adding the border
        on selection instead would shift each label two pixels as it is picked. */
@@ -528,6 +511,41 @@
 .employee-record-tab.active {
     color: var(--hr-primary);
     border-bottom-color: var(--hr-primary);
+}
+
+/* The overflow menu sits at the end of the strip and reads as one more tab —
+   including the underline, which Bootstrap moves onto this button whenever the
+   section showing is one of the ones folded inside it. */
+.employee-record-tab-menu {
+    display: flex;
+    flex: none;
+    align-items: stretch;
+}
+
+/* The plugin needs .dropdown-toggle on the button to tell it apart from the
+   tabs; the caret that class also brings is redundant next to the menu icon. */
+.employee-record-tab.dropdown-toggle::after {
+    display: none;
+}
+
+/* Icon only — the button names itself to a screen reader through aria-label,
+   and the row is worth more to the tabs than to a word for the leftovers. */
+.employee-record-tab.dropdown-toggle {
+    padding-right: .55rem;
+    padding-left: .55rem;
+}
+
+.employee-record-tab-menu .dropdown-item {
+    width: 100%;
+    border: 0;
+    color: var(--hr-text);
+    background: transparent;
+    text-align: left;
+}
+
+.employee-record-tab-menu .dropdown-item.active {
+    color: var(--hr-primary-dark);
+    background: var(--hr-primary-soft);
 }
 
 .employee-card {
@@ -585,6 +603,32 @@
 
 .employee-card-title {
     min-width: 0;
+    /* Claims the space a status badge beside it would otherwise take from the
+       title, so the badge is pushed to the far edge of the card head. */
+    flex: 1;
+}
+
+/* A card that reports on something — a leave request, a rostered shift — says
+   how it stands, at the end of its own head. */
+.employee-card-top > .status-badge {
+    flex: none;
+}
+
+/* The record tables borrow the dashboard's, which is built for a full-width
+   page: -fit drops its 820px floor, and the scroller is the backstop for the
+   narrowest panel rather than something the reader should ever meet. */
+.employee-card-table {
+    overflow-x: auto;
+    border-top: 1px solid var(--hr-border);
+}
+
+.employee-card-table .dashboard-table th:first-child,
+.employee-card-table .dashboard-table td:first-child {
+    padding-left: 1.05rem;
+}
+
+.employee-card-table .dashboard-table td {
+    color: var(--hr-text);
 }
 
 .employee-card-title h3 {
@@ -694,37 +738,74 @@
 .employee-record-side {
     display: grid;
     padding: 1.25rem 1.4rem 1.5rem;
-    border-left: 1px solid var(--hr-border);
-    background: var(--hr-surface-2);
+    border-right: 1px solid var(--hr-border);
+    background: var(--hr-surface);
     align-content: start;
-    gap: 1.4rem;
+    gap: 1.5rem;
 }
 
+/* Each group is announced by an icon and a heading, the way the reference
+   labels its rail. The icon carries the accent so the headings read down the
+   column as a list of subjects without shouting in bold colour. */
 .employee-side-group h3 {
-    margin: 0 0 .75rem;
+    display: flex;
+    margin: 0 0 .7rem;
+    align-items: center;
+    gap: .45rem;
     color: var(--hr-text);
-    font-size: var(--fs-md);
-    font-weight: 660;
+    font-size: var(--fs-sm);
+    font-weight: 700;
+}
+
+.employee-side-group h3 svg {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    color: var(--hr-primary);
 }
 
 .employee-side-list {
     display: grid;
     margin: 0;
-    gap: .65rem;
+    gap: .55rem;
 }
 
+/* Label, colon, value — three tracks, one per part. Each row is its own grid,
+   so the label column has to be a fixed track and not an auto one: sized to
+   content, every row would measure its own label and the colons would land at a
+   different x on every line. The width is set once here for the whole rail,
+   which is what keeps the groups aligned with each other as well as internally
+   — so labels are kept short enough to sit on one line inside it.
+
+   The colon gets a track rather than riding on the value, because the value can
+   be a pill: an inline-block that does not fit the space left beside the colon
+   wraps in one piece to the next line, leaving the colon stranded alone on the
+   first. In its own track it cannot crowd the value, and the value starts at
+   the top of a column it has entirely to itself. */
 .employee-side-list > div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: .9rem;
+    display: grid;
+    grid-template-columns: 6.75rem auto minmax(0, 1fr);
+    /* Not baseline: an inline-block's baseline is its *last* line, so a pill
+       that wrapped to two lines would hang its first line above the label. */
+    align-items: start;
+    gap: .1rem .4rem;
+}
+
+.employee-side-list > div::before {
+    content: ':';
+    grid-row: 1;
+    grid-column: 2;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
 }
 
 .employee-side-list dt {
     display: flex;
-    flex: none;
+    min-width: 0;
+    grid-row: 1;
+    grid-column: 1;
     align-items: center;
-    gap: .45rem;
+    gap: .4rem;
     color: var(--hr-muted);
     font-size: var(--fs-xs);
 }
@@ -732,35 +813,32 @@
 .employee-side-list dt svg {
     width: .95rem;
     height: .95rem;
+    flex: none;
     color: var(--hr-subtle);
 }
 
 .employee-side-list dd {
     overflow-wrap: anywhere;
     min-width: 0;
+    grid-row: 1;
+    grid-column: 3;
     margin: 0;
     color: var(--hr-text);
     font-size: var(--fs-xs);
     font-weight: 660;
-    text-align: right;
-}
-
-/* An email or a street address is longer than half a 20rem rail, and forcing it
-   to share a line only breaks it mid-word. Those rows put the value under its
-   label with the full width to itself; the short values keep the paired look. */
-.employee-side-list > div.is-stacked {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: .3rem;
-}
-
-.employee-side-list > div.is-stacked dd {
-    text-align: left;
 }
 
 .employee-side-pill {
     display: inline-block;
-    padding: .15rem .5rem;
+    /* A long address would otherwise widen the pill past the rail instead of
+       breaking inside it. */
+    max-width: 100%;
+    /* The negative margin cancels the pill's own top padding, so its text
+       starts on the same line as the label beside it rather than sitting a
+       couple of pixels lower than every plain-text row in the rail. */
+    margin-top: -.1rem;
+    padding: .1rem .5rem;
+    overflow-wrap: anywhere;
     border-radius: var(--r-pill);
     color: var(--hr-primary-dark);
     background: var(--hr-primary-soft);
@@ -893,10 +971,13 @@
 
 
 @media (max-width: 1000px) {
+    /* Stacked, the rail keeps its place at the top: it is the summary of the
+       record, and the tabs it used to sit beside follow it down the page. */
     .employee-record-body { grid-template-columns: minmax(0, 1fr); }
     .employee-record-side {
-        border-top: 1px solid var(--hr-border);
-        border-left: 0;
+        border-right: 0;
+        border-bottom: 1px solid var(--hr-border);
+        background: var(--hr-surface-2);
     }
 }
 
@@ -907,8 +988,6 @@
     .employee-record-tab { flex: none; }
     .employee-card-foot { flex-direction: column; align-items: flex-start; }
     .employee-card-action { width: 100%; }
-    .employee-side-list > div { flex-direction: column; align-items: flex-start; gap: .2rem; }
-    .employee-side-list dd { text-align: left; }
 }
 
 .global-search-results-grid {

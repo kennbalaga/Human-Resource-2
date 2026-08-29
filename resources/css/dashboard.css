@@ -493,22 +493,9 @@ input {
     flex: none;
 }
 
-/* The hairline that separates the tools from the account, as in the reference.
-   The margin came down as the gap above went up: at 10px it was compensating
-   for the tightness, and kept at 4px it would now hold the account group out
-   further than the rest of the strip. The space around the rule is real now, so
-   the rule does not have to manufacture it. */
-.topbar-divider {
-    width: 1px;
-    height: 26px;
-    flex: none;
-    margin: 0 2px;
-    background: var(--hr-border);
-}
-
+/* Avatar and caret only, so there is no name to hold a width open for. */
 .topbar-profile-button {
     display: flex;
-    max-width: 230px;
     min-height: var(--tap-min);
     padding: 4px 8px 4px 4px;
     border: 0;
@@ -528,17 +515,6 @@ input {
 .topbar-profile-button:focus-visible {
     outline: 3px solid rgba(23, 107, 67, 0.35);
     outline-offset: 2px;
-}
-
-/* A long name truncates rather than pushing the caret off the bar. */
-.topbar-profile-name {
-    overflow: hidden;
-    min-width: 0;
-    color: var(--hr-text);
-    font-size: var(--fs-sm);
-    font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .topbar-profile-caret {
@@ -639,9 +615,13 @@ input {
 
 .global-search-wrapper {
     position: relative;
-    width: min(460px, 100%);
-    /* Everything after it is pushed to the far end of the bar. */
-    margin-right: auto;
+    /* Sized to its own content rather than to the bar: the placeholder and the
+       shortcut chip both sit comfortably at this width, and stretching further
+       only drew a long empty trough beside the notifications. */
+    width: min(340px, 100%);
+    /* The slack goes in front of the field, so it ends up at the right of the
+       bar with only the bar's own gap between it and the notifications. */
+    margin-left: auto;
 }
 
 .global-search-dropdown {
@@ -745,42 +725,74 @@ input {
     color: var(--hr-subtle);
 }
 
-.topbar-date {
-    min-height: var(--tap-min);
-    padding: 0;
-    color: var(--hr-muted);
-    align-items: center;
-    gap: 8px;
-    font-size: var(--fs-sm);
-}
-
-.topbar-date .ui-icon {
-    width: 17px;
-    height: 17px;
-}
-
-/*
- * No reserved width here: the date line is always the wider of the two, so the
- * block keeps its size when the hour rolls from one digit to two. A min-width
- * would only pad dead space between the clock and the search field.
- */
-.topbar-clock-copy {
-    display: grid;
-    line-height: 1.15;
-}
-
-.topbar-clock-time {
-    color: var(--hr-text);
-    font-size: var(--fs-sm);
-    font-variant-numeric: tabular-nums;
-    font-weight: 650;
-    letter-spacing: 0.01em;
-}
-
-.topbar-clock-date {
-    margin-top: 3px;
-    color: var(--hr-muted);
+/* The keyboard shortcut, parked at the trailing edge of the field. It is a
+   caption on the control rather than something to reach for, so it stays quiet
+   and gets out of the way the moment the field is in use. */
+.global-search-hint {
+    flex: none;
+    padding: 2px 7px;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-sm);
+    color: var(--hr-subtle);
+    background: var(--hr-surface);
+    font-family: inherit;
     font-size: var(--fs-2xs);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: opacity 160ms ease;
+}
+
+.global-search:focus-within .global-search-hint {
+    opacity: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   The clock, no longer in the topbar.
+
+   It is the dashboard's alone now, sitting in that page's heading row where the
+   quick action used to be — so the bar itself is left holding only search,
+   alerts and the account, as in the reference.
+   --------------------------------------------------------------------------- */
+
+.current-time-strip {
+    flex: none;
+    justify-content: flex-end;
+}
+
+/* Right-aligned rather than centred: the label is short and the date is long,
+   and the edge they share is the one the page's own gutter already draws.
+
+   The two rows below are built to the greeting's own measurements — the time to
+   its h1, the date to the sentence under it. That parity is what makes the two
+   halves of the row line up: they are bottom-aligned, so any difference in the
+   trailing rows pushed the clock off the greeting. */
+.current-time {
+    display: grid;
+    justify-items: end;
+}
+
+/* Sized off the greeting it sits opposite: the same clamp and weight as
+   .page-heading h1, so the two ends of the row read as one line rather than a
+   headline with a footnote pinned beside it. */
+.current-time-value {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: clamp(1.65rem, 2vw, 2.15rem);
+    /* The seconds tick every second; without fixed-width figures the whole
+       number shuffles sideways on every one of them. */
+    font-variant-numeric: tabular-nums;
+    font-weight: 690;
+    letter-spacing: -0.035em;
+}
+
+/* Matches the sentence under the greeting: same size, same 7px above it. Left
+   at the caption size it was, it also read as fine print under a number three
+   times its height. */
+.current-time-date {
+    margin: 7px 0 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-base);
     white-space: nowrap;
 }
 
@@ -873,21 +885,17 @@ input {
     position: relative;
 }
 
-.notification-count {
+/* Unread marker. The ring is the bar's own fill, so the dot reads as sitting on
+   the bell rather than touching it — restated for dark mode further down. */
+.notification-dot {
     position: absolute;
-    top: -4px;
-    right: -4px;
-    display: grid;
-    min-width: 19px;
-    height: 19px;
-    padding: 0 4px;
-    border: 2px solid #fff;
+    top: 7px;
+    right: 8px;
+    width: 9px;
+    height: 9px;
+    border: 2px solid var(--hr-surface);
     border-radius: var(--r-pill);
-    color: #fff;
     background: var(--hr-danger);
-    font-size: var(--fs-2xs);
-    font-weight: 700;
-    place-items: center;
 }
 
 .avatar {
@@ -1355,6 +1363,7 @@ input {
     justify-content: space-between;
     gap: 24px;
 }
+
 
 .eyebrow,
 .panel-kicker {

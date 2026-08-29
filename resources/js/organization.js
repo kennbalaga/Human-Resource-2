@@ -190,6 +190,18 @@ const initializeEmployeePanel = () => {
         body.innerHTML = markup;
         body.removeAttribute('aria-busy');
         body.scrollTop = 0;
+
+        /* The record carries the tab strip's overflow menu. Bootstrap's data-api
+           would build it on first click with Popper's default absolute strategy,
+           which the strip clips the moment it is narrow enough to scroll
+           sideways; fixed positioning lifts the menu out of that box. The
+           dashboard instantiates its own menus the same way, but it does so at
+           load — this markup arrives long after. */
+        body.querySelectorAll('[data-dashboard-action-menu]').forEach((toggle) => {
+            window.bootstrap?.Dropdown.getOrCreateInstance(toggle, {
+                popperConfig: (defaultConfig) => ({ ...defaultConfig, strategy: 'fixed' }),
+            });
+        });
     };
 
     const load = async (url) => {

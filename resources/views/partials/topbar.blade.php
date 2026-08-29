@@ -1,7 +1,4 @@
 @php
-    $displayTimezone = config('workforce.timezone', 'Asia/Manila');
-    $displayNow = now($displayTimezone);
-
     $topbarUser = auth()->user();
     $topbarTheme = $topbarUser->preference->theme;
     $topbarInitials = collect(explode(' ', $topbarUser->name))
@@ -40,32 +37,32 @@
                 aria-haspopup="listbox"
                 aria-controls="globalSearchDropdown"
             >
+            {{-- The shortcut the chip advertises is bound in global-search.js.
+                 The reference bar shows ⌘F; that is the browser's own
+                 find-in-page on every platform, so this takes K — the
+                 conventional search key — and the script rewrites the label to
+                 ⌘ on a Mac. --}}
+            <kbd class="global-search-hint" data-global-search-hint aria-hidden="true">Ctrl K</kbd>
         </form>
 
         <div id="globalSearchDropdown" class="global-search-dropdown" data-global-search-dropdown hidden></div>
     </div>
 
     <div class="topbar-actions">
-        <time
-            class="topbar-date d-none d-lg-flex"
-            datetime="{{ $displayNow->toIso8601String() }}"
-            data-topbar-clock
-            data-timezone="{{ $displayTimezone }}"
-            data-server-epoch="{{ $displayNow->getTimestamp() }}"
-            title="Philippine time ({{ $displayTimezone }})"
-        >
-            <x-icon name="calendar" />
-            <span class="topbar-clock-copy">
-                <strong class="topbar-clock-time" data-topbar-time>{{ $displayNow->format('g:i:s A') }}</strong>
-                <span class="topbar-clock-date" data-topbar-date>{{ $displayNow->format('D, M j, Y') }}</span>
-            </span>
-        </time>
-
         <div class="dropdown topbar-notifications">
-            <button class="icon-button notification-button" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open notifications">
+            {{-- A dot, not a tally, as in the reference bar. The count itself is
+                 not lost: it is announced here and written out in full at the
+                 head of the menu this opens. --}}
+            <button
+                class="icon-button notification-button"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                aria-label="Open notifications{{ $notificationUnreadCount > 0 ? ', '.$notificationUnreadCount.' unread' : '' }}"
+            >
                 <x-icon name="bell" />
                 @if ($notificationUnreadCount > 0)
-                    <span class="notification-count">{{ $notificationUnreadCount > 99 ? '99+' : $notificationUnreadCount }}</span>
+                    <span class="notification-dot"></span>
                 @endif
             </button>
 
@@ -134,15 +131,15 @@
             </div>
         </div>
 
-        <span class="topbar-divider" aria-hidden="true"></span>
-
         <div class="dropdown topbar-profile">
             {{-- `outside` so choosing a theme below does not close the menu out
                  from under the choice. The other items all navigate away, so
                  the menu's state after a click on them is moot either way. --}}
             <button class="topbar-profile-button" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Open account menu">
+                {{-- Avatar and caret only. The name is the first line of the
+                     menu this opens, which is where the reference bar keeps
+                     it too. --}}
                 <span class="avatar avatar-sm">{{ $topbarInitials }}</span>
-                <span class="topbar-profile-name">{{ $topbarUser->name }}</span>
                 <x-icon name="chevron-down" class="topbar-profile-caret" />
             </button>
 

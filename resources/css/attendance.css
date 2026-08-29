@@ -610,8 +610,12 @@
     font-size: var(--fs-2xs);
 }
 
+/* The page you are on is a green tile, so its number has to leave the green
+   text it inherits from the rule above — matching specificity there let the
+   link's own colour win on source order, and the number went dark-on-dark. */
 .report-pagination .active > .page-link {
     border-color: var(--hr-primary);
+    color: #fff;
     background: var(--hr-primary);
 }
 
