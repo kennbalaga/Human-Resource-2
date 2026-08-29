@@ -53,10 +53,18 @@ class AttendanceOverviewService
      *     to: string,
      *     range_label: string,
      *     series: array<int, array{key: string, label: string, total: int}>,
-     *     buckets: array<int, array{date: string, label: string, weekday: string, full_label: string, present: int, late: int, on_leave: int, absent: int, total: int}>,
+     *     buckets: array<int, array{date: string, label: string, weekday: string, weekday_long: string, full_label: string, present: int, late: int, on_leave: int, absent: int, expected: int, rate: float|null, total: int}>,
      *     totals: array<string, int>,
      *     tracked: int,
      *     max: int,
+     *     hours_logged: int,
+     *     on_time_rate: float|null,
+     *     attendance_rate: float|null,
+     *     peak_day: array{weekday: string, label: string, rate: float}|null,
+     *     lowest_day: array{weekday: string, label: string, rate: float}|null,
+     *     leave_total: int,
+     *     leave_resolved: int,
+     *     leave_resolved_rate: float|null,
      * }
      */
     public function forRange(int $days): array
@@ -66,7 +74,7 @@ class AttendanceOverviewService
         // The dashboard already pays for several queries; a short window keeps a
         // reload cheap without hiding a check-in that just happened.
         return Cache::remember(
-            "dashboard.attendance-overview.v1.{$days}",
+            "dashboard.attendance-overview.v2.{$days}",
             now()->addSeconds(60),
             fn (): array => $this->build($days),
         );
@@ -103,6 +111,27 @@ class AttendanceOverviewService
 
         $onLeave = $this->leaveIdsByDate($from, $to);
 
+        // The hours actually worked in the window, straight off the records the
+        // check-out writes. Summed in the database rather than over the collection
+        // above, which is fetched without this column and only for its statuses.
+        $workedMinutes = (int) $this->withinWindow(
+            $this->workforceOnly(AttendanceRecord::query()),
+            'attendance_date',
+            $from,
+            $to,
+        )->sum('worked_minutes');
+
+        // Leave filed inside the window, and how much of it somebody has since
+        // dealt with. Measured on the request date, not the dates requested: this
+        // reports how promptly the desk is clearing its queue, so a request made
+        // today for next month belongs in today's count.
+        $leaveStatuses = $this->withinWindow(
+            $this->workforceOnly(LeaveRequest::query()),
+            'created_at',
+            $from,
+            $to,
+        )->pluck('status');
+
         $buckets = collect(CarbonPeriod::create($from, $to))
             ->map(fn ($date): array => $this->bucket(
                 Carbon::instance($date),
@@ -118,6 +147,15 @@ class AttendanceOverviewService
         foreach (array_keys(self::SERIES) as $key) {
             $totals[$key] = (int) collect($buckets)->sum($key);
         }
+
+        $attended = $totals['present'] + $totals['late'];
+        $expected = $attended + $totals['absent'];
+
+        // Only days that expected somebody can be the best or the worst of them.
+        // A Sunday with no roster scores no attendance, and left in it would win
+        // "lowest day" every week while describing nothing that went wrong.
+        $rated = collect($buckets)->filter(fn (array $bucket): bool => $bucket['rate'] !== null);
+        $resolved = $leaveStatuses->reject(fn (string $status): bool => $status === 'pending')->count();
 
         return [
             'days' => $days,
@@ -137,6 +175,38 @@ class AttendanceOverviewService
             'tracked' => array_sum($totals),
             // The tallest column sets the scale; never zero, so the bar maths is safe.
             'max' => max(1, (int) collect($buckets)->max('total')),
+            'hours_logged' => (int) round($workedMinutes / 60),
+            // Of the people who turned up, how many were on time. Absences are not
+            // in the denominator: somebody who never came in was not late.
+            'on_time_rate' => $this->rate($totals['present'], $attended),
+            'attendance_rate' => $this->rate($attended, $expected),
+            'peak_day' => $this->extremeDay($rated->sortByDesc('rate')->first()),
+            'lowest_day' => $this->extremeDay($rated->sortBy('rate')->first()),
+            'leave_total' => $leaveStatuses->count(),
+            'leave_resolved' => $resolved,
+            'leave_resolved_rate' => $this->rate($resolved, $leaveStatuses->count()),
+        ];
+    }
+
+    /**
+     * A share as a percentage, or null when nothing was measured — which is not
+     * the same as zero, and must not be printed as "0%".
+     */
+    private function rate(int $part, int $whole): ?float
+    {
+        return $whole > 0 ? round($part / $whole * 100, 1) : null;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $bucket
+     * @return array{weekday: string, label: string, rate: float}|null
+     */
+    private function extremeDay(?array $bucket): ?array
+    {
+        return $bucket === null ? null : [
+            'weekday' => $bucket['weekday_long'],
+            'label' => $bucket['label'],
+            'rate' => $bucket['rate'],
         ];
     }
 
@@ -172,11 +242,19 @@ class AttendanceOverviewService
             'absent' => $absentIds->count(),
         ];
 
+        // Who was due on the floor: everyone who turned up, plus everyone who was
+        // expected and did not. Approved leave is not a failure to attend, so it
+        // stays out of both halves of the day's rate.
+        $expected = $counts['present'] + $counts['late'] + $counts['absent'];
+
         return $counts + [
             'date' => $key,
             'label' => $date->format('M j'),
             'weekday' => $date->format('D'),
+            'weekday_long' => $date->format('l'),
             'full_label' => $date->format('l, M j'),
+            'expected' => $expected,
+            'rate' => $this->rate($counts['present'] + $counts['late'], $expected),
             'total' => array_sum($counts),
         ];
     }

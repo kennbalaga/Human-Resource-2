@@ -5,6 +5,42 @@
     // the axis stays readable instead of turning into a grey smear.
     $labelEvery = $overview['days'] > 14 ? 5 : 1;
     $midTick = (int) round($overview['max'] / 2);
+
+    // A rate is null when nothing was measured, which is not the same as zero and
+    // must never be printed as "0%".
+    $percent = fn (?float $value): string => $value === null
+        ? '—'
+        : rtrim(rtrim(number_format($value, 1), '0'), '.').'%';
+
+    // The four figures worth reading before the chart. Peak and lowest name the
+    // day as well as the number: "95%" is only actionable once you know it was
+    // Tuesday.
+    $tiles = [
+        [
+            'label' => 'Peak day',
+            'detail' => $overview['peak_day']['weekday'] ?? 'No rostered days',
+            'value' => $percent($overview['peak_day']['rate'] ?? null),
+        ],
+        [
+            'label' => 'Lowest day',
+            'detail' => $overview['lowest_day']['weekday'] ?? 'No rostered days',
+            'value' => $percent($overview['lowest_day']['rate'] ?? null),
+        ],
+        [
+            'label' => 'Attendance',
+            // Short enough to survive a quarter of the panel's width: the tile
+            // details are clipped rather than wrapped, so the copy has to fit.
+            'detail' => 'Of those due',
+            'value' => $percent($overview['attendance_rate']),
+        ],
+        [
+            'label' => 'Leave requests',
+            'detail' => $overview['leave_total'] > 0
+                ? $overview['leave_resolved'].' of '.$overview['leave_total'].' resolved'
+                : 'None filed',
+            'value' => $percent($overview['leave_resolved_rate']),
+        ],
+    ];
 @endphp
 
 <section class="panel attendance-overview" id="attendance-overview" aria-labelledby="attendance-overview-title">
@@ -31,8 +67,39 @@
         </div>
     </div>
 
+    {{-- The headline the panel is read for: hours actually worked in the window,
+         and whether they were worked on time. Everything below breaks it down. --}}
+    <div class="attendance-headline">
+        <div class="attendance-headline-figure">
+            <p class="attendance-hours">
+                <strong>{{ number_format($overview['hours_logged']) }}</strong>
+                <span>hrs</span>
+            </p>
+            <p class="attendance-hours-caption">Total hours logged · {{ $overview['range_label'] }}</p>
+        </div>
+
+        <div class="attendance-headline-rate">
+            <p class="attendance-rate-label">Overall attendance</p>
+            <p class="attendance-rate-value">{{ $percent($overview['on_time_rate']) }} on-time rate</p>
+            @if ($canManageWorkforce)
+                <a href="{{ route('attendance.reports.index') }}">View attendance report <x-icon name="chevron-right" /></a>
+            @endif
+        </div>
+    </div>
+
+    <dl class="attendance-tiles">
+        @foreach ($tiles as $tile)
+            <div class="attendance-tile">
+                <div>
+                    <dt>{{ $tile['label'] }}</dt>
+                    <dd class="attendance-tile-detail">{{ $tile['detail'] }}</dd>
+                </div>
+                <dd class="attendance-tile-value">{{ $tile['value'] }}</dd>
+            </div>
+        @endforeach
+    </dl>
+
     <p class="attendance-overview-caption">
-        <span>{{ $overview['range_label'] }}</span>
         <span>Absences count rostered staff with no check-in and no approved leave.</span>
     </p>
 

@@ -347,6 +347,34 @@ input {
     transition: max-width 180ms ease, opacity 140ms ease, padding 180ms ease;
 }
 
+/* The name of a collapsed nav item, shown on hover. Bootstrap builds the bubble
+   (dashboard.js says why it has to); these are its clothes, cut to the same
+   surface, border and shadow the app's other hover layers use. Recoloured
+   through Bootstrap's own variables so the arrow, which reads --bs-tooltip-bg,
+   follows the bubble instead of staying black. */
+.sidebar-tooltip {
+    --bs-tooltip-bg: var(--hr-surface);
+    --bs-tooltip-color: var(--hr-text);
+    --bs-tooltip-border-radius: var(--r-md);
+    --bs-tooltip-font-size: var(--fs-2xs);
+    /* Bootstrap fades to .9. At that weight the page shows through a bubble
+       whose whole job is to be read at a glance. */
+    --bs-tooltip-opacity: 1;
+}
+
+.sidebar-tooltip .tooltip-inner {
+    padding: 6px 10px;
+    border: 1px solid var(--hr-border);
+    box-shadow: 0 10px 26px rgba(16, 45, 30, 0.16);
+    font-weight: 650;
+}
+
+/* No arrow: it is drawn as a bare triangle with no border of its own, so
+   against a bordered bubble it reads as a nick out of the edge. */
+.sidebar-tooltip .tooltip-arrow {
+    display: none;
+}
+
 .app-main {
     display: flex;
     min-height: 100vh;
@@ -2266,415 +2294,519 @@ input {
 }
 
 /*
- * Today's shift overview -- one pool per active shift template.
+ * The attendance headline -- hours worked, then how well they were kept.
  *
- * The coverage bar borrows the attendance stack's green / violet / red so the two
- * panels read as one language: clocked in, on leave, missing. The shift's own
- * colour is deliberately absent -- it is template identity, and on a board this
- * dense a second run of colours only competes with the one carrying meaning.
+ * The chart below it answers "which days", which is a question you only ask
+ * once you know the week's shape. So the shape comes first: one figure large
+ * enough to read from a doorway, the on-time rate beside it, and four tiles
+ * naming the best day, the worst, the overall turnout and the leave desk's
+ * backlog.
  */
-.shift-overview {
-    display: flex;
-    overflow: hidden;
-    margin-bottom: 22px;
-    border-radius: var(--r-lg);
-    flex-direction: column;
-}
-
-.shift-overview-date {
-    color: var(--hr-muted);
-    flex: 0 0 auto;
-    font-size: var(--fs-2xs);
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.shift-overview-caption {
+.attendance-headline {
     display: flex;
     flex-wrap: wrap;
-    margin: 0;
-    padding: 14px 20px 0;
-    color: var(--hr-muted);
-    gap: 3px 14px;
-    font-size: var(--fs-2xs);
+    padding: 16px 20px 0;
+    align-items: flex-start;
+    gap: 12px 44px;
 }
 
-/* The two halves of the caption used to sit side by side on one line and read as a
-   single run-on sentence. A separator makes the definition its own remark. */
-.shift-overview-note::before {
-    margin-right: 10px;
-    content: '·';
-}
-
-.shift-overview-asof {
-    margin-left: auto;
-    color: var(--hr-muted);
-    font-size: var(--fs-2xs);
-    white-space: nowrap;
-}
-
-/*
- * Staffed pools left, the unstaffed strip right. A shift with people on it should
- * never be squeezed by three that have nobody, and the strip has no business
- * running the full width of the panel on its own.
- */
-.shift-overview-body {
-    display: grid;
-    padding: 12px 20px 18px;
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-    gap: 12px;
-}
-
-.shift-overview-body.is-split {
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-}
-
-.shift-legend-row {
+.attendance-hours {
     display: flex;
+    margin: 0;
     align-items: baseline;
-    padding: 12px 20px 0;
-    flex-wrap: wrap;
-    gap: 4px 14px;
+    gap: 5px;
 }
 
-.shift-legend {
-    display: flex;
-    flex-wrap: wrap;
-    margin: 0;
-    padding: 0;
-    color: var(--hr-muted);
-    list-style: none;
-    gap: 4px 14px;
-    font-size: var(--fs-2xs);
-}
-
-.shift-legend li {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.shift-legend-key {
-    width: 8px;
-    height: 8px;
-    border-radius: var(--r-pill);
-    flex: 0 0 auto;
-}
-
-.shift-pool-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 12px;
-}
-
-.shift-pool {
-    display: flex;
-    padding: 13px 14px 12px;
-    border: 1px solid var(--hr-border);
-    border-radius: var(--r-md);
-    background: var(--hr-surface);
-    flex-direction: column;
-    gap: 10px;
-}
-
-.shift-pool-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.shift-pool-header h3 {
-    margin: 0;
+.attendance-hours strong {
     color: var(--hr-text);
+    font-size: clamp(1.9rem, 2.4vw, 2.5rem);
+    /* The figure changes on every reload; fixed-width digits stop the unit
+       beside it shuffling sideways when it does. */
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+}
+
+.attendance-hours span {
+    color: var(--hr-muted);
     font-size: var(--fs-sm);
     font-weight: 650;
 }
 
-/*
- * The phase tag, not a status light. It only takes the shift's own colour once the
- * shift is actually running -- an upcoming or finished pool stays grey, so a glance
- * down the row separates the live shifts from the rest.
- */
-.shift-pool-tag {
-    margin-left: auto;
-    padding: 2px 8px;
-    border-radius: var(--r-pill);
+.attendance-hours-caption {
+    margin: 4px 0 0;
     color: var(--hr-muted);
-    background: var(--hr-sunken, var(--hr-surface-2));
     font-size: var(--fs-2xs);
-    font-weight: 650;
-    white-space: nowrap;
 }
 
-.shift-pool-tag.is-live {
-    color: var(--hr-text);
-    background: var(--hr-primary-soft);
+.attendance-headline-rate {
+    display: grid;
+    gap: 2px;
 }
 
-.shift-pool-span {
-    display: flex;
+.attendance-rate-label {
     margin: 0;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 4px 8px;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 
-.shift-pool-span strong {
+.attendance-rate-value {
+    margin: 0;
     color: var(--hr-text);
     font-size: var(--fs-sm);
-    font-weight: 650;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.2;
+    font-weight: 660;
 }
 
-.shift-pool-span small {
-    color: var(--hr-muted);
-    font-size: var(--fs-2xs);
-    font-variant-numeric: tabular-nums;
-}
-
-.shift-pool-overnight {
-    letter-spacing: 0.03em;
-}
-
-.shift-pool-bar {
-    display: flex;
-    position: relative;
-    height: 6px;
-    border-radius: var(--r-pill);
-    background: var(--hr-sunken);
-    gap: 1px;
-}
-
-/*
- * Where the clock has reached inside the shift. Without it a 0% figure minutes
- * after handover looks like the final word rather than a bar still filling.
- */
-.shift-pool-now {
-    position: absolute;
-    top: -4px;
-    bottom: -4px;
-    width: 2px;
-    border-radius: var(--r-pill);
-    background: var(--hr-text);
-    transform: translateX(-1px);
-}
-
-.shift-pool-fill {
-    display: block;
-}
-
-/* The bar keeps its pill ends without clipping the now marker off at the edges. */
-.shift-pool-fill:first-child {
-    border-radius: var(--r-pill) 0 0 var(--r-pill);
-}
-
-.shift-pool-fill:last-of-type {
-    border-radius: 0 var(--r-pill) var(--r-pill) 0;
-}
-
-.shift-pool-fill-clocked-in {
-    background: var(--hr-primary);
-}
-
-.shift-pool-fill-on-leave {
-    background: var(--hr-violet);
-}
-
-/*
- * The absent share is unfilled track, not a fill of its own.
- *
- * All three counts used to paint as saturated segments, and because they
- * partition the assigned pool exactly, every bar came out 100% wide: a shift
- * where nobody had clocked in drew exactly as much bar as one where everybody
- * had, with only the hue telling a total failure from a perfect shift. Length
- * is the fastest channel the eye has and it was carrying nothing - worse, a
- * solid full bar reads as "complete", the opposite of what it meant.
- *
- * Now only people actually accounted for paint over the track, so the coloured
- * length IS the coverage figure. Missing keeps a tint because an empty bar and
- * an empty-and-late bar are not the same news; it stays well below the fills so
- * it still reads as ground. The tone is not the only carrier of that state -
- * the stat label, its red numeral and the footnote all say it too.
- */
-.shift-pool-fill-missing {
-    background: rgba(201, 61, 78, .3);
-}
-
-/*
- * Rostered, not in yet, and not late either. Same people as Missing, left as
- * plain track until the shift has run past its grace window.
- */
-.shift-pool-fill-awaiting {
-    background: transparent;
-}
-
-/*
- * Both of the above are unfilled bar, which is the whole point - but an 8px dot
- * of "unfilled" is invisible against the panel. In the legend they are drawn as
- * outlined swatches instead: an outline is the empty part of the bar, a solid
- * dot is a fill.
- */
-.shift-legend-key.shift-pool-fill-missing,
-.shift-legend-key.shift-pool-fill-awaiting {
-    box-shadow: inset 0 0 0 1px var(--hr-border-strong);
-}
-
-.shift-legend-key.shift-pool-fill-awaiting {
-    background: var(--hr-sunken);
-}
-
-.shift-pool-stats {
-    display: grid;
-    margin: 0;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-}
-
-.shift-pool-stats dt {
-    color: var(--hr-muted);
-    font-size: var(--fs-2xs);
-}
-
-.shift-pool-stats dd {
-    margin: 2px 0 0;
-    color: var(--hr-text);
-    font-size: var(--fs-base);
-    font-weight: 650;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
-}
-
-/*
- * Only a Missing that has actually been earned takes the red. A shift eleven
- * minutes old reporting eleven absences is not an alarm, it is a shift that has
- * only just opened.
- */
-.shift-pool-stats .is-missing dd {
-    color: var(--hr-danger);
-}
-
-.shift-pool-footnote {
-    margin: 0;
-    color: var(--hr-muted);
-    font-size: var(--fs-2xs);
-}
-
-.shift-pool-link {
+.attendance-headline-rate a {
     display: inline-flex;
     align-items: center;
-    margin-top: auto;
-    color: var(--hr-primary);
     gap: 3px;
+    color: var(--hr-primary);
     font-size: var(--fs-2xs);
-    font-weight: 650;
+    font-weight: 600;
     text-decoration: none;
 }
 
-.shift-pool-link:hover {
-    text-decoration: underline;
-}
-
-.shift-pool-link svg {
+.attendance-headline-rate a svg {
     width: 13px;
     height: 13px;
 }
 
-/*
- * Pools nobody was rostered onto. They stay on the panel -- an empty Night shift is
- * the signal this whole panel exists to raise -- but a head count of zero needs one
- * line, not a card with four columns of zeroes competing with the staffed shifts.
- */
-.shift-pool-quiet {
+.attendance-tiles {
     display: grid;
     margin: 0;
-    padding: 0;
+    padding: 16px 20px 0;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.attendance-tile {
+    display: flex;
+    padding: 10px 12px;
     border: 1px solid var(--hr-border);
     border-radius: var(--r-md);
-    background: var(--hr-surface);
-    list-style: none;
-    align-content: start;
+    background: var(--hr-surface-2);
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
-/* Name and hours on the first line, the one thing there is to say on the second. */
-.shift-pool-quiet li {
-    display: grid;
-    padding: 11px 14px;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 2px 10px;
+.attendance-tile > div {
+    min-width: 0;
 }
 
-.shift-pool-quiet li + li {
-    border-top: 1px solid var(--hr-border);
+.attendance-tile dt {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
 }
 
-.shift-pool-quiet-name {
+/* Both of these are <dd>, which carries a 40px inline start margin by default
+   and would push every value off its own tile. */
+.attendance-tile-detail {
+    overflow: hidden;
+    margin: 2px 0 0;
     color: var(--hr-text);
-    font-size: var(--fs-sm);
+    font-size: var(--fs-xs);
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attendance-tile-value {
+    flex: none;
+    margin: 0;
+    color: var(--hr-primary);
+    font-size: var(--fs-md);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+/*
+ * The chart and the day's roster, side by side.
+ *
+ * Same column proportions as .dashboard-grid above, so the page keeps one
+ * rhythm down its whole length rather than inventing a second one here.
+ */
+.dashboard-attendance-grid {
+    display: grid;
+    margin-bottom: 22px;
+    grid-template-columns: minmax(0, 1.85fr) minmax(300px, 0.9fr);
+    gap: 20px;
+}
+
+/* Both panels carry their own bottom margin for when they stand alone. Inside
+   the grid the gap already does that job. */
+.dashboard-attendance-grid > .panel {
+    margin-bottom: 0;
+}
+
+/* The two are read as one row, so they have to end on one line. The grid's
+   default stretch already gives them a shared height — what was missing is
+   somewhere for the shorter one's slack to go. Both panels are flex columns, so
+   the footer strip is pushed to the floor of each and the slack collects above
+   it rather than leaving the strip floating mid-panel. */
+.dashboard-attendance-grid .panel-footer-link {
+    margin-top: auto;
+}
+
+/*
+ * The schedule rail: the week, then today.
+ *
+ * This is where the standalone shift overview went. It keeps that panel's
+ * colour language exactly -- green clocked in, violet on leave, a wash of red
+ * for missing, plain track for a shift too young to have missed anybody -- so
+ * a reader who knew the old board can read this one without relearning it.
+ */
+.schedule-calendar {
+    display: flex;
+    overflow: hidden;
+    flex-direction: column;
+}
+
+.schedule-calendar-month {
+    flex: none;
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
     font-weight: 650;
 }
 
-.shift-pool-quiet-span {
-    color: var(--hr-muted);
-    font-size: var(--fs-2xs);
-    font-variant-numeric: tabular-nums;
-    text-align: right;
+/* Vertical padding on both sides, not just the bottom. Today's cell is painted
+   to its own edges, so with a bare top the green ran flush into the header's
+   bottom rule and sat off-centre in a strip that had 14px of clearance beneath
+   it and none above. */
+.week-strip {
+    display: grid;
+    margin: 0;
+    padding: 12px 14px;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 3px;
+    list-style: none;
 }
 
-.shift-pool-quiet-note {
-    color: var(--hr-muted);
-    grid-column: 1 / -1;
-    font-size: var(--fs-2xs);
+.week-strip a {
+    display: grid;
+    padding: 7px 2px 6px;
+    border-radius: var(--r-md);
+    justify-items: center;
+    gap: 3px;
+    text-decoration: none;
+    transition: background-color 150ms ease;
 }
 
-.shift-overview-empty {
-    padding: 34px 20px 40px;
-}
-
-.shift-table-view {
-    border-top: 1px solid var(--hr-border);
-}
-
-.shift-table-view > summary {
-    padding: 11px 20px;
-    color: var(--hr-primary);
-    cursor: pointer;
-    font-size: var(--fs-2xs);
-    font-weight: 600;
-}
-
-.shift-table-view > summary:hover {
+.week-strip a:hover {
     background: var(--hr-surface-2);
 }
 
-.shift-data-table {
-    min-width: 660px;
-}
-
-.shift-data-table td {
-    font-variant-numeric: tabular-nums;
-}
-
-.shift-data-table tbody th {
-    padding: 13px 15px 13px 20px;
-    border-bottom: 1px solid var(--hr-border);
-    color: var(--hr-muted);
-    background: none;
-    font-size: var(--fs-xs);
-    font-weight: 600;
-    letter-spacing: normal;
-    text-align: left;
-    text-transform: none;
-}
-
-.shift-data-table tfoot th,
-.shift-data-table tfoot td {
-    border-top: 1px solid var(--hr-border);
-    border-bottom: 0;
-    color: var(--hr-text);
-    background: none;
+.week-strip-name {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
     font-weight: 650;
+}
+
+.week-strip-number {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-variant-numeric: tabular-nums;
+    font-weight: 660;
+}
+
+/* Presence, not quantity: seven counts under seven dates is unreadable at this
+   width, and the head count is in the link's own label for anyone who needs it.
+   The empty dot is kept rather than dropped so every day is the same height. */
+.week-strip-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: var(--r-pill);
+    background: var(--hr-primary);
+}
+
+.week-strip-dot.is-empty {
+    background: transparent;
+}
+
+.week-strip-day.is-weekend .week-strip-number {
+    color: var(--hr-muted);
+}
+
+.week-strip-day.is-past a {
+    opacity: 0.65;
+}
+
+.week-strip-day.is-today a {
+    background: var(--hr-primary);
+}
+
+.week-strip-day.is-today .week-strip-name,
+.week-strip-day.is-today .week-strip-number {
+    color: #fff;
+}
+
+.week-strip-day.is-today .week-strip-dot {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+/* The timeline takes the rail's slack rather than the footer strip: a gap under
+   the last shift reads as the day being over, which is the truth, where a gap
+   above a footer bar reads as something failing to load. A column, so the empty
+   state below can claim that slack instead. */
+.schedule-today {
+    display: flex;
+    flex: 1;
+    padding: 0 14px 14px;
+    border-top: 1px solid var(--hr-border);
+    flex-direction: column;
+}
+
+.schedule-today-head {
+    display: flex;
+    margin: 14px 4px 10px;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.schedule-today-head span {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-weight: 660;
+}
+
+.schedule-today-head small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.schedule-timeline {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    gap: 9px;
+    list-style: none;
+}
+
+/* The time is a gutter, not a column of the card: it lines the shifts up
+   against each other the way a day actually runs. */
+.schedule-timeline-item {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 10px;
+}
+
+.schedule-timeline-time {
+    margin: 0;
+    padding-top: 10px;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.schedule-timeline-card {
+    padding: 9px 11px;
+    border: 1px solid var(--hr-border);
+    /* The left edge is the status: it is the only part of the card that
+       changes, so a live shift is found by scanning one vertical line. */
+    border-left: 3px solid var(--hr-border-strong);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+}
+
+.schedule-timeline-item.is-live .schedule-timeline-card {
+    border-left-color: var(--hr-primary);
+    background: var(--hr-primary-soft);
+}
+
+.schedule-timeline-item.is-quiet .schedule-timeline-card {
+    border-left-color: var(--hr-border);
+    background: var(--hr-surface-2);
+}
+
+.schedule-timeline-card header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.schedule-timeline-card h3 {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-xs);
+    font-weight: 660;
+}
+
+.schedule-timeline-tag {
+    flex: none;
+    padding: 1px 7px;
+    border-radius: var(--r-pill);
+    color: var(--hr-primary-dark);
+    background: var(--hr-surface);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+}
+
+.schedule-timeline-span {
+    margin: 3px 0 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+}
+
+.schedule-timeline-note {
+    margin: 4px 0 0;
+    color: var(--hr-text);
+    font-size: var(--fs-2xs);
+}
+
+.schedule-timeline-bar {
+    display: flex;
+    height: 5px;
+    margin-top: 8px;
+    border-radius: var(--r-pill);
+    background: var(--hr-sunken);
+    gap: 1px;
+    overflow: hidden;
+}
+
+.schedule-timeline-fill.is-clocked-in {
+    background: var(--hr-primary);
+}
+
+.schedule-timeline-fill.is-on-leave {
+    background: var(--hr-violet);
+}
+
+/* A wash rather than a fill: these people are not accounted for, and painting
+   them as solid as the ones who turned up reads as coverage they are not. */
+.schedule-timeline-fill.is-missing {
+    background: rgba(201, 61, 78, .3);
+}
+
+/* Rostered, not in yet, and not late either -- left as plain track until the
+   shift has run past its grace window. */
+.schedule-timeline-fill.is-awaiting {
+    background: transparent;
+}
+
+/* With no roster the rail still has to stand as tall as the chart beside it, so
+   the empty state takes the whole of that height and sits its icon and its
+   sentence in the middle of it — rather than clinging to the top of a card that
+   is mostly nothing.
+
+   Written as a grid and scoped to the panel deliberately. `.compact-empty-state`
+   is declared twice in this app — as a block here, as a centred grid in
+   schedule.css — and since that sheet is imported after this one, its display
+   wins on equal specificity. A plain `.schedule-today-empty` therefore could not
+   set its own display at all, and inherited two auto rows that stretched to fill
+   the height and parked the icon and the text half a card apart. Naming the
+   panel outranks both, so the layout below is the one that actually applies. */
+.schedule-calendar .schedule-today-empty {
+    display: grid;
+    flex: 1;
+    padding: 26px 10px;
+    /* The pair is centred as one block: align-items alone would centre each row
+       inside its own stretched track, which is what split them. */
+    align-content: center;
+    justify-items: center;
+    gap: 10px;
+}
+
+.schedule-calendar .schedule-today-empty p {
+    /* The gap above owns the spacing now. */
+    margin: 0;
+    max-width: 34ch;
+}
+
+
+/*
+ * Recent activity -- the newest rows of the audit trail.
+ *
+ * A feed, not a table: the full grid with its filters, its IP column and its
+ * export is Audit Logs, which the header links straight out to. What is worth
+ * carrying onto a dashboard is who did what, when, and whether it was refused.
+ */
+.recent-activity {
+    display: flex;
+    overflow: hidden;
+    margin-bottom: 22px;
+    flex-direction: column;
+}
+
+.activity-feed {
+    display: grid;
+    margin: 0;
+    padding: 4px 20px 20px;
+    gap: 2px;
+    list-style: none;
+}
+
+.activity-entry {
+    display: grid;
+    padding: 9px 0 9px 4px;
+    grid-template-columns: 9px minmax(0, 1fr);
+    align-items: start;
+    gap: 11px;
+}
+
+.activity-entry + .activity-entry {
+    border-top: 1px solid var(--hr-border);
+}
+
+.activity-marker {
+    width: 8px;
+    height: 8px;
+    margin-top: 5px;
+    border-radius: var(--r-pill);
+    background: var(--hr-primary);
+}
+
+.activity-entry.is-failed .activity-marker {
+    background: var(--hr-danger);
+}
+
+.activity-body {
+    min-width: 0;
+}
+
+.activity-summary {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
+}
+
+.activity-summary strong {
+    color: var(--hr-text);
+    font-weight: 660;
+}
+
+.activity-subject {
+    color: var(--hr-text);
+    font-weight: 600;
+}
+
+.activity-meta {
+    display: flex;
+    margin: 3px 0 0;
+    align-items: center;
+    gap: 8px;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.activity-failed {
+    padding: 1px 7px;
+    border-radius: var(--r-pill);
+    color: var(--hr-danger);
+    background: var(--hr-danger-soft, rgba(201, 61, 78, .12));
+    font-weight: 700;
+}
+
+.recent-activity-empty {
+    padding: 30px 15px;
 }
 
 /*
@@ -2862,7 +2994,8 @@ input {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .dashboard-grid {
+    .dashboard-grid,
+    .dashboard-attendance-grid {
         grid-template-columns: minmax(0, 1fr) 320px;
     }
 }
@@ -2916,7 +3049,8 @@ input {
 }
 
 @media (max-width: 900px) {
-    .dashboard-grid {
+    .dashboard-grid,
+    .dashboard-attendance-grid {
         grid-template-columns: 1fr;
     }
 
@@ -2973,11 +3107,9 @@ input {
     .attendance-overview-caption,
     .attendance-legend,
     .attendance-chart,
+    .attendance-headline,
+    .attendance-tiles,
     .attendance-table-view > summary,
-    .shift-overview-caption,
-    .shift-legend-row,
-    .shift-overview-body,
-    .shift-table-view > summary,
     .analytics-preview-caption,
     .analytics-metric-grid,
     .analytics-table-view > summary,
@@ -3069,15 +3201,9 @@ input {
         gap: 6px 14px;
     }
 
-    .shift-overview .panel-header {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .shift-pool-grid,
-    .shift-overview-body.is-split {
-        grid-template-columns: 1fr;
+    /* Two tiles a row rather than four squeezed into a phone's width. */
+    .attendance-tiles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .analytics-preview .panel-header {

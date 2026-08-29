@@ -90,9 +90,18 @@
         </div>
     @endif
 
-    <x-shift-overview :overview="$shiftOverview" />
+    {{-- The attendance panel and the day's roster read together: the chart is the
+         trend the rail beside it is one column of. The standalone shift overview
+         that used to sit above this is folded into that rail — the same roster
+         drawn twice on one screen was the reason it came out. --}}
+    <div class="dashboard-attendance-grid">
+        <x-attendance-overview :overview="$attendanceOverview" :can-manage-workforce="$canManageWorkforce" />
+        <x-schedule-calendar :calendar="$scheduleCalendar" :overview="$shiftOverview" />
+    </div>
 
-    <x-attendance-overview :overview="$attendanceOverview" :can-manage-workforce="$canManageWorkforce" />
+    @if ($activity !== null)
+        <x-recent-activity :activity="$activity" />
+    @endif
 
     {{-- Kept next to the attendance chart above rather than below the directory.
          The two do the same job over a widening window — trailing 7/30 days,

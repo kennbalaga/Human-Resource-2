@@ -1,4 +1,4 @@
-import { Dropdown } from 'bootstrap';
+import { Dropdown, Tooltip } from 'bootstrap';
 
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
@@ -71,9 +71,57 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebarCollapseButton.dataset.sidebarLabel = action;
     };
 
+    /* Collapsed, a nav item is a bare icon and the word it stands for is gone
+       from the screen, so hovering one has to give the word back.
+
+       It cannot be drawn in CSS on the link itself: the nav scrolls, so it
+       carries overflow-x: hidden, and anything painted past the rail's edge is
+       clipped off at it. Bootstrap renders into <body>, clear of that clip —
+       and it takes each link's title attribute with it, which is what stops the
+       browser's own slow tooltip from doubling up underneath. */
+    const sidebarTooltips = Array.from(
+        document.querySelectorAll('.sidebar-link[title]'),
+        (link) => Tooltip.getOrCreateInstance(link, {
+            placement: 'right',
+            container: 'body',
+            customClass: 'sidebar-tooltip',
+            // The arrow is styled away, so the bubble buys its own gap here.
+            offset: [0, 10],
+            // Long enough that a pointer crossing the rail on its way somewhere
+            // else does not trail bubbles behind it; short enough to answer a
+            // hover that meant to ask.
+            delay: { show: 320, hide: 60 },
+        }),
+    );
+
+    /* Expanded, the label is already on screen in full, and a bubble repeating
+       it is noise — so the instances are built once and switched with the rail
+       rather than created and torn down. Below the desktop breakpoint the rail
+       is a drawer that always shows its labels, so they stay off there too. */
+    const syncSidebarTooltips = () => {
+        const isIconOnly = desktopSidebar.matches && root.dataset.sidebar === 'collapsed';
+
+        sidebarTooltips.forEach((tooltip) => {
+            if (isIconOnly) {
+                tooltip.enable();
+
+                return;
+            }
+
+            // hide() before disable(): disabling alone strands one that is
+            // already open, which is exactly what happens when the rail is
+            // expanded from under the pointer.
+            tooltip.hide();
+            tooltip.disable();
+        });
+    };
+
+    desktopSidebar.addEventListener('change', syncSidebarTooltips);
+
     const setDesktopSidebar = (isCollapsed, persist = false) => {
         root.dataset.sidebar = isCollapsed ? 'collapsed' : 'expanded';
         syncCollapseButton();
+        syncSidebarTooltips();
 
         if (persist) {
             try {
@@ -224,4 +272,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     syncCollapseButton();
+    syncSidebarTooltips();
 });

@@ -37,7 +37,13 @@ class ShiftOverviewTest extends TestCase
         LeaveRequest::query()->delete();
     }
 
-    public function test_dashboard_renders_the_shift_overview_panel(): void
+    /**
+     * The standalone shift panel is gone from the dashboard: this service now
+     * feeds the schedule rail beside the attendance chart, where the day is a
+     * timeline rather than a wall of pool cards. The full coverage view lives in
+     * the schedules module the rail links out to.
+     */
+    public function test_dashboard_renders_todays_schedule_in_the_calendar_rail(): void
     {
         $this->roster($this->firstEmployee(), 'MORNING-0600');
 
@@ -45,28 +51,28 @@ class ShiftOverviewTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Today’s shift overview', false)
-            ->assertSee('Shift &amp; Schedule Management', false)
-            // The attendance panel offers a data table too, so key off this one's class.
-            ->assertSee('shift-data-table', false);
+            ->assertSee('Today’s schedule', false)
+            ->assertSee('schedule-timeline', false);
 
         foreach (['Morning Shift', 'Administrative Shift', 'Afternoon Shift', 'Night Shift'] as $shift) {
             $response->assertSee($shift);
         }
 
-        foreach (['Assigned', 'Clocked in', 'Missing'] as $metric) {
-            $response->assertSee($metric);
-        }
+        // The head counts the pool cards used to spell out, in the one line the
+        // timeline gives each shift. Only the count is asserted: whether the
+        // absentee reads "missing" or "not yet in" depends on how far past 6am
+        // the suite happens to run, and that rule has tests of its own below.
+        $response->assertSee('0 of 1 clocked in');
     }
 
-    public function test_panel_falls_back_to_an_empty_state_without_a_roster(): void
+    public function test_rail_falls_back_to_an_empty_state_without_a_roster(): void
     {
         $this->actingAs($this->manager())
             ->get('/dashboard')
             ->assertOk()
-            ->assertSee('Today’s shift overview', false)
+            ->assertSee('Today’s schedule', false)
             ->assertSee('Nobody is rostered today')
-            ->assertDontSee('shift-data-table', false);
+            ->assertDontSee('schedule-timeline', false);
     }
 
     public function test_every_active_shift_becomes_a_pool_with_its_start_time(): void
@@ -289,7 +295,12 @@ class ShiftOverviewTest extends TestCase
         $this->assertSame('8h', $pool['duration_label']);
     }
 
-    public function test_the_panel_separates_staffed_pools_from_empty_ones(): void
+    /**
+     * The rail keeps every pool on one timeline rather than splitting staffed
+     * from empty into two columns: a shift nobody is on is still part of the day
+     * and still has to appear at its own hour. It just says so in one line.
+     */
+    public function test_the_rail_marks_pools_nobody_is_rostered_onto(): void
     {
         $this->roster($this->firstEmployee(), 'MORNING-0600');
 
@@ -297,11 +308,10 @@ class ShiftOverviewTest extends TestCase
 
         $response
             ->assertOk()
-            // The staffed pool keeps its card; the rest drop to the compact strip.
-            ->assertSee('shift-pool-grid', false)
-            ->assertSee('shift-pool-quiet', false)
-            ->assertSee('Nobody rostered')
-            ->assertSee('View roster');
+            ->assertSee('0 of 1 clocked in')
+            ->assertSee('is-quiet', false)
+            ->assertSee('Nobody rostered.')
+            ->assertSee('Open shift &amp; schedule management', false);
     }
 
     private function freezeAt(string $time): void

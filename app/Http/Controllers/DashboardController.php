@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Services\ApprovalQueueService;
 use App\Services\AttendanceOverviewService;
 use App\Services\DailyExceptionsService;
+use App\Services\RecentActivityService;
+use App\Services\ScheduleCalendarService;
 use App\Services\ShiftOverviewService;
 use App\Services\StaffDashboardService;
 use App\Services\WorkforceAnalyticsPreviewService;
@@ -26,6 +28,8 @@ class DashboardController extends Controller
         StaffDashboardService $staffDashboard,
         ApprovalQueueService $approvalQueue,
         DailyExceptionsService $dailyExceptions,
+        ScheduleCalendarService $scheduleCalendar,
+        RecentActivityService $recentActivity,
     ): View {
         $canManageWorkforce = $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
 
@@ -101,6 +105,10 @@ class DashboardController extends Controller
                 (int) $request->integer('attendance_days', AttendanceOverviewService::RANGES[0]),
             ),
             'shiftOverview' => $shiftOverview->forToday(),
+            'scheduleCalendar' => $scheduleCalendar->forCurrentWeek(),
+            // The audit trail names who did what to whose record, so it is shown
+            // only to the roles that are already allowed to open Audit Logs.
+            'activity' => $canManageWorkforce ? $recentActivity->latest() : null,
             // The two action panels lead the page, and both are closed to a viewer
             // who cannot approve or investigate anything. Neither is built for
             // them: an empty approvals queue shown to somebody with no authority

@@ -69,6 +69,10 @@ html[data-theme-resolved='dark'] .app-sidebar { background:linear-gradient(175de
 html[data-theme-resolved='dark'] .app-topbar { border-color:var(--hr-border); background:rgba(25,35,30,.94); box-shadow:0 3px 16px rgba(0,0,0,.22); }
 html[data-theme-resolved='dark'] .sidebar-brand-toggle { color:#b3c2b9; }
 html[data-theme-resolved='dark'] .sidebar-brand-toggle:hover { color:var(--hr-text); background:#232e28; }
+/* The tooltip lands on the page, not on the rail, so it takes the same lift off
+   the dark background that the chart tooltip does. */
+html[data-theme-resolved='dark'] .sidebar-tooltip { --bs-tooltip-bg:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .sidebar-tooltip .tooltip-inner { border-color:var(--hr-border-strong); box-shadow:var(--hr-shadow); }
 html[data-theme-resolved='dark'] .app-footer { color:#a4b3aa; border-color:var(--hr-border); background:#131b17; }
 html[data-theme-resolved='dark'] .page-heading h1,
 html[data-theme-resolved='dark'] .panel-header h2,
@@ -800,45 +804,50 @@ html[data-theme-resolved='dark'] .attendance-data-table tfoot th,
 html[data-theme-resolved='dark'] .attendance-data-table tfoot td { color:var(--hr-text); border-top-color:var(--hr-border); }
 
 /*
- * Shift overview. The coverage bar reuses the attendance panel's dark steps so the
- * two read as one system; the shift's own colour is left alone, since it is the
- * template's identity and is only ever carried by the card edge.
+ * The schedule rail's timeline. The coverage bar reuses the attendance panel's
+ * dark steps so the two read as one system, exactly as the standalone shift
+ * board it replaced did.
  */
-html[data-theme-resolved='dark'] .shift-pool-fill-clocked-in { background:#48a175; }
-html[data-theme-resolved='dark'] .shift-pool-fill-on-leave { background:#9d84d8; }
-html[data-theme-resolved='dark'] .shift-pool-fill-missing { background:rgba(231,154,164,.26); }
+html[data-theme-resolved='dark'] .schedule-timeline-fill.is-clocked-in { background:#48a175; }
+html[data-theme-resolved='dark'] .schedule-timeline-fill.is-on-leave { background:#9d84d8; }
+html[data-theme-resolved='dark'] .schedule-timeline-fill.is-missing { background:rgba(231,154,164,.26); }
 /* Deliberately the flattest step on the panel: not in yet is not a state to notice. */
-html[data-theme-resolved='dark'] .shift-pool-fill-awaiting { background:transparent; }
-/* Outranks the rule above, which would otherwise leave the legend's outlined
-   swatch empty in dark mode while the light theme fills it with track. */
-html[data-theme-resolved='dark'] .shift-legend-key.shift-pool-fill-awaiting { background:var(--hr-sunken); }
-html[data-theme-resolved='dark'] .shift-pool-stats .is-missing dd { color:#ef9aa4; }
+html[data-theme-resolved='dark'] .schedule-timeline-fill.is-awaiting { background:transparent; }
 
-html[data-theme-resolved='dark'] .shift-pool { border-color:var(--hr-border); background:var(--hr-surface-2); }
-html[data-theme-resolved='dark'] .shift-pool-bar { background:var(--hr-sunken); }
-html[data-theme-resolved='dark'] .shift-pool-now { background:var(--hr-text); }
-html[data-theme-resolved='dark'] .shift-pool-tag { color:var(--hr-muted); background:var(--hr-sunken); }
-html[data-theme-resolved='dark'] .shift-pool-tag.is-live { color:var(--hr-text); background:rgba(72,161,117,.22); }
-html[data-theme-resolved='dark'] .shift-pool-link { color:#5fb98c; }
-html[data-theme-resolved='dark'] .shift-pool-quiet { border-color:var(--hr-border); background:var(--hr-surface-2); }
-html[data-theme-resolved='dark'] .shift-pool-quiet li + li { border-top-color:var(--hr-border); }
-html[data-theme-resolved='dark'] .shift-pool-quiet-name { color:var(--hr-text); }
-html[data-theme-resolved='dark'] .shift-pool-header h3,
-html[data-theme-resolved='dark'] .shift-pool-span strong,
-html[data-theme-resolved='dark'] .shift-pool-stats dd { color:var(--hr-text); }
-html[data-theme-resolved='dark'] .shift-pool-span small,
-html[data-theme-resolved='dark'] .shift-pool-stats dt,
-html[data-theme-resolved='dark'] .shift-pool-footnote,
-html[data-theme-resolved='dark'] .shift-pool-quiet-span,
-html[data-theme-resolved='dark'] .shift-pool-quiet-note,
-html[data-theme-resolved='dark'] .shift-legend,
-html[data-theme-resolved='dark'] .shift-overview-date,
-html[data-theme-resolved='dark'] .shift-overview-caption { color:var(--hr-muted); }
-html[data-theme-resolved='dark'] .shift-table-view { border-top-color:var(--hr-border); }
-html[data-theme-resolved='dark'] .shift-table-view > summary:hover { background:var(--hr-surface-2); }
-html[data-theme-resolved='dark'] .shift-data-table tbody th { color:#c1d0c7; border-bottom-color:var(--hr-border); }
-html[data-theme-resolved='dark'] .shift-data-table tfoot th,
-html[data-theme-resolved='dark'] .shift-data-table tfoot td { color:var(--hr-text); border-top-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .schedule-timeline-card { border-color:var(--hr-border); background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .schedule-timeline-card { border-left-color:var(--hr-border-strong); }
+html[data-theme-resolved='dark'] .schedule-timeline-item.is-live .schedule-timeline-card { border-left-color:var(--hr-primary); background:rgba(72,161,117,.14); }
+html[data-theme-resolved='dark'] .schedule-timeline-item.is-quiet .schedule-timeline-card { border-left-color:var(--hr-border); background:transparent; }
+html[data-theme-resolved='dark'] .schedule-timeline-bar { background:var(--hr-sunken); }
+html[data-theme-resolved='dark'] .schedule-timeline-tag { color:var(--hr-text); background:rgba(72,161,117,.22); }
+html[data-theme-resolved='dark'] .schedule-timeline-card h3,
+html[data-theme-resolved='dark'] .schedule-timeline-note { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .schedule-timeline-time,
+html[data-theme-resolved='dark'] .schedule-timeline-span,
+html[data-theme-resolved='dark'] .schedule-calendar-month { color:var(--hr-muted); }
+html[data-theme-resolved='dark'] .schedule-today { border-top-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .schedule-calendar .panel-footer-link { border-top-color:var(--hr-border); }
+
+/* The week strip. Today keeps the brand green with white on it in both themes;
+   the rest of the row is carried by the tokens. */
+html[data-theme-resolved='dark'] .week-strip a:hover { background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .week-strip-number { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .week-strip-day.is-weekend .week-strip-number { color:var(--hr-muted); }
+
+/* Recent activity. */
+html[data-theme-resolved='dark'] .activity-entry + .activity-entry { border-top-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .activity-summary { color:var(--hr-muted); }
+html[data-theme-resolved='dark'] .activity-summary strong,
+html[data-theme-resolved='dark'] .activity-subject { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .activity-failed { color:#ef9aa4; background:rgba(231,154,164,.16); }
+
+/* The attendance panel's new headline row. */
+html[data-theme-resolved='dark'] .attendance-hours strong,
+html[data-theme-resolved='dark'] .attendance-rate-value,
+html[data-theme-resolved='dark'] .attendance-tile-detail { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .attendance-tile { border-color:var(--hr-border); background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .attendance-tile-value { color:#5fb98c; }
+html[data-theme-resolved='dark'] .attendance-headline-rate a { color:#5fb98c; }
 
 /*
  * Workforce analytics preview. The accents are the attendance panel's dark steps
@@ -1152,7 +1161,7 @@ html[data-theme-resolved='dark'] .skip-link:focus-visible { color:#0c1310; outli
 /* Approvals and today's exceptions. Both panels are already carried by the
    generic `.panel` rule above; these are the pieces inside them — the inset
    group card steps UP from the panel here rather than down, the same
-   inversion `.shift-pool` uses. */
+   inversion the schedule rail's timeline cards use. */
 html[data-theme-resolved='dark'] .approval-group { border-color:var(--hr-border); background:var(--hr-surface-2); }
 html[data-theme-resolved='dark'] .approval-group.is-clear { background:transparent; }
 html[data-theme-resolved='dark'] .approval-group-icon { color:var(--hr-primary); background:var(--hr-primary-soft); }
