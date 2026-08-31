@@ -37,12 +37,6 @@
                 aria-haspopup="listbox"
                 aria-controls="globalSearchDropdown"
             >
-            {{-- The shortcut the chip advertises is bound in global-search.js.
-                 The reference bar shows ⌘F; that is the browser's own
-                 find-in-page on every platform, so this takes K — the
-                 conventional search key — and the script rewrites the label to
-                 ⌘ on a Mac. --}}
-            <kbd class="global-search-hint" data-global-search-hint aria-hidden="true">Ctrl K</kbd>
         </form>
 
         <div id="globalSearchDropdown" class="global-search-dropdown" data-global-search-dropdown hidden></div>

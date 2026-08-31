@@ -656,9 +656,14 @@ input {
     position: absolute;
     z-index: 1050;
     top: calc(100% + 8px);
-    left: 0;
+    /* Anchored to the field's right edge rather than stretched to its width.
+       The field itself is kept narrow (see .global-search-wrapper above), but
+       a department name plus its counts routinely runs past 340px -- growing
+       left leaves the notification bell and profile chip on the right
+       untouched, and the topbar has open space on the left to grow into. */
+    right: 0;
     overflow: hidden auto;
-    width: 100%;
+    width: min(26rem, 100vw - 2rem);
     max-height: min(28rem, 70vh);
     padding: .35rem 0;
     border: 1px solid var(--hr-border);
@@ -751,28 +756,6 @@ input {
 
 .global-search input::placeholder {
     color: var(--hr-subtle);
-}
-
-/* The keyboard shortcut, parked at the trailing edge of the field. It is a
-   caption on the control rather than something to reach for, so it stays quiet
-   and gets out of the way the moment the field is in use. */
-.global-search-hint {
-    flex: none;
-    padding: 2px 7px;
-    border: 1px solid var(--hr-border);
-    border-radius: var(--r-sm);
-    color: var(--hr-subtle);
-    background: var(--hr-surface);
-    font-family: inherit;
-    font-size: var(--fs-2xs);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-    transition: opacity 160ms ease;
-}
-
-.global-search:focus-within .global-search-hint {
-    opacity: 0;
 }
 
 /* ---------------------------------------------------------------------------

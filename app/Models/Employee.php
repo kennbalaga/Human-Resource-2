@@ -196,6 +196,42 @@ class Employee extends Model
         return $this->hasMany(LeaveRequest::class);
     }
 
+    /**
+     * Narrow to the rows a free-text directory search is asking for.
+     *
+     * The search is split on whitespace and every term has to land somewhere on
+     * the row. Matching the whole string against each column in turn -- what the
+     * directory and the global search box both did before -- can never find a
+     * person by their full name: no single column holds it, so "Louie" returned
+     * Louie Cas and "Louie Cas" returned nothing. Term by term, the first name
+     * answers one word and the surname the other, in either order.
+     *
+     * Middle name and suffix are searchable too. They are part of the name the
+     * results print, and a directory that shows a name it will not accept back
+     * reads as broken.
+     *
+     * Email is off unless the caller passes it in: matching on it turns the box
+     * into a confirmation oracle, where anyone signed in can probe for a
+     * colleague's address one guess at a time.
+     */
+    public function scopeMatchingSearch(Builder $query, string $search, bool $includeEmail = false): void
+    {
+        $terms = preg_split('/\s+/', trim($search), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        foreach ($terms as $term) {
+            $query->where(function (Builder $termQuery) use ($term, $includeEmail): void {
+                $termQuery
+                    ->where('employee_number', 'like', "%{$term}%")
+                    ->orWhere('first_name', 'like', "%{$term}%")
+                    ->orWhere('middle_name', 'like', "%{$term}%")
+                    ->orWhere('last_name', 'like', "%{$term}%")
+                    ->orWhere('suffix', 'like', "%{$term}%")
+                    ->when($includeEmail, fn (Builder $builder) => $builder
+                        ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->where('email', 'like', "%{$term}%")));
+            });
+        }
+    }
+
     public function getFullNameAttribute(): string
     {
         return collect([

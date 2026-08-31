@@ -34,7 +34,7 @@
                     @forelse ($employees as $employee)
                         <a class="global-search-result" href="{{ route('employees.show', $employee) }}">
                             <span class="avatar avatar-table">{{ strtoupper(substr($employee->first_name, 0, 1).substr($employee->last_name, 0, 1)) }}</span>
-                            <span><strong>{{ $employee->full_name }}</strong><small>{{ $employee->employee_number }} · {{ $employee->department?->name ?? 'Unassigned department' }} · {{ $employee->position?->title ?? 'Unassigned position' }}</small></span>
+                            <span class="global-search-result-text"><strong>{{ $employee->full_name }}</strong><small>{{ $employee->employee_number }} · {{ $employee->department?->name ?? 'Unassigned department' }} · {{ $employee->position?->title ?? 'Unassigned position' }}</small></span>
                             <x-icon name="chevron-right" />
                         </a>
                     @empty
@@ -52,7 +52,7 @@
                     @forelse ($departments as $department)
                         <a class="global-search-result" href="{{ route('departments.index', ['search' => $department->name]) }}">
                             <span class="global-search-department-code">{{ $department->code }}</span>
-                            <span><strong>{{ $department->name }}</strong><small>{{ $department->employees_count }} {{ str('employee')->plural($department->employees_count) }} · {{ $department->positions_count }} {{ str('position')->plural($department->positions_count) }}</small></span>
+                            <span class="global-search-result-text"><strong>{{ $department->name }}</strong><small>{{ $department->employees_count }} {{ str('employee')->plural($department->employees_count) }} · {{ $department->positions_count }} {{ str('position')->plural($department->positions_count) }}</small></span>
                             <x-icon name="chevron-right" />
                         </a>
                     @empty

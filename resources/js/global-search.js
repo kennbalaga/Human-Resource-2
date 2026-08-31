@@ -26,7 +26,7 @@ function renderSection(title, count, rowsHtml, emptyLabel, footerUrl, footerLabe
 function renderResults(data) {
     const employeeRows = data.employees.map((employee) => `
         <a class="global-search-result" href="${employee.url}" role="option">
-            <span>
+            <span class="global-search-result-text">
                 <strong>${escapeHtml(employee.name)}</strong>
                 <small>${escapeHtml(employee.number)} · ${escapeHtml(employee.department ?? 'Unassigned department')} · ${escapeHtml(employee.position ?? 'Unassigned position')}</small>
             </span>
@@ -35,7 +35,7 @@ function renderResults(data) {
 
     const departmentRows = data.departments.map((department) => `
         <a class="global-search-result" href="${department.url}" role="option">
-            <span>
+            <span class="global-search-result-text">
                 <strong>${escapeHtml(department.name)}</strong>
                 <small>${department.employeesCount} employees · ${department.positionsCount} positions</small>
             </span>
@@ -120,15 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!wrapper.contains(event.target)) closeDropdown();
     });
 
-    /* The shortcut the chip in the field advertises. K rather than the F the
-       reference bar prints: F is find-in-page in every browser, and taking it
-       would cost more than the search field is worth. */
-    const hint = wrapper.querySelector('[data-global-search-hint]');
+    /* Ctrl/Cmd+K still focuses the field; it just no longer advertises itself
+       with a chip in the field. K rather than the F the reference bar prints:
+       F is find-in-page in every browser, and taking it would cost more than
+       the search field is worth. */
     const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-
-    if (hint && isMac) {
-        hint.textContent = '⌘ K';
-    }
 
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'k' && event.key !== 'K') return;

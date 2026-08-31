@@ -31,14 +31,7 @@ class SearchController extends Controller
         if ($query !== '') {
             $employees = Employee::query()
                 ->with(['user', 'department', 'position'])
-                ->where(function (Builder $employeeQuery) use ($query, $canSearchEmail): void {
-                    $employeeQuery
-                        ->where('employee_number', 'like', "%{$query}%")
-                        ->orWhere('first_name', 'like', "%{$query}%")
-                        ->orWhere('last_name', 'like', "%{$query}%")
-                        ->when($canSearchEmail, fn (Builder $builder) => $builder
-                            ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->where('email', 'like', "%{$query}%")));
-                })
+                ->matchingSearch($query, $canSearchEmail)
                 ->orderBy('last_name')
                 ->orderBy('first_name')
                 ->limit(8)

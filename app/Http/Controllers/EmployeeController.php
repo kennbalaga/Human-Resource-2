@@ -52,14 +52,7 @@ class EmployeeController extends Controller
                 // are what the directory is for and stay open to everyone.
                 $canSearchEmail = Gate::forUser($request->user())->allows('workforce.view');
 
-                $builder->where(function (Builder $searchQuery) use ($search, $canSearchEmail): void {
-                    $searchQuery
-                        ->where('employee_number', 'like', "%{$search}%")
-                        ->orWhere('first_name', 'like', "%{$search}%")
-                        ->orWhere('last_name', 'like', "%{$search}%")
-                        ->when($canSearchEmail, fn (Builder $query) => $query
-                            ->orWhereHas('user', fn (Builder $userQuery) => $userQuery->where('email', 'like', "%{$search}%")));
-                });
+                $builder->matchingSearch($search, $canSearchEmail);
             })
             ->when($filters['department_id'] ?? null, fn (Builder $builder, int $departmentId) => $builder->where('department_id', $departmentId))
             ->when($filters['status'] ?? null, fn (Builder $builder, string $status) => $builder->where('employment_status', $status));

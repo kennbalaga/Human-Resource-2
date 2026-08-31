@@ -1021,15 +1021,23 @@
     background: var(--hr-primary-soft);
 }
 
-.global-search-result > span:nth-child(2) {
+/* Named rather than matched by position. This was `> span:nth-child(2)`, which
+   fitted the results page -- avatar, text, chevron -- and silently missed the
+   dropdown, whose rows carry the text block alone. Without the `min-width: 0`
+   the block would not shrink below its longest line, so a department name ran
+   under the panel edge and was cut off square instead of ellipsised. */
+.global-search-result-text {
     display: grid;
     min-width: 0;
     gap: .15rem;
 }
 
 .global-search-result strong {
+    overflow: hidden;
     color: var(--hr-text);
     font-size: var(--fs-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .global-search-result small,
