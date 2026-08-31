@@ -3064,6 +3064,139 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
 
 /* Step 5 publish summary — what the attestation checkbox is actually
    agreeing to, rendered from the same evaluation the roster board used. */
+/* Step 4 reads the roster back before anybody approves it: the operator's own
+   inputs above, the checks the draft produced below. Deliberately quiet -- this
+   step reports and never blocks, so it is not dressed as an alarm. */
+.validation-recap,
+.validation-checks {
+    display: grid;
+    gap: .7rem;
+    padding: .9rem 1rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-tint-info);
+}
+
+.validation-checks {
+    margin-top: .7rem;
+}
+
+.validation-recap > header,
+.validation-checks > header {
+    display: flex;
+    gap: .75rem;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.validation-recap > header strong,
+.validation-checks > header strong {
+    color: var(--hr-text);
+    font-size: var(--fs-base);
+}
+
+.validation-recap > header span,
+.validation-checks > header span {
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+/* Label and value on one row each, the column sized to the longest label so
+   the values line up into a scannable edge. */
+.validation-recap-list {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: .35rem .9rem;
+    margin: 0;
+}
+
+.validation-recap-list dt {
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+.validation-recap-list dd {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+}
+
+.validation-check-list {
+    display: grid;
+    gap: .45rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.validation-check {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: .6rem;
+    padding: .6rem .75rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+    align-items: start;
+}
+
+.validation-check-mark {
+    display: grid;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    place-items: center;
+}
+
+.validation-check.is-ok .validation-check-mark {
+    color: var(--hr-success);
+    background: var(--hr-tint-success);
+}
+
+.validation-check.is-warning {
+    border-color: var(--hr-warning);
+    background: var(--hr-tint-warning);
+}
+
+.validation-check.is-warning .validation-check-mark {
+    color: var(--hr-warning);
+    background: var(--hr-surface);
+}
+
+.validation-check strong {
+    display: block;
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+}
+
+.validation-check small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+.validation-checks-empty {
+    margin: 0;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+@media (max-width: 520px) {
+    /* The label column stops earning its width once the values wrap; stacked,
+       both get the full row. */
+    .validation-recap-list {
+        grid-template-columns: minmax(0, 1fr);
+        gap: .1rem;
+    }
+
+    .validation-recap-list dd:not(:last-child) {
+        margin-bottom: .45rem;
+    }
+}
+
 .publish-summary {
     display: grid;
     gap: .7rem;

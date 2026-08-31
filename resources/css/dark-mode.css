@@ -1027,6 +1027,23 @@ html[data-theme-resolved='dark'] .publish-stat { border-color:var(--hr-border); 
 html[data-theme-resolved='dark'] .publish-stat strong { color:#a8c8ec; }
 html[data-theme-resolved='dark'] .publish-summary-gap { color:#ecc98f; border-color:#5c4d2a; background:#2c2618; }
 
+/* Step 4 - the two review panels sink the same way, and the check rows step
+   back up out of them. The warning row keeps the amber the gap note uses. */
+html[data-theme-resolved='dark'] .validation-recap,
+html[data-theme-resolved='dark'] .validation-checks { border-color:var(--hr-border); background:var(--hr-sunken); }
+html[data-theme-resolved='dark'] .validation-recap>header strong,
+html[data-theme-resolved='dark'] .validation-checks>header strong,
+html[data-theme-resolved='dark'] .validation-check strong { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .validation-recap>header span,
+html[data-theme-resolved='dark'] .validation-checks>header span,
+html[data-theme-resolved='dark'] .validation-recap-list dt,
+html[data-theme-resolved='dark'] .validation-check small,
+html[data-theme-resolved='dark'] .validation-checks-empty { color:var(--hr-muted); }
+html[data-theme-resolved='dark'] .validation-recap-list dd { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .validation-check { border-color:var(--hr-border); background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .validation-check.is-warning { color:#ecc98f; border-color:#5c4d2a; background:#2c2618; }
+html[data-theme-resolved='dark'] .validation-check.is-warning .validation-check-mark { color:#ecc98f; background:#3a3220; }
+
 /* --- 7. Remaining light values reaching through elsewhere ----------------- */
 
 /* Calendar and week board: the "today" tag and the date medallion kept their

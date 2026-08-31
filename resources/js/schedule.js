@@ -1484,6 +1484,168 @@ document.addEventListener('DOMContentLoaded', () => {
         stepErrorElement.textContent = message ?? '';
     };
 
+    const validationRecapList = bulkForm?.querySelector('[data-validation-recap]');
+    const validationCheckList = bulkForm?.querySelector('[data-validation-checks]');
+    const validationTally = bulkForm?.querySelector('[data-validation-tally]');
+    const validationEmpty = bulkForm?.querySelector('[data-validation-empty]');
+
+    const countDays = (start, end) => {
+        if (!start || !end) return null;
+        const from = new Date(`${start}T00:00:00`);
+        const to = new Date(`${end}T00:00:00`);
+        if (Number.isNaN(from) || Number.isNaN(to)) return null;
+
+        return Math.round((to - from) / 86400000) + 1;
+    };
+
+    // Step 1 and Step 2 read back in the operator's own terms. A rule that was
+    // never shown for this department is left out rather than printed as a
+    // default they did not choose: `rulesPayload()` already drops the disabled
+    // fields, so an absent value here means "not asked for", not "zero".
+    const validationRecap = () => {
+        const rules = rulesPayload();
+        const department = bulkForm.elements.department_id?.selectedOptions?.[0]?.textContent.trim();
+        const staff = selectedBulkEmployees().length;
+        const positions = selectedBulkPositionIds().length;
+        const start = bulkForm.elements.start_date?.value;
+        const end = bulkForm.elements.end_date?.value;
+        const span = countDays(start, end);
+        // The pool's labels hold the name and the time in separate elements, so
+        // textContent alone runs them together ("Morning Shift8:00 AM–5:00 PM").
+        // Read apart and rejoined with the separator the fixed-shift <option>
+        // already prints, so both paths read the same way.
+        const shifts = isAiSchedule()
+            ? [...bulkForm.querySelectorAll('input[name="shift_ids[]"]:checked')]
+                .map((input) => {
+                    const label = input.closest('label');
+                    const parts = [label?.querySelector('strong'), label?.querySelector('small')]
+                        .map((node) => node?.textContent.trim())
+                        .filter(Boolean);
+
+                    return parts.join(' · ') || label?.textContent.trim();
+                })
+                .filter(Boolean)
+            : [bulkForm.elements.shift_id?.selectedOptions?.[0]?.textContent.trim()].filter(Boolean);
+
+        return [
+            ['Department', department || '—'],
+            ['Positions', `${positions} selected`],
+            ['Staff', `${staff} ${staff === 1 ? 'employee' : 'employees'}`],
+            ['Period', start && end
+                ? `${formatScheduleDate(start)} – ${formatScheduleDate(end)}${span ? ` · ${span} days` : ''}`
+                : '—'],
+            ['Shifts', shifts.length ? shifts.join(', ') : '—'],
+            ['Weekends', bulkForm.elements.include_weekends?.checked ? 'Included' : 'Excluded'],
+            ['Rest days per week', rules.days_off_per_week],
+            ['Max hours per week', rules.max_hours_per_week],
+            ['Max consecutive nights', rules.max_consecutive_nights],
+            ['Minimum rest between shifts', rules.minimum_rest_hours ? `${rules.minimum_rest_hours} hours` : undefined],
+            ['Minimum senior per shift', rules.minimum_senior_per_shift],
+            ['Overtime', rules.overtime_allowed ? 'Allowed' : 'Not allowed'],
+        ].filter(([, value]) => value !== undefined && value !== null && value !== '');
+    };
+
+    // Every check is read straight off the Step 3 evaluation, so the answers
+    // here and the board there cannot disagree.
+    const validationChecks = () => {
+        if (!lastEvaluation) return [];
+
+        const days = lastEvaluation.days ?? [];
+        const issues = lastEvaluation.issues ?? [];
+        const streaks = lastEvaluation.night_streak_warnings ?? [];
+        const shiftRows = days.flatMap((day) => day.shifts ?? []);
+        const understaffed = shiftRows.filter((row) => row.count < row.required);
+        const shortSenior = shiftRows.filter((row) => row.senior_count < row.senior_required);
+        const covered = days.filter((day) => day.fully_covered);
+
+        return [
+            {
+                label: 'Shift coverage',
+                ok: understaffed.length === 0,
+                detail: understaffed.length === 0
+                    ? `All ${shiftRows.length} shift(s) meet their required staff.`
+                    : `${understaffed.length} of ${shiftRows.length} shift(s) are below required staff.`,
+            },
+            {
+                label: 'Senior cover',
+                ok: shortSenior.length === 0,
+                detail: shortSenior.length === 0
+                    ? 'Every shift has the senior cover it requires.'
+                    : `${shortSenior.length} shift(s) are below the required senior count.`,
+            },
+            {
+                label: 'Staff placement',
+                ok: issues.length === 0,
+                detail: issues.length === 0
+                    ? 'Every selected employee was placed.'
+                    : `${issues.length} placement(s) blocked — the reasons are listed on Step 3.`,
+            },
+            {
+                label: 'Consecutive nights',
+                ok: streaks.length === 0,
+                detail: streaks.length === 0
+                    ? 'Nobody exceeds the consecutive-night limit.'
+                    : `${streaks.length} employee(s) exceed the limit — Step 5 will ask you to justify this.`,
+            },
+            {
+                label: 'Days covered',
+                ok: days.length > 0 && covered.length === days.length,
+                // Spelled out at both ends rather than "N of N", which reads as
+                // a tally of what is fine when it is counting what is not.
+                detail: covered.length === days.length
+                    ? `All ${days.length} day(s) are fully covered.`
+                    : covered.length === 0
+                        ? `No day in the period is fully covered yet.`
+                        : `${days.length - covered.length} of ${days.length} day(s) still have a gap.`,
+            },
+        ];
+    };
+
+    const renderValidation = () => {
+        if (!validationRecapList || !validationCheckList) return;
+
+        validationRecapList.replaceChildren();
+        validationRecap().forEach(([label, value]) => {
+            const term = document.createElement('dt');
+            term.textContent = label;
+            const detail = document.createElement('dd');
+            detail.textContent = value;
+            validationRecapList.append(term, detail);
+        });
+
+        const checks = validationChecks();
+        validationCheckList.replaceChildren();
+        if (validationEmpty) validationEmpty.hidden = checks.length > 0;
+        if (validationTally) {
+            const passed = checks.filter((check) => check.ok).length;
+            validationTally.textContent = checks.length
+                ? `${passed} passed · ${checks.length - passed} to review`
+                : '';
+        }
+
+        checks.forEach((check) => {
+            const item = document.createElement('li');
+            item.className = check.ok ? 'validation-check is-ok' : 'validation-check is-warning';
+            const mark = document.createElement('span');
+            mark.className = 'validation-check-mark';
+            mark.setAttribute('aria-hidden', 'true');
+            mark.textContent = check.ok ? '✓' : '!';
+            const body = document.createElement('div');
+            const label = document.createElement('strong');
+            label.textContent = check.label;
+            const detail = document.createElement('small');
+            detail.textContent = check.detail;
+            // The icon is decorative, so the state has to reach a screen reader
+            // some other way than by colour and a glyph.
+            const state = document.createElement('span');
+            state.className = 'visually-hidden';
+            state.textContent = check.ok ? 'Passed: ' : 'Needs review: ';
+            body.append(state, label, detail);
+            item.append(mark, body);
+            validationCheckList.append(item);
+        });
+    };
+
     // What Step 5's attestation is actually agreeing to, computed from the
     // same evaluation the Step 3 board already rendered — no separate call.
     const renderPublishSummary = () => {
@@ -1545,6 +1707,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Entering the draft step should reflect whatever was just
         // configured, not a stale board from an earlier pass.
         if (step === 3) scheduleRosterEvaluate();
+        if (step === 4) renderValidation();
         if (step === 5) renderPublishSummary();
         refreshStepGate();
     };

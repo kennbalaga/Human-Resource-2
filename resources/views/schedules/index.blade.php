@@ -496,10 +496,33 @@
                             </section>
                         </div>
 
-                        {{-- Reserved for the validation step. Nothing runs here yet;
-                             the step exists so the flow it belongs to is already in
-                             place when it does. --}}
+                        {{-- The read-back before anyone approves anything: what was
+                             asked for on Steps 1-2, and what the Step 3 draft made
+                             of it. Both halves are rendered from the evaluation the
+                             board already holds, so opening this step costs nothing.
+                             It reports; it does not gate. Coverage is already a hard
+                             block on Step 3 and the night-streak justification is
+                             required on Step 5, so refusing Next here would only be
+                             a second lock on doors that are already shut. --}}
                         <div class="bulk-step-panel" data-step-panel="4" hidden>
+                            <section class="validation-recap">
+                                <header>
+                                    <strong>What you asked for</strong>
+                                    <span>Check this against what you meant to enter before approving.</span>
+                                </header>
+                                <dl class="validation-recap-list" data-validation-recap></dl>
+                            </section>
+
+                            <section class="validation-checks">
+                                <header>
+                                    <strong>Automatic checks</strong>
+                                    <span data-validation-tally></span>
+                                </header>
+                                <ul class="validation-check-list" data-validation-checks></ul>
+                                <p class="validation-checks-empty" data-validation-empty hidden>
+                                    No draft to check yet. Go back to Step 3 and generate one.
+                                </p>
+                            </section>
                         </div>
 
                         <div class="bulk-step-panel" data-step-panel="5" hidden>
