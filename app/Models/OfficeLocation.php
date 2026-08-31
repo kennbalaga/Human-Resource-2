@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ReferenceDataCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +27,19 @@ class OfficeLocation extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * The office is read on every attendance screen and served from
+     * ReferenceDataCache, so a write has to drop that entry -- otherwise an
+     * edited work window keeps its old hours until the TTL runs out.
+     */
+    protected static function booted(): void
+    {
+        $forget = static fn () => ReferenceDataCache::forget(static::class);
+
+        static::saved($forget);
+        static::deleted($forget);
     }
 
     public function attendanceRecords(): HasMany

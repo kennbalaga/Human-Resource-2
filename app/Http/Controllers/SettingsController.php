@@ -35,7 +35,11 @@ class SettingsController extends Controller
     ): View {
         $user = $request->user()->load(['roles', 'employee', 'preference']);
         $pendingEncryptionState = $twoFactor->normalizePendingEnrollment($user);
-        $user->refresh()->load(['roles', 'employee', 'preference']);
+        // Re-read, because normalising a half-finished enrolment can clear the
+        // two-factor columns underneath us. refresh() reloads whatever relations
+        // are already on the model, so naming them again here only bought a
+        // second copy of all three -- three round trips for rows we had.
+        $user->refresh();
         $attendanceCaptureMode = $attendanceCaptureSettings->mode();
         $attendanceManualModeExpiresAt = $attendanceCaptureMode === AttendanceCaptureSettings::EMERGENCY_MANUAL
             ? $attendanceCaptureSettings->expiresAt()

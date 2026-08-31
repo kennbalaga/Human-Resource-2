@@ -14,6 +14,7 @@ use App\Models\LeaveType;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\LeaveService;
 use App\Services\PreferenceNotificationService;
+use App\Services\ReferenceDataCache;
 use App\Services\Security\AttachmentMalwareScanner;
 use App\Services\Security\UnsafeAttachmentException;
 use Carbon\Carbon;
@@ -21,7 +22,6 @@ use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -32,14 +32,17 @@ class LeaveController extends Controller
 {
     use ScopesWorkforceAccess;
 
-    public function index(LeaveFilterRequest $request, LeaveService $service): View
+    public function index(LeaveFilterRequest $request, LeaveService $service, ReferenceDataCache $reference): View
     {
         $filters = $request->validated();
         $employee = $request->user()->employee;
         abort_if($employee === null, 403);
         $canManage = $this->canManage($request);
+        // Department and leave type are filled from the reference cache once the
+        // rows are in hand: between them they are a few dozen rows the whole app
+        // shares, and eager loading each was a round trip of its own.
         $query = LeaveRequest::query()
-            ->with(['employee.department', 'leaveType', 'reviewer', 'attachments'])
+            ->with(['employee', 'reviewer', 'attachments'])
             ->whereYear('start_date', $filters['year'])
             // A department head holds the same role as HR but runs one unit, so
             // the supervised-department constraint is applied before any filter
@@ -52,19 +55,21 @@ class LeaveController extends Controller
             ->when($filters['leave_type_id'] ?? null, fn (Builder $builder, $typeId) => $builder->where('leave_type_id', $typeId))
             ->when($filters['status'] ?? null, fn (Builder $builder, $status) => $builder->where('status', $status));
 
-        $types = LeaveType::query()->where('is_active', true)->orderBy('name')->get();
+        $types = $reference->leaveTypes()->where('is_active', true)->sortBy('name')->values();
         $balances = $service->balancesFor($employee, $types, (int) $filters['year']);
         $focusDate = ! empty($filters['date']) ? Carbon::parse($filters['date']) : now(config('workforce.timezone'));
         $monthStart = $focusDate->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY);
         $monthEnd = $focusDate->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
         $calendarRequests = LeaveRequest::query()
-            ->with(['employee', 'leaveType'])
+            ->with('employee')
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $monthEnd->toDateString())
             ->whereDate('end_date', '>=', $monthStart->toDateString())
             ->when($canManage, fn (Builder $builder) => Employee::constrainRelatedQuery($builder, $request->user()))
             ->when(! $canManage, fn (Builder $builder) => $builder->where('employee_id', $employee->id))
             ->get();
+
+        $reference->attach($calendarRequests, 'leaveType', 'leave_type_id', LeaveType::class);
 
         $calendarDays = collect(CarbonPeriod::create($monthStart, $monthEnd))->map(function ($date) use ($calendarRequests, $focusDate) {
             $day = Carbon::instance($date);
@@ -87,8 +92,13 @@ class LeaveController extends Controller
             ->selectSub((clone $summaryQuery)->whereHas('attachments')->selectRaw('count(*)'), 'attachments')
             ->first();
 
+        $requests = $query->latest()->paginate(15)->withQueryString();
+
+        $reference->attach($requests, 'leaveType', 'leave_type_id', LeaveType::class);
+        $reference->attach($requests->pluck('employee')->filter(), 'department', 'department_id', Department::class);
+
         return view('leaves.index', [
-            'requests' => $query->latest()->paginate(15)->withQueryString(),
+            'requests' => $requests,
             'summary' => [
                 'pending' => (int) $summaryRow['pending'],
                 'approved_days' => (float) $summaryRow['approved_days'],
@@ -204,22 +214,6 @@ class LeaveController extends Controller
     private function canManage(Request $request): bool
     {
         return Gate::forUser($request->user())->allows('workforce.view');
-    }
-
-    /**
-     * Departments offered in the filter. A head is shown their own unit rather
-     * than the full list, so the picker matches what the query will actually
-     * return instead of offering choices that silently come back empty.
-     */
-    private function selectableDepartments(Request $request): Collection
-    {
-        $departmentIds = $this->supervisedDepartmentIds($request);
-
-        return Department::query()
-            ->where('is_active', true)
-            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('id', $departmentIds ?? []))
-            ->orderBy('name')
-            ->get();
     }
 
     private function requireManager(Request $request): void

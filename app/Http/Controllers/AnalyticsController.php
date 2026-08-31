@@ -293,19 +293,6 @@ class AnalyticsController extends Controller
             ->count();
     }
 
-    /** @param array<string, mixed> $filters */
-    /** Only the units this account actually supervises appear in the filter. */
-    private function selectableDepartments(AnalyticsRequest $request): Collection
-    {
-        $departmentIds = $this->supervisedDepartmentIds($request);
-
-        return Department::query()
-            ->where('is_active', true)
-            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('id', $departmentIds ?? []))
-            ->orderBy('name')
-            ->get();
-    }
-
     private function insightCacheKey(int $userId, array $filters): string
     {
         return 'analytics.ai.'.hash('sha256', $userId.'|'.json_encode($filters));

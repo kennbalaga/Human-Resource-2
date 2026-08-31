@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Concerns;
 
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\ReferenceDataCache;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
@@ -51,6 +54,33 @@ trait ScopesWorkforceAccess
         $user = $request->user();
 
         return $user instanceof User ? $user->supervisedDepartmentIds() : [];
+    }
+
+    /**
+     * Departments offered in a filter. A head is shown their own unit rather
+     * than the full list, so the picker matches what the query will actually
+     * return instead of offering choices that silently come back empty.
+     *
+     * Five screens carried a byte-identical private copy of this, each paying
+     * its own query for the same handful of rows. It is one method now, and it
+     * reads the cached table rather than the database: the supervised-department
+     * narrowing is a filter over sixteen rows, not a reason for a round trip.
+     *
+     * @return Collection<int, Department>
+     */
+    protected function selectableDepartments(Request $request): Collection
+    {
+        $departmentIds = $this->supervisedDepartmentIds($request);
+
+        return app(ReferenceDataCache::class)
+            ->departments()
+            ->where('is_active', true)
+            ->when(
+                $departmentIds !== null,
+                fn (Collection $departments) => $departments->whereIn('id', $departmentIds ?? []),
+            )
+            ->sortBy('name')
+            ->values();
     }
 
     private function recordCrossDepartmentDenial(Request $request, ?Employee $employee, string $ability): void

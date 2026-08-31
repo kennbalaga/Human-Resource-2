@@ -13,7 +13,6 @@ use App\Support\SpreadsheetExport;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
-use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -185,17 +184,5 @@ class AttendanceReportController extends Controller
                     $sourceQuery->where('check_in_method', $method)->orWhere('check_out_method', $method);
                 });
             });
-    }
-
-    /** Only the units this account actually supervises appear in the filter. */
-    private function selectableDepartments(AttendanceReportRequest $request): Collection
-    {
-        $departmentIds = $this->supervisedDepartmentIds($request);
-
-        return Department::query()
-            ->where('is_active', true)
-            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('id', $departmentIds ?? []))
-            ->orderBy('name')
-            ->get();
     }
 }

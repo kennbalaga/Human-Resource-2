@@ -8,6 +8,7 @@ use App\Http\Requests\Schedule\ScheduleAssignmentRequest;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use App\Models\Position;
 use App\Models\RecurringSchedule;
 use App\Models\ScheduleAssignment;
@@ -15,6 +16,7 @@ use App\Models\ScheduleComplianceReview;
 use App\Models\ScheduleDayOff;
 use App\Models\ScheduleLock;
 use App\Models\Shift;
+use App\Services\ReferenceDataCache;
 use App\Services\ScheduleService;
 use App\Services\Scheduling\AiSchedulingFeatureSettings;
 use Carbon\Carbon;
@@ -22,7 +24,6 @@ use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -30,7 +31,7 @@ class ScheduleCalendarController extends Controller
 {
     use ScopesWorkforceAccess;
 
-    public function index(Request $request, AiSchedulingFeatureSettings $aiSettings): View
+    public function index(Request $request, AiSchedulingFeatureSettings $aiSettings, ReferenceDataCache $reference): View
     {
         $view = in_array($request->query('view'), ['month', 'week', 'list'], true)
             ? $request->query('view')
@@ -46,8 +47,12 @@ class ScheduleCalendarController extends Controller
             'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
         ]);
 
+        // Department, position and shift are filled from the reference cache
+        // after each fetch below. They are a handful of rows between them, and
+        // eager loading each one was a round trip of its own on a page that
+        // already makes several.
         $assignmentsQuery = ScheduleAssignment::query()
-            ->with(['employee.department', 'employee.position', 'shift', 'recurringSchedule'])
+            ->with(['employee', 'recurringSchedule'])
             ->whereBetween('work_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
             ->where('status', 'scheduled');
 
@@ -67,13 +72,21 @@ class ScheduleCalendarController extends Controller
 
         $assignments = $assignmentsQuery
             ->orderBy('work_date')
-            ->get()
+            ->get();
+
+        // Filled before the sort below, which reads through to the shift.
+        $reference->attach($assignments, 'shift', 'shift_id', Shift::class);
+        $assignmentEmployees = $assignments->pluck('employee')->filter();
+        $reference->attach($assignmentEmployees, 'department', 'department_id', Department::class);
+        $reference->attach($assignmentEmployees, 'position', 'position_id', Position::class);
+
+        $assignments = $assignments
             ->sortBy(fn (ScheduleAssignment $assignment) => $assignment->work_date->toDateString().' '.$assignment->shift->start_time)
             ->values();
         $assignmentsByDate = $assignments->groupBy(fn (ScheduleAssignment $assignment) => $assignment->work_date->toDateString());
 
         $dayOffQuery = ScheduleDayOff::query()
-            ->with(['employee.department'])
+            ->with('employee')
             ->whereBetween('work_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()]);
         if (! $canManage) {
             $dayOffQuery->where('employee_id', $currentEmployee->id);
@@ -85,10 +98,11 @@ class ScheduleCalendarController extends Controller
                 ->when($filters['employee_id'] ?? null, fn (Builder $query, $employeeId) => $query->where('employee_id', $employeeId));
         }
         $dayOffs = $dayOffQuery->orderBy('work_date')->get();
+        $reference->attach($dayOffs->pluck('employee')->filter(), 'department', 'department_id', Department::class);
         $dayOffsByDate = $dayOffs->groupBy(fn (ScheduleDayOff $dayOff) => $dayOff->work_date->toDateString());
 
         $leaveQuery = LeaveRequest::query()
-            ->with(['employee.department', 'leaveType'])
+            ->with('employee')
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $rangeEnd->toDateString())
             ->whereDate('end_date', '>=', $rangeStart->toDateString());
@@ -100,8 +114,12 @@ class ScheduleCalendarController extends Controller
                 ->when($filters['department_id'] ?? null, fn (Builder $query, $departmentId) => $query->whereHas('employee', fn (Builder $employeeQuery) => $employeeQuery->where('department_id', $departmentId)))
                 ->when($filters['employee_id'] ?? null, fn (Builder $query, $employeeId) => $query->where('employee_id', $employeeId));
         }
+        $leaves = $leaveQuery->get();
+        $reference->attach($leaves, 'leaveType', 'leave_type_id', LeaveType::class);
+        $reference->attach($leaves->pluck('employee')->filter(), 'department', 'department_id', Department::class);
+
         $leavesByDate = collect();
-        foreach ($leaveQuery->get() as $leave) {
+        foreach ($leaves as $leave) {
             foreach (CarbonPeriod::create($leave->start_date, $leave->end_date) as $leaveDate) {
                 $date = Carbon::instance($leaveDate);
                 if ($date->isWeekend() || $date->lt($rangeStart) || $date->gt($rangeEnd)) {
@@ -124,7 +142,7 @@ class ScheduleCalendarController extends Controller
 
         $activeSeries = $canManage
             ? RecurringSchedule::query()
-                ->with(['employee.department', 'shift'])
+                ->with('employee')
                 ->tap(fn (Builder $query) => Employee::constrainRelatedQuery($query, $request->user()))
                 ->where('status', 'active')
                 ->whereDate('end_date', '>=', now(config('schedule.timezone'))->toDateString())
@@ -132,6 +150,31 @@ class ScheduleCalendarController extends Controller
                 ->limit(8)
                 ->get()
             : collect();
+
+        $reference->attach($activeSeries, 'shift', 'shift_id', Shift::class);
+        $reference->attach($activeSeries->pluck('employee')->filter(), 'department', 'department_id', Department::class);
+
+        // The pickers below are whole reference tables, so they are filtered and
+        // sorted in PHP off the cached copy rather than re-queried.
+        $activeShifts = $reference->shifts()
+            ->where('is_active', true)
+            ->sortBy('start_time')
+            ->values();
+        $activePositions = $reference->positions()
+            ->where('is_active', true)
+            ->sortBy('title')
+            ->values();
+
+        $pickerEmployees = $canManage
+            ? Employee::query()
+                ->visibleTo($request->user())
+                ->where('employment_status', 'active')
+                ->orderBy('last_name')
+                ->get()
+            : collect([$currentEmployee]);
+
+        $reference->attach($pickerEmployees, 'department', 'department_id', Department::class);
+        $reference->attach($pickerEmployees, 'position', 'position_id', Position::class);
 
         return view('schedules.index', [
             // Rank 1 is entry level, so it can never satisfy a "must have a senior
@@ -150,14 +193,10 @@ class ScheduleCalendarController extends Controller
             'assignments' => $assignments,
             'assignmentsByDate' => $assignmentsByDate,
             'dayOffsByDate' => $dayOffsByDate,
-            'employees' => $canManage
-                ? Employee::query()->visibleTo($request->user())->with(['department', 'position'])->where('employment_status', 'active')->orderBy('last_name')->get()
-                : collect([$currentEmployee->load(['department', 'position'])]),
+            'employees' => $pickerEmployees,
             'departments' => $this->selectableDepartments($request),
-            'positions' => $canManage
-                ? Position::query()->where('is_active', true)->orderBy('title')->get()
-                : collect(),
-            'shifts' => Shift::query()->where('is_active', true)->orderBy('start_time')->get(),
+            'positions' => $canManage ? $activePositions : collect(),
+            'shifts' => $activeShifts,
             'aiSchedulingEnabled' => $canManage && $aiSettings->assistantEnabled(),
             'aiPositions' => $canManage && $aiSettings->assistantEnabled()
                 ? Position::query()->where('is_active', true)->whereHas('department', fn (Builder $query) => $query->where('is_active', true))->orderBy('title')->get()
@@ -299,17 +338,5 @@ class ScheduleCalendarController extends Controller
         }
 
         return [$rangeStart, $rangeEnd, $focusDate->copy()->subMonth(), $focusDate->copy()->addMonth()];
-    }
-
-    /** Only the units this account actually supervises appear in the filter. */
-    private function selectableDepartments(Request $request): Collection
-    {
-        $departmentIds = $this->supervisedDepartmentIds($request);
-
-        return Department::query()
-            ->where('is_active', true)
-            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('id', $departmentIds ?? []))
-            ->orderBy('name')
-            ->get();
     }
 }

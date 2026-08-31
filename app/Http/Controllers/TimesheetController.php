@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Requests\Timesheet\TimesheetFilterRequest;
-use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Timesheet;
 use App\Services\TimesheetService;
@@ -12,7 +11,6 @@ use App\Support\SpreadsheetExport;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -106,18 +104,6 @@ class TimesheetController extends Controller
     private function canManage(Request $request): bool
     {
         return $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
-    }
-
-    /** Only the units this account actually supervises appear in the filter. */
-    private function selectableDepartments(Request $request): Collection
-    {
-        $departmentIds = $this->supervisedDepartmentIds($request);
-
-        return Department::query()
-            ->where('is_active', true)
-            ->when($departmentIds !== null, fn (Builder $query) => $query->whereIn('id', $departmentIds ?? []))
-            ->orderBy('name')
-            ->get();
     }
 
     private function requireManager(Request $request): void

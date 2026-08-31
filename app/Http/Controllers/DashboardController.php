@@ -10,6 +10,7 @@ use App\Services\ApprovalQueueService;
 use App\Services\AttendanceOverviewService;
 use App\Services\DailyExceptionsService;
 use App\Services\RecentActivityService;
+use App\Services\ReferenceDataCache;
 use App\Services\ScheduleCalendarService;
 use App\Services\ShiftOverviewService;
 use App\Services\StaffDashboardService;
@@ -30,6 +31,7 @@ class DashboardController extends Controller
         DailyExceptionsService $dailyExceptions,
         ScheduleCalendarService $scheduleCalendar,
         RecentActivityService $recentActivity,
+        ReferenceDataCache $reference,
     ): View {
         $canManageWorkforce = $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
 
@@ -71,7 +73,11 @@ class DashboardController extends Controller
         // is handed to the paginator rather than paying for a second COUNT.
         $recentEmployees = Employee::query()
             ->visibleTo($request->user())
-            ->with(['user', 'department', 'position'])
+            // Department and position are filled from the reference cache below
+            // rather than eager loaded: five rows point at two departments and
+            // two positions, and fetching those four names was costing two round
+            // trips of their own.
+            ->with('user')
             // Newest first, with the id breaking ties. Staff taken on in one
             // batch — an import, or a unit opening — share a created_at to the
             // second, and ordering on that alone leaves those rows in whatever
@@ -83,6 +89,9 @@ class DashboardController extends Controller
             ->paginate(5, ['*'], 'employees_page', null, $counts['employees'])
             ->withQueryString()
             ->fragment('employee-overview');
+
+        $reference->attach($recentEmployees, 'department', 'department_id', Department::class);
+        $reference->attach($recentEmployees, 'position', 'position_id', Position::class);
 
         $departments = Department::query()
             ->withCount([

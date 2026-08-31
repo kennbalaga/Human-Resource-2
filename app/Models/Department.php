@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ReferenceDataCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -40,6 +41,20 @@ class Department extends Model
             'bed_capacity' => 'integer',
             'nurse_patient_ratio' => 'integer',
         ];
+    }
+
+    /**
+     * Departments are served to most screens from ReferenceDataCache, so a write
+     * has to drop that entry -- otherwise a renamed or retired unit keeps its old
+     * name on screen until the TTL runs out.
+     */
+    protected static function booted(): void
+    {
+        $forget = static fn () => ReferenceDataCache::forget(static::class);
+
+        static::saved($forget);
+        static::deleted($forget);
+        static::restored($forget);
     }
 
     /**

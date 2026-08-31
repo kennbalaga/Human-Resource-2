@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use App\Models\Timesheet;
 use App\Models\User;
 use Carbon\Carbon;
@@ -53,6 +55,8 @@ class ApprovalQueueService
      * loses its meaning if it is answered after the dates it asked for.
      */
     private const STALE_DAYS = 3;
+
+    public function __construct(private readonly ReferenceDataCache $reference) {}
 
     /**
      * @return array{
@@ -120,20 +124,26 @@ class ApprovalQueueService
     }
 
     /**
-     * The oldest pending leave, named. Loaded with the department and leave type
-     * the row is summarised by, so a four-row preview costs three queries rather
-     * than nine.
+     * The oldest pending leave, named. The employee is eager loaded; the two
+     * reference tables the row is summarised by -- department and leave type --
+     * are filled from cache, so a four-row preview costs two queries rather than
+     * the nine it would take one row at a time.
      *
      * @return array<int, array<string, mixed>>
      */
     private function leaveItems(?User $user, Carbon $now): array
     {
-        return $this->pendingLeave($user)
-            ->with(['employee.department', 'leaveType'])
+        $leaves = $this->pendingLeave($user)
+            ->with('employee')
             ->oldest('created_at')
             ->oldest('id')
             ->limit(self::PREVIEW_LIMIT)
-            ->get()
+            ->get();
+
+        $this->reference->attach($leaves, 'leaveType', 'leave_type_id', LeaveType::class);
+        $this->reference->attach($leaves->pluck('employee')->filter(), 'department', 'department_id', Department::class);
+
+        return $leaves
             ->map(function (LeaveRequest $leave) use ($now): array {
                 $days = (float) $leave->requested_days;
 
@@ -167,12 +177,16 @@ class ApprovalQueueService
      */
     private function timesheetItems(?User $user, Carbon $now): array
     {
-        return $this->submittedTimesheets($user)
-            ->with(['employee.department'])
+        $timesheets = $this->submittedTimesheets($user)
+            ->with('employee')
             ->orderByRaw('coalesce(submitted_at, updated_at) asc')
             ->oldest('id')
             ->limit(self::PREVIEW_LIMIT)
-            ->get()
+            ->get();
+
+        $this->reference->attach($timesheets->pluck('employee')->filter(), 'department', 'department_id', Department::class);
+
+        return $timesheets
             ->map(function (Timesheet $timesheet) use ($now): array {
                 // A timesheet submitted by a path that skipped the column still has
                 // to be able to report an age.

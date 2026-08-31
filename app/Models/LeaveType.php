@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ReferenceDataCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,6 +30,19 @@ class LeaveType extends Model
             'requires_attachment' => 'boolean',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Leave types are served to most screens from ReferenceDataCache, so a write
+     * has to drop that entry -- otherwise a renamed type keeps its old name on
+     * screen until the TTL runs out.
+     */
+    protected static function booted(): void
+    {
+        $forget = static fn () => ReferenceDataCache::forget(static::class);
+
+        static::saved($forget);
+        static::deleted($forget);
     }
 
     public function balances(): HasMany

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ReferenceDataCache;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -33,6 +34,20 @@ class Shift extends Model
             'is_system' => 'boolean',
             'is_rotating' => 'boolean',
         ];
+    }
+
+    /**
+     * Shifts are served to the roster and dashboard screens from
+     * ReferenceDataCache, so a write has to drop that entry -- otherwise a
+     * retimed shift keeps its old span on screen until the TTL runs out.
+     */
+    protected static function booted(): void
+    {
+        $forget = static fn () => ReferenceDataCache::forget(static::class);
+
+        static::saved($forget);
+        static::deleted($forget);
+        static::restored($forget);
     }
 
     public function creator(): BelongsTo
