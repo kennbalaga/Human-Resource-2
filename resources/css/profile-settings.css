@@ -50,7 +50,10 @@
 .profile-empty-state h2 { margin:.8rem 0 .25rem; font-size: var(--fs-md); }
 .profile-empty-state p { margin:0; color:var(--hr-muted); font-size: var(--fs-sm); }
 .settings-layout { display:grid; grid-template-columns:15rem minmax(0,1fr); align-items:start; gap:1.25rem; }
-.settings-section-nav { position:sticky; top:calc(var(--topbar-height) + 1rem); display:grid; padding:.65rem; gap:.25rem; }
+/* Offset from the bar's measured height (app-mobile.js publishes it), so the
+   rail clears it whatever the bar is standing at; the token is the fallback
+   for the moment before the script runs. */
+.settings-section-nav { position:sticky; top:calc(var(--topbar-real-height, var(--topbar-height)) + 1rem); display:grid; padding:.65rem; gap:.25rem; }
 .settings-section-nav a { position:relative; display:flex; align-items:center; gap:.7rem; padding:.75rem; border-radius:var(--r-md); color:var(--hr-text); text-decoration:none; transition:color .16s ease,background-color .16s ease; }
 .settings-section-nav a:hover { color:var(--hr-primary); background:var(--hr-primary-soft); }
 .settings-section-nav a:focus-visible { color:var(--hr-primary); background:var(--hr-primary-soft); outline:3px solid rgba(23,107,67,.2); outline-offset:2px; }
@@ -72,7 +75,7 @@
 .settings-panels { display:grid; gap:1.25rem; }
 /* The topbar is fixed, so an anchor jump would otherwise park the panel header
    underneath it. Stop the scroll a topbar-and-a-bit short of the target. */
-.settings-panel { scroll-margin-top:calc(var(--topbar-height) + 1rem); }
+.settings-panel { scroll-margin-top:calc(var(--topbar-real-height, var(--topbar-height)) + 1rem); }
 .settings-account-id { padding:.3rem .55rem; border-radius:var(--r-pill); color:var(--hr-muted); background:var(--hr-primary-soft); font-size: var(--fs-2xs); font-weight:800; }
 .settings-resource-links { display:grid; padding:0 1.25rem 1.25rem; gap:.6rem; }
 .settings-resource-links a { display:grid; grid-template-columns:2.35rem minmax(0,1fr) auto; align-items:center; gap:.7rem; padding:.85rem; border:1px solid var(--hr-border); border-radius:var(--r-md); color:inherit; background:var(--hr-surface-2); text-decoration:none; transition:border-color .16s ease,background-color .16s ease,transform .16s ease; }

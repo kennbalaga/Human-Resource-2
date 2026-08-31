@@ -32,6 +32,57 @@ const trackViewportHeight = () => {
 };
 
 /**
+ * Publishes the topbar's real height for anything that has to sit below it.
+ *
+ * `--topbar-height` is a flat 76px, which the bar only actually is on a wide
+ * screen. Under 520px it becomes a two-row grid -- controls on one line, the
+ * search field spanning the next -- and drops its min-height entirely, so it
+ * stands nearer 114px tall. Anything sticking at the token's value parks itself
+ * underneath the bar and vanishes: that is what hid the Settings section rail,
+ * and what made an anchor jump land short of its heading.
+ *
+ * Measured rather than given a second hard-coded number, because this height
+ * also moves with the safe-area inset, the reader's font size, and whatever the
+ * bar is asked to hold next. getBoundingClientRect covers the padding box, so
+ * the safe-area inset the bar pads itself with is already inside the figure.
+ */
+const publishMeasuredHeight = (selector, property) => {
+    const element = document.querySelector(selector);
+
+    if (!element) {
+        return;
+    }
+
+    const apply = () => {
+        document.documentElement.style.setProperty(
+            property,
+            `${Math.round(element.getBoundingClientRect().height)}px`,
+        );
+    };
+
+    apply();
+
+    // These change height without the window resizing -- the search field wraps
+    // to its own row at a breakpoint, the section rail turns from a column into
+    // a chip row -- so observe the element, not just the viewport.
+    if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(apply).observe(element);
+
+        return;
+    }
+
+    window.addEventListener('resize', apply, { passive: true });
+    window.addEventListener('orientationchange', apply, { passive: true });
+};
+
+const trackStickyHeights = () => {
+    publishMeasuredHeight('.app-topbar', '--topbar-real-height');
+    // Only on Settings, and only a rail once the layout narrows -- absent
+    // elsewhere, which is why every use of it carries a 0px fallback.
+    publishMeasuredHeight('.settings-section-nav', '--settings-rail-height');
+};
+
+/**
  * Marks the document when the app is running from the home screen rather than
  * a browser tab, so CSS and other scripts can branch on it. `display-mode`
  * covers Android and desktop; `navigator.standalone` is the iOS-only flag.
@@ -249,6 +300,9 @@ const keepFocusedFieldVisible = () => {
 document.addEventListener('DOMContentLoaded', () => {
     trackDisplayMode();
     trackViewportHeight();
+    // Not gated on the touch layout below: the settings rail sticks under the
+    // topbar on a desktop too, and its offset comes from the same figure.
+    trackStickyHeights();
 
     if (!isTouchLayout()) {
         return;

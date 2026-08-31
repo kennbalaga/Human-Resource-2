@@ -307,7 +307,7 @@
      * matching padding or a keyboard/hash jump still lands short.
      */
     html {
-        scroll-padding-top: calc(var(--topbar-height) + var(--safe-top) + 12px);
+        scroll-padding-top: calc(var(--topbar-real-height, calc(var(--topbar-height) + var(--safe-top))) + 12px);
     }
 }
 
@@ -728,7 +728,11 @@
 @media (max-width: 700px) {
     .settings-section-nav {
         position: sticky;
-        top: calc(var(--topbar-height) + var(--safe-top));
+        /* The measured bar, not the 76px token: at this width the topbar is a
+           two-row grid with no min-height, so the token parks this rail
+           underneath it and the chips disappear on scroll. app-mobile.js
+           publishes the real figure; the token is the pre-script fallback. */
+        top: var(--topbar-real-height, calc(var(--topbar-height) + var(--safe-top)));
         z-index: 5;
         display: flex;
         overflow-x: auto;
@@ -774,6 +778,18 @@
         border-color: var(--hr-primary);
         color: var(--hr-primary);
         background: var(--hr-primary-soft);
+    }
+
+    /* Here the rail is a second sticky bar under the topbar, so a chip tap has
+       to clear both or it drops the heading it just jumped to behind the rail.
+       On the desktop layout the rail is a column beside the panels and takes no
+       height off the top, which is why this sits inside the query. */
+    .settings-panel {
+        scroll-margin-top: calc(
+            var(--topbar-real-height, calc(var(--topbar-height) + var(--safe-top)))
+            + var(--settings-rail-height, 0px)
+            + 12px
+        );
     }
 
     /* A group heading inside a horizontal rail becomes a divider. */
