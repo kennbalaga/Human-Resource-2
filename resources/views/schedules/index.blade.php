@@ -470,6 +470,16 @@
                                 </div>
                                 <div class="roster-draft-status" data-roster-draft-status hidden></div>
                                 <div class="roster-assistant-notice" data-roster-assistant-notice hidden></div>
+                                {{-- Not a block: a shift a previous roster run already
+                                     covers is left alone rather than double-staffed, and
+                                     publishing is still allowed to go through around it.
+                                     This just says so up front, before the reviewer builds
+                                     a roster around dates that already have one. --}}
+                                <div class="roster-info-panel" data-roster-already-rostered-panel hidden>
+                                    <div class="roster-gap-heading"><x-icon name="info" /><strong data-roster-already-rostered-title></strong></div>
+                                    <ul data-roster-already-rostered-list></ul>
+                                    <p class="roster-info-note">Already published, so this run will not schedule them again. To replace it instead, discard those assignments first.</p>
+                                </div>
                                 {{-- Folded shut by default. Fourteen red rows above the board
                                      is the loudest thing on the step and buries the board it is
                                      asking you to fix; the count alone carries the same block. --}}

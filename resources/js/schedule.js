@@ -656,6 +656,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const rosterNightStreakPanel = rosterBoard?.querySelector('[data-roster-night-streak-panel]');
     const rosterNightStreakTitle = rosterNightStreakPanel?.querySelector('[data-roster-night-streak-title]');
     const rosterNightStreakList = rosterNightStreakPanel?.querySelector('[data-roster-night-streak-list]');
+    const rosterAlreadyRosteredPanel = rosterBoard?.querySelector('[data-roster-already-rostered-panel]');
+    const rosterAlreadyRosteredTitle = rosterAlreadyRosteredPanel?.querySelector('[data-roster-already-rostered-title]');
+    const rosterAlreadyRosteredList = rosterAlreadyRosteredPanel?.querySelector('[data-roster-already-rostered-list]');
     const rosterViewButtons = [...(rosterBoard?.querySelectorAll('[data-roster-view]') ?? [])];
     const rosterPagePrevious = rosterBoard?.querySelector('[data-roster-page-previous]');
     const rosterPageNext = rosterBoard?.querySelector('[data-roster-page-next]');
@@ -1169,6 +1172,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // Informational, not a block: every (date, shift) a previously published
+    // roster already covers. Surfaced up front, on the same step the board
+    // itself shows the "N already scheduled" note in each lane — this is the
+    // one place a reviewer would otherwise have to notice it lane by lane.
+    const renderAlreadyRostered = (evaluation) => {
+        if (!rosterAlreadyRosteredPanel) return;
+        const covered = [];
+        evaluation.days.forEach((day) => {
+            day.shifts.forEach((shift) => {
+                if (shift.already_rostered > 0) covered.push({ date: day.date, shift });
+            });
+        });
+
+        rosterAlreadyRosteredPanel.hidden = covered.length === 0;
+        if (!covered.length) return;
+
+        rosterAlreadyRosteredTitle.textContent = `${covered.length} shift${covered.length === 1 ? '' : 's'} in this period already ${covered.length === 1 ? 'has' : 'have'} a published schedule.`;
+        rosterAlreadyRosteredList.replaceChildren();
+        covered.forEach((entry) => {
+            const item = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = `${formatScheduleDate(entry.date)} · ${entry.shift.shift} — ${entry.shift.already_rostered} already scheduled`;
+            button.addEventListener('click', () => revealRosterShift(entry.date, entry.shift.shift_id));
+            item.append(button);
+            rosterAlreadyRosteredList.append(item);
+        });
+    };
+
     // Tier B, soft: every (employee, date) placed on a consecutive-night
     // streak beyond the configured limit. Unlike the coverage panel above,
     // these entries are still on the board — publishing them just needs a
@@ -1204,6 +1236,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderRosterCalendar(evaluation);
         renderCoverageGaps(evaluation);
+        renderAlreadyRostered(evaluation);
         renderNightStreakWarnings(evaluation);
         if (scroller) scroller.scrollTop = previousScroll;
 
@@ -1840,6 +1873,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rosterGapBody) rosterGapBody.hidden = true;
         rosterGapToggle?.setAttribute('aria-expanded', 'false');
         if (rosterNightStreakPanel) rosterNightStreakPanel.hidden = true;
+        if (rosterAlreadyRosteredPanel) rosterAlreadyRosteredPanel.hidden = true;
         if (publishSummaryGrid) publishSummaryGrid.replaceChildren();
         if (publishSummaryGap) publishSummaryGap.hidden = true;
         lastEvaluation = null;
