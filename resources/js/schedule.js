@@ -659,6 +659,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const rosterAlreadyRosteredPanel = rosterBoard?.querySelector('[data-roster-already-rostered-panel]');
     const rosterAlreadyRosteredTitle = rosterAlreadyRosteredPanel?.querySelector('[data-roster-already-rostered-title]');
     const rosterAlreadyRosteredList = rosterAlreadyRosteredPanel?.querySelector('[data-roster-already-rostered-list]');
+    const rosterAlreadyRosteredToggle = rosterAlreadyRosteredPanel?.querySelector('[data-roster-already-rostered-toggle]');
+    const rosterAlreadyRosteredBody = rosterAlreadyRosteredPanel?.querySelector('[data-roster-already-rostered-body]');
     const rosterViewButtons = [...(rosterBoard?.querySelectorAll('[data-roster-view]') ?? [])];
     const rosterPagePrevious = rosterBoard?.querySelector('[data-roster-page-previous]');
     const rosterPageNext = rosterBoard?.querySelector('[data-roster-page-next]');
@@ -1136,11 +1138,18 @@ document.addEventListener('DOMContentLoaded', () => {
     rosterPagePrevious?.addEventListener('click', () => turnRosterPage(-1));
     rosterPageNext?.addEventListener('click', () => turnRosterPage(1));
 
-    rosterGapToggle?.addEventListener('click', () => {
-        const expanded = rosterGapToggle.getAttribute('aria-expanded') === 'true';
-        rosterGapToggle.setAttribute('aria-expanded', String(!expanded));
-        if (rosterGapBody) rosterGapBody.hidden = expanded;
-    });
+    // Both hard panels fold the same way: the heading is the button, and the
+    // body it hides is its next sibling.
+    const bindPanelFold = (toggle, body) => {
+        toggle?.addEventListener('click', () => {
+            const expanded = toggle.getAttribute('aria-expanded') === 'true';
+            toggle.setAttribute('aria-expanded', String(!expanded));
+            if (body) body.hidden = expanded;
+        });
+    };
+
+    bindPanelFold(rosterGapToggle, rosterGapBody);
+    bindPanelFold(rosterAlreadyRosteredToggle, rosterAlreadyRosteredBody);
 
     // Tier A, hard: every under-covered (day, shift) pair, each row jumping
     // straight to that block. There is no justification field here — this
@@ -1172,29 +1181,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Informational, not a block: every (date, shift) a previously published
-    // roster already covers. Surfaced up front, on the same step the board
-    // itself shows the "N already scheduled" note in each lane — this is the
-    // one place a reviewer would otherwise have to notice it lane by lane.
+    // Hard: every (date, shift) a previous roster run already published. This
+    // is the block the reviewer needs before anything else on the step, since
+    // no amount of editing the board below makes the period publishable.
+    //
+    // Keyed on rostered_by_run, never on already_rostered — the latter counts
+    // every published assignment, so a single name added to one day by hand
+    // would read as a duplicate run and lock the unit out of its own week.
     const renderAlreadyRostered = (evaluation) => {
         if (!rosterAlreadyRosteredPanel) return;
         const covered = [];
         evaluation.days.forEach((day) => {
             day.shifts.forEach((shift) => {
-                if (shift.already_rostered > 0) covered.push({ date: day.date, shift });
+                if (shift.rostered_by_run > 0) covered.push({ date: day.date, shift });
             });
         });
 
         rosterAlreadyRosteredPanel.hidden = covered.length === 0;
         if (!covered.length) return;
 
-        rosterAlreadyRosteredTitle.textContent = `${covered.length} shift${covered.length === 1 ? '' : 's'} in this period already ${covered.length === 1 ? 'has' : 'have'} a published schedule.`;
+        const assignments = covered.reduce((total, entry) => total + entry.shift.rostered_by_run, 0);
+        const days = new Set(covered.map((entry) => entry.date)).size;
+        const period = `${formatScheduleDate(covered[0].date)} – ${formatScheduleDate(covered[covered.length - 1].date)}`;
+
+        rosterAlreadyRosteredTitle.textContent = `${days === 1 ? formatScheduleDate(covered[0].date) : period} already has a published roster — ${assignments} assignment${assignments === 1 ? '' : 's'} across ${days} day${days === 1 ? '' : 's'}. Publishing again is blocked.`;
         rosterAlreadyRosteredList.replaceChildren();
         covered.forEach((entry) => {
             const item = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
-            button.textContent = `${formatScheduleDate(entry.date)} · ${entry.shift.shift} — ${entry.shift.already_rostered} already scheduled`;
+            button.textContent = `${formatScheduleDate(entry.date)} · ${entry.shift.shift} — ${entry.shift.rostered_by_run} already scheduled`;
             button.addEventListener('click', () => revealRosterShift(entry.date, entry.shift.shift_id));
             item.append(button);
             rosterAlreadyRosteredList.append(item);
@@ -1790,6 +1806,18 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const validateStep3 = () => {
+        // Ahead of the empty-board check on purpose: when the assistant finds
+        // the period already rostered it proposes nothing at all, so the board
+        // is empty for that very reason. "Build a roster first" would send the
+        // reviewer back to press a button that cannot produce anything.
+        const rostered = lastEvaluation?.summary?.shifts_already_rostered ?? 0;
+        if (rostered > 0) {
+            const days = lastEvaluation?.summary?.days_already_rostered ?? 0;
+            const existing = lastEvaluation?.summary?.assignments_already_rostered ?? 0;
+
+            return `This period already has a published roster — ${existing} assignment(s) across ${days} day(s). Publishing again would schedule this department twice. Remove those assignments from the calendar, or choose a period that is not yet rostered — there is no override.`;
+        }
+
         if (rosterEntries.length === 0) return 'Build a roster below — fill it or let the assistant rotate staff — before continuing.';
 
         // Tier A, hard: no justification unlocks this one. The only way past
@@ -1874,6 +1902,8 @@ document.addEventListener('DOMContentLoaded', () => {
         rosterGapToggle?.setAttribute('aria-expanded', 'false');
         if (rosterNightStreakPanel) rosterNightStreakPanel.hidden = true;
         if (rosterAlreadyRosteredPanel) rosterAlreadyRosteredPanel.hidden = true;
+        if (rosterAlreadyRosteredBody) rosterAlreadyRosteredBody.hidden = true;
+        rosterAlreadyRosteredToggle?.setAttribute('aria-expanded', 'false');
         if (publishSummaryGrid) publishSummaryGrid.replaceChildren();
         if (publishSummaryGap) publishSummaryGap.hidden = true;
         lastEvaluation = null;

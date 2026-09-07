@@ -11,6 +11,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\ScheduleService;
 use App\Services\Scheduling\RosterDraftService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -301,10 +302,10 @@ class RosterDraftTest extends TestCase
         $this->assertSame(2, ScheduleAssignment::query()->whereDate('work_date', '2027-04-05')->count());
     }
 
-    public function test_a_date_that_is_already_covered_holds_back_only_the_entries_it_already_staffs(): void
+    public function test_a_partly_rostered_period_is_refused_whole_rather_than_topped_up(): void
     {
         $manager = User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail();
-        $rules = ['shift_ids' => [$this->morning->id]];
+        $rules = ['shift_ids' => [$this->morning->id], 'start_date' => '2027-04-05', 'end_date' => '2027-04-06'];
         $service = app(RosterDraftService::class);
 
         $first = $this->employee('RD-0014', $this->chargePosition);
@@ -313,28 +314,143 @@ class RosterDraftTest extends TestCase
         $service->publish($this->ward, collect([
             $this->entry($first, $this->morning, '2027-04-05'),
             $this->entry($second, $this->morning, '2027-04-05'),
-        ]), $manager, null, null, $rules);
+        ]), $manager, null, null, ['shift_ids' => [$this->morning->id]]);
 
-        // Extending a roster rather than repeating one: the 5th is already
-        // staffed and stays as it is, while the 6th — which nothing covers yet —
-        // is still published. Refusing the whole run because part of it overlaps
-        // would make a half-built roster impossible to finish.
+        // The overlap this has to catch is the one the assistant hides: it drops
+        // the already-covered placements itself, so the entries arriving here
+        // cover only the 6th and nothing is reported as blocked. Judged on those
+        // entries alone the run looks clean — it is the *period* the reviewer
+        // chose, the 5th included, that is already half rostered.
         $third = $this->employee('RD-0016', $this->chargePosition);
         $fourth = $this->employee('RD-0017', $this->chargePosition);
 
-        $result = $service->publish($this->ward, collect([
-            $this->entry($third, $this->morning, '2027-04-05'),
-            $this->entry($third, $this->morning, '2027-04-06'),
-            $this->entry($fourth, $this->morning, '2027-04-06'),
+        try {
+            $service->publish($this->ward, collect([
+                $this->entry($third, $this->morning, '2027-04-06'),
+                $this->entry($fourth, $this->morning, '2027-04-06'),
+            ]), $manager, null, null, $rules);
+            $this->fail('Publishing over a period that is already part-rostered should have been refused.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('entries', $exception->errors());
+        }
+
+        $this->assertSame(2, ScheduleAssignment::query()->whereDate('work_date', '2027-04-05')->count());
+        $this->assertSame(0, ScheduleAssignment::query()->whereDate('work_date', '2027-04-06')->count());
+    }
+
+    public function test_a_hand_placed_assignment_does_not_block_a_roster_run(): void
+    {
+        $manager = User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail();
+        $rules = ['shift_ids' => [$this->morning->id], 'start_date' => '2027-04-07', 'end_date' => '2027-04-07'];
+
+        $onCall = $this->employee('RD-0023', $this->chargePosition);
+        $first = $this->employee('RD-0024', $this->chargePosition);
+        $second = $this->employee('RD-0025', $this->chargePosition);
+
+        // Someone put on this day by hand is a deliberate one-off, not a roster
+        // that has already been generated — the block must not fire on it, or
+        // a single extra name would lock the unit out of rostering the week.
+        app(ScheduleService::class)->createAssignment([
+            'employee_id' => $onCall->id,
+            'shift_id' => $this->morning->id,
+            'work_date' => '2027-04-07',
+        ], $manager);
+
+        $result = app(RosterDraftService::class)->publish($this->ward, collect([
+            $this->entry($first, $this->morning, '2027-04-07'),
+            $this->entry($second, $this->morning, '2027-04-07'),
         ]), $manager, null, null, $rules);
 
         $this->assertSame(2, $result['assignments']->count());
-        $this->assertSame(
-            [RosterDraftService::REASON_ALREADY_ROSTERED],
-            $result['skipped']->pluck('reason')->unique()->values()->all(),
-        );
-        $this->assertSame(2, ScheduleAssignment::query()->whereDate('work_date', '2027-04-05')->count());
-        $this->assertSame(2, ScheduleAssignment::query()->whereDate('work_date', '2027-04-06')->count());
+        $this->assertSame(3, ScheduleAssignment::query()->whereDate('work_date', '2027-04-07')->count());
+    }
+
+    public function test_the_publish_endpoint_refuses_a_period_that_is_already_rostered(): void
+    {
+        $manager = User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail();
+
+        $first = $this->employee('RD-0026', $this->chargePosition);
+        $second = $this->employee('RD-0027', $this->chargePosition);
+
+        app(RosterDraftService::class)->publish($this->ward, collect([
+            $this->entry($first, $this->morning, '2027-04-08'),
+            $this->entry($second, $this->morning, '2027-04-08'),
+        ]), $manager, null, null, ['shift_ids' => [$this->morning->id]]);
+
+        // Over the route rather than the service: the JS gate can be skipped
+        // entirely by posting here, so the refusal has to hold on its own.
+        $third = $this->employee('RD-0028', $this->chargePosition);
+        $fourth = $this->employee('RD-0029', $this->chargePosition);
+
+        $this->actingAs($manager)->post(route('schedules.roster.publish'), [
+            'department_id' => $this->ward->id,
+            'start_date' => '2027-04-08',
+            'end_date' => '2027-04-08',
+            'shift_ids' => [$this->morning->id],
+            'entries' => [
+                ['employee_id' => $third->id, 'shift_id' => $this->morning->id, 'work_date' => '2027-04-08'],
+                ['employee_id' => $fourth->id, 'shift_id' => $this->morning->id, 'work_date' => '2027-04-08'],
+            ],
+        ])->assertSessionHasErrors('entries');
+
+        $this->assertSame(2, ScheduleAssignment::query()->whereDate('work_date', '2027-04-08')->count());
+    }
+
+    public function test_the_board_reports_the_period_as_already_rostered_for_the_step_gate(): void
+    {
+        $manager = User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail();
+        $rules = ['shift_ids' => [$this->morning->id]];
+
+        $first = $this->employee('RD-0030', $this->chargePosition);
+        $second = $this->employee('RD-0031', $this->chargePosition);
+
+        app(RosterDraftService::class)->publish($this->ward, collect([
+            $this->entry($first, $this->morning, '2027-04-09'),
+            $this->entry($second, $this->morning, '2027-04-09'),
+        ]), $manager, null, null, $rules);
+
+        // These three counts are what disables Next on Step 3 and what the red
+        // panel's headline is built from, so they are pinned here rather than
+        // left to the browser to discover.
+        $evaluation = app(RosterDraftService::class)->evaluate($this->ward, collect(), '2027-04-09', '2027-04-09', $rules);
+
+        $this->assertSame(1, $evaluation['summary']['shifts_already_rostered']);
+        $this->assertSame(1, $evaluation['summary']['days_already_rostered']);
+        $this->assertSame(2, $evaluation['summary']['assignments_already_rostered']);
+
+        $morningRow = collect($evaluation['days'][0]['shifts'])->firstWhere('shift_id', $this->morning->id);
+        $this->assertSame(2, $morningRow['rostered_by_run']);
+    }
+
+    public function test_a_shift_the_previous_run_did_not_roster_is_still_publishable(): void
+    {
+        $manager = User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'hr-manager'))->firstOrFail();
+
+        $first = $this->employee('RD-0032', $this->chargePosition);
+        $second = $this->employee('RD-0033', $this->chargePosition);
+
+        app(RosterDraftService::class)->publish($this->ward, collect([
+            $this->entry($first, $this->morning, '2027-04-12'),
+            $this->entry($second, $this->morning, '2027-04-12'),
+        ]), $manager, null, null, ['shift_ids' => [$this->morning->id]]);
+
+        // The block is scoped to the shifts this run is answerable for. A ward
+        // is rostered shift by shift, so having done Morning must not lock the
+        // same week's Night shift — that is a continuation, not a repeat.
+        $third = $this->employee('RD-0034', $this->chargePosition);
+        $fourth = $this->employee('RD-0035', $this->chargePosition);
+
+        $result = app(RosterDraftService::class)->publish($this->ward, collect([
+            $this->entry($third, $this->night, '2027-04-12'),
+            $this->entry($fourth, $this->night, '2027-04-12'),
+        ]), $manager, null, null, [
+            'shift_ids' => [$this->night->id],
+            'start_date' => '2027-04-12',
+            'end_date' => '2027-04-12',
+        ]);
+
+        $this->assertSame(2, $result['assignments']->count());
+        $this->assertSame(4, ScheduleAssignment::query()->whereDate('work_date', '2027-04-12')->count());
     }
 
     public function test_cover_already_on_record_counts_towards_the_requirement(): void

@@ -75,20 +75,7 @@ class RosterDraftService
             ->get()
             ->keyBy('id');
 
-        // Every shift *this roster was actually built for* is shown, so one
-        // nobody has been placed on yet still appears with its requirement
-        // rather than vanishing from the board — but a shift outside that
-        // selection (e.g. Administrative, when this run is Night-only) isn't
-        // this roster's concern and shouldn't count toward its coverage gate.
-        $allShifts = Shift::query()->where('is_active', true)->orderBy('start_time')->get();
-        $relevantShiftIds = collect($rules['shift_ids'] ?? [])
-            ->push($rules['shift_id'] ?? null)
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->unique();
-        $relevantShifts = $relevantShiftIds->isNotEmpty()
-            ? $allShifts->whereIn('id', $relevantShiftIds->all())->values()
-            : $allShifts;
+        $relevantShifts = $this->relevantShiftsFor($rules);
         $requirements = $this->staffingRequirements->forShifts($department, $relevantShifts);
 
         // Whether a shift is adequately covered is judged against the unit's own
@@ -271,6 +258,13 @@ class RosterDraftService
                     'is_night' => $shift->is_night_shift,
                     'assigned' => $assigned->values()->all(),
                     'already_rostered' => $alreadyRostered->count(),
+                    // The subset of that cover a previous *roster run* published,
+                    // which is the only kind that means "this period has already
+                    // been generated". Someone added to one day by hand, or a
+                    // recurring series, still counts towards cover above but must
+                    // not read as a duplicate run — so the two are reported apart
+                    // rather than the gate having to guess from one number.
+                    'rostered_by_run' => $alreadyRostered->where('created_via', 'bulk_fill')->count(),
                     'count' => $onDuty,
                     'required' => $requirement['staff'],
                     'senior_count' => $seniorsOnDuty,
@@ -310,6 +304,15 @@ class RosterDraftService
                 'blocked' => $issues->count(),
                 'shifts_short' => $days->sum(fn (array $day) => collect($day['shifts'])->reject(fn (array $row) => $row['meets_requirement'])->count()),
                 'night_streak_warnings' => $nightStreakWarnings->count(),
+                // The period's own duplicate state, counted from the cover on
+                // record rather than from the issue list above — the rotation
+                // assistant drops already-covered placements before they ever
+                // become entries, so on that path no entry is ever *blocked* and
+                // an issue-derived count would read zero on exactly the run this
+                // is meant to stop.
+                'shifts_already_rostered' => $days->sum(fn (array $day) => collect($day['shifts'])->where('rostered_by_run', '>', 0)->count()),
+                'days_already_rostered' => $days->filter(fn (array $day) => collect($day['shifts'])->sum('rostered_by_run') > 0)->count(),
+                'assignments_already_rostered' => $days->sum(fn (array $day) => collect($day['shifts'])->sum('rostered_by_run')),
                 // For the Step 5 publish summary: who this roster actually
                 // touches, and the projected Art. 86 night-differential
                 // hours — both derived from the same placements the board
@@ -348,12 +351,23 @@ class RosterDraftService
                 ->map(fn (array $issue) => $issue['employee_id'].'|'.$issue['work_date'])
                 ->flip();
 
-            // Every entry held back as already covered, and nothing left to
-            // write: this is the generator being run a second time over a period
-            // that is already rostered. Said plainly, because the alternative is
-            // a success notice reporting that nothing was published — which
-            // reads as a failure of the tool rather than as the duplicate it
-            // just refused.
+            // Hard block: any part of this period that a previous roster run
+            // already published stops the whole publish, rather than the run
+            // going ahead with the overlapping days quietly held back.
+            //
+            // Read straight from the cover on record over the period the
+            // reviewer actually chose, for two reasons the evaluation above
+            // cannot serve. The rotation assistant drops already-covered
+            // placements before they become entries, so nothing is *blocked* on
+            // that path and an issue-derived count reads zero on precisely the
+            // re-run this exists to refuse; and the entries that survive span
+            // only the free days, so a window derived from them would step over
+            // the rostered ones entirely.
+            $this->assertPeriodNotAlreadyRostered($department, $rules, $dates);
+
+            // A rest day already on record cannot be written twice either — the
+            // table's own unique key would refuse it — and it can outlive the
+            // assignments above, so it is still checked in its own right.
             $duplicates = collect($evaluation['issues'])
                 ->whereIn('reason', [self::REASON_ALREADY_ROSTERED, self::REASON_REST_DAY_RECORDED])
                 ->count();
@@ -536,6 +550,83 @@ class RosterDraftService
             ->latest('updated_at')
             ->limit(10)
             ->get();
+    }
+
+    /**
+     * Refuse the publish outright when a previous roster run already covers any
+     * part of the period being published.
+     *
+     * The period is the one the reviewer chose on Step 2 whenever the caller
+     * passes it, falling back to the span of the entries themselves. That
+     * distinction is the whole point: a re-run over a half-rostered period
+     * arrives here holding only the entries for the free days, and a window
+     * derived from those would look at exactly the dates that are not the
+     * problem.
+     *
+     * @param  array<string, mixed>  $rules
+     * @param  Collection<int, string>  $dates
+     */
+    private function assertPeriodNotAlreadyRostered(Department $department, array $rules, Collection $dates): void
+    {
+        $from = $rules['start_date'] ?? $dates->min();
+        $to = $rules['end_date'] ?? $dates->max();
+
+        if ($from === null || $to === null) {
+            return;
+        }
+
+        $rostered = $this->publishedCoverageFor(
+            $department,
+            $this->relevantShiftsFor($rules),
+            Carbon::parse($from, config('schedule.timezone'))->startOfDay(),
+            Carbon::parse($to, config('schedule.timezone'))->startOfDay(),
+        )
+            ->map(fn (Collection $assignments) => $assignments->where('created_via', 'bulk_fill'))
+            ->reject(fn (Collection $assignments) => $assignments->isEmpty());
+
+        if ($rostered->isEmpty()) {
+            return;
+        }
+
+        $existing = $rostered->sum(fn (Collection $assignments) => $assignments->count());
+        $days = $rostered->keys()
+            ->map(fn (string $key) => explode('|', $key)[1])
+            ->unique()
+            ->count();
+
+        throw ValidationException::withMessages([
+            'entries' => "This period already has a published roster — {$existing} ".
+                str('assignment')->plural($existing)." across {$days} ".
+                str('day')->plural($days).
+                '. Publishing again would schedule this department twice over the same dates. Remove those assignments first, or choose a period that is not yet rostered.',
+        ]);
+    }
+
+    /**
+     * The shifts this roster run is answerable for.
+     *
+     * Every shift the run was built for is graded, so one nobody has been placed
+     * on yet still shows its requirement rather than vanishing from the board —
+     * but a shift outside that selection (Administrative, say, when this run is
+     * Night-only) is not this roster's concern. Shared with the publish-time
+     * duplicate gate so the two cannot come to different answers about which
+     * shifts the period covers.
+     *
+     * @param  array<string, mixed>  $rules
+     * @return Collection<int, Shift>
+     */
+    private function relevantShiftsFor(array $rules): Collection
+    {
+        $allShifts = Shift::query()->where('is_active', true)->orderBy('start_time')->get();
+        $relevantShiftIds = collect($rules['shift_ids'] ?? [])
+            ->push($rules['shift_id'] ?? null)
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique();
+
+        return $relevantShiftIds->isNotEmpty()
+            ? $allShifts->whereIn('id', $relevantShiftIds->all())->values()
+            : $allShifts;
     }
 
     /**

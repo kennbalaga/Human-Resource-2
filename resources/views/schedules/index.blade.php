@@ -470,15 +470,21 @@
                                 </div>
                                 <div class="roster-draft-status" data-roster-draft-status hidden></div>
                                 <div class="roster-assistant-notice" data-roster-assistant-notice hidden></div>
-                                {{-- Not a block: a shift a previous roster run already
-                                     covers is left alone rather than double-staffed, and
-                                     publishing is still allowed to go through around it.
-                                     This just says so up front, before the reviewer builds
-                                     a roster around dates that already have one. --}}
-                                <div class="roster-info-panel" data-roster-already-rostered-panel hidden>
-                                    <div class="roster-gap-heading"><x-icon name="info" /><strong data-roster-already-rostered-title></strong></div>
-                                    <ul data-roster-already-rostered-list></ul>
-                                    <p class="roster-info-note">Already published, so this run will not schedule them again. To replace it instead, discard those assignments first.</p>
+                                {{-- Hard, and deliberately first: a period a previous roster
+                                     run already published cannot be rostered a second time, so
+                                     this is the one thing worth reading before the board itself.
+                                     Same fold as the coverage panel below — the headline carries
+                                     the block, the list is there for whoever wants the dates. --}}
+                                <div class="roster-gap-panel is-hard" data-roster-already-rostered-panel hidden>
+                                    <button type="button" class="roster-gap-heading" data-roster-already-rostered-toggle aria-expanded="false">
+                                        <x-icon name="close" />
+                                        <strong data-roster-already-rostered-title></strong>
+                                        <span class="roster-gap-caret"><x-icon name="chevron-down" /></span>
+                                    </button>
+                                    <div class="roster-gap-body" data-roster-already-rostered-body hidden>
+                                        <ul data-roster-already-rostered-list></ul>
+                                        <p class="roster-gap-note">Publishing again would schedule this department twice over the same dates. Remove the existing assignments from the calendar first, or pick a period that is not yet rostered. There is no override for this one.</p>
+                                    </div>
                                 </div>
                                 {{-- Folded shut by default. Fourteen red rows above the board
                                      is the loudest thing on the step and buries the board it is

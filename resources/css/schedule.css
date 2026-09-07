@@ -2942,13 +2942,11 @@
     line-height: 1.4;
 }
 
-/* Coverage-gap panel (Tier A, hard — red, no override), the
-   consecutive-night-streak panel (Tier B, soft — amber, justify-and-proceed),
-   and the already-rostered panel (informational — blue, nothing to resolve).
-   Share layout; colour alone signals which kind of notice this is. */
+/* Coverage-gap panel (Tier A, hard — red, no override) and the
+   consecutive-night-streak panel (Tier B, soft — amber, justify-and-proceed).
+   Share layout; colour alone signals which kind of constraint this is. */
 .roster-gap-panel,
-.roster-warn-panel,
-.roster-info-panel {
+.roster-warn-panel {
     display: grid;
     gap: .6rem;
     padding: .85rem .9rem;
@@ -2965,11 +2963,6 @@
     background: var(--hr-tint-warning);
 }
 
-.roster-info-panel {
-    border: 1px solid var(--hr-info);
-    background: var(--hr-tint-info);
-}
-
 .roster-gap-heading {
     display: flex;
     align-items: center;
@@ -2983,10 +2976,6 @@
 
 .roster-warn-panel .roster-gap-heading {
     color: var(--hr-warning-text);
-}
-
-.roster-info-panel .roster-gap-heading {
-    color: var(--hr-info);
 }
 
 .roster-gap-heading svg {
@@ -3028,8 +3017,7 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
 }
 
 .roster-gap-panel ul,
-.roster-warn-panel ul,
-.roster-info-panel ul {
+.roster-warn-panel ul {
     display: grid;
     gap: .3rem;
     margin: 0;
@@ -3043,15 +3031,8 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
     font-size: var(--fs-xs);
 }
 
-.roster-info-note {
-    margin: 0;
-    color: var(--hr-info);
-    font-size: var(--fs-xs);
-}
-
 .roster-gap-panel li button,
-.roster-warn-panel li button,
-.roster-info-panel li button {
+.roster-warn-panel li button {
     width: 100%;
     padding: .5rem .65rem;
     border-radius: var(--r-md);
@@ -3079,16 +3060,6 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
 .roster-warn-panel li button:hover {
     background: var(--hr-tint-warning);
     border-color: var(--hr-warning);
-}
-
-.roster-info-panel li button {
-    border: 1px solid var(--hr-info);
-    color: var(--hr-info);
-}
-
-.roster-info-panel li button:hover {
-    background: var(--hr-tint-info);
-    border-color: var(--hr-info);
 }
 
 .roster-shift-flash {
