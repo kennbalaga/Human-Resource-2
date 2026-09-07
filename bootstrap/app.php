@@ -5,6 +5,7 @@ use App\Http\Middleware\EnforceProductionSecurity;
 use App\Http\Middleware\EnforceReadOnlyRole;
 use App\Http\Middleware\EnsureRequiredTwoFactorAuthentication;
 use App\Http\Middleware\EnsureSingleActiveSession;
+use App\Http\Middleware\PreventAuthenticatedPageCaching;
 use App\Http\Middleware\PreventRememberedAuthentication;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -52,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->authenticateSessions();
         $middleware->web(append: [
             SecurityHeaders::class,
+            PreventAuthenticatedPageCaching::class,
             AuditWriteRequests::class,
             PreventRememberedAuthentication::class,
             EnsureSingleActiveSession::class,

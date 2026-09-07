@@ -1,5 +1,19 @@
 import { Modal } from 'bootstrap';
 
+// A back/forward navigation that restores this page from the browser's
+// bfcache resumes it exactly as it was frozen — including whatever the
+// session-timeout countdown below was showing, computed from a clock that
+// stopped ticking the moment the tab was cached. The server already sends
+// Cache-Control: no-store on authenticated pages so most browsers skip
+// bfcache for it entirely; this is the fallback for the ones that don't,
+// forcing a real reload so the page reflects whether the session is still
+// alive instead of replaying a stale frame of it.
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
+
 const element = document.querySelector('[data-session-timeout]');
 
 if (element) {
