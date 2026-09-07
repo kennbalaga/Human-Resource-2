@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\ScheduleService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,6 +31,15 @@ use Illuminate\Validation\ValidationException;
  */
 class RosterDraftService
 {
+    /**
+     * Why an entry was held back because the department already has the cover
+     * it needs on that shift and date. Named rather than written twice, since
+     * publish() decides what to tell the reviewer by matching on it.
+     */
+    public const REASON_ALREADY_ROSTERED = 'Shift already rostered for this date';
+
+    public const REASON_REST_DAY_RECORDED = 'Rest day already recorded';
+
     public function __construct(
         private readonly ScheduleService $scheduleService,
         private readonly StaffingRequirementService $staffingRequirements,
@@ -93,6 +103,13 @@ class RosterDraftService
             ]);
         }
 
+        // Who a previously published roster already puts on these shifts and
+        // dates. Cover is a property of the department's schedule, not of the
+        // board being reviewed: without reading it back, a second run over an
+        // already-staffed period sees an empty week and quietly stacks a whole
+        // extra team on top of the one already on duty.
+        $rostered = $this->publishedCoverageFor($department, $relevantShifts, $start, $end);
+
         $context = $this->contextFor($employees->keys()->all(), $start, $end);
         $issues = collect();
         $seniorRank = (int) ($rules['senior_rank_threshold'] ?? ScheduleService::DEFAULT_SENIOR_RANK_THRESHOLD);
@@ -131,6 +148,26 @@ class RosterDraftService
                 continue;
             }
 
+            // Held back rather than added: an earlier roster run already staffs
+            // this shift on this date to the unit's standard, and a second run
+            // over the same period would put a whole second team beside the
+            // first.
+            //
+            // Only cover a previous *roster* put there counts here, which is
+            // what separates the two ways a date can already be busy. Someone
+            // added by hand to a single day is a deliberate one-off, and a
+            // roster still has to be able to staff the shift around them;
+            // a period the generator has already published is the duplicate
+            // this is here to refuse.
+            $required = (int) ($requirements->get($shift->id)['staff'] ?? StaffingRequirementService::FALLBACK_MINIMUM_STAFF);
+            $rosteredHere = $rostered->get($shift->id.'|'.$date->toDateString(), collect());
+
+            if ($rosteredHere->where('created_via', 'bulk_fill')->count() >= $required) {
+                $issues->push($this->issue($entry, $employee->full_name, $shift->name, self::REASON_ALREADY_ROSTERED));
+
+                continue;
+            }
+
             $pending = new ScheduleAssignment([
                 'employee_id' => $employee->id,
                 'shift_id' => $shift->id,
@@ -139,6 +176,28 @@ class RosterDraftService
             ]);
             $pending->setRelation('shift', $shift);
             $placed->put($employee->id, $alreadyPlaced->push($pending));
+        }
+
+        // A rest day is one row per employee per date by construction, so a
+        // re-run proposing one that is already on record would fail against the
+        // table's own unique key. Reported here instead, the way every other
+        // held-back entry is.
+        $dayOffIssues = 0;
+        foreach ($dayOffEntries as $entry) {
+            $recorded = $context['dayOffs']->get($entry['employee_id'], collect())
+                ->contains(fn (ScheduleDayOff $dayOff) => $dayOff->work_date->toDateString() === $entry['work_date']);
+
+            if (! $recorded) {
+                continue;
+            }
+
+            $issues->push($this->issue(
+                $entry,
+                $employees->get($entry['employee_id'])?->full_name ?? 'Unknown employee',
+                null,
+                self::REASON_REST_DAY_RECORDED,
+            ));
+            $dayOffIssues++;
         }
 
         $blocked = $issues->map(fn (array $issue) => $issue['key'])->flip();
@@ -169,10 +228,10 @@ class RosterDraftService
             }
         }
 
-        $days = $dates->map(function (Carbon $date) use ($working, $dayOffEntries, $employees, $relevantShifts, $requirements, $seniorRank, $blocked) {
+        $days = $dates->map(function (Carbon $date) use ($working, $dayOffEntries, $employees, $relevantShifts, $requirements, $seniorRank, $blocked, $rostered) {
             $dateString = $date->toDateString();
 
-            $shiftRows = $relevantShifts->map(function (Shift $shift) use ($working, $employees, $requirements, $seniorRank, $blocked, $dateString) {
+            $shiftRows = $relevantShifts->map(function (Shift $shift) use ($working, $employees, $requirements, $seniorRank, $blocked, $dateString, $rostered) {
                 $assigned = $working
                     ->filter(fn (array $entry) => $entry['work_date'] === $dateString && (int) $entry['shift_id'] === $shift->id)
                     ->map(function (array $entry) use ($employees, $seniorRank, $blocked) {
@@ -193,19 +252,32 @@ class RosterDraftService
                 $requirement = $requirements->get($shift->id, ['staff' => 1, 'senior' => 0, 'source' => 'default minimum']);
                 $placeable = $assigned->reject(fn (array $row) => $row['blocked']);
 
+                // Anyone a previous roster already put on this shift counts
+                // toward the date's cover, so the board grades it as the ward
+                // will actually be staffed rather than as this run alone would
+                // leave it — which is also what keeps the publish-time coverage
+                // gate from calling an already-covered date short.
+                $alreadyRostered = $rostered->get($shift->id.'|'.$dateString, collect());
+                $onDuty = $placeable->count() + $alreadyRostered->count();
+                $seniorsOnDuty = $placeable->where('is_senior', true)->count()
+                    + $alreadyRostered
+                        ->filter(fn (ScheduleAssignment $assignment) => (int) ($assignment->employee?->position?->seniority_rank ?? 1) >= $seniorRank)
+                        ->count();
+
                 return [
                     'shift_id' => $shift->id,
                     'shift' => $shift->name,
                     'time' => $shift->formatted_time ?? null,
                     'is_night' => $shift->is_night_shift,
                     'assigned' => $assigned->values()->all(),
-                    'count' => $placeable->count(),
+                    'already_rostered' => $alreadyRostered->count(),
+                    'count' => $onDuty,
                     'required' => $requirement['staff'],
-                    'senior_count' => $placeable->where('is_senior', true)->count(),
+                    'senior_count' => $seniorsOnDuty,
                     'senior_required' => $requirement['senior'],
                     'requirement_source' => $requirement['source'],
-                    'meets_requirement' => $placeable->count() >= $requirement['staff']
-                        && $placeable->where('is_senior', true)->count() >= $requirement['senior'],
+                    'meets_requirement' => $onDuty >= $requirement['staff']
+                        && $seniorsOnDuty >= $requirement['senior'],
                 ];
             })->values();
 
@@ -233,8 +305,8 @@ class RosterDraftService
             'issues' => $issues->map(fn (array $issue) => collect($issue)->except('key')->all())->values()->all(),
             'night_streak_warnings' => $nightStreakWarnings->values()->all(),
             'summary' => [
-                'assignments' => $working->count() - $issues->count(),
-                'day_offs' => $dayOffEntries->count(),
+                'assignments' => $working->count() - ($issues->count() - $dayOffIssues),
+                'day_offs' => $dayOffEntries->count() - $dayOffIssues,
                 'blocked' => $issues->count(),
                 'shifts_short' => $days->sum(fn (array $day) => collect($day['shifts'])->reject(fn (array $row) => $row['meets_requirement'])->count()),
                 'night_streak_warnings' => $nightStreakWarnings->count(),
@@ -275,6 +347,25 @@ class RosterDraftService
             $blocked = collect($evaluation['issues'])
                 ->map(fn (array $issue) => $issue['employee_id'].'|'.$issue['work_date'])
                 ->flip();
+
+            // Every entry held back as already covered, and nothing left to
+            // write: this is the generator being run a second time over a period
+            // that is already rostered. Said plainly, because the alternative is
+            // a success notice reporting that nothing was published — which
+            // reads as a failure of the tool rather than as the duplicate it
+            // just refused.
+            $duplicates = collect($evaluation['issues'])
+                ->whereIn('reason', [self::REASON_ALREADY_ROSTERED, self::REASON_REST_DAY_RECORDED])
+                ->count();
+            $writable = $entries
+                ->reject(fn (array $entry) => $blocked->has($entry['employee_id'].'|'.$entry['work_date']))
+                ->count();
+
+            if ($writable === 0 && $duplicates > 0) {
+                throw ValidationException::withMessages([
+                    'entries' => 'This department is already rostered for these dates, so publishing again would duplicate the schedule. Change the period, or remove the existing assignments first.',
+                ]);
+            }
 
             // Tier A (hard constraint, no override): minimum staff and senior
             // coverage must actually be met for every shift in the period.
@@ -447,6 +538,34 @@ class RosterDraftService
             ->get();
     }
 
+    /**
+     * This department's already-published assignments for the given shifts and
+     * dates, grouped by "<shift id>|<date>".
+     *
+     * Scoped by the employee's department rather than by the names on the board:
+     * a re-run typically rotates a different set of people onto the same days,
+     * so asking only about the employees in front of us would report the week as
+     * free and let the duplicate through.
+     *
+     * @param  Collection<int, Shift>  $shifts
+     * @return Collection<string, Collection<int, ScheduleAssignment>>
+     */
+    private function publishedCoverageFor(Department $department, Collection $shifts, Carbon $start, Carbon $end): Collection
+    {
+        if ($shifts->isEmpty()) {
+            return collect();
+        }
+
+        return ScheduleAssignment::query()
+            ->with('employee.position')
+            ->where('status', 'scheduled')
+            ->whereIn('shift_id', $shifts->pluck('id')->all())
+            ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+            ->whereHas('employee', fn (Builder $query) => $query->where('department_id', $department->id))
+            ->get()
+            ->groupBy(fn (ScheduleAssignment $assignment) => $assignment->shift_id.'|'.$assignment->work_date->toDateString());
+    }
+
     /** @return Collection<int, ScheduleLock> */
     private function lockedRangesFor(Department $department, Carbon $start, Carbon $end): Collection
     {
@@ -492,9 +611,14 @@ class RosterDraftService
                 ->whereDate('end_date', '>=', $start->toDateString())
                 ->get()
                 ->groupBy('employee_id'),
+            // Compared as calendar dates, not as strings: schedule_day_offs
+            // casts work_date as a plain date and so stores it with a
+            // 00:00:00 time, which sorts after the bare end-of-range date and
+            // would drop every rest day falling on the last day of the period.
             'dayOffs' => ScheduleDayOff::query()
                 ->whereIn('employee_id', $employeeIds)
-                ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+                ->whereDate('work_date', '>=', $start->toDateString())
+                ->whereDate('work_date', '<=', $end->toDateString())
                 ->get()
                 ->groupBy('employee_id'),
         ];

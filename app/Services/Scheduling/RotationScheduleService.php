@@ -12,6 +12,7 @@ use App\Models\Shift;
 use App\Services\ScheduleService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -89,9 +90,29 @@ class RotationScheduleService
             ])
             ->get()
             ->groupBy('employee_id');
+        // What the department already has on these shifts and dates, whoever is
+        // standing it. The assistant is normally handed a different set of names
+        // on a second run over the same period, so a per-employee check would
+        // find the week free and rotate a whole second team onto it.
+        $alreadyRostered = ScheduleAssignment::query()
+            ->where('status', 'scheduled')
+            // Only what a previous roster run put there: someone added to a
+            // single day by hand is a deliberate one-off the assistant should
+            // still be able to staff a shift around.
+            ->where('created_via', 'bulk_fill')
+            ->whereIn('shift_id', $shifts->pluck('id')->all())
+            ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+            ->whereHas('employee', fn (Builder $query) => $query->where('department_id', $department->id))
+            ->get(['shift_id', 'work_date'])
+            ->countBy(fn (ScheduleAssignment $assignment) => $assignment->shift_id.'|'.$assignment->work_date->toDateString());
+        // Compared as calendar dates: both of these cast their date column as a
+        // plain date and so store a 00:00:00 time with it, which sorts after the
+        // bare end-of-range date and would hide a rest day — protected or
+        // requested — falling on the last day of the period.
         $existingDayOffs = ScheduleDayOff::query()
             ->whereIn('employee_id', $employeeIds)
-            ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+            ->whereDate('work_date', '>=', $start->toDateString())
+            ->whereDate('work_date', '<=', $end->toDateString())
             ->get()
             ->groupBy('employee_id');
         $leaves = LeaveRequest::query()
@@ -104,7 +125,8 @@ class RotationScheduleService
         $preferredDayOffs = PreferredDayOff::query()
             ->whereIn('employee_id', $employeeIds)
             ->where('status', 'approved')
-            ->whereBetween('preferred_date', [$start->toDateString(), $end->toDateString()])
+            ->whereDate('preferred_date', '>=', $start->toDateString())
+            ->whereDate('preferred_date', '<=', $end->toDateString())
             ->get()
             ->groupBy('employee_id');
         $previousShiftIds = ScheduleAssignment::query()
@@ -225,9 +247,15 @@ class RotationScheduleService
                     }
 
                     $capacityKey = $shift->id.'|'.$date->toDateString();
-                    $reason = $maximumStaff !== null && ($placedPerShiftDate[$capacityKey] ?? 0) >= $maximumStaff
-                        ? "{$shift->name} is already at its maximum of {$maximumStaff} staff for this date"
-                        : $this->assignmentBlockReason(
+                    $requiredHere = (int) ($requirements->get($shift->id)['staff'] ?? StaffingRequirementService::FALLBACK_MINIMUM_STAFF);
+                    $reason = match (true) {
+                        // A published roster already staffs this shift on this
+                        // date to the unit's own standard. Proposing more is
+                        // exactly how running the assistant twice over one
+                        // period ends up with two teams on every day of it.
+                        ($alreadyRostered[$capacityKey] ?? 0) >= $requiredHere => RosterDraftService::REASON_ALREADY_ROSTERED,
+                        $maximumStaff !== null && ($placedPerShiftDate[$capacityKey] ?? 0) >= $maximumStaff => "{$shift->name} is already at its maximum of {$maximumStaff} staff for this date",
+                        default => $this->assignmentBlockReason(
                             $employee,
                             $shift,
                             $date,
@@ -235,7 +263,8 @@ class RotationScheduleService
                             $employeeDayOffs,
                             $employeeLeaves,
                             $data,
-                        );
+                        ),
+                    };
                     if ($reason !== null) {
                         $skipped->push([
                             'employee' => $employee->full_name,

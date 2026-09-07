@@ -2798,6 +2798,15 @@
     color: var(--hr-warning-text);
 }
 
+/* Cover this lane already has from a published schedule, which is counted in
+   the badge above but has no cards on this board. */
+.roster-standing {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-style: italic;
+}
+
 /* The lane a dragged card would land in. */
 .roster-shift.is-drop-target {
     background: var(--hr-primary-soft);

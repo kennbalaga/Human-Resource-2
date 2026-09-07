@@ -935,6 +935,18 @@ document.addEventListener('DOMContentLoaded', () => {
         shift.assigned.forEach((person) => list.append(renderPersonCard(person, day)));
         lane.append(list);
 
+        // People an already-published schedule puts on this shift. They count
+        // towards the cover shown above but are not cards on this board — it
+        // edits this roster, not the one already standing — so without saying so
+        // the lane reads as meeting its requirement with nobody in it.
+        if (shift.already_rostered > 0) {
+            const standing = document.createElement('p');
+            standing.className = 'roster-standing';
+            standing.textContent = `${shift.already_rostered} already scheduled`;
+            standing.title = 'Already published for this shift and date. Publishing this roster will not schedule them a second time.';
+            lane.append(standing);
+        }
+
         const picker = document.createElement('select');
         picker.className = 'roster-add';
         rosterPickerOptions(picker);

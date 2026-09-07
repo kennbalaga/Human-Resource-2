@@ -182,9 +182,14 @@ class ScheduleService
             ->whereDate('end_date', '>=', $start->toDateString())
             ->get()
             ->groupBy('employee_id');
+        // Compared as calendar dates: schedule_day_offs casts work_date as a
+        // plain date and so stores a 00:00:00 time with it, which sorts after
+        // the bare end-of-range date and would hide a rest day falling on the
+        // last day of the period.
         $dayOffsByEmployee = ScheduleDayOff::query()
             ->whereIn('employee_id', $employeeIds)
-            ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+            ->whereDate('work_date', '>=', $start->toDateString())
+            ->whereDate('work_date', '<=', $end->toDateString())
             ->get()
             ->groupBy('employee_id');
         $ready = collect();
