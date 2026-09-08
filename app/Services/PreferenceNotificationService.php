@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Notifications\PreferenceMailNotification;
+use App\Services\Organization\NotificationEmailSettings;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -11,32 +12,38 @@ use Throwable;
 
 class PreferenceNotificationService
 {
-    /** @var array<int, string> */
-    private const ALLOWED_PREFERENCES = [
+    /**
+     * The kinds of update this sends, which decide the icon, tone and filter
+     * an in-app notification is filed under.
+     *
+     * These were once per-user email switches as well. They are not any more:
+     * whether HRMS emails at all is one System Administrator's decision for
+     * everybody, so an employee can no longer make themselves unreachable for
+     * their own schedule.
+     *
+     * @var array<int, string>
+     */
+    private const CATEGORIES = [
         'attendance_reminders',
         'schedule_updates',
         'leave_updates',
     ];
 
-    public function send(User $user, string $preference, PreferenceMailNotification $notification): bool
+    public function __construct(private readonly NotificationEmailSettings $emailSettings) {}
+
+    public function send(User $user, string $category, PreferenceMailNotification $notification): bool
     {
-        if (! in_array($preference, self::ALLOWED_PREFERENCES, true)) {
-            throw new InvalidArgumentException("Unsupported notification preference [{$preference}].");
+        if (! in_array($category, self::CATEGORIES, true)) {
+            throw new InvalidArgumentException("Unsupported notification category [{$category}].");
         }
 
         if (! $user->is_active) {
             return false;
         }
 
-        $settings = $user->preference;
+        $delivered = $this->storeInAppNotification($user, $category, $notification);
 
-        if (! $settings->{$preference}) {
-            return false;
-        }
-
-        $delivered = $this->storeInAppNotification($user, $preference, $notification);
-
-        if (! $settings->email_notifications || blank($user->email)) {
+        if (! $this->emailSettings->enabled() || blank($user->email)) {
             return $delivered;
         }
 
@@ -50,9 +57,9 @@ class PreferenceNotificationService
 
             return true;
         } catch (Throwable $exception) {
-            Log::warning('A preference email could not be dispatched.', [
+            Log::warning('A notification email could not be dispatched.', [
                 'user_id' => $user->id,
-                'preference' => $preference,
+                'category' => $category,
                 'notification' => $notification::class,
                 'error' => $exception->getMessage(),
             ]);
@@ -63,7 +70,7 @@ class PreferenceNotificationService
 
     private function storeInAppNotification(
         User $user,
-        string $preference,
+        string $category,
         PreferenceMailNotification $notification,
     ): bool {
         try {
@@ -75,17 +82,17 @@ class PreferenceNotificationService
                     'message' => $notification->lines[0] ?? 'You have a new HRMS update.',
                     'action_text' => $notification->actionText,
                     'action_url' => $notification->actionUrl,
-                    'tone' => match ($preference) {
+                    'tone' => match ($category) {
                         'attendance_reminders' => 'warning',
                         'schedule_updates' => 'primary',
                         default => Str::contains(Str::lower($notification->subject), ['approved', 'received']) ? 'success' : 'primary',
                     },
-                    'icon' => match ($preference) {
+                    'icon' => match ($category) {
                         'attendance_reminders' => 'clock',
                         'schedule_updates' => 'calendar',
                         default => 'leave',
                     },
-                    'category' => match ($preference) {
+                    'category' => match ($category) {
                         'attendance_reminders' => 'attendance',
                         'schedule_updates' => 'schedule',
                         default => 'leave',
@@ -97,7 +104,7 @@ class PreferenceNotificationService
         } catch (Throwable $exception) {
             Log::warning('An in-app notification could not be stored.', [
                 'user_id' => $user->id,
-                'preference' => $preference,
+                'category' => $category,
                 'error' => $exception->getMessage(),
             ]);
 

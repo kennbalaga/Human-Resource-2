@@ -4,6 +4,7 @@ namespace Tests\Feature\Security;
 
 use App\Models\User;
 use App\Notifications\SecurityAlertNotification;
+use App\Services\Organization\NotificationEmailSettings;
 use App\Services\Security\SecurityAlertService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -43,18 +44,15 @@ class SecurityAlertEmailTest extends TestCase
         );
     }
 
-    public function test_a_security_email_ignores_the_notification_preference_switches(): void
+    public function test_a_security_email_is_sent_even_when_notification_email_is_paused(): void
     {
         $user = $this->userForEmployee('HR-MGR-2026-0001');
-        $user->preference->update([
-            'email_notifications' => false,
-            'schedule_updates' => false,
-            'leave_updates' => false,
-            'attendance_reminders' => false,
-        ]);
+        // Notification email paused for the whole system: the one setting that
+        // now governs every other kind of notification mail.
+        app(NotificationEmailSettings::class)->update($this->userForEmployee('SYS-ADMIN-2026-0001'), false);
 
         app(SecurityAlertService::class)->alertUser(
-            $user->fresh(),
+            $user,
             'Sign-in from a new device',
             'Somebody signed in to your account from a device you have not used before.',
             'Review audit logs',

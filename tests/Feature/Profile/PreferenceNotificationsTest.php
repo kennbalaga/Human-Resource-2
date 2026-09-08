@@ -7,8 +7,10 @@ use App\Models\LeaveType;
 use App\Models\Shift;
 use App\Models\User;
 use App\Notifications\PreferenceMailNotification;
+use App\Services\Organization\NotificationEmailSettings;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -31,12 +33,11 @@ class PreferenceNotificationsTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_schedule_emails_follow_the_master_and_schedule_switches(): void
+    public function test_schedule_emails_follow_the_system_wide_switch(): void
     {
         $manager = $this->user('hr.manager@hrms.local');
         $employee = $this->user('employee@hrms.local');
         $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
-        $this->setPreferences($employee, email: true, schedule: true);
 
         $this->actingAs($manager)->post('/schedules', [
             'employee_id' => $employee->employee->id,
@@ -51,7 +52,7 @@ class PreferenceNotificationsTest extends TestCase
         );
 
         Notification::fake();
-        $this->setPreferences($employee, email: false, schedule: true);
+        $this->disableNotificationEmails();
 
         $this->actingAs($manager)->post('/schedules', [
             'employee_id' => $employee->employee->id,
@@ -60,14 +61,67 @@ class PreferenceNotificationsTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         Notification::assertNothingSent();
+
+        // Paused email is not a silenced app: the notification is still there
+        // for anybody who opens HRMS.
+        $this->assertSame(2, $employee->notifications()->count());
     }
 
-    public function test_leave_submission_and_review_send_status_emails_when_enabled(): void
+    public function test_an_employee_cannot_switch_off_their_own_notification_emails(): void
+    {
+        $employee = $this->user('employee@hrms.local');
+
+        // The old per-account switches, posted by hand rather than through a
+        // form that no longer offers them.
+        $this->actingAs($employee)->patch(route('settings.preferences.update'), [
+            'timezone' => 'Asia/Manila',
+            'theme' => 'system',
+            'email_notifications' => '0',
+            'schedule_updates' => '0',
+            'compact_navigation' => '0',
+            'reduce_motion' => '0',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertTrue($this->emailsEnabled());
+
+        $this->flushSession();
+        $manager = $this->user('hr.manager@hrms.local');
+        $shift = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
+
+        $this->actingAs($manager)->post('/schedules', [
+            'employee_id' => $employee->employee->id,
+            'shift_id' => $shift->id,
+            'work_date' => '2027-10-06',
+        ])->assertSessionHasNoErrors();
+
+        Notification::assertSentTo($employee, PreferenceMailNotification::class);
+    }
+
+    public function test_only_a_system_administrator_can_pause_notification_emails(): void
+    {
+        $manager = $this->user('hr.manager@hrms.local');
+
+        $this->actingAs($manager)
+            ->patch(route('settings.notification-emails.update'), ['enabled' => '0'])
+            ->assertForbidden();
+
+        $this->assertTrue($this->emailsEnabled());
+
+        $this->flushSession();
+        $administrator = $this->user('admin@hrms.local');
+
+        $this->actingAs($administrator)
+            ->patch(route('settings.notification-emails.update'), ['enabled' => '0'])
+            ->assertRedirect();
+
+        $this->assertFalse($this->emailsEnabled());
+    }
+
+    public function test_leave_submission_and_review_send_status_emails(): void
     {
         $employee = $this->user('employee@hrms.local');
         $manager = $this->user('hr.manager@hrms.local');
         $vacation = LeaveType::query()->where('code', 'VAC')->firstOrFail();
-        $this->setPreferences($employee, email: true, leave: true);
 
         $this->actingAs($employee)->post('/leaves', [
             'leave_type_id' => $vacation->id,
@@ -90,11 +144,10 @@ class PreferenceNotificationsTest extends TestCase
         $this->assertContains('Leave request approved', $subjects);
     }
 
-    public function test_attendance_reminders_are_preference_aware_and_not_duplicated(): void
+    public function test_attendance_reminders_reach_everyone_once_and_stop_when_email_is_paused(): void
     {
         Carbon::setTestNow(Carbon::parse('2027-11-08 07:45:00', 'Asia/Manila'));
         $employee = $this->user('employee@hrms.local');
-        $this->setPreferences($employee, email: true, attendance: true);
 
         $this->artisan('attendance:remind check-in')->assertSuccessful();
         $this->artisan('attendance:remind check-in')->assertSuccessful();
@@ -107,7 +160,7 @@ class PreferenceNotificationsTest extends TestCase
         );
 
         Notification::fake();
-        $this->setPreferences($employee, email: true, attendance: false);
+        $this->disableNotificationEmails();
         Carbon::setTestNow(Carbon::parse('2027-11-09 07:45:00', 'Asia/Manila'));
 
         $this->artisan('attendance:remind check-in')->assertSuccessful();
@@ -120,24 +173,20 @@ class PreferenceNotificationsTest extends TestCase
         return User::query()->with('employee')->where('email', $email)->firstOrFail();
     }
 
-    private function setPreferences(
-        User $user,
-        bool $email,
-        bool $attendance = true,
-        bool $schedule = true,
-        bool $leave = true,
-    ): void {
-        $user->preference()->updateOrCreate([], [
-            'timezone' => 'Asia/Manila',
-            'theme' => 'system',
-            'email_notifications' => $email,
-            'attendance_reminders' => $attendance,
-            'schedule_updates' => $schedule,
-            'leave_updates' => $leave,
-            'compact_navigation' => false,
-            'reduce_motion' => false,
-        ]);
+    /**
+     * Read through a fresh service on a cold cache, the way another process
+     * would: the flag is cached for a minute, so a value this test itself
+     * warmed would answer for the database rather than about it.
+     */
+    private function emailsEnabled(): bool
+    {
+        Cache::flush();
 
-        $user->unsetRelation('preference');
+        return app(NotificationEmailSettings::class)->enabled();
+    }
+
+    private function disableNotificationEmails(): void
+    {
+        app(NotificationEmailSettings::class)->update($this->user('admin@hrms.local'), false);
     }
 }

@@ -36,10 +36,6 @@ class User extends Authenticatable
         return $this->hasOne(UserPreference::class)->withDefault([
             'timezone' => 'Asia/Manila',
             'theme' => 'system',
-            'email_notifications' => true,
-            'attendance_reminders' => true,
-            'schedule_updates' => true,
-            'leave_updates' => true,
             'compact_navigation' => false,
             'reduce_motion' => false,
         ]);

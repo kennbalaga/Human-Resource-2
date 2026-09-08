@@ -29,7 +29,7 @@ class AttendanceReminderService
         $users = User::query()
             ->where('is_active', true)
             ->whereHas('employee', fn ($query) => $query->where('employment_status', 'active'))
-            ->with(['employee', 'preference'])
+            ->with('employee')
             ->get();
         $records = AttendanceRecord::query()
             ->whereIn('employee_id', $users->pluck('employee.id')->filter())

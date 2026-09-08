@@ -6,6 +6,7 @@ use App\Http\Requests\Settings\UpdateAccountRequest;
 use App\Http\Requests\Settings\UpdateAttendanceCaptureSettingsRequest;
 use App\Http\Requests\Settings\UpdateAttendanceScheduleSettingsRequest;
 use App\Http\Requests\Settings\UpdateEmployeeNumberSettingsRequest;
+use App\Http\Requests\Settings\UpdateNotificationEmailSettingsRequest;
 use App\Http\Requests\Settings\UpdatePasswordRequest;
 use App\Http\Requests\Settings\UpdatePreferencesRequest;
 use App\Http\Requests\Settings\UpdateThemeRequest;
@@ -14,6 +15,7 @@ use App\Models\BiometricScanEvent;
 use App\Models\Employee;
 use App\Services\AttendanceCaptureSettings;
 use App\Services\Organization\EmployeeNumberSettings;
+use App\Services\Organization\NotificationEmailSettings;
 use App\Services\Organization\TwoFactorEnforcementSettings;
 use App\Services\Scheduling\AttendanceScheduleSettings;
 use App\Services\TwoFactorSecurityService;
@@ -32,6 +34,7 @@ class SettingsController extends Controller
         AttendanceCaptureSettings $attendanceCaptureSettings,
         TwoFactorEnforcementSettings $twoFactorEnforcementSettings,
         AttendanceScheduleSettings $attendanceScheduleSettings,
+        NotificationEmailSettings $notificationEmailSettings,
     ): View {
         $user = $request->user()->load(['roles', 'employee', 'preference']);
         $pendingEncryptionState = $twoFactor->normalizePendingEnrollment($user);
@@ -61,6 +64,9 @@ class SettingsController extends Controller
             'canManageTwoFactorEnforcement' => $user->hasRole('system-administrator'),
             'twoFactorEnforcementEnabled' => $twoFactorEnforcementSettings->enabled(),
             'twoFactorEnforcementUpdatedBy' => $twoFactorEnforcementSettings->updatedBy()?->name,
+            'canManageNotificationEmails' => $user->hasRole('system-administrator'),
+            'notificationEmailsEnabled' => $notificationEmailSettings->enabled(),
+            'notificationEmailsUpdatedBy' => $notificationEmailSettings->updatedBy()?->name,
             'canAccessSystemAdministration' => $user->roles->contains(
                 fn ($role) => in_array($role->slug, ['system-administrator', 'hr-manager'], true),
             ),
@@ -132,6 +138,18 @@ class SettingsController extends Controller
         return back()->with('success', $enabled
             ? 'Two-factor authentication enforcement re-enabled.'
             : 'Two-factor authentication enforcement disabled system-wide. Remember to re-enable it before going live.');
+    }
+
+    public function updateNotificationEmailSettings(
+        UpdateNotificationEmailSettingsRequest $request,
+        NotificationEmailSettings $notificationEmailSettings,
+    ): RedirectResponse {
+        $enabled = $request->boolean('enabled');
+        $notificationEmailSettings->update($request->user(), $enabled);
+
+        return back()->with('success', $enabled
+            ? 'Notification emails enabled for every employee.'
+            : 'Notification emails paused system-wide. Employees will only see notifications inside HRMS.');
     }
 
     public function updateAttendanceCaptureSettings(

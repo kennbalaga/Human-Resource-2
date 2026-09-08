@@ -73,10 +73,6 @@ class ProfileSettingsTest extends TestCase
         $this->actingAs($user)->patch('/settings/preferences', [
             'timezone' => 'UTC',
             'theme' => 'dark',
-            'email_notifications' => '1',
-            'attendance_reminders' => '0',
-            'schedule_updates' => '1',
-            'leave_updates' => '1',
             'compact_navigation' => '1',
             'reduce_motion' => '1',
         ])->assertRedirect()->assertSessionHas('success');
@@ -85,7 +81,6 @@ class ProfileSettingsTest extends TestCase
             'user_id' => $user->id,
             'timezone' => 'Asia/Manila',
             'theme' => 'dark',
-            'attendance_reminders' => false,
             'compact_navigation' => true,
             'reduce_motion' => true,
         ]);

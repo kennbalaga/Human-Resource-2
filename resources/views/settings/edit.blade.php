@@ -16,6 +16,7 @@
         // signed-in role actually has one of them.
         $hasSystemSettings = $canManageEmployeeNumberSettings
             || $canManageTwoFactorEnforcement
+            || $canManageNotificationEmails
             || $canManageAttendanceSettings
             || $canAccessSystemAdministration;
     @endphp
@@ -24,7 +25,7 @@
         <aside class="panel settings-section-nav" aria-label="Settings sections">
             <p class="settings-nav-group">Your account</p>
             <a href="#account"><x-icon name="users" /><span><strong>Account</strong><small>Email and identity</small></span></a>
-            <a href="#preferences"><x-icon name="moon" /><span><strong>Appearance</strong><small>Theme, notifications, display</small></span></a>
+            <a href="#preferences"><x-icon name="moon" /><span><strong>Appearance</strong><small>Theme, display, motion</small></span></a>
             <a href="#two-factor"><x-icon name="shield" /><span><strong>Two-factor security</strong><small>Authenticator and recovery</small></span></a>
             <a href="#security"><x-icon name="settings" /><span><strong>Password</strong><small>Password and API tokens</small></span></a>
             {{-- Mobile-only. app-lock.js sets data-available="true" on a touch
@@ -35,6 +36,7 @@
                 <p class="settings-nav-group">System administration</p>
                 @if($canManageEmployeeNumberSettings)<a href="#system-controls"><x-icon name="users" /><span><strong>Employee IDs</strong><small>Automatic ID generation</small></span></a>@endif
                 @if($canManageTwoFactorEnforcement)<a href="#two-factor-enforcement"><x-icon name="shield" /><span><strong>2FA enforcement</strong><small>Require 2FA by role</small></span></a>@endif
+                @if($canManageNotificationEmails)<a href="#notification-emails"><x-icon name="settings" /><span><strong>Notification emails</strong><small>Email delivery for all users</small></span></a>@endif
                 @if($canManageAttendanceSettings)<a href="#attendance-capture"><x-icon name="clock" /><span><strong>Attendance capture</strong><small>Biometric and manual modes</small></span></a>@endif
                 @if($canManageAttendanceSettings)<a href="#attendance-schedule"><x-icon name="calendar" /><span><strong>Schedule-aware attendance</strong><small>Roster-based lateness and overtime</small></span></a>@endif
                 @if($canManageAttendanceSettings && $biometricSimulatorAvailable)<a href="#biometric-simulator"><x-icon name="settings" /><span><strong>Scanner simulator</strong><small>Local testing tool</small></span></a>@endif
@@ -47,7 +49,7 @@
                 <div class="panel-header"><div><p class="panel-kicker">Account identity</p><h2>Email address</h2></div><span class="settings-account-id">{{ $user->employee?->employee_number ?? 'User #'.$user->id }}</span></div>
                 <form method="POST" action="{{ route('settings.account.update') }}" class="profile-settings-form settings-inline-form">
                     @csrf @method('PATCH')
-                    <label><span>Email address</span><input type="email" name="email" value="{{ old('email', $user->email) }}" autocomplete="email" required maxlength="255"><small>Used for account identification and future email notifications.</small></label>
+                    <label><span>Email address</span><input type="email" name="email" value="{{ old('email', $user->email) }}" autocomplete="email" required maxlength="255"><small>Used for account identification and for the notification emails HRMS sends you.</small></label>
                     <button class="btn btn-primary" type="submit">Update email</button>
                 </form>
             </article>
@@ -68,16 +70,16 @@
                     <input type="hidden" name="timezone" value="Asia/Manila">
                     <div class="settings-toggle-list">
                         @foreach([
-                            'email_notifications' => ['Email notifications', 'Master switch for attendance, schedule, and leave emails.'],
-                            'attendance_reminders' => ['Attendance reminders', 'Receive weekday check-in and check-out reminders.'],
-                            'schedule_updates' => ['Schedule updates', 'Receive an email when a schedule is assigned, changed, or removed.'],
-                            'leave_updates' => ['Leave updates', 'Receive submission, approval, rejection, and cancellation updates.'],
                             'compact_navigation' => ['Compact navigation', 'Reduce spacing in the sidebar navigation.'],
                             'reduce_motion' => ['Reduce motion', 'Minimize interface transitions and animations.'],
                         ] as $field => [$title, $description])
                             <label class="settings-toggle"><span><strong>{{ $title }}</strong><small>{{ $description }}</small></span><input type="checkbox" name="{{ $field }}" value="1" @checked(old($field, $preference->{$field}))><i aria-hidden="true"></i></label>
                         @endforeach
                     </div>
+                    {{-- Said here because the switches that used to sit in this
+                         list are gone. Without a word, their absence reads as a
+                         bug rather than a policy. --}}
+                    <div class="settings-security-note"><x-icon name="settings" /><p>Attendance, schedule, and leave notifications are emailed to you as well as shown here. Notification email is set for everyone by a System Administrator, so it is not switched off per account.</p></div>
                     <button class="btn btn-primary" type="submit"><x-icon name="check-circle" /> Save preferences</button>
                 </form>
             </article>
@@ -171,6 +173,24 @@
                         <small>
                             {{ $twoFactorEnforcementEnabled ? 'Currently enforced' : 'Currently disabled system-wide' }}
                             @if($twoFactorEnforcementUpdatedBy) · Last changed by {{ $twoFactorEnforcementUpdatedBy }}@endif
+                        </small>
+                        <button class="btn btn-primary" type="submit"><x-icon name="check-circle" /> Save system setting</button>
+                    </form>
+                </article>
+            @endif
+
+            @if($canManageNotificationEmails)
+                <article class="panel settings-panel" id="notification-emails">
+                    <div class="panel-header"><div><p class="panel-kicker">Notification policy</p><h2>Notification emails</h2></div><x-status-badge :status="$notificationEmailsEnabled ? 'active' : 'inactive'" /></div>
+                    <form method="POST" action="{{ route('settings.notification-emails.update') }}" class="profile-settings-form">
+                        @csrf @method('PATCH')
+                        <div class="settings-toggle-list">
+                            <label class="settings-toggle"><span><strong>Email every notification</strong><small>When enabled, every attendance, schedule, and leave notification is also sent to the employee's email address, so they are reached without opening HRMS.</small></span><input type="checkbox" name="enabled" value="1" @checked(old('enabled', $notificationEmailsEnabled))><i aria-hidden="true"></i></label>
+                        </div>
+                        <div class="settings-security-note"><x-icon name="settings" /><p>This is the only switch for notification email &mdash; employees cannot turn it off for themselves. Security messages, such as a two-factor reset, are always sent regardless of this setting.</p></div>
+                        <small>
+                            {{ $notificationEmailsEnabled ? 'Currently emailing every employee' : 'Currently paused system-wide' }}
+                            @if($notificationEmailsUpdatedBy) · Last changed by {{ $notificationEmailsUpdatedBy }}@endif
                         </small>
                         <button class="btn btn-primary" type="submit"><x-icon name="check-circle" /> Save system setting</button>
                     </form>

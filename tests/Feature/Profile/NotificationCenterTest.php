@@ -24,7 +24,6 @@ class NotificationCenterTest extends TestCase
     public function test_workflow_update_is_visible_in_dropdown_and_notification_center(): void
     {
         $user = $this->user('employee@hrms.local');
-        $this->enableInAppScheduleUpdates($user);
         $this->storeScheduleNotification($user);
 
         $this->actingAs($user)->get('/dashboard')
@@ -42,7 +41,6 @@ class NotificationCenterTest extends TestCase
     public function test_opening_a_notification_marks_it_read_and_uses_its_safe_action(): void
     {
         $user = $this->user('employee@hrms.local');
-        $this->enableInAppScheduleUpdates($user);
         $this->storeScheduleNotification($user);
         $notification = $user->unreadNotifications()->firstOrFail();
 
@@ -56,7 +54,6 @@ class NotificationCenterTest extends TestCase
     public function test_user_can_mark_all_own_notifications_as_read(): void
     {
         $user = $this->user('employee@hrms.local');
-        $this->enableInAppScheduleUpdates($user);
         $this->storeScheduleNotification($user);
         $this->storeScheduleNotification($user);
 
@@ -73,7 +70,6 @@ class NotificationCenterTest extends TestCase
     {
         $owner = $this->user('employee@hrms.local');
         $otherUser = $this->user('hr.manager@hrms.local');
-        $this->enableInAppScheduleUpdates($owner);
         $this->storeScheduleNotification($owner);
         $notification = $owner->unreadNotifications()->firstOrFail();
 
@@ -87,7 +83,6 @@ class NotificationCenterTest extends TestCase
     public function test_notification_center_filters_by_category(): void
     {
         $user = $this->user('employee@hrms.local');
-        $this->enableInAppScheduleUpdates($user);
         $this->storeScheduleNotification($user);
         $this->storeLeaveNotification($user);
         $this->storeAttendanceNotification($user);
@@ -133,7 +128,6 @@ class NotificationCenterTest extends TestCase
     public function test_notification_toggle_read_marks_read_then_unread_without_deleting(): void
     {
         $user = $this->user('employee@hrms.local');
-        $this->enableInAppScheduleUpdates($user);
         $this->storeScheduleNotification($user);
         $notification = $user->notifications()->firstOrFail();
 
@@ -158,7 +152,6 @@ class NotificationCenterTest extends TestCase
     {
         $owner = $this->user('employee@hrms.local');
         $otherUser = $this->user('hr.manager@hrms.local');
-        $this->enableInAppScheduleUpdates($owner);
         $this->storeScheduleNotification($owner);
         $notification = $owner->unreadNotifications()->firstOrFail();
 
@@ -232,21 +225,6 @@ class NotificationCenterTest extends TestCase
                 route('attendance.index'),
             ),
         );
-    }
-
-    private function enableInAppScheduleUpdates(User $user): void
-    {
-        $user->preference()->updateOrCreate([], [
-            'timezone' => 'Asia/Manila',
-            'theme' => 'system',
-            'email_notifications' => false,
-            'attendance_reminders' => true,
-            'schedule_updates' => true,
-            'leave_updates' => true,
-            'compact_navigation' => false,
-            'reduce_motion' => false,
-        ]);
-        $user->unsetRelation('preference');
     }
 
     private function user(string $email): User
