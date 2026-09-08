@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+use App\Notifications\SecurityAlertNotification;
 use App\Services\AttendanceReminderService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Notifications\DatabaseNotification;
@@ -36,3 +38,28 @@ Schedule::command('attendance:remind check-out')
     ->weekdays()
     ->at('17:00')
     ->timezone(config('attendance.default_location.timezone'));
+
+/*
+ * Proof that the mail path works, on demand.
+ *
+ * Notification mail is queued, so a broken SMTP configuration is invisible in
+ * the browser: the notification appears in the bell, the request succeeds, and
+ * the failure surfaces only in a worker's log — or nowhere at all, if no worker
+ * is running. This sends the real notification template through the real
+ * mailer, right now, on this process, so a refused Gmail login or a wrong app
+ * password comes back as an error in the terminal instead of silence.
+ */
+Artisan::command('notifications:test-email {email}', function (string $email) {
+    // Unsaved on purpose: this is a delivery test, so it addresses the mail
+    // without writing a notification record for a person who does not exist.
+    $recipient = new User(['name' => 'HRMS delivery test', 'email' => $email]);
+
+    $recipient->notifyNow(new SecurityAlertNotification(
+        'HRMS email delivery test',
+        'If you are reading this, HRMS can send notification email to this address.',
+        'Open HRMS',
+        url('/dashboard'),
+    ));
+
+    $this->info('Sent through the ['.config('mail.default')."] mailer to {$email}.");
+})->purpose('Send one real notification email to check the mail configuration');
