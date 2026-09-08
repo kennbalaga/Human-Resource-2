@@ -4,6 +4,7 @@ import './staff-dashboard';
 import './attendance';
 import './attendance-settings';
 import './schedule';
+import './schedule-preferences';
 import './workforce';
 import './organization';
 import './ai-scheduling';

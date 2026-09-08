@@ -54,7 +54,7 @@ const wireEmployeeDirectoryFilter = (form, { departmentSelector, positionSelecto
 document.addEventListener('DOMContentLoaded', () => {
     const assignmentModalElement = document.querySelector('#scheduleAssignmentModal');
     const assignmentForm = document.querySelector('#scheduleAssignmentForm');
-    const detailModalElement = document.querySelector('#scheduleDetailModal');
+    const dayRosterModalElement = document.querySelector('#dayRosterModal');
     let activeAssignment = null;
     let conflictRequest = 0;
 
@@ -163,56 +163,217 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const showDetails = (assignment) => {
-        if (!detailModalElement) return;
-        activeAssignment = assignment;
-        const values = {
-            '[data-detail-shift]': assignment.shift,
-            '[data-detail-employee]': assignment.employee,
-            '[data-detail-employee-number]': assignment.employee_number,
-            '[data-detail-date]': formatScheduleDate(assignment.date),
-            '[data-detail-time]': assignment.time,
-            '[data-detail-department]': assignment.department || 'Not assigned',
-            '[data-detail-recurring]': assignment.recurring ? 'Recurring series' : 'One-time assignment',
-            '[data-detail-notes]': assignment.notes || 'No notes',
-        };
+    // Clicking any shift opens the full published roster for that date rather
+    // than a popup about the one shift clicked — the whole day's coverage is
+    // what a manager actually needs to see, and each row still carries its own
+    // edit/remove so nothing from the old single-assignment popup is lost.
+    const dayRosterBoard = dayRosterModalElement?.querySelector('[data-day-roster-board]');
+    const dayRosterEmpty = dayRosterModalElement?.querySelector('[data-day-roster-empty]');
+    const dayRosterLoading = dayRosterModalElement?.querySelector('[data-day-roster-loading]');
+    const dayRosterDateLabel = dayRosterModalElement?.querySelector('[data-day-roster-date]');
+    const dayRosterSearchInput = dayRosterModalElement?.querySelector('[data-day-roster-search]');
+    const dayRosterShiftFilterMenu = dayRosterModalElement?.querySelector('[data-day-roster-shift-filter]');
+    const dayRosterExportButton = dayRosterModalElement?.querySelector('[data-day-roster-export]');
+    let dayRosterPayload = null;
+    let dayRosterShiftFilter = '';
 
-        Object.entries(values).forEach(([selector, value]) => {
-            detailModalElement.querySelector(selector).textContent = value;
-        });
+    const SHIFT_TYPE_LABELS = { day: 'Day Shift', evening: 'Evening Shift', night: 'Night Shift' };
 
-        // A day that has already started is view only: today's roster moves only
-        // through an approved shift swap, and a past one not at all.
-        const deleteForm = detailModalElement.querySelector('[data-delete-assignment-form]');
-        const editButton = detailModalElement.querySelector('[data-edit-assignment]');
-        const lockNotice = detailModalElement.querySelector('[data-detail-lock]');
-        const editable = assignment.editable !== false;
+    const buildDayRosterRow = (row) => {
+        const tr = document.createElement('tr');
+        tr.dataset.search = `${row.employee} ${row.position} ${row.employee_number}`.toLowerCase();
+        tr.dataset.shiftType = row.shift_type;
 
-        deleteForm.action = replaceRouteId(assignmentForm.dataset.updateUrlTemplate, assignment.id);
-        deleteForm.hidden = !editable;
-        if (editButton) editButton.hidden = !editable;
-        if (lockNotice) {
-            lockNotice.hidden = editable;
-            lockNotice.querySelector('[data-detail-lock-message]').textContent = assignment.date === detailModalElement.dataset.scheduleToday
-                ? 'Today’s schedule is view only. An approved shift swap is the only way to change it.'
-                : 'This date has already passed. Its schedule is kept as a record and can no longer be changed.';
+        const position = document.createElement('td');
+        position.textContent = row.position;
+        const staff = document.createElement('td');
+        staff.textContent = row.employee;
+        const employeeId = document.createElement('td');
+        employeeId.className = 'day-roster-id';
+        employeeId.textContent = row.employee_number;
+
+        const assignment = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = `day-roster-badge day-roster-badge-${row.shift_type}`;
+        badge.textContent = SHIFT_TYPE_LABELS[row.shift_type] ?? row.shift;
+        assignment.append(badge);
+
+        const time = document.createElement('td');
+        time.textContent = row.time;
+
+        const actions = document.createElement('td');
+        actions.className = 'row-action-group';
+        if (row.editable) {
+            const editButton = document.createElement('button');
+            editButton.type = 'button';
+            editButton.className = 'icon-button subtle';
+            editButton.setAttribute('aria-label', `Edit ${row.employee}’s shift`);
+            editButton.append(rosterIcon('edit'));
+            editButton.addEventListener('click', () => {
+                activeAssignment = row;
+                window.bootstrap.Modal.getOrCreateInstance(dayRosterModalElement).hide();
+                setAssignmentMode(row);
+                dayRosterModalElement.addEventListener('hidden.bs.modal', () => {
+                    window.bootstrap.Modal.getOrCreateInstance(assignmentModalElement).show();
+                }, { once: true });
+            });
+
+            const deleteForm = document.createElement('form');
+            deleteForm.method = 'POST';
+            deleteForm.action = replaceRouteId(dayRosterModalElement.dataset.updateUrlTemplate, row.id);
+            deleteForm.dataset.confirm = 'Remove this schedule assignment?';
+            const methodField = document.createElement('input');
+            methodField.type = 'hidden';
+            methodField.name = '_method';
+            methodField.value = 'DELETE';
+            const tokenField = document.createElement('input');
+            tokenField.type = 'hidden';
+            tokenField.name = '_token';
+            tokenField.value = csrfToken();
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'submit';
+            deleteButton.className = 'icon-button subtle text-danger';
+            deleteButton.setAttribute('aria-label', `Remove ${row.employee}’s shift`);
+            deleteButton.append(rosterIcon('trash'));
+            deleteForm.append(methodField, tokenField, deleteButton);
+
+            actions.append(editButton, deleteForm);
         }
 
-        window.bootstrap.Modal.getOrCreateInstance(detailModalElement).show();
+        tr.append(position, staff, employeeId, assignment, time, actions);
+
+        return tr;
+    };
+
+    const buildDayRosterDepartment = (department) => {
+        const section = document.createElement('section');
+        section.className = 'day-roster-department';
+
+        const header = document.createElement('button');
+        header.type = 'button';
+        header.className = 'day-roster-department-header';
+        header.setAttribute('aria-expanded', 'true');
+        const caret = rosterIcon('chevron-down');
+        caret.classList.add('day-roster-department-caret');
+        const name = document.createElement('strong');
+        name.textContent = department.name;
+        const count = document.createElement('span');
+        count.textContent = `${department.rows.length} Scheduled Staff`;
+        header.append(caret, name, count);
+
+        const tableWrap = document.createElement('div');
+        tableWrap.className = 'table-responsive';
+        const table = document.createElement('table');
+        table.className = 'dashboard-table day-roster-table';
+        table.innerHTML = '<thead><tr><th>Position / Role</th><th>Staff Member</th><th>Employee ID</th><th>Assignment</th><th>Shift Schedule</th><th></th></tr></thead>';
+        const tbody = document.createElement('tbody');
+        department.rows.forEach((row) => tbody.append(buildDayRosterRow(row)));
+        table.append(tbody);
+        tableWrap.append(table);
+
+        header.addEventListener('click', () => {
+            const expanded = header.getAttribute('aria-expanded') === 'true';
+            header.setAttribute('aria-expanded', String(!expanded));
+            tableWrap.hidden = expanded;
+        });
+
+        section.append(header, tableWrap);
+
+        return section;
+    };
+
+    const applyDayRosterFilters = () => {
+        if (!dayRosterPayload) return;
+        const search = (dayRosterSearchInput?.value ?? '').trim().toLowerCase();
+        let anyVisible = false;
+
+        dayRosterBoard.querySelectorAll('.day-roster-department').forEach((section) => {
+            let visibleInSection = 0;
+            section.querySelectorAll('tbody tr').forEach((row) => {
+                const matchesSearch = !search || row.dataset.search.includes(search);
+                const matchesShift = !dayRosterShiftFilter || row.dataset.shiftType === dayRosterShiftFilter;
+                const visible = matchesSearch && matchesShift;
+                row.hidden = !visible;
+                if (visible) visibleInSection += 1;
+            });
+            section.hidden = visibleInSection === 0;
+            if (visibleInSection > 0) anyVisible = true;
+        });
+
+        if (dayRosterEmpty) dayRosterEmpty.hidden = anyVisible;
+    };
+
+    const renderDayRoster = (payload) => {
+        dayRosterPayload = payload;
+        if (dayRosterDateLabel) dayRosterDateLabel.textContent = payload.formatted_date;
+        dayRosterBoard.replaceChildren();
+        payload.departments.forEach((department) => dayRosterBoard.append(buildDayRosterDepartment(department)));
+
+        const totalField = dayRosterModalElement.querySelector('[data-day-roster-total]');
+        const departmentsField = dayRosterModalElement.querySelector('[data-day-roster-departments]');
+        if (totalField) totalField.textContent = payload.summary.total_staff;
+        if (departmentsField) departmentsField.textContent = payload.summary.departments_active;
+        ['day', 'evening', 'night'].forEach((type) => {
+            const field = dayRosterModalElement.querySelector(`[data-day-roster-coverage-${type}]`);
+            if (field) field.textContent = payload.summary.coverage[type] ?? 0;
+        });
+
+        applyDayRosterFilters();
+    };
+
+    const showDayRoster = async (date) => {
+        if (!dayRosterModalElement) return;
+
+        window.bootstrap.Modal.getOrCreateInstance(dayRosterModalElement).show();
+        dayRosterBoard.replaceChildren();
+        if (dayRosterEmpty) dayRosterEmpty.hidden = true;
+        if (dayRosterLoading) dayRosterLoading.hidden = false;
+        if (dayRosterDateLabel) dayRosterDateLabel.textContent = formatScheduleDate(date);
+
+        try {
+            const response = await fetch(`${dayRosterModalElement.dataset.dayRosterUrl}?date=${encodeURIComponent(date)}`, {
+                headers: { Accept: 'application/json' },
+            });
+            if (!response.ok) throw new Error('Unable to load the published roster for this date.');
+            renderDayRoster(await response.json());
+        } catch (error) {
+            if (dayRosterEmpty) {
+                dayRosterEmpty.hidden = false;
+                dayRosterEmpty.querySelector('p').textContent = error.message;
+            }
+        } finally {
+            if (dayRosterLoading) dayRosterLoading.hidden = true;
+        }
     };
 
     document.querySelectorAll('[data-schedule-event]').forEach((eventButton) => {
-        eventButton.addEventListener('click', () => showDetails(JSON.parse(eventButton.dataset.scheduleEvent)));
+        eventButton.addEventListener('click', () => showDayRoster(JSON.parse(eventButton.dataset.scheduleEvent).date));
     });
 
-    detailModalElement?.querySelector('[data-edit-assignment]')?.addEventListener('click', () => {
-        if (!activeAssignment) return;
-        const detailModal = window.bootstrap.Modal.getOrCreateInstance(detailModalElement);
-        detailModal.hide();
-        setAssignmentMode(activeAssignment);
-        detailModalElement.addEventListener('hidden.bs.modal', () => {
-            window.bootstrap.Modal.getOrCreateInstance(assignmentModalElement).show();
-        }, { once: true });
+    dayRosterSearchInput?.addEventListener('input', applyDayRosterFilters);
+    dayRosterShiftFilterMenu?.querySelectorAll('[data-shift-filter]')?.forEach((button) => {
+        button.addEventListener('click', () => {
+            dayRosterShiftFilter = button.dataset.shiftFilter;
+            dayRosterShiftFilterMenu.querySelectorAll('[data-shift-filter]').forEach((other) => other.classList.toggle('active', other === button));
+            applyDayRosterFilters();
+        });
+    });
+
+    dayRosterExportButton?.addEventListener('click', () => {
+        if (!dayRosterPayload) return;
+        const lines = [['Department', 'Position/Role', 'Staff Member', 'Employee ID', 'Assignment', 'Shift Schedule'].join(',')];
+        dayRosterPayload.departments.forEach((department) => {
+            department.rows.forEach((row) => {
+                lines.push([department.name, row.position, row.employee, row.employee_number, SHIFT_TYPE_LABELS[row.shift_type] ?? row.shift, row.time]
+                    .map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','));
+            });
+        });
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `published-schedule-${dayRosterPayload.date}.csv`;
+        link.click();
+        URL.revokeObjectURL(link.href);
     });
 
     const recurringForm = document.querySelector('#recurringScheduleForm');
@@ -716,6 +877,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ICON_PATHS = {
         plus: 'M12 5v14M5 12h14',
         trash: 'M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v5M14 11v5',
+        edit: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z',
+        'chevron-down': 'm7 10 5 5 5-5',
     };
 
     /** The same stroked 24×24 shape the x-icon component draws, built in JS. */
