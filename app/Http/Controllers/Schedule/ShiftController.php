@@ -22,7 +22,6 @@ class ShiftController extends Controller
             'shifts' => Shift::query()->withCount('assignments')->orderBy('start_time')->get(),
             'canManageData' => $request->user()->canManageData(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-            'notifications' => collect(),
         ]);
     }
 

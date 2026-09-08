@@ -49,7 +49,6 @@ class SettingsController extends Controller
             'user' => $user,
             'preference' => $user->preference,
             'currentRole' => $user->roles->pluck('name')->join(', ') ?: 'Employee',
-            'notifications' => collect(),
             'twoFactorEnabled' => $user->hasEnabledTwoFactorAuthentication(),
             'twoFactorPending' => $user->two_factor_secret !== null && $user->two_factor_confirmed_at === null,
             'twoFactorRequired' => $twoFactor->isRequiredFor($user),

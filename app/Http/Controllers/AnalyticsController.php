@@ -34,7 +34,6 @@ class AnalyticsController extends Controller
             'departments' => $this->selectableDepartments($request),
             'canManageData' => $request->user()->canManageData(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-            'notifications' => collect(),
             'aiInsight' => Cache::get($this->insightCacheKey($request->user()->id, $request->validated())),
         ]);
     }

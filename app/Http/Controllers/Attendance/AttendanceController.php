@@ -51,7 +51,6 @@ class AttendanceController extends Controller
             'todayRecord' => $todayRecord,
             'recentRecords' => $recentRecords,
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-            'notifications' => collect(),
             'attendanceCaptureMode' => $captureState['mode'],
             'attendanceCaptureState' => $captureState['identifier'],
             'manualAttendanceAllowed' => $captureState['manual_allowed'],

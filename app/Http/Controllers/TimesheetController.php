@@ -39,7 +39,6 @@ class TimesheetController extends Controller
             'departments' => $this->selectableDepartments($request),
             'employees' => Employee::query()->visibleTo($request->user())->where('employment_status', 'active')->orderBy('last_name')->get(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-            'notifications' => collect(),
         ]);
     }
 

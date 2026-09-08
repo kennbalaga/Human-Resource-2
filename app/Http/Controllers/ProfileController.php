@@ -27,7 +27,6 @@ class ProfileController extends Controller
             // indistinguishable to them from a code that does not exist.
             'attendanceQrSvg' => $employee ? QrEncoder::svg($attendanceCodes->payloadFor($employee)) : null,
             'currentRole' => $user->roles->pluck('name')->join(', ') ?: 'Employee',
-            'notifications' => collect(),
         ]);
     }
 

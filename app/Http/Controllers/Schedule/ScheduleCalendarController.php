@@ -219,7 +219,6 @@ class ScheduleCalendarController extends Controller
                 'overnight' => $assignments->filter(fn ($assignment) => $assignment->shift->crosses_midnight)->count(),
             ],
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-            'notifications' => collect(),
         ]);
     }
 

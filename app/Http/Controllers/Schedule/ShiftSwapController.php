@@ -92,7 +92,6 @@ class ShiftSwapController extends Controller
                     ->get()
                 : collect(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-            'notifications' => collect(),
         ]);
     }
 

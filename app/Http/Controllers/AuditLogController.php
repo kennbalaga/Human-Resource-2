@@ -27,7 +27,6 @@ class AuditLogController extends Controller
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(),
             'filters' => $filters,
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-            'notifications' => collect(),
         ]);
     }
 

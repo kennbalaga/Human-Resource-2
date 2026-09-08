@@ -118,7 +118,6 @@ class LeaveController extends Controller
             'canManageLeaveTypes' => $this->canManageLeaveTypes($request) && $request->user()->canManageData(),
             'canRequestLeave' => $this->canRequestLeave($request),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-            'notifications' => collect(),
         ]);
     }
 

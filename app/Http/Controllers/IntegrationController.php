@@ -35,7 +35,6 @@ class IntegrationController extends Controller
             ],
             'canManageAiScheduling' => $request->user()->hasRole('system-administrator'),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-            'notifications' => collect(),
         ]);
     }
 

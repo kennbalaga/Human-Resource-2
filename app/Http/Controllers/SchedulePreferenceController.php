@@ -38,7 +38,6 @@ class SchedulePreferenceController extends Controller
             'shifts' => Shift::query()->where('is_active', true)->orderBy('start_time')->get(),
             'weekdays' => [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'],
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-            'notifications' => collect(),
         ]);
     }
 
