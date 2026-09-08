@@ -12,6 +12,7 @@ import './theme';
 import './session-timeout';
 import './global-search';
 import './confirm-actions';
+import './report-print';
 import './settings-nav';
 // Touch-only interaction polish and the on-device PIN/fingerprint app lock.
 // Both no-op immediately on a desktop pointer.

@@ -125,8 +125,9 @@ class SpreadsheetExportInjectionTest extends TestCase
 
         try {
             $sheet = IOFactory::load($file)->getActiveSheet();
-            // "Worked Minutes" is the 13th column.
-            $this->assertSame(480, $sheet->getCell([13, 2])->getValue());
+            // "Worked Minutes" is the 14th column -- it was the 13th until the
+            // export gained the "Approval" column the screen had always shown.
+            $this->assertSame(480, $sheet->getCell([14, 2])->getValue());
         } finally {
             @unlink($file);
         }

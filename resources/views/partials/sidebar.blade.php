@@ -124,7 +124,7 @@
             <div class="sidebar-nav-group" role="group" aria-labelledby="sidebar-group-insights">
                 <h2 class="sidebar-nav-heading" id="sidebar-group-insights">Insights</h2>
 
-                <x-sidebar-link :href="route('attendance.reports.index')" icon="report" :active="request()->routeIs('attendance.reports.*')">
+                <x-sidebar-link :href="route('reports.index')" icon="report" :active="request()->routeIs('reports.*') || request()->routeIs('attendance.reports.*')">
                     Reports
                 </x-sidebar-link>
                 <x-sidebar-link :href="route('analytics.index')" icon="analytics" :active="request()->routeIs('analytics.*')">

@@ -6,7 +6,6 @@ use App\Http\Controllers\Attendance\AttendanceApprovalController;
 use App\Http\Controllers\Attendance\AttendanceController;
 use App\Http\Controllers\Attendance\AttendanceOverrideController;
 use App\Http\Controllers\Attendance\AttendanceQrScanController;
-use App\Http\Controllers\Attendance\AttendanceReportController;
 use App\Http\Controllers\Attendance\BiometricSimulatorController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\DashboardController;
@@ -18,6 +17,7 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\Schedule\AiScheduleRecommendationController;
 use App\Http\Controllers\Schedule\RecurringScheduleController;
 use App\Http\Controllers\Schedule\RosterDraftController;
@@ -33,6 +33,7 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\TwoFactorSettingsController;
+use App\Reports\ReportRegistry;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
@@ -54,10 +55,21 @@ Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(func
     Route::post('/qr-scan', [AttendanceQrScanController::class, 'store'])->name('qr-scan.store');
     Route::post('/check-in', [AttendanceController::class, 'checkIn'])->name('check-in');
     Route::post('/check-out', [AttendanceController::class, 'checkOut'])->name('check-out');
-    Route::get('/reports', [AttendanceReportController::class, 'index'])->name('reports.index');
-    Route::get('/reports/export', [AttendanceReportController::class, 'export'])->name('reports.export');
-    Route::get('/reports/export-pdf', [AttendanceReportController::class, 'exportPdf'])->name('reports.export-pdf');
-    Route::get('/reports/export-excel', [AttendanceReportController::class, 'exportExcel'])->name('reports.export-excel');
+    /*
+     * The attendance report moved under /reports, but these four URLs are
+     * linked from the dashboard, both exception panels, the welcome tour and
+     * DailyExceptionsService, and they are bookmarked. They keep serving their
+     * screen directly rather than redirecting -- the report and, for the
+     * exports, the format the path used to encode are pinned as route defaults.
+     */
+    Route::get('/reports', [ReportController::class, 'show'])
+        ->defaults('report', 'attendance')->name('reports.index');
+    Route::get('/reports/export', [ReportController::class, 'export'])
+        ->defaults('report', 'attendance')->defaults('format', 'csv')->name('reports.export');
+    Route::get('/reports/export-pdf', [ReportController::class, 'export'])
+        ->defaults('report', 'attendance')->defaults('format', 'pdf')->name('reports.export-pdf');
+    Route::get('/reports/export-excel', [ReportController::class, 'export'])
+        ->defaults('report', 'attendance')->defaults('format', 'xlsx')->name('reports.export-excel');
     Route::post('/records/{attendanceRecord}/approve', [AttendanceApprovalController::class, 'approve'])->name('records.approve');
     Route::post('/records/{attendanceRecord}/reject', [AttendanceApprovalController::class, 'reject'])->name('records.reject');
     Route::get('/override', [AttendanceOverrideController::class, 'index'])->name('override.index');
@@ -155,6 +167,20 @@ Route::middleware('auth')->group(function () {
     Route::post('/leaves/{leaveRequest}/reject', [LeaveController::class, 'reject'])->name('leaves.reject');
     Route::post('/leaves/{leaveRequest}/cancel', [LeaveController::class, 'cancel'])->name('leaves.cancel');
     Route::get('/leave-attachments/{leaveAttachment}', [LeaveAttachmentController::class, 'download'])->name('leave-attachments.download');
+
+    /*
+     * /reports opens the attendance report rather than a landing page listing
+     * the three. The tab strip on the report itself already moves between them,
+     * so a hub in front of it was a click that only ever led to the same place.
+     */
+    Route::get('/reports', [ReportController::class, 'show'])
+        ->defaults('report', 'attendance')->name('reports.index');
+    Route::get('/reports/{report}', [ReportController::class, 'show'])
+        ->whereIn('report', ReportRegistry::keys())->name('reports.show');
+    Route::get('/reports/{report}/print', [ReportController::class, 'print'])
+        ->whereIn('report', ReportRegistry::keys())->name('reports.print');
+    Route::get('/reports/{report}/export', [ReportController::class, 'export'])
+        ->whereIn('report', ReportRegistry::keys())->name('reports.export');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
     Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');

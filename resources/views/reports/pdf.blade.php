@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Attendance Report</title>
+    <title>{{ $title }}</title>
     <style>
         @page { margin: 24px 28px; }
         body { margin: 0; color: #1b2923; font-family: 'DejaVu Sans', sans-serif; font-size: 10px; }
@@ -28,7 +28,7 @@
 </head>
 <body>
     <div class="report-header">
-        <h1>Attendance Report</h1>
+        <h1>{{ $title }}</h1>
         <p>Dr. Jose N. Rodriguez Memorial Hospital and Sanitarium</p>
     </div>
     <div class="report-meta">
@@ -36,40 +36,28 @@
         &ndash;
         {{ \Illuminate\Support\Carbon::parse($filters['date_to'])->format('M j, Y') }}
         &middot; Generated {{ now()->format('M j, Y g:i A') }}
-        &middot; {{ number_format($records->count()) }} {{ str('record')->plural($records->count()) }}
+        &middot; {{ number_format(count($rows)) }} {{ str('record')->plural(count($rows)) }}
     </div>
 
-    @if($records->isEmpty())
-        <p class="empty-note">No matching attendance records for the selected filters.</p>
+    @if (empty($rows))
+        <p class="empty-note">No matching records for the selected filters.</p>
     @else
         <table>
             <thead>
                 <tr>
-                    <th>Date</th>
-                    <th>Employee ID</th>
-                    <th>Employee</th>
-                    <th>Department</th>
-                    <th>Check In</th>
-                    <th>Check Out</th>
-                    <th>Status</th>
-                    <th class="text-right">Late (min)</th>
-                    <th class="text-right">Worked (min)</th>
-                    <th class="text-right">Overtime (min)</th>
+                    @foreach ($columns as $column)
+                        <th @class(['text-right' => $column->numeric])>{{ $column->label }}</th>
+                    @endforeach
                 </tr>
             </thead>
             <tbody>
-                @foreach($records as $record)
+                @foreach ($rows as $row)
                     <tr>
-                        <td>{{ $record->attendance_date->toDateString() }}</td>
-                        <td>{{ $record->employee->employee_number }}</td>
-                        <td>{{ $record->employee->full_name }}</td>
-                        <td>{{ $record->employee->department?->name ?? 'Unassigned' }}</td>
-                        <td>{{ $record->check_in_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('Y-m-d H:i:s') ?? '—' }}</td>
-                        <td>{{ $record->check_out_at?->timezone($record->officeLocation?->timezone ?? 'Asia/Manila')->format('Y-m-d H:i:s') ?? '—' }}</td>
-                        <td>{{ str($record->status)->headline() }}</td>
-                        <td class="text-right">{{ number_format($record->late_minutes) }}</td>
-                        <td class="text-right">{{ number_format($record->worked_minutes) }}</td>
-                        <td class="text-right">{{ number_format($record->overtime_minutes) }}</td>
+                        @foreach (array_values($row) as $index => $value)
+                            <td @class(['text-right' => $columns[$index]->numeric])>
+                                {{ $value === null || $value === '' ? '—' : $value }}
+                            </td>
+                        @endforeach
                     </tr>
                 @endforeach
             </tbody>

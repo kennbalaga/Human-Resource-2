@@ -80,6 +80,14 @@ class EnforceReadOnlyRole
      */
     public const DENIED_ROUTES = [
         'timesheets.export',
+        // Every report exports through one route now; the three legacy
+        // attendance paths still resolve and are still named, so they stay
+        // listed rather than relying on the new name alone.
+        'reports.export',
+        // The print view is a download with an extra step: the reader saves it
+        // from the browser's own dialog. Denying the file but serving the page
+        // it is made from would be a distinction without a difference.
+        'reports.print',
         'attendance.reports.export',
         'attendance.reports.export-pdf',
         'attendance.reports.export-excel',
