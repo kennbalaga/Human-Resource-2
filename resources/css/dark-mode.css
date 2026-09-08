@@ -322,6 +322,7 @@ html[data-theme-resolved='dark'] .attendance-note>span,
 html[data-theme-resolved='dark'] .attendance-policy span,
 html[data-theme-resolved='dark'] .attendance-policy strong,
 html[data-theme-resolved='dark'] .report-filters label>span,
+html[data-theme-resolved='dark'] .audit-filters label>span,
 html[data-theme-resolved='dark'] .workforce-filters label span,
 html[data-theme-resolved='dark'] .timesheet-entry-grid span,
 html[data-theme-resolved='dark'] .timesheet-entry-grid small,
@@ -398,7 +399,9 @@ html[data-theme-resolved='dark'] .btn-outline-primary.dashboard-action { color:#
 html[data-theme-resolved='dark'] .btn-outline-primary.dashboard-action:hover { color:#0a1a12; border-color:#93d3b2; background:#93d3b2; }
 html[data-theme-resolved='dark'] .attendance-note textarea,
 html[data-theme-resolved='dark'] .report-filters input,
-html[data-theme-resolved='dark'] .report-filters select { color:var(--hr-text); border-color:#33443c; background:#131b17; }
+html[data-theme-resolved='dark'] .report-filters select,
+html[data-theme-resolved='dark'] .audit-filters input,
+html[data-theme-resolved='dark'] .audit-filters select { color:var(--hr-text); border-color:#33443c; background:#131b17; }
 html[data-theme-resolved='dark'] .attendance-policy { border-color:var(--hr-border); background:#141d19; }
 html[data-theme-resolved='dark'] .attendance-policy strong { color:#cdd9d3; }
 
@@ -486,8 +489,6 @@ html[data-theme-resolved='dark'] .leave-calendar-event small,
 html[data-theme-resolved='dark'] .schedule-leave-event small,
 html[data-theme-resolved='dark'] .schedule-form-grid label small { color:#b3c2b9; }
 html[data-theme-resolved='dark'] .integration-action-panel { color:var(--hr-text); }
-html[data-theme-resolved='dark'] .audit-http-status.success { color:#9cd9b8; background:#20392d; }
-html[data-theme-resolved='dark'] .audit-http-status.failed { color:#efa8b1; background:#382229; }
 html[data-theme-resolved='dark'] .workforce-table code { color:#c1d0c7; }
 
 /* Analytics */
@@ -883,11 +884,9 @@ html[data-theme-resolved='dark'] .stat-detail {
 html[data-theme-resolved='dark'] .stat-detail .ui-icon { color:inherit; }
 
 html[data-theme-resolved='dark'] .status-success,
-html[data-theme-resolved='dark'] .shift-status.active,
-html[data-theme-resolved='dark'] .audit-http-status.success { color:#a6dcc0; background:var(--hr-tint-success); }
+html[data-theme-resolved='dark'] .shift-status.active { color:#a6dcc0; background:var(--hr-tint-success); }
 html[data-theme-resolved='dark'] .status-warning { color:#ecc98f; background:var(--hr-tint-warning); }
-html[data-theme-resolved='dark'] .status-danger,
-html[data-theme-resolved='dark'] .audit-http-status.failed { color:#efa8b1; background:var(--hr-tint-danger); }
+html[data-theme-resolved='dark'] .status-danger { color:#efa8b1; background:var(--hr-tint-danger); }
 html[data-theme-resolved='dark'] .status-primary { color:#a8c8ec; background:var(--hr-tint-info); }
 html[data-theme-resolved='dark'] .status-secondary,
 html[data-theme-resolved='dark'] .shift-status.inactive { color:#c8d4cd; background:var(--hr-tint-neutral); }
@@ -1195,3 +1194,42 @@ html[data-theme-resolved='dark'] .report-tab { color:var(--hr-muted); }
 html[data-theme-resolved='dark'] .report-tab:hover { color:var(--hr-text); }
 html[data-theme-resolved='dark'] .report-tab.is-active { border-bottom-color:#8fcfae; color:#8fcfae; }
 
+
+/*
+ * Audit Logs. The light sheet is built from tokens, so most of the page follows
+ * the dark theme without help. What needs saying here is the handful of places
+ * that pin a literal or lean on a light tint being light: the hairline surfaces
+ * behind chips, and the solid 5xx badge whose white text has to become dark
+ * text once its red plate is the brightest thing on a dark row.
+ */
+html[data-theme-resolved='dark'] .audit-integrity-chip { border-color:var(--hr-border); background:var(--hr-primary-soft); }
+html[data-theme-resolved='dark'] .audit-summary-card small,
+html[data-theme-resolved='dark'] .audit-timestamp span,
+html[data-theme-resolved='dark'] .audit-user small,
+html[data-theme-resolved='dark'] .audit-action small,
+html[data-theme-resolved='dark'] .audit-request code { color:#b3c2b9; }
+html[data-theme-resolved='dark'] .audit-summary-card,
+html[data-theme-resolved='dark'] .audit-active-filters li,
+html[data-theme-resolved='dark'] .audit-export-status { border-color:var(--hr-border); background:var(--hr-surface); }
+html[data-theme-resolved='dark'] .audit-active-filters { border-color:var(--hr-border); background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .audit-module-chip,
+html[data-theme-resolved='dark'] .audit-detail-note { color:#c1d0c7; background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .audit-status-success { color:#a6dcc0; background:var(--hr-tint-success); }
+html[data-theme-resolved='dark'] .audit-status-redirect { color:#a8c8ec; background:var(--hr-tint-info); }
+html[data-theme-resolved='dark'] .audit-status-blocked { color:#ecc98f; background:var(--hr-tint-warning); }
+html[data-theme-resolved='dark'] .audit-status-failed { color:#efa8b1; background:var(--hr-tint-danger); }
+html[data-theme-resolved='dark'] .audit-status-neutral { color:#c8d4cd; background:var(--hr-tint-neutral); }
+html[data-theme-resolved='dark'] .audit-status-error { color:#efa8b1; background:var(--hr-tint-danger); box-shadow:inset 0 0 0 1px #efa8b1; }
+html[data-theme-resolved='dark'] .audit-method { color:#c1d0c7; background:var(--hr-tint-neutral); }
+html[data-theme-resolved='dark'] .audit-method-post { color:#a8c8ec; background:var(--hr-tint-info); }
+html[data-theme-resolved='dark'] .audit-method-put,
+html[data-theme-resolved='dark'] .audit-method-patch { color:#ecc98f; background:var(--hr-tint-warning); }
+html[data-theme-resolved='dark'] .audit-method-delete { color:#efa8b1; background:var(--hr-tint-danger); }
+html[data-theme-resolved='dark'] .audit-row.needs-attention { background:var(--hr-tint-danger); }
+html[data-theme-resolved='dark'] .audit-export-status[data-state='done'] { color:#a6dcc0; background:var(--hr-tint-success); }
+html[data-theme-resolved='dark'] .audit-export-status[data-state='working'] { color:#ecc98f; background:var(--hr-tint-warning); }
+html[data-theme-resolved='dark'] .audit-export-status[data-state='stalled'] { color:#efa8b1; background:var(--hr-tint-danger); }
+html[data-theme-resolved='dark'] .audit-export-menu .dropdown-item small { color:#b3c2b9; }
+html[data-theme-resolved='dark'] .audit-clear-filters { border-color:var(--hr-border-strong); color:var(--hr-text); background:#202b25; }
+html[data-theme-resolved='dark'] .audit-clear-filters:hover,
+html[data-theme-resolved='dark'] .audit-clear-filters:focus-visible { border-color:#8fcfae; color:#8fcfae; background:var(--hr-primary-soft); }

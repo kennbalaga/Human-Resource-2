@@ -7,6 +7,7 @@ import './attendance-settings';
 import './schedule';
 import './schedule-preferences';
 import './workforce';
+import './audit-logs';
 import './organization';
 import './ai-scheduling';
 import './integration-settings';

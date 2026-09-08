@@ -1,0 +1,821 @@
+/*
+ * Audit Logs — Security & Compliance.
+ *
+ * This page is read by three people with different questions. An administrator
+ * asks "did anything get refused overnight?", an HR manager asks "who edited
+ * this nurse's record?", and an auditor asks "prove this trail cannot be
+ * altered". The layout answers them in that order down the page: assurance,
+ * then counters, then filters, then the trail itself.
+ *
+ * Every colour, size and radius below is a token from tokens.css. The one thing
+ * this sheet adds to the system is a five-rung outcome scale (success →
+ * redirect → blocked → failed → server error), because "success or failure" is
+ * too coarse for a trail where a 302 is the ordinary result of a successful
+ * form post and a 403 is a person being turned away.
+ */
+
+/* ---- Heading ---- */
+
+.audit-heading {
+    align-items: flex-end;
+    gap: var(--sp-7);
+}
+
+/* One action on the right, the way every other page heading in this app is
+   built. The read-only chip used to sit here too, which gave the column two
+   items of different widths to stack and made a static label look like a
+   disabled second button. */
+.audit-heading-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/*
+ * The integrity chip rides the eyebrow line instead. "Read-only, append-only"
+ * is a property of the record, not something you can press — it belongs with
+ * the section label, still level with the title where a reader lands first.
+ */
+.audit-heading-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-2);
+}
+
+.audit-heading-meta .eyebrow {
+    margin: 0;
+}
+
+/* The description is written to sit on two lines at this measure — wide enough
+   not to look pinched against the sidebar, short enough that the longest line
+   still clears the export button. `pretty` keeps the second line from ending on
+   a single orphaned word. */
+.audit-heading > div > p:last-child {
+    max-width: 68ch;
+    text-wrap: pretty;
+}
+
+.audit-integrity-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .25rem .6rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-pill);
+    color: var(--hr-primary);
+    background: var(--hr-primary-soft);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .01em;
+    white-space: nowrap;
+}
+
+.audit-integrity-chip .ui-icon {
+    width: .85rem;
+    height: .85rem;
+}
+
+.audit-export-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+
+/*
+ * Specificity matters here: .btn-primary.dashboard-action .ui-icon sizes every
+ * icon in this button at 17px, so a plain .audit-export-toggle .ui-icon rule
+ * loses and the chevron renders as large as the download glyph — two equal
+ * icons flanking the label instead of an icon plus a dropdown affordance.
+ */
+.btn-primary.dashboard-action .audit-export-caret {
+    width: 13px;
+    height: 13px;
+    margin-left: 1px;
+    opacity: .7;
+}
+
+.audit-export-menu {
+    min-width: 19rem;
+    padding: var(--sp-2);
+}
+
+.audit-export-menu .dropdown-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-3);
+    padding: .6rem .65rem;
+    border-radius: var(--r-md);
+    white-space: normal;
+}
+
+.audit-export-menu .dropdown-item .ui-icon {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: .1rem;
+    color: var(--hr-primary);
+    flex-shrink: 0;
+}
+
+.audit-export-menu .dropdown-item span {
+    display: grid;
+    gap: .1rem;
+}
+
+.audit-export-menu .dropdown-item strong {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+}
+
+.audit-export-menu .dropdown-item small {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    line-height: var(--lh-snug);
+}
+
+/* ---- Export progress ---- */
+
+.audit-export-status {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    margin: 0 0 var(--sp-4);
+    padding: .7rem .9rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    color: var(--hr-muted);
+    background: var(--hr-surface);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+
+/* The dot carries movement so the strip reads as "working" without a spinner
+   library; state is also in the wording, never in the colour alone. */
+.audit-export-status::before {
+    content: '';
+    width: .55rem;
+    height: .55rem;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.audit-export-status[data-state='working'] {
+    color: var(--hr-warning-text);
+    background: var(--hr-tint-warning);
+    border-color: var(--hr-warning);
+}
+
+.audit-export-status[data-state='working']::before {
+    animation: audit-export-pulse 1.1s ease-in-out infinite;
+}
+
+.audit-export-status[data-state='done'] {
+    color: var(--hr-success);
+    background: var(--hr-tint-success);
+    border-color: var(--hr-success);
+}
+
+.audit-export-status[data-state='stalled'] {
+    color: var(--hr-danger);
+    background: var(--hr-tint-danger);
+    border-color: var(--hr-danger);
+}
+
+@keyframes audit-export-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .audit-export-status[data-state='working']::before {
+        animation: none;
+    }
+}
+
+/* ---- Summary counters ---- */
+
+.audit-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--sp-4);
+    margin-bottom: var(--sp-5);
+}
+
+/*
+ * Not the shared .stat-card: that component is an anchor with a chevron, and
+ * these four numbers navigate nowhere — they describe the result set already on
+ * screen. Giving them the link affordance would promise a drill-down that does
+ * not exist.
+ */
+.audit-summary-card {
+    display: grid;
+    gap: .15rem;
+    min-width: 0;
+    padding: var(--sp-4);
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-surface);
+    box-shadow: var(--hr-shadow);
+}
+
+.audit-summary-icon {
+    display: grid;
+    width: 2.1rem;
+    height: 2.1rem;
+    margin-bottom: var(--sp-2);
+    border-radius: var(--r-md);
+    color: var(--hr-primary);
+    background: var(--hr-primary-soft);
+    place-items: center;
+}
+
+.audit-summary-icon .ui-icon {
+    width: 1.05rem;
+    height: 1.05rem;
+}
+
+.audit-summary-icon.danger {
+    color: var(--hr-danger);
+    background: var(--hr-tint-danger);
+}
+
+.audit-summary-icon.info {
+    color: var(--hr-info);
+    background: var(--hr-tint-info);
+}
+
+.audit-summary-label {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.audit-summary-value {
+    color: var(--hr-text);
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: var(--lh-tight);
+}
+
+.audit-summary-card small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    line-height: var(--lh-snug);
+}
+
+/* Only a non-zero refusal count earns the red treatment. A permanently red card
+   would be ignored within a week, which is the failure mode this page can least
+   afford. The count itself carries it — a stripe down the edge as well was one
+   marker too many on a card this small. */
+.audit-summary-card.is-attention {
+    border-color: var(--hr-danger);
+}
+
+.audit-summary-card.is-attention .audit-summary-value {
+    color: var(--hr-danger);
+}
+
+/* ---- Filters ---- */
+
+/*
+ * The arrangement is this page's own — a four-column grid with a panel header,
+ * because eight filters in the shared bar's single flex row wrap into uneven
+ * rows, and this is the only filter set in the app large enough for that to
+ * matter.
+ *
+ * The controls inside it are not this page's own. Fill, radius, border, label
+ * size and button treatment are all copied from .report-filters so the two
+ * screens read as one application; what differs between them is how many boxes
+ * there are and where they sit, not what a filter looks like.
+ */
+.audit-filter-panel {
+    margin-bottom: var(--sp-5);
+}
+
+.audit-filters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--sp-4);
+    padding: var(--sp-5);
+}
+
+.audit-filters label {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    min-width: 0;
+}
+
+.audit-filters label > span {
+    margin-left: 2px;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+}
+
+.audit-filters label > small {
+    margin-left: 2px;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    line-height: var(--lh-snug);
+}
+
+.audit-filters input,
+.audit-filters select {
+    width: 100%;
+    min-height: var(--tap-min);
+    padding: 7px 9px;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    outline: 0;
+    color: var(--hr-text);
+    background: var(--hr-surface-2);
+    font-size: var(--fs-2xs);
+}
+
+.audit-filters input:focus,
+.audit-filters select:focus {
+    border-color: rgba(23, 107, 67, .42);
+    box-shadow: 0 0 0 3px rgba(23, 107, 67, .08);
+}
+
+/*
+ * The buttons take the grid's next free cell rather than a row of their own —
+ * seven filters across four columns leave exactly one vacant, and a button
+ * stranded under an empty half-row reads as a layout that ran out of content.
+ *
+ * Lining them up needs the spacer above: the cell has to reproduce a filter's
+ * label row, or the buttons sit level with the labels instead of the inputs.
+ * The spacer holds a non-breaking space at the label's own font size, so it is
+ * exactly one label line tall and stays that way if the type scale moves — a
+ * hard-coded height would go stale the first time --fs-2xs changes.
+ */
+.audit-filter-actions {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    min-width: 0;
+}
+
+.audit-filter-actions > span {
+    font-size: var(--fs-2xs);
+}
+
+.audit-filter-actions > div {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+
+.audit-filter-actions .btn {
+    min-height: var(--tap-min);
+    padding: 0 16px;
+    border-radius: var(--r-md);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+}
+
+.audit-clear-filters {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-color: var(--hr-border-strong);
+    color: var(--hr-text);
+    background: var(--hr-surface);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.audit-clear-filters:hover,
+.audit-clear-filters:focus-visible {
+    border-color: var(--hr-primary);
+    color: var(--hr-primary);
+    background: var(--hr-primary-soft);
+}
+
+.panel-header > .audit-clear-filters {
+    min-height: 2.5rem;
+    padding: 0 14px;
+    border-radius: var(--r-md);
+}
+
+.audit-clear-filters .ui-icon {
+    width: .85rem;
+    height: .85rem;
+}
+
+/*
+ * Active filters as removable chips. Without them the only record of a narrowed
+ * search is the state of eight controls, which a reader has to re-read one by
+ * one to answer "why am I only seeing six rows?".
+ */
+.audit-active-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2) var(--sp-3);
+    padding: var(--sp-3) var(--sp-5) var(--sp-4);
+    border-top: 1px solid var(--hr-border);
+    background: var(--hr-surface-2);
+}
+
+.audit-active-filters-label {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.audit-active-filters ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.audit-active-filters li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: .3rem .35rem .3rem .6rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-pill);
+    background: var(--hr-surface);
+    font-size: var(--fs-2xs);
+}
+
+.audit-active-filters li > span {
+    color: var(--hr-muted);
+}
+
+.audit-active-filters li strong {
+    color: var(--hr-text);
+}
+
+.audit-active-filters li a {
+    display: grid;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    color: var(--hr-muted);
+    place-items: center;
+    transition: background-color .16s ease, color .16s ease;
+}
+
+.audit-active-filters li a:hover,
+.audit-active-filters li a:focus-visible {
+    color: var(--hr-danger);
+    background: var(--hr-tint-danger);
+}
+
+.audit-active-filters li .ui-icon {
+    width: .75rem;
+    height: .75rem;
+}
+
+/* ---- Table ---- */
+
+/*
+ * Eight columns of evidence. The IP address is deliberately not one of them: on
+ * a single-site deployment nearly every row carries the same handful of
+ * addresses, so the column spent width that Action, Module and Request — which
+ * differ on every row — actually needed. It is still recorded, still filterable,
+ * still in the detail dialog and still in the export, which is where anyone
+ * reading addresses in bulk should be working anyway.
+ */
+.audit-table {
+    min-width: 1000px;
+}
+
+.audit-table td {
+    padding-top: .7rem;
+    padding-bottom: .7rem;
+}
+
+.audit-row.needs-attention {
+    background: var(--hr-tint-danger);
+}
+
+/* The marker is a shadow, not a border: a border on a cell in a collapsed table
+   shifts every column to its right by three pixels on the flagged rows only. */
+.audit-row.needs-attention td:first-child {
+    box-shadow: inset 3px 0 0 var(--hr-danger);
+}
+
+.audit-timestamp,
+.audit-user,
+.audit-action {
+    display: grid;
+    gap: .05rem;
+    min-width: 0;
+}
+
+.audit-timestamp strong,
+.audit-user strong,
+.audit-action strong {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-weight: 660;
+    line-height: var(--lh-snug);
+}
+
+.audit-timestamp span,
+.audit-user small,
+.audit-action small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    line-height: var(--lh-snug);
+}
+
+.audit-user.is-anonymous strong {
+    color: var(--hr-muted);
+    font-style: italic;
+}
+
+.audit-activity-tag {
+    font-weight: 600;
+}
+
+.audit-module-chip {
+    display: inline-flex;
+    padding: .25rem .55rem;
+    border-radius: var(--r-pill);
+    color: var(--hr-muted);
+    background: var(--hr-surface-2);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.audit-request {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    min-width: 0;
+}
+
+/* The method is the part of a request line that changes its meaning — DELETE
+   and GET are not variations of one another — so it is the part that is
+   coloured, and the endpoint stays neutral beside it. */
+.audit-method {
+    display: inline-flex;
+    padding: .2rem .4rem;
+    border-radius: var(--r-xs);
+    color: var(--hr-muted);
+    background: var(--hr-tint-neutral);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.audit-method-post { color: var(--hr-info); background: var(--hr-tint-info); }
+.audit-method-put,
+.audit-method-patch { color: var(--hr-warning-text); background: var(--hr-tint-warning); }
+.audit-method-delete { color: var(--hr-danger); background: var(--hr-tint-danger); }
+
+/* Long endpoints (/schedules/2026-09/assignments/3184) must not be allowed to
+   set the column width for every other row. */
+.audit-request code {
+    display: block;
+    max-width: 15rem;
+    overflow: hidden;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.audit-subject {
+    color: var(--hr-text);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.audit-empty {
+    color: var(--hr-subtle);
+}
+
+/* ---- Outcome badges ---- */
+
+.audit-status {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .3rem .6rem;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.audit-status-dot {
+    width: .45rem;
+    height: .45rem;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+/* The word beside the code is what makes the badge readable without colour —
+   and what makes "419" mean something to somebody who does not know HTTP. */
+.audit-status-word {
+    font-weight: 600;
+    opacity: .85;
+}
+
+.audit-status-success { color: var(--hr-success); background: var(--hr-tint-success); }
+.audit-status-redirect { color: var(--hr-info); background: var(--hr-tint-info); }
+.audit-status-blocked { color: var(--hr-warning-text); background: var(--hr-tint-warning); }
+.audit-status-failed { color: var(--hr-danger); background: var(--hr-tint-danger); }
+.audit-status-neutral { color: var(--hr-muted); background: var(--hr-tint-neutral); }
+
+/*
+ * A 5xx is the system failing, not a person being refused, so it is the one
+ * outcome that gets a ring as well as a fill. A solid red plate would have read
+ * louder still, but white on --hr-danger lands at 4.3:1 and this badge's text
+ * is 12px — the emphasis is not worth a label the reader cannot resolve.
+ */
+.audit-status-error {
+    color: var(--hr-danger);
+    background: var(--hr-tint-danger);
+    box-shadow: inset 0 0 0 1px var(--hr-danger);
+}
+
+/* ---- Detail dialog ---- */
+
+.audit-detail-body {
+    display: grid;
+    gap: var(--sp-5);
+}
+
+.audit-detail-summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+    padding-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--hr-border);
+}
+
+.audit-detail-summary time {
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+
+.audit-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-4);
+    margin: 0;
+}
+
+.audit-detail-grid > div {
+    display: grid;
+    gap: .2rem;
+    min-width: 0;
+}
+
+.audit-detail-wide {
+    grid-column: 1 / -1;
+}
+
+.audit-detail-grid dt {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.audit-detail-grid dd {
+    display: grid;
+    gap: .1rem;
+    margin: 0;
+    min-width: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    line-height: var(--lh-snug);
+    overflow-wrap: anywhere;
+}
+
+.audit-detail-grid dd small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.audit-detail-grid code {
+    color: var(--hr-text);
+    font-size: var(--fs-xs);
+}
+
+.audit-detail-note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-2);
+    margin: 0;
+    padding: var(--sp-3);
+    border-radius: var(--r-md);
+    color: var(--hr-muted);
+    background: var(--hr-surface-2);
+    font-size: var(--fs-2xs);
+    line-height: var(--lh-base);
+}
+
+.audit-detail-note .ui-icon {
+    width: .95rem;
+    height: .95rem;
+    margin-top: .1rem;
+    color: var(--hr-primary);
+    flex-shrink: 0;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 1280px) {
+    .audit-filters {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1100px) {
+    .audit-summary-grid,
+    .audit-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .audit-heading {
+        align-items: stretch;
+    }
+
+    .audit-detail-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* The stacked card gives each cell its own row, so the endpoint no longer
+       competes for width and can be read in full. */
+    .audit-table .audit-request code {
+        max-width: none;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .audit-row.needs-attention td:first-child {
+        box-shadow: none;
+    }
+
+    .audit-row.needs-attention {
+        border-left: 3px solid var(--hr-danger);
+    }
+}
+
+@media (max-width: 600px) {
+    .audit-summary-grid,
+    .audit-filters {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Stacked to one column, the buttons are the last thing on the form and no
+       longer need a label row to align against. */
+    .audit-filter-actions > span {
+        display: none;
+    }
+
+    .audit-filter-actions > div {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .audit-filter-actions .btn,
+    .panel-header > .audit-clear-filters {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .audit-heading-actions,
+    .audit-heading-actions .dropdown,
+    .audit-export-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .audit-export-menu {
+        min-width: 0;
+        width: 100%;
+    }
+}

@@ -115,9 +115,6 @@
 .ai-system-control-actions .btn { display:inline-flex; align-items:center; flex:0 0 auto; gap:.4rem; }
 .ai-system-control-actions svg { width:1rem; }
 .ai-system-control-form .settings-security-note { margin:0; }
-.audit-http-status { display:inline-flex; padding:.25rem .5rem; border-radius:var(--r-pill); font-size: var(--fs-2xs); font-weight:800; }
-.audit-http-status.success { color:var(--hr-text); background:var(--hr-primary-soft); }
-.audit-http-status.failed { color:var(--hr-danger); background:var(--hr-tint-danger); }
 .workforce-table code { color:var(--hr-muted); font-size: var(--fs-2xs); }
 @media(max-width:1100px){.workforce-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.timesheet-entry-grid{grid-template-columns:repeat(4,minmax(7rem,1fr))}}
 @media(max-width:900px){.leave-balance-grid{grid-template-columns:1fr}.leave-calendar{min-width:48rem}.leave-calendar-panel{overflow-x:auto}.workforce-heading{align-items:stretch}.workforce-table-panel>.table-responsive{padding:0 .75rem .75rem}.integration-card-grid,.ai-system-control-layout{grid-template-columns:1fr}}
