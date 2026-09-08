@@ -305,6 +305,29 @@ class EmployeeArchiveTest extends TestCase
             ->assertJsonPath('title', SessionNotice::AccountClosed->title());
     }
 
+    public function test_somebody_still_clocked_in_cannot_be_archived_mid_shift(): void
+    {
+        $manager = $this->manager();
+        $employee = $this->settledEmployee('HR-OFFICER-2026-0001');
+
+        $employee->attendanceRecords()->create([
+            'attendance_date' => now()->toDateString(),
+            'check_in_at' => now()->subHours(2),
+            'check_in_method' => 'website',
+            'status' => 'present',
+            'approval_status' => 'approved',
+        ]);
+
+        // Archiving closes the account and turns away the badge, so archiving
+        // now would leave this day with no way to be closed by anyone.
+        $this->actingAs($manager)
+            ->post(route('employees.archive', $employee))
+            ->assertRedirect()
+            ->assertSessionHas('warning', fn (string $message) => str_contains($message, 'not been checked out'));
+
+        $this->assertNull($employee->fresh()->archived_at);
+    }
+
     public function test_an_archived_badge_no_longer_opens_the_attendance_day(): void
     {
         $manager = $this->manager();

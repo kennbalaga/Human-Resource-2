@@ -482,10 +482,17 @@ class EmployeeController extends Controller
      * What has to be settled before a record can be filed away.
      *
      * Archiving is the end of somebody's presence in the working day, so the
-     * three things that would outlive them are checked first: a shift still
-     * rostered in their name, a leave request nobody has decided, and the
-     * colleagues who report to them — who would otherwise keep pointing at a
-     * supervisor the directory no longer shows.
+     * things that would outlive them are checked first: a shift still rostered
+     * in their name, a leave request nobody has decided, the colleagues who
+     * report to them — who would otherwise keep pointing at a supervisor the
+     * directory no longer shows — and a day they are still standing in.
+     *
+     * That last one is the trap the others do not cover. Archiving closes the
+     * account and turns away the badge, so a person archived between their
+     * check-in and their check-out can no longer record the second half: not
+     * from the website they can no longer sign in to, and not at the scanner
+     * that now refuses their card. The day would stay open forever, and the
+     * timesheet built from it would be wrong with nobody to fix it.
      *
      * @return array<int, string>
      */
@@ -494,8 +501,13 @@ class EmployeeController extends Controller
         $futureShifts = $employee->scheduleAssignments()->whereDate('work_date', '>=', now()->toDateString())->count();
         $pendingLeave = $employee->leaveRequests()->where('status', 'pending')->count();
         $directReports = $employee->directReports()->notArchived()->count();
+        $stillClockedIn = $employee->attendanceRecords()
+            ->whereNotNull('check_in_at')
+            ->whereNull('check_out_at')
+            ->exists();
 
         return array_values(array_filter([
+            $stillClockedIn ? 'an attendance day that has not been checked out' : null,
             $futureShifts > 0 ? $futureShifts.' '.str('scheduled shift')->plural($futureShifts).' from today onwards' : null,
             $pendingLeave > 0 ? $pendingLeave.' pending leave '.str('request')->plural($pendingLeave) : null,
             $directReports > 0 ? $directReports.' direct '.str('report')->plural($directReports) : null,
