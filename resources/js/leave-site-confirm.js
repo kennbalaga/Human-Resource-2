@@ -7,21 +7,42 @@
 // before it happens; anything else falls through to the prompt.
 let isIntentionalNavigation = false;
 
+// The exemption cannot expire on the next tick. Chrome does not reach
+// beforeunload inside the click or submit that caused it — measured at
+// roughly 15ms later, before the request is even sent — so a timer set to
+// clear "immediately after" always won that race and the prompt appeared on
+// top of an ordinary Save. It is cleared by evidence instead: an event whose
+// default was prevented never navigated, so the exemption it claimed is
+// given back once the dispatch is over and defaultPrevented can be read.
+const markUntilCancelled = (event) => {
+    isIntentionalNavigation = true;
+
+    window.setTimeout(() => {
+        if (event.defaultPrevented) isIntentionalNavigation = false;
+    }, 0);
+};
+
+// A script-driven navigation has no event to watch, so this one path keeps a
+// timed release — long enough to outlast the browser's delay in reaching
+// beforeunload, short enough that a redirect that never happened does not
+// leave the page exempt from the prompt for the rest of the session.
 window.markIntentionalNavigation = () => {
     isIntentionalNavigation = true;
-    // A click that never actually navigates (a dropdown toggle, a
-    // prevented link, a failed submit) should not leave the page
-    // permanently exempt from the prompt.
-    window.setTimeout(() => { isIntentionalNavigation = false; }, 0);
+    window.setTimeout(() => { isIntentionalNavigation = false; }, 2000);
 };
 
 document.addEventListener('click', (event) => {
     const link = event.target.closest('a[href]');
-    if (!link || link.target || /^(mailto|tel):/.test(link.href)) return;
-    window.markIntentionalNavigation();
+    if (!link || link.target) return;
+    // An in-page jump — the settings section nav, a "back to top" — scrolls
+    // this document rather than unloading it, and mailto:/tel: hands off to
+    // another app. Neither is a navigation, so neither may spend the
+    // exemption the next real exit needs.
+    if (link.getAttribute('href').startsWith('#') || /^(mailto|tel):/.test(link.href)) return;
+    markUntilCancelled(event);
 }, true);
 
-document.addEventListener('submit', () => window.markIntentionalNavigation(), true);
+document.addEventListener('submit', (event) => markUntilCancelled(event), true);
 
 window.addEventListener('beforeunload', (event) => {
     if (isIntentionalNavigation) return;
