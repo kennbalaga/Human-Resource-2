@@ -1,4 +1,5 @@
 import * as bootstrap from 'bootstrap';
+import './leave-site-confirm';
 import './dashboard';
 import './staff-dashboard';
 import './attendance';
@@ -14,7 +15,6 @@ import './session-timeout';
 import './global-search';
 import './confirm-actions';
 import './settings-nav';
-import './unsaved-changes';
 // Touch-only interaction polish and the on-device PIN/fingerprint app lock.
 // Both no-op immediately on a desktop pointer.
 import './app-mobile';

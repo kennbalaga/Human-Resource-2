@@ -10,6 +10,7 @@ import { Modal } from 'bootstrap';
 // alive instead of replaying a stale frame of it.
 window.addEventListener('pageshow', (event) => {
     if (event.persisted) {
+        window.markIntentionalNavigation();
         window.location.reload();
     }
 });
@@ -324,9 +325,13 @@ if (element) {
     continueButton.addEventListener('click', keepAlive);
     signOutButton.addEventListener('click', async () => {
         await endSession();
+        window.markIntentionalNavigation();
         window.location.assign(element.dataset.loginUrl);
     });
-    loginButton.addEventListener('click', () => window.location.assign(loginUrl(expiredReason)));
+    loginButton.addEventListener('click', () => {
+        window.markIntentionalNavigation();
+        window.location.assign(loginUrl(expiredReason));
+    });
 
     window.setInterval(tick, 1000);
 }
