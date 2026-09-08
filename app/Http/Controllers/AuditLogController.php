@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\AuditActivity;
 use App\Support\SpreadsheetExport;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\View\View;
@@ -22,7 +23,7 @@ class AuditLogController extends Controller
         return view('audit-logs.index', [
             'logs' => $this->query($filters)->with(['user.roles'])->latest('created_at')->paginate(25)->withQueryString(),
             'summary' => $this->summary($filters),
-            'users' => User::query()->where('is_active', true)->orderBy('name')->get(),
+            'users' => $this->actorsInTrail(),
             'filters' => $filters,
             'activeFilters' => $this->describeActiveFilters($filters),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
@@ -78,6 +79,27 @@ class AuditLogController extends Controller
         }
 
         return $response;
+    }
+
+    /**
+     * The accounts the User filter can offer.
+     *
+     * Deliberately not "every active user". An audit trail's sharpest question
+     * is usually about somebody who has since left or been deactivated, and a
+     * list built from is_active leaves their events sitting in the table with
+     * no way to filter to them — the page cannot answer the question it exists
+     * for. Building the list from the trail itself fixes that, and shortens it
+     * at the same time: an account that has never triggered a write used to be
+     * offered and returned nothing.
+     *
+     * @return Collection<int, User>
+     */
+    private function actorsInTrail(): Collection
+    {
+        return User::query()
+            ->whereIn('id', AuditLog::query()->select('user_id')->whereNotNull('user_id')->distinct())
+            ->orderBy('name')
+            ->get();
     }
 
     /** @return array<string, mixed> */

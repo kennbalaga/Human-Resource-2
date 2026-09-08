@@ -116,3 +116,176 @@ document.addEventListener('click', (event) => {
         }
     }, EXPORT_POLL_MS);
 });
+/*
+ * Searchable user picker.
+ *
+ * The audit trail can name every account that ever wrote to it, which on a
+ * hospital roster is a scroll rather than a choice. A plain text search would
+ * have been the easy answer and the wrong one: the filter submits a user_id,
+ * and matching on a typed name would put both Luz Santos and Luz Cruz in the
+ * result on a page whose whole job is saying exactly whose actions these were.
+ *
+ * So the <select> stays. It stays in the form, it stays the element that
+ * submits, and it stays the single source of truth for what is chosen — this
+ * only draws a text field over it and writes the choice back. With scripting
+ * unavailable nothing runs, the select is never hidden, and the filter works as
+ * it always did.
+ */
+const buildUserPicker = (field) => {
+    const select = field.querySelector('[data-user-picker-select]');
+
+    if (!select) {
+        return;
+    }
+
+    const options = Array.from(select.options);
+    const listId = 'auditUserPickerList';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'audit-combobox-input';
+    input.autocomplete = 'off';
+    input.placeholder = 'Search staff, or leave blank for all';
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-controls', listId);
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-labelledby', 'auditUserLabel');
+
+    const list = document.createElement('ul');
+    list.className = 'audit-combobox-list';
+    list.id = listId;
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-labelledby', 'auditUserLabel');
+    list.hidden = true;
+
+    const shell = document.createElement('div');
+    shell.className = 'audit-combobox';
+    shell.append(input, list);
+    select.after(shell);
+    select.hidden = true;
+
+    // The select's own selected option is the label at rest, so a filtered page
+    // reloads showing the name it is filtered by rather than an empty box.
+    const labelFor = (option) => (option.value === '' ? '' : option.text.trim());
+    let active = -1;
+    let matches = [];
+
+    const close = () => {
+        list.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
+        active = -1;
+    };
+
+    const commit = (option) => {
+        select.value = option.value;
+        input.value = labelFor(option);
+        close();
+    };
+
+    const setActive = (next) => {
+        const items = Array.from(list.children).filter((item) => item.dataset.value !== undefined);
+
+        if (items.length === 0) {
+            return;
+        }
+
+        active = (next + items.length) % items.length;
+        items.forEach((item, index) => {
+            const isActive = index === active;
+            item.classList.toggle('is-active', isActive);
+            item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            if (isActive) {
+                input.setAttribute('aria-activedescendant', item.id);
+                item.scrollIntoView({ block: 'nearest' });
+            }
+        });
+    };
+
+    const render = (query) => {
+        const needle = query.trim().toLowerCase();
+        matches = options.filter((option) => option.value === '' || option.text.toLowerCase().includes(needle));
+        list.textContent = '';
+
+        if (matches.length === 0) {
+            const empty = document.createElement('li');
+            empty.className = 'audit-combobox-empty';
+            empty.textContent = 'No staff match that name.';
+            list.append(empty);
+        }
+
+        matches.forEach((option, index) => {
+            const item = document.createElement('li');
+            item.id = `${listId}-${index}`;
+            item.className = 'audit-combobox-option';
+            item.dataset.value = option.value;
+            item.setAttribute('role', 'option');
+            item.setAttribute('aria-selected', 'false');
+            item.textContent = option.text.trim();
+            if (option.value === select.value) {
+                item.classList.add('is-chosen');
+            }
+            // mousedown, not click: blur fires first on click and would close
+            // the list out from under the pointer.
+            item.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                commit(option);
+            });
+            list.append(item);
+        });
+
+        list.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+        setActive(0);
+    };
+
+    input.value = labelFor(select.selectedOptions[0] ?? options[0]);
+
+    input.addEventListener('input', () => render(input.value));
+    input.addEventListener('focus', () => render(''));
+
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (list.hidden) {
+                render(input.value);
+
+                return;
+            }
+            setActive(active + (event.key === 'ArrowDown' ? 1 : -1));
+
+            return;
+        }
+
+        if (event.key === 'Enter' && !list.hidden) {
+            // Only swallow Enter when it is choosing from an open list; on a
+            // closed field it should submit the filter form like any other input.
+            event.preventDefault();
+            if (matches[active]) {
+                commit(matches[active]);
+            }
+
+            return;
+        }
+
+        if (event.key === 'Escape' && !list.hidden) {
+            event.stopPropagation();
+            close();
+        }
+    });
+
+    // A half-typed name is not a choice. Anything left in the box that was not
+    // committed reverts to whatever the select still holds, so the visible text
+    // and the value that would submit can never disagree.
+    input.addEventListener('blur', () => {
+        window.setTimeout(() => {
+            input.value = labelFor(select.selectedOptions[0] ?? options[0]);
+            close();
+        }, 0);
+    });
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-user-picker]').forEach(buildUserPicker);
+});

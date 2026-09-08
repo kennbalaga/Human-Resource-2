@@ -122,12 +122,19 @@
         </div>
 
         <form method="GET" action="{{ route('audit-logs.index') }}" class="audit-filters" role="search" aria-label="Filter audit events">
-            <label>
-                <span>User</span>
-                <select name="user_id">
+            {{-- audit-logs.js upgrades this into a searchable combobox. The
+                 select stays in the form and stays the thing that submits, so
+                 the filter is still an exact user_id and the field still works
+                 with scripting unavailable. --}}
+            <label data-user-picker>
+                <span id="auditUserLabel">User</span>
+                <select name="user_id" data-user-picker-select>
                     <option value="">All users</option>
+                    {{-- Closed accounts stay selectable — they are often the
+                         point of the search — but are marked, so nobody reads a
+                         departed colleague as still working here. --}}
                     @foreach ($users as $user)
-                        <option value="{{ $user->id }}" @selected(($filters['user_id'] ?? '') == $user->id)>{{ $user->name }}</option>
+                        <option value="{{ $user->id }}" @selected(($filters['user_id'] ?? '') == $user->id)>{{ $user->name }}@unless ($user->is_active) · Inactive @endunless</option>
                     @endforeach
                 </select>
             </label>

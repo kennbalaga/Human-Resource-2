@@ -340,6 +340,81 @@
     font-size: var(--fs-2xs);
 }
 
+/*
+ * ---- Searchable user picker ----
+ *
+ * Drawn to be indistinguishable from the selects beside it: same fill, radius,
+ * border, height and focus ring, because it is the same kind of thing and a
+ * differently-shaped control in one cell of a filter row reads as a mistake.
+ * The list is the only part that is new, and it borrows the dropdown surface
+ * the rest of the app already uses.
+ */
+.audit-combobox {
+    position: relative;
+    min-width: 0;
+}
+
+.audit-combobox-input {
+    width: 100%;
+    min-height: var(--tap-min);
+    padding: 7px 9px;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    outline: 0;
+    color: var(--hr-text);
+    background: var(--hr-surface-2);
+    font-size: var(--fs-2xs);
+}
+
+.audit-combobox-input:focus {
+    border-color: rgba(23, 107, 67, .42);
+    box-shadow: 0 0 0 3px rgba(23, 107, 67, .08);
+}
+
+.audit-combobox-list {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    right: 0;
+    left: 0;
+    max-height: 15rem;
+    margin: 0;
+    padding: var(--sp-1);
+    overflow-y: auto;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+    box-shadow: var(--hr-shadow);
+    list-style: none;
+}
+
+.audit-combobox-option {
+    padding: .45rem .55rem;
+    border-radius: var(--r-sm);
+    color: var(--hr-text);
+    font-size: var(--fs-2xs);
+    cursor: pointer;
+}
+
+/* One highlight for the keyboard and the pointer both: an option under the
+   cursor and an option reached with the arrow keys are the same state, and
+   showing two at once would ask the reader which one Enter is going to take. */
+.audit-combobox-option.is-active,
+.audit-combobox-option:hover {
+    color: var(--hr-primary);
+    background: var(--hr-primary-soft);
+}
+
+.audit-combobox-option.is-chosen {
+    font-weight: 700;
+}
+
+.audit-combobox-empty {
+    padding: .45rem .55rem;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
 .audit-filters input:focus,
 .audit-filters select:focus {
     border-color: rgba(23, 107, 67, .42);

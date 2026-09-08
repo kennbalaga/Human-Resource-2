@@ -60,6 +60,32 @@ class AuditLogPageTest extends TestCase
         $this->assertSame(['leaves/4/approve'], $this->pathsFor($reviewer, ['activity' => 'create']));
     }
 
+    public function test_the_user_filter_offers_whoever_appears_in_the_trail(): void
+    {
+        $this->seed();
+        $reviewer = $this->reviewer();
+
+        // Somebody who has left: their events are in the table, so the filter
+        // has to be able to reach them.
+        $departed = User::query()->where('email', 'nursing.head@hrms.local')->firstOrFail();
+        $departed->forceFill(['is_active' => false])->save();
+        $this->record($departed, ['action' => 'employees.update', 'method' => 'PUT', 'path' => 'employees/75', 'response_status' => 302]);
+
+        // Somebody still employed who has never triggered a write: offering them
+        // is a filter that can only ever return nothing.
+        $silent = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+
+        $offered = $this->actingAs($reviewer)->get('/audit-logs')->assertOk()->viewData('users');
+
+        $this->assertTrue($offered->contains('id', $departed->id));
+        $this->assertFalse($offered->contains('id', $silent->id));
+
+        $this->assertSame(
+            ['employees/75'],
+            $this->pathsFor($reviewer, ['user_id' => (string) $departed->id]),
+        );
+    }
+
     public function test_active_filters_are_listed_with_a_link_that_drops_each_one(): void
     {
         $this->seed();
