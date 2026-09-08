@@ -4,18 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\Security\SecurityAlertService;
 use App\Services\TwoFactorSecurityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication;
-use Throwable;
 
 class AdminTwoFactorController extends Controller
 {
+    public function __construct(private readonly SecurityAlertService $alerts) {}
+
     public function reset(
         Request $request,
         Employee $employee,
@@ -48,25 +49,14 @@ class AdminTwoFactorController extends Controller
 
     private function notifyTarget(User $user): void
     {
-        try {
-            $user->notifications()->create([
-                'id' => (string) Str::uuid(),
-                'type' => self::class,
-                'data' => [
-                    'title' => 'Two-factor authentication reset',
-                    'message' => 'A System Administrator reset your two-factor authentication after identity verification. Enroll again from Account Settings.',
-                    'action_text' => 'Open security settings',
-                    'action_url' => route('settings.edit').'#two-factor',
-                    'tone' => 'warning',
-                    'icon' => 'shield',
-                    'category' => 'security',
-                ],
-            ]);
-        } catch (Throwable $exception) {
-            Log::warning('The 2FA reset notification could not be stored.', [
-                'user_id' => $user->id,
-                'error' => $exception->getMessage(),
-            ]);
-        }
+        $this->alerts->alertUser(
+            $user,
+            'Two-factor authentication reset',
+            'A System Administrator reset your two-factor authentication after identity verification. Enroll again from Account Settings.',
+            'Open security settings',
+            route('settings.edit').'#two-factor',
+            'warning',
+            'two_factor.admin_reset',
+        );
     }
 }
