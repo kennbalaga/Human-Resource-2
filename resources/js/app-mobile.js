@@ -8,6 +8,8 @@
  * like the phone they are running on.
  */
 
+import { scrollBehavior } from './motion';
+
 const isTouchLayout = () =>
     window.matchMedia('(pointer: coarse)').matches && window.matchMedia('(max-width: 1100px)').matches;
 
@@ -291,7 +293,7 @@ const keepFocusedFieldVisible = () => {
             const visibleHeight = window.visualViewport?.height ?? window.innerHeight;
 
             if (box.bottom > visibleHeight - 16 || box.top < 0) {
-                field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                field.scrollIntoView({ block: 'center', behavior: scrollBehavior() });
             }
         }, 320);
     });

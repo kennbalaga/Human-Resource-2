@@ -86,4 +86,19 @@ systemTheme.addEventListener('change', () => {
     }
 });
 
+/*
+ * "Reduce motion" is the one preference on the settings page whose effect is
+ * invisible in the moment it is chosen: the switch slides, the page stays
+ * exactly as it was, and whether anything happened is only knowable after a
+ * save and a reload. So it previews like the theme radios above it — the body
+ * class the layout renders on page load is toggled here the moment the switch
+ * moves, and every transition and animation in the app answers to it at once.
+ * Saving the form is still what makes it stick.
+ */
+document.querySelectorAll('input[name="reduce_motion"]').forEach((input) => {
+    input.addEventListener('change', () => {
+        document.body.classList.toggle('reduce-motion', input.checked);
+    });
+});
+
 updateThemeOptions();

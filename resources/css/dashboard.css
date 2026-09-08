@@ -3206,13 +3206,50 @@ input {
     }
 }
 
+/*
+ * ---- Reduce motion ----
+ * Two switches feed one rule: the device's own accessibility setting, and the
+ * per-user preference that renders `reduce-motion` onto <body>. Anything that
+ * moves anywhere in the app is covered from here, so a new animation cannot
+ * quietly escape the preference by being written in a stylesheet that forgot
+ * about it.
+ *
+ * Durations collapse to 0.01ms rather than 0 on purpose: Bootstrap's modals,
+ * dropdowns and collapses wait for `transitionend` before finishing their own
+ * bookkeeping, and a duration of exactly 0 never fires that event — which
+ * leaves a modal open with a backdrop that no longer dismisses it. The
+ * negative animation delay starts every animation already finished, so a
+ * staggered entrance shows its end state instead of holding an element
+ * invisible for its stagger; a delay is a wait the user watches, and
+ * shortening only the duration leaves that wait behind.
+ *
+ * `scroll-behavior: auto` covers the CSS smooth scroll. A scroll asked for
+ * from JavaScript carries its own `behavior` option that overrides the
+ * stylesheet, so those call sites read the preference through
+ * resources/js/motion.js instead.
+ */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
-        scroll-behavior: auto !important;
+        animation-delay: -1ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-delay: 0s !important;
         transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
+}
+
+body.reduce-motion *,
+body.reduce-motion *::before,
+body.reduce-motion *::after {
+    animation-delay: -1ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
 }
 
 /*

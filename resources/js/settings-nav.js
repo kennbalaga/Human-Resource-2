@@ -13,6 +13,8 @@
  * the highlight.
  */
 
+import { scrollBehavior } from './motion';
+
 /** The offset an anchor jump stops short of, which is also the line a section becomes "current" at. */
 function activationLine(panel) {
     const parsed = Number.parseFloat(getComputedStyle(panel).scrollMarginTop);
@@ -58,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rail = nav.getBoundingClientRect();
 
             if (chip.left < rail.left || chip.right > rail.right) {
-                nav.scrollBy({ left: chip.left - rail.left - 12, behavior: 'smooth' });
+                nav.scrollBy({ left: chip.left - rail.left - 12, behavior: scrollBehavior() });
             }
         }
     };

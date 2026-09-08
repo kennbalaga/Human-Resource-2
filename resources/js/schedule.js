@@ -1,3 +1,5 @@
+import { scrollBehavior } from './motion';
+
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
 const replaceRouteId = (template, id) => template.replace('__ID__', String(id));
@@ -1244,7 +1246,7 @@ document.addEventListener('DOMContentLoaded', () => {
             : `.roster-shift[data-date="${date}"]`;
         const target = rosterDays?.querySelector(selector);
         if (!target) return;
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
         target.classList.add('roster-shift-flash');
         window.setTimeout(() => target.classList.remove('roster-shift-flash'), 1600);
     };
