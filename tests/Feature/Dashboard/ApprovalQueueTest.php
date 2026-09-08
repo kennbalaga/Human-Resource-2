@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Dashboard;
 
+use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Models\OfficeLocation;
 use App\Models\Timesheet;
 use App\Models\User;
 use App\Services\ApprovalQueueService;
@@ -23,10 +25,13 @@ class ApprovalQueueTest extends TestCase
 
         $this->seed();
 
-        // The seeders ship demo leave and demo timesheets. A queue test has to own
-        // every row it counts, so the slate is wiped and rebuilt per test.
+        // The seeders ship demo leave, timesheets and attendance. A queue test
+        // has to own every row it counts, so the slate is wiped and rebuilt per
+        // test. Timesheets go first: their entries cascade, and each entry holds
+        // a restricting reference to the attendance record behind it.
         LeaveRequest::query()->delete();
         Timesheet::query()->delete();
+        AttendanceRecord::query()->delete();
     }
 
     public function test_dashboard_renders_the_approvals_panel(): void
@@ -163,6 +168,105 @@ class ApprovalQueueTest extends TestCase
         $this->submittedTimesheet($employee, status: 'draft');
 
         $this->assertSame(0, app(ApprovalQueueService::class)->forUser($this->manager())['total']);
+    }
+
+    public function test_attendance_awaiting_approval_reaches_the_queue(): void
+    {
+        $employee = $this->employeeOutsideNursing();
+        $this->pendingAttendance($employee, daysAgo: 4);
+
+        $queue = app(ApprovalQueueService::class)->forUser($this->manager());
+        $group = $this->group($queue, 'attendance');
+
+        // Attendance was counted nowhere outside the report's own tile, so a
+        // record could wait indefinitely with nothing on the dashboard saying so.
+        $this->assertSame(1, $group['count']);
+        $this->assertSame(1, $queue['total']);
+        $this->assertSame($employee->full_name, $group['items'][0]['name']);
+        $this->assertSame('4 days', $group['items'][0]['waiting_label']);
+        $this->assertTrue($group['items'][0]['stale']);
+    }
+
+    public function test_a_record_still_on_shift_is_not_counted(): void
+    {
+        // No check-out means the report offers no way to answer it, so a count
+        // here would be a number the destination cannot clear.
+        $this->pendingAttendance($this->employeeOutsideNursing(), checkedOut: false);
+
+        $this->assertSame(0, app(ApprovalQueueService::class)->forUser($this->manager())['total']);
+    }
+
+    public function test_an_already_approved_record_leaves_the_queue(): void
+    {
+        $this->pendingAttendance($this->employeeOutsideNursing(), approvalStatus: 'approved');
+
+        $this->assertSame(0, app(ApprovalQueueService::class)->forUser($this->manager())['total']);
+    }
+
+    public function test_the_attendance_link_reaches_back_to_the_oldest_pending_day(): void
+    {
+        $record = $this->pendingAttendance($this->employeeOutsideNursing(), daysAgo: 40);
+
+        $url = urldecode($this->group(app(ApprovalQueueService::class)->forUser($this->manager()), 'attendance')['url']);
+
+        // The report defaults to month-to-date, so a bare link would promise a
+        // count and then open a screen that does not contain it.
+        $this->assertStringContainsString('date_from='.$record->attendance_date->toDateString(), $url);
+        $this->assertStringContainsString('approval_status=pending', $url);
+    }
+
+    public function test_the_attendance_link_never_exceeds_the_reports_range_cap(): void
+    {
+        // Older than the report will accept in one range. The link has to open
+        // the widest window allowed rather than a validation error.
+        $this->pendingAttendance($this->employeeOutsideNursing(), daysAgo: (int) config('reports.max_days') + 30);
+
+        $url = $this->group(app(ApprovalQueueService::class)->forUser($this->manager()), 'attendance')['url'];
+
+        $this->actingAs($this->manager())->get($url)->assertOk()->assertSessionHasNoErrors();
+    }
+
+    public function test_a_department_head_only_sees_their_own_units_attendance(): void
+    {
+        $head = $this->nursingHead();
+        $inside = Employee::query()
+            ->where('department_id', $head->employee->department_id)
+            ->whereKeyNot($head->employee->id)
+            ->firstOrFail();
+
+        $this->pendingAttendance($inside);
+        $this->pendingAttendance($this->employeeOutsideNursing());
+
+        $this->assertSame(1, app(ApprovalQueueService::class)->forUser($head)['total']);
+        $this->assertSame(2, app(ApprovalQueueService::class)->forUser($this->manager())['total']);
+    }
+
+    private function pendingAttendance(
+        Employee $employee,
+        int $daysAgo = 0,
+        bool $checkedOut = true,
+        string $approvalStatus = 'pending',
+    ): AttendanceRecord {
+        // Built with now() rather than a zoned Carbon, because that is how
+        // AttendanceService writes a real check-out: a zoned instance is stored
+        // formatted in its own timezone and read back in the app's, which lands
+        // the record eight hours from where the test put it. Placed exactly
+        // $daysAgo before now, so the waiting label is a whole number of days
+        // whatever time the suite runs.
+        $checkOut = now()->subDays($daysAgo);
+
+        return AttendanceRecord::query()->forceCreate([
+            'employee_id' => $employee->id,
+            'office_location_id' => OfficeLocation::query()->value('id'),
+            'attendance_date' => $checkOut->toDateString(),
+            'check_in_at' => $checkOut->copy()->subHours(9),
+            'check_out_at' => $checkedOut ? $checkOut : null,
+            'check_in_method' => 'manual',
+            'check_out_method' => $checkedOut ? 'manual' : null,
+            'status' => 'present',
+            'approval_status' => $approvalStatus,
+            'worked_minutes' => 480,
+        ]);
     }
 
     /** @param array<string, mixed> $queue */

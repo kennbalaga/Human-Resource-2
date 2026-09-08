@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AttendanceRecord;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
@@ -21,11 +22,19 @@ use Illuminate\Support\Facades\DB;
  * opening the overview was told the size of the workforce and nothing about the
  * work only they can clear.
  *
- * Two groups, because they are answered in two different modules and a manager
- * clears them in separate sittings:
+ * Three groups, because they are answered in three different modules and a
+ * manager clears them in separate sittings:
  *
- *   Leave requests - pending, awaiting approve/reject in Leave Management.
- *   Timesheets     - submitted, awaiting review in Timesheets.
+ *   Leave requests     - pending, awaiting approve/reject in Leave Management.
+ *   Timesheets         - submitted, awaiting review in Timesheets.
+ *   Attendance records - checked out and pending, awaiting approve/reject on
+ *                        the attendance report.
+ *
+ * Attendance was missing from this panel for as long as the panel existed, and
+ * it was the one of the three with nowhere else to announce itself: leave and
+ * timesheets each have a module a manager visits anyway, while a pending
+ * attendance day appeared only as a number on a report they had to think to
+ * open. It could wait indefinitely without anything saying so.
  *
  * Each group carries a count, the few oldest rows by name, and how long the front
  * of the queue has been waiting. Oldest-first is the whole point: a queue sorted
@@ -78,13 +87,20 @@ class ApprovalQueueService
             ->selectSub($this->pendingLeave($user)->selectRaw('min(created_at)'), 'leave_oldest')
             ->selectSub($this->submittedTimesheets($user)->selectRaw('count(*)'), 'timesheet_count')
             ->selectSub($this->submittedTimesheets($user)->selectRaw('min(coalesce(submitted_at, updated_at))'), 'timesheet_oldest')
+            ->selectSub($this->pendingAttendance($user)->selectRaw('count(*)'), 'attendance_count')
+            // Waiting since the check-out, not the check-in: the record only
+            // became answerable when the shift ended.
+            ->selectSub($this->pendingAttendance($user)->selectRaw('min(check_out_at)'), 'attendance_oldest')
+            ->selectSub($this->pendingAttendance($user)->selectRaw('min(attendance_date)'), 'attendance_earliest_date')
             ->first();
 
         $leaveCount = (int) $row['leave_count'];
         $timesheetCount = (int) $row['timesheet_count'];
+        $attendanceCount = (int) $row['attendance_count'];
 
         $leaveOldest = $this->timestamp($row['leave_oldest']);
         $timesheetOldest = $this->timestamp($row['timesheet_oldest']);
+        $attendanceOldest = $this->timestamp($row['attendance_oldest']);
 
         $groups = [
             [
@@ -111,12 +127,23 @@ class ApprovalQueueService
                 'waiting_label' => $timesheetOldest ? $this->waitingLabel($timesheetOldest, $now) : null,
                 'items' => $timesheetCount > 0 ? $this->timesheetItems($user, $now) : [],
             ],
+            [
+                'key' => 'attendance',
+                'label' => 'Attendance records',
+                'icon' => 'clock',
+                'count' => $attendanceCount,
+                'url' => $this->attendanceQueueUrl($this->timestamp($row['attendance_earliest_date']), $now),
+                'action_label' => 'Open attendance report',
+                'empty_label' => 'No attendance records are awaiting approval.',
+                'waiting_label' => $attendanceOldest ? $this->waitingLabel($attendanceOldest, $now) : null,
+                'items' => $attendanceCount > 0 ? $this->attendanceItems($user, $now) : [],
+            ],
         ];
 
-        $oldest = collect([$leaveOldest, $timesheetOldest])->filter()->min();
+        $oldest = collect([$leaveOldest, $timesheetOldest, $attendanceOldest])->filter()->min();
 
         return [
-            'total' => $leaveCount + $timesheetCount,
+            'total' => $leaveCount + $timesheetCount + $attendanceCount,
             'oldest_days' => $oldest ? $this->daysWaiting($oldest, $now) : null,
             'oldest_label' => $oldest ? $this->waitingLabel($oldest, $now) : null,
             'groups' => $groups,
@@ -212,6 +239,75 @@ class ApprovalQueueService
             ->all();
     }
 
+    /**
+     * The oldest attendance records still awaiting a decision, named.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function attendanceItems(?User $user, Carbon $now): array
+    {
+        $records = $this->pendingAttendance($user)
+            ->with('employee')
+            ->oldest('check_out_at')
+            ->oldest('id')
+            ->limit(self::PREVIEW_LIMIT)
+            ->get();
+
+        $this->reference->attach($records->pluck('employee')->filter(), 'department', 'department_id', Department::class);
+
+        return $records
+            ->map(function (AttendanceRecord $record) use ($now): array {
+                $late = $record->late_minutes > 0 ? ' · '.$record->late_minutes.'m late' : '';
+
+                return [
+                    'name' => $record->employee?->full_name ?? 'Unknown employee',
+                    'employee_number' => $record->employee?->employee_number,
+                    'department' => $record->employee?->department?->name,
+                    'summary' => $record->attendance_date->format('M j'),
+                    'detail' => $this->hours($record->worked_minutes).' worked'.$late,
+                    'waiting_label' => $this->waitingLabel($record->check_out_at, $now),
+                    'stale' => $this->daysWaiting($record->check_out_at, $now) >= self::STALE_DAYS,
+                    // A single day, so this one never has to worry about the
+                    // report's range cap the way the group link below does.
+                    'url' => route('reports.show', [
+                        'report' => 'attendance',
+                        'approval_status' => 'pending',
+                        'employee_id' => $record->employee_id,
+                        'date_from' => $record->attendance_date->toDateString(),
+                        'date_to' => $record->attendance_date->toDateString(),
+                    ]),
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * Where the attendance group sends the reader.
+     *
+     * The report defaults its range to month-to-date, so a bare link would
+     * promise a count and then open a screen that does not contain it -- an
+     * approval left over from last month would simply not be there. The range
+     * is widened back to the oldest pending day instead.
+     *
+     * It cannot widen without limit, though: the report refuses a range over
+     * `reports.max_days` and would answer a validation error rather than a
+     * list. Past that point the link opens the most recent window it is allowed
+     * to, which is the end of the queue a manager can actually clear today.
+     */
+    private function attendanceQueueUrl(?Carbon $earliest, Carbon $now): string
+    {
+        $maxDays = (int) config('reports.max_days');
+        $floor = $now->copy()->subDays($maxDays)->startOfDay();
+        $from = $earliest && $earliest->greaterThan($floor) ? $earliest : $floor;
+
+        return route('reports.show', [
+            'report' => 'attendance',
+            'approval_status' => 'pending',
+            'date_from' => $from->toDateString(),
+            'date_to' => $now->toDateString(),
+        ]);
+    }
+
     /** @return Builder<LeaveRequest> */
     private function pendingLeave(?User $user): Builder
     {
@@ -222,6 +318,24 @@ class ApprovalQueueService
     private function submittedTimesheets(?User $user): Builder
     {
         return Employee::constrainRelatedQuery(Timesheet::query()->where('status', 'submitted'), $user);
+    }
+
+    /**
+     * Attendance days waiting on a decision.
+     *
+     * The check-out is not optional here. A record with nobody clocked out yet
+     * is still being worked, and the report shows "Awaiting check-out" against
+     * it rather than the approve and reject buttons -- counting those would put
+     * a number on this panel that the destination offers no way to clear.
+     *
+     * @return Builder<AttendanceRecord>
+     */
+    private function pendingAttendance(?User $user): Builder
+    {
+        return Employee::constrainRelatedQuery(
+            AttendanceRecord::query()->where('approval_status', 'pending')->whereNotNull('check_out_at'),
+            $user,
+        );
     }
 
     /**

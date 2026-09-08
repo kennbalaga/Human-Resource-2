@@ -1,8 +1,8 @@
 @props(['queue'])
 
 {{-- Everything waiting on this reader's decision, above everything the page
-     merely reports. The two groups are answered in two different modules, so
-     each keeps its own count, its own oldest-first list, and its own way in. --}}
+     merely reports. Each group is answered in a different module, so each keeps
+     its own count, its own oldest-first list, and its own way in. --}}
 <section class="panel approval-queue" id="approval-queue" aria-labelledby="approval-queue-title">
     <div class="panel-header">
         <div>
@@ -20,7 +20,7 @@
     @if ($queue['total'] < 1)
         <div class="compact-empty-state approval-queue-empty">
             <x-icon name="check-circle" />
-            <p>Nothing is waiting on you. Leave requests and submitted timesheets appear here the moment they are filed.</p>
+            <p>Nothing is waiting on you. Leave requests, submitted timesheets and attendance days awaiting approval appear here the moment they arrive.</p>
         </div>
     @else
         <p class="approval-queue-caption">
