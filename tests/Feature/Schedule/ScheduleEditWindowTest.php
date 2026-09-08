@@ -59,8 +59,7 @@ class ScheduleEditWindowTest extends TestCase
         $response = $this->actingAs($this->manager)
             ->get(route('schedules.index', ['date' => $today->toDateString(), 'view' => 'month']))
             ->assertOk()
-            ->assertSee('is-locked-day', false)
-            ->assertSee('data-detail-lock', false);
+            ->assertSee('is-locked-day', false);
 
         $this->assertStringNotContainsString(
             'data-quick-schedule-date="'.$today->toDateString().'"',
@@ -70,6 +69,47 @@ class ScheduleEditWindowTest extends TestCase
             'data-quick-schedule-date="'.$today->copy()->addDay()->toDateString().'"',
             $response->getContent(),
         );
+    }
+
+    /**
+     * The published-roster board (opened by clicking any shift) marks each
+     * row editable or not the same way the calendar itself does — today and
+     * every earlier day are a closed record.
+     */
+    public function test_the_day_roster_marks_todays_rows_read_only_and_tomorrows_editable(): void
+    {
+        $today = now(config('schedule.timezone'))->startOfDay();
+        $tomorrow = $today->copy()->addDay();
+        $todaysAssignment = $this->assignmentOn($today);
+        $tomorrowsAssignment = $this->assignmentOn($tomorrow);
+
+        $this->assertSame(
+            false,
+            $this->dayRosterRow($today, $todaysAssignment->id)['editable'],
+        );
+        $this->assertSame(
+            true,
+            $this->dayRosterRow($tomorrow, $tomorrowsAssignment->id)['editable'],
+        );
+    }
+
+    /** The row for one assignment out of a day-roster response, wherever its department landed in the grouping. */
+    private function dayRosterRow(CarbonInterface $date, int $assignmentId): array
+    {
+        $payload = $this->actingAs($this->manager)
+            ->getJson(route('schedules.day-roster', ['date' => $date->toDateString()]))
+            ->assertOk()
+            ->json();
+
+        foreach ($payload['departments'] as $department) {
+            foreach ($department['rows'] as $row) {
+                if ($row['id'] === $assignmentId) {
+                    return $row;
+                }
+            }
+        }
+
+        $this->fail("Assignment {$assignmentId} was not found in the day-roster response for {$date->toDateString()}.");
     }
 
     public function test_an_upcoming_assignment_can_still_be_removed(): void

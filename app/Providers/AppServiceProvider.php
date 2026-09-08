@@ -66,7 +66,7 @@ class AppServiceProvider extends ServiceProvider
             $items = $user->unreadNotifications()
                 ->select('notifications.*')
                 ->selectSub(
-                    $user->unreadNotifications()->getQuery()->selectRaw('count(*)'),
+                    $user->unreadNotifications()->getQuery()->reorder()->selectRaw('count(*)'),
                     'unread_total',
                 )
                 ->latest()

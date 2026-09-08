@@ -6,7 +6,6 @@ use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ShiftSwap\StoreShiftSwapRequest;
 use App\Models\Employee;
-use App\Models\ScheduleAssignment;
 use App\Models\ShiftSwapRequest;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\PreferenceNotificationService;
@@ -14,13 +13,19 @@ use App\Services\ShiftSwapService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\View\View;
 
 class ShiftSwapController extends Controller
 {
     use ScopesWorkforceAccess;
 
-    public function index(Request $request): View
+    /**
+     * Shift swaps live inside the Preferences page now. This route stays only
+     * so old links and email notifications still land somewhere — the access
+     * check moved with the page, but still runs here first, so a device with
+     * no business seeing swaps gets turned away rather than redirected into a
+     * page it happens to have partial access to anyway.
+     */
+    public function index(Request $request): RedirectResponse
     {
         $employee = $request->user()->employee;
         abort_if($employee === null, 403);
@@ -32,67 +37,7 @@ class ShiftSwapController extends Controller
         // there is nothing here for them to see at all.
         abort_unless($canManage || $employee->canUseShiftSwaps(), 403);
 
-        $today = now(config('schedule.timezone'))->toDateString();
-        $horizon = now(config('schedule.timezone'))->addDays(45)->toDateString();
-
-        $baseQuery = ShiftSwapRequest::query()
-            ->with(['requesterEmployee.department', 'targetEmployee.department', 'requesterAssignment.shift', 'targetAssignment.shift', 'reviewer']);
-
-        if (! $canManage) {
-            $baseQuery->where(function ($builder) use ($employee) {
-                $builder->where('requester_employee_id', $employee->id)->orWhere('target_employee_id', $employee->id);
-            });
-        } else {
-            // A swap is between two people. A reviewer sees it when the side
-            // that raised it is theirs to supervise -- the two are in the same
-            // department by construction, since the picker only ever offers
-            // colleagues from the requester's own unit.
-            Employee::constrainRelatedQuery($baseQuery, $request->user(), 'requesterEmployee');
-        }
-
-        $requests = (clone $baseQuery)->latest()->paginate(15)->withQueryString();
-
-        $summary = [
-            'pending_sent' => (clone $baseQuery)->where('requester_employee_id', $employee->id)->whereIn('status', ['pending_target', 'pending_manager'])->count(),
-            'awaiting_me' => (clone $baseQuery)->where('target_employee_id', $employee->id)->where('status', 'pending_target')->count(),
-            'awaiting_manager' => (clone $baseQuery)->where('status', 'pending_manager')->count(),
-            'approved' => (clone $baseQuery)->where('status', 'approved')->count(),
-        ];
-
-        // A manager keeps the page to review every request, but "Request swap"
-        // is personal self-service — offering it to someone with no rotating
-        // shift to trade would just fail validation the moment they submitted.
-        $canRequestSwap = $employee->canUseShiftSwaps();
-
-        return view('shift-swaps.index', [
-            'requests' => $requests,
-            'summary' => $summary,
-            'employee' => $employee,
-            'canManage' => $canManage,
-            'canManageData' => $canManage && $request->user()->canManageData(),
-            'canRequestSwap' => $canRequestSwap,
-            'myAssignments' => $canRequestSwap
-                ? ScheduleAssignment::query()
-                    ->with('shift')
-                    ->where('employee_id', $employee->id)
-                    ->where('status', 'scheduled')
-                    ->whereBetween('work_date', [$today, $horizon])
-                    ->orderBy('work_date')
-                    ->limit(100)
-                    ->get()
-                : collect(),
-            'colleagueAssignments' => $canRequestSwap
-                ? ScheduleAssignment::query()
-                    ->with(['shift', 'employee'])
-                    ->whereHas('employee', fn ($q) => $q->where('department_id', $employee->department_id)->where('id', '!=', $employee->id))
-                    ->where('status', 'scheduled')
-                    ->whereBetween('work_date', [$today, $horizon])
-                    ->orderBy('work_date')
-                    ->limit(200)
-                    ->get()
-                : collect(),
-            'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-        ]);
+        return redirect(route('schedule-preferences.index').'#shift-swaps');
     }
 
     public function store(

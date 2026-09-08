@@ -672,6 +672,7 @@ class LockScreen {
 
         form.append(token);
         document.body.append(form);
+        window.markIntentionalNavigation();
         form.submit();
     }
 }

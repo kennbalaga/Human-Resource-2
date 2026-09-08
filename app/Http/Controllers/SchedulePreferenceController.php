@@ -6,7 +6,9 @@ use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Requests\SchedulePreference\StorePreferredDayOffRequest;
 use App\Models\Employee;
 use App\Models\PreferredDayOff;
+use App\Models\ScheduleAssignment;
 use App\Models\Shift;
+use App\Models\ShiftSwapRequest;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\PreferenceNotificationService;
 use App\Services\PreferredDayOffService;
@@ -30,7 +32,14 @@ class SchedulePreferenceController extends Controller
             ? Employee::constrainRelatedQuery($query, $request->user())->latest()->paginate(15)->withQueryString()
             : $query->where('employee_id', $employee->id)->latest()->paginate(15)->withQueryString();
 
-        return view('schedule-preferences.index', [
+        // Shift swaps live on this same page, but only for the people the
+        // standalone /shift-swaps route would have let through: a manager
+        // reviewing requests, or clinical staff with a rotating shift to
+        // trade. Everyone else still gets their preferences, just without a
+        // section that would have nothing in it for them.
+        $canSeeSwaps = $canManage || $employee->canUseShiftSwaps();
+
+        return view('schedule-preferences.index', array_merge([
             'requests' => $requests,
             'employee' => $employee,
             'canManage' => $canManage,
@@ -38,7 +47,63 @@ class SchedulePreferenceController extends Controller
             'shifts' => Shift::query()->where('is_active', true)->orderBy('start_time')->get(),
             'weekdays' => [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'],
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
-        ]);
+            'canSeeSwaps' => $canSeeSwaps,
+            // The heading's "Request swap" button reads this even when the
+            // swap section itself is absent, since it lives outside the
+            // @if($canSeeSwaps) block that would otherwise guarantee it.
+            'canRequestSwap' => false,
+        ], $canSeeSwaps ? $this->shiftSwapSectionData($request, $employee, $canManage) : []));
+    }
+
+    /** @return array<string, mixed> */
+    private function shiftSwapSectionData(Request $request, Employee $employee, bool $canManage): array
+    {
+        $today = now(config('schedule.timezone'))->toDateString();
+        $horizon = now(config('schedule.timezone'))->addDays(45)->toDateString();
+
+        $baseQuery = ShiftSwapRequest::query()
+            ->with(['requesterEmployee.department', 'targetEmployee.department', 'requesterAssignment.shift', 'targetAssignment.shift', 'reviewer']);
+
+        if (! $canManage) {
+            $baseQuery->where(function ($builder) use ($employee) {
+                $builder->where('requester_employee_id', $employee->id)->orWhere('target_employee_id', $employee->id);
+            });
+        } else {
+            Employee::constrainRelatedQuery($baseQuery, $request->user(), 'requesterEmployee');
+        }
+
+        $canRequestSwap = $employee->canUseShiftSwaps();
+
+        return [
+            'swapRequests' => (clone $baseQuery)->latest()->paginate(15, ['*'], 'swap_page')->withQueryString(),
+            'swapSummary' => [
+                'pending_sent' => (clone $baseQuery)->where('requester_employee_id', $employee->id)->whereIn('status', ['pending_target', 'pending_manager'])->count(),
+                'awaiting_me' => (clone $baseQuery)->where('target_employee_id', $employee->id)->where('status', 'pending_target')->count(),
+                'awaiting_manager' => (clone $baseQuery)->where('status', 'pending_manager')->count(),
+                'approved' => (clone $baseQuery)->where('status', 'approved')->count(),
+            ],
+            'canRequestSwap' => $canRequestSwap,
+            'myAssignments' => $canRequestSwap
+                ? ScheduleAssignment::query()
+                    ->with('shift')
+                    ->where('employee_id', $employee->id)
+                    ->where('status', 'scheduled')
+                    ->whereBetween('work_date', [$today, $horizon])
+                    ->orderBy('work_date')
+                    ->limit(100)
+                    ->get()
+                : collect(),
+            'colleagueAssignments' => $canRequestSwap
+                ? ScheduleAssignment::query()
+                    ->with(['shift', 'employee'])
+                    ->whereHas('employee', fn ($q) => $q->where('department_id', $employee->department_id)->where('id', '!=', $employee->id))
+                    ->where('status', 'scheduled')
+                    ->whereBetween('work_date', [$today, $horizon])
+                    ->orderBy('work_date')
+                    ->limit(200)
+                    ->get()
+                : collect(),
+        ];
     }
 
     public function updateStandingPreference(

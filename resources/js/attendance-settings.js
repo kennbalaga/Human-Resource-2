@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentState = await response.json();
 
             if (currentState.state && currentState.state !== initialAttendanceState) {
+                window.markIntentionalNavigation();
                 window.location.reload();
             }
         } catch {
@@ -51,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const millisecondsUntilExpiry = (manualModeExpiry * 1000) - Date.now();
 
         if (millisecondsUntilExpiry <= 0) {
+            window.markIntentionalNavigation();
             window.location.reload();
 
             return;

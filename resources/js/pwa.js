@@ -30,6 +30,7 @@ const reloadOnWorkerUpdate = () => {
         }
 
         reloading = true;
+        window.markIntentionalNavigation();
         window.location.reload();
     });
 };

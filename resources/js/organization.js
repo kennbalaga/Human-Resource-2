@@ -300,6 +300,7 @@ const initializeEmployeeEditModal = () => {
         window.bootstrap?.Modal.getOrCreateInstance(modal).show();
 
         load(url).catch(() => {
+            window.markIntentionalNavigation();
             window.location.href = url;
         });
     };

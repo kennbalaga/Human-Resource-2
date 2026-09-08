@@ -16,11 +16,6 @@
         ->intersect(['system-administrator', 'hr-manager', 'department-head'])
         ->isNotEmpty();
 
-    /* Shift swaps cover a clinical shift, not an office desk. The entry is a
-       staff-side tool only: an administrator or manager does not carry the link
-       on the strength of their role, only if they are clinical staff themselves. */
-    $sidebarCanSeeShiftSwaps = $sidebarUser->employee?->canUseShiftSwaps() ?? false;
-
     /* Audit logs and integrations used to be reachable only through Account
        settings, which framed a compliance record and a system-wide integration
        as personal preferences. They are administration, so they get their own
@@ -91,13 +86,8 @@
             <x-sidebar-link :href="route('schedules.index')" icon="calendar" :active="request()->routeIs('schedules.*')">
                 Schedules
             </x-sidebar-link>
-            @if ($sidebarCanSeeShiftSwaps)
-                <x-sidebar-link :href="route('shift-swaps.index')" icon="repeat" :active="request()->routeIs('shift-swaps.*')">
-                    Shift Swaps
-                </x-sidebar-link>
-            @endif
-            <x-sidebar-link :href="route('schedule-preferences.index')" icon="clock" :active="request()->routeIs('schedule-preferences.*')">
-                Preferences
+            <x-sidebar-link :href="route('schedule-preferences.index')" icon="clock" :active="request()->routeIs('schedule-preferences.*', 'shift-swaps.*')">
+                Preferences and Swaps
             </x-sidebar-link>
             @if ($sidebarCanManageShifts)
                 <x-sidebar-link :href="route('shifts.index')" icon="repeat" :active="request()->routeIs('shifts.*')">

@@ -1,9 +1,11 @@
 import * as bootstrap from 'bootstrap';
+import './leave-site-confirm';
 import './dashboard';
 import './staff-dashboard';
 import './attendance';
 import './attendance-settings';
 import './schedule';
+import './schedule-preferences';
 import './workforce';
 import './organization';
 import './ai-scheduling';
