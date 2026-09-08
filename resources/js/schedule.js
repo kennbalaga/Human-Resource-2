@@ -669,6 +669,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let rosterEvaluateTimer = null;
     let currentDraftUuid = null;
     let lastEvaluation = null;
+    // Set only while the publish submit is actually going through, so the
+    // beforeunload guard below can tell that navigation from an accidental
+    // tab close or reload.
+    let isBulkFormSubmitting = false;
     // A month of days at once is unreadable, so the board shows one week — or
     // one day — and pages through the rest. Held here rather than recomputed,
     // so a re-evaluation redraws the page being read instead of jumping home.
@@ -1496,6 +1500,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        isBulkFormSubmitting = true;
+
         // Publish exactly what is on screen.
         if (rosterEntries.length) {
             bulkForm.querySelectorAll('[data-roster-entry-input]').forEach((input) => input.remove());
@@ -1522,6 +1528,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         }
+    });
+
+    // A roster built on this board only exists in this tab until it is saved
+    // as a draft or published — closing the tab, reloading, or navigating
+    // away otherwise throws it out with no way back. The browser's own
+    // "Leave site?" prompt is the only warning that reaches a hard tab close,
+    // so it is the one used here instead of an in-page confirmation.
+    window.addEventListener('beforeunload', (event) => {
+        if (isBulkFormSubmitting || !rosterEntries.length) return;
+        event.preventDefault();
+        event.returnValue = '';
     });
     // ---------------------------------------------------------------------
     // Wizard navigation
