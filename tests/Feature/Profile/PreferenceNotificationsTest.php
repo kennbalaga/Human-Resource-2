@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class PreferenceNotificationsTest extends TestCase
@@ -115,6 +116,21 @@ class PreferenceNotificationsTest extends TestCase
             ->assertRedirect();
 
         $this->assertFalse($this->emailsEnabled());
+    }
+
+    public function test_saving_the_setting_before_its_migration_has_run_says_so_instead_of_failing(): void
+    {
+        Schema::drop('notification_email_settings');
+        Cache::flush();
+
+        $this->actingAs($this->user('admin@hrms.local'))
+            ->patch(route('settings.notification-emails.update'), ['enabled' => '0'])
+            ->assertRedirect()
+            ->assertSessionHas('warning');
+
+        // The fallback is to keep sending, so nobody stops being reachable
+        // because a migration is outstanding.
+        $this->assertTrue($this->emailsEnabled());
     }
 
     public function test_leave_submission_and_review_send_status_emails(): void

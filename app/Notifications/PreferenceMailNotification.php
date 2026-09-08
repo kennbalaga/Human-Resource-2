@@ -43,7 +43,10 @@ class PreferenceMailNotification extends Notification implements ShouldQueue
             $message->action($this->actionText, $this->actionUrl);
         }
 
-        return $message->line('You can change these emails from your HRMS account settings.');
+        // No "you can turn these off" line: the switches it used to point at
+        // are gone, and notification email is now one System Administrator's
+        // setting for everybody.
+        return $message;
     }
 
     /**

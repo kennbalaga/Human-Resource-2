@@ -48,8 +48,20 @@ class NotificationEmailSettings
         return $this->current()?->updater;
     }
 
-    public function update(User $user, bool $enabled): NotificationEmailSetting
+    /**
+     * Null when the table is not there yet.
+     *
+     * enabled() already answers for an installation whose migrations have not
+     * run, by falling back to sending — so without the same guard here, the
+     * settings page would show a switch it could not store and a save would be
+     * a 500. The caller says so instead.
+     */
+    public function update(User $user, bool $enabled): ?NotificationEmailSetting
     {
+        if (! $this->tableExists()) {
+            return null;
+        }
+
         // One settings row, found rather than assumed: the primary key is not
         // fillable, so pinning an id here would miss a row created with
         // whatever the auto-increment counter held.
@@ -77,19 +89,24 @@ class NotificationEmailSettings
 
         $this->loaded = true;
 
-        // Guards an installation whose migrations have not run yet. The answer
-        // only changes on migrate, so it is cached rather than costing an
-        // information_schema round trip per notification.
-        $tableExists = Cache::remember(
-            self::TABLE_CACHE_KEY,
-            self::CACHE_TTL_SECONDS,
-            fn (): bool => Schema::hasTable('notification_email_settings'),
-        );
-
-        if (! $tableExists) {
+        if (! $this->tableExists()) {
             return null;
         }
 
         return $this->setting = NotificationEmailSetting::query()->oldest('id')->first();
+    }
+
+    /**
+     * Guards an installation whose migrations have not run yet. The answer only
+     * changes on migrate, so it is cached rather than costing an
+     * information_schema round trip per notification.
+     */
+    private function tableExists(): bool
+    {
+        return Cache::remember(
+            self::TABLE_CACHE_KEY,
+            self::CACHE_TTL_SECONDS,
+            fn (): bool => Schema::hasTable('notification_email_settings'),
+        );
     }
 }

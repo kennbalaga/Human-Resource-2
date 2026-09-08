@@ -145,7 +145,10 @@ class SettingsController extends Controller
         NotificationEmailSettings $notificationEmailSettings,
     ): RedirectResponse {
         $enabled = $request->boolean('enabled');
-        $notificationEmailSettings->update($request->user(), $enabled);
+
+        if ($notificationEmailSettings->update($request->user(), $enabled) === null) {
+            return back()->with('warning', 'This setting has nowhere to be stored yet — run `php artisan migrate` on this installation. Until then, notifications are emailed as normal.');
+        }
 
         return back()->with('success', $enabled
             ? 'Notification emails enabled for every employee.'
