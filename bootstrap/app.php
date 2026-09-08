@@ -3,6 +3,7 @@
 use App\Http\Middleware\AuditWriteRequests;
 use App\Http\Middleware\EnforceProductionSecurity;
 use App\Http\Middleware\EnforceReadOnlyRole;
+use App\Http\Middleware\EnsureAccountIsStillOpen;
 use App\Http\Middleware\EnsureRequiredTwoFactorAuthentication;
 use App\Http\Middleware\EnsureSingleActiveSession;
 use App\Http\Middleware\PreventAuthenticatedPageCaching;
@@ -55,6 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SecurityHeaders::class,
             PreventAuthenticatedPageCaching::class,
             AuditWriteRequests::class,
+            EnsureAccountIsStillOpen::class,
             PreventRememberedAuthentication::class,
             EnsureSingleActiveSession::class,
             EnsureRequiredTwoFactorAuthentication::class,

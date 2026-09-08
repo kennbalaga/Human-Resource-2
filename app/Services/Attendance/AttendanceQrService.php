@@ -78,6 +78,13 @@ class AttendanceQrService
             $this->reject("{$employee->full_name} is not an active employee.");
         }
 
+        // A printed badge outlives the record it was issued against. Without
+        // this, the one person HR has filed away is the one whose card still
+        // opens the day.
+        if ($employee->isArchived()) {
+            $this->reject("{$employee->full_name}'s record is archived. Ask HR before recording attendance.");
+        }
+
         return $employee;
     }
 

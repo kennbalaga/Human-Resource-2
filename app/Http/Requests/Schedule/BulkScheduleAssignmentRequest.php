@@ -4,6 +4,7 @@ namespace App\Http\Requests\Schedule;
 
 use App\Http\Requests\Concerns\ScopesToSupervisedDepartments;
 use App\Models\Position;
+use App\Rules\EmployeeCanBeRostered;
 use App\Services\Scheduling\SchedulePeriodService;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -67,6 +68,7 @@ class BulkScheduleAssignmentRequest extends FormRequest
                         $query->whereIn('position_id', $positionIds);
                     }
                 }),
+                new EmployeeCanBeRostered,
             ],
             'shift_id' => ['required', 'integer', 'exists:shifts,id'],
             'schedule_period' => ['nullable', Rule::in(['weekly', 'two_weeks', 'monthly'])],

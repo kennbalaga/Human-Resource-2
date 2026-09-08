@@ -88,7 +88,7 @@ class SettingsController extends Controller
             'attendanceScheduleSettingUpdatedBy' => $attendanceScheduleSettings->updatedBy()?->name,
             'biometricSimulatorAvailable' => app()->environment(['local', 'testing']) && $user->hasRole('system-administrator'),
             'biometricSimulatorEmployees' => app()->environment(['local', 'testing']) && $user->hasRole('system-administrator')
-                ? Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get()
+                ? Employee::query()->notArchived()->where('employment_status', 'active')->orderBy('last_name')->get()
                 : collect(),
             'recentBiometricEvents' => app()->environment(['local', 'testing']) && $user->hasRole('system-administrator')
                 ? BiometricScanEvent::query()->with(['employee', 'device'])->latest('received_at')->limit(5)->get()

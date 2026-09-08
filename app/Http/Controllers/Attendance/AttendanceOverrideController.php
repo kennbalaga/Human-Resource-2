@@ -38,6 +38,7 @@ class AttendanceOverrideController extends Controller
         if ($query !== '') {
             $employees = Employee::query()
                 ->visibleTo($request->user())
+                ->notArchived()
                 ->where('employment_status', '!=', 'inactive')
                 ->where(function ($builder) use ($query) {
                     $builder->where('employee_number', 'like', "%{$query}%")

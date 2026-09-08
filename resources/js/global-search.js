@@ -28,7 +28,7 @@ function renderResults(data) {
         <a class="global-search-result" href="${employee.url}" role="option">
             <span class="global-search-result-text">
                 <strong>${escapeHtml(employee.name)}</strong>
-                <small>${escapeHtml(employee.number)} · ${escapeHtml(employee.department ?? 'Unassigned department')} · ${escapeHtml(employee.position ?? 'Unassigned position')}</small>
+                <small>${escapeHtml(employee.number)} · ${escapeHtml(employee.department ?? 'Unassigned department')} · ${escapeHtml(employee.position ?? 'Unassigned position')}${employee.archived ? ' · Archived' : ''}</small>
             </span>
         </a>
     `).join('');

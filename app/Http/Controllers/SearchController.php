@@ -55,6 +55,11 @@ class SearchController extends Controller
                     'number' => $employee->employee_number,
                     'department' => $employee->department?->name,
                     'position' => $employee->position?->title,
+                    // Search still finds a former colleague on purpose — that
+                    // is how anyone reaches their record afterwards. Saying so
+                    // here is what keeps it from reading as an ordinary hit
+                    // that mysteriously cannot be scheduled.
+                    'archived' => $employee->isArchived(),
                     'url' => route('employees.show', $employee),
                 ])->values(),
                 'departments' => $departments->map(fn (Department $department) => [

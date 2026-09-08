@@ -108,7 +108,7 @@ class LeaveController extends Controller
             'balances' => $balances,
             'employee' => $employee,
             'types' => $types,
-            'employees' => Employee::query()->visibleTo($request->user())->where('employment_status', 'active')->orderBy('last_name')->get(),
+            'employees' => Employee::query()->visibleTo($request->user())->notArchived()->where('employment_status', 'active')->orderBy('last_name')->get(),
             'departments' => $this->selectableDepartments($request),
             'calendarDays' => $calendarDays,
             'focusDate' => $focusDate,

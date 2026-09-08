@@ -168,6 +168,7 @@ class ScheduleCalendarController extends Controller
         $pickerEmployees = $canManage
             ? Employee::query()
                 ->visibleTo($request->user())
+                ->notArchived()
                 ->where('employment_status', 'active')
                 ->orderBy('last_name')
                 ->get()

@@ -81,6 +81,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::get('/organization', [EmployeeController::class, 'index'])->name('organization.index');
     Route::resource('employees', EmployeeController::class)->except('destroy');
+    Route::post('/employees/{employee}/archive', [EmployeeController::class, 'archive'])->name('employees.archive');
+    Route::post('/employees/{employee}/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
     Route::post('/employees/{employee}/two-factor/reset', [AdminTwoFactorController::class, 'reset'])->name('employees.two-factor.reset');
     Route::post('/employees/{employee}/attendance-qr/reissue', [EmployeeController::class, 'reissueAttendanceQr'])->name('employees.attendance-qr.reissue');
     Route::resource('departments', DepartmentController::class)->except(['show', 'destroy']);

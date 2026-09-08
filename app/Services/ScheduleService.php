@@ -695,6 +695,10 @@ class ScheduleService
             return 'Inactive employee';
         }
 
+        if ($employee->isArchived()) {
+            return 'Archived employee';
+        }
+
         if (in_array($date->toDateString(), $rules['holiday_dates'] ?? [], true)) {
             return 'Holiday or closure date';
         }
@@ -923,6 +927,13 @@ class ScheduleService
     {
         if ($employee->employment_status !== 'active') {
             throw ValidationException::withMessages(['employee_id' => 'Only active employees may be scheduled.']);
+        }
+
+        // The request rules refuse an archived employee at the door; this is
+        // the same answer for every path that reaches the write without going
+        // through one — a service call, a queued job, a future caller.
+        if ($employee->isArchived()) {
+            throw ValidationException::withMessages(['employee_id' => $employee->full_name.' is archived and can no longer be scheduled.']);
         }
 
         if (! $shift->is_active) {

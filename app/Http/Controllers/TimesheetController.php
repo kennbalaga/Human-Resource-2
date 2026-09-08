@@ -37,7 +37,7 @@ class TimesheetController extends Controller
             'canManage' => $canManage,
             'canManageData' => $canManage && $request->user()->canManageData(),
             'departments' => $this->selectableDepartments($request),
-            'employees' => Employee::query()->visibleTo($request->user())->where('employment_status', 'active')->orderBy('last_name')->get(),
+            'employees' => Employee::query()->visibleTo($request->user())->notArchived()->where('employment_status', 'active')->orderBy('last_name')->get(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ]);
     }

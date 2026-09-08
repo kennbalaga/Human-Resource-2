@@ -73,6 +73,10 @@ class LoginRequest extends FormRequest
         $authenticated = $user !== null
             && $user->is_active
             && $employee->employment_status === 'active'
+            // Belt and braces beside is_active: archiving closes the account,
+            // but the flag can be set by other hands, and a record HR has filed
+            // away must not be a way back in on its own.
+            && ! $employee->isArchived()
             && $passwordMatches;
 
         if (! $authenticated) {

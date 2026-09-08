@@ -5,6 +5,7 @@ namespace App\Http\Requests\Schedule;
 use App\Http\Requests\Concerns\ScopesToSupervisedDepartments;
 use App\Models\Position;
 use App\Models\Shift;
+use App\Rules\EmployeeCanBeRostered;
 use App\Services\Scheduling\SchedulePeriodService;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -47,7 +48,7 @@ class RotationScheduleRequest extends FormRequest
         return [
             'department_id' => ['required', 'integer', 'exists:departments,id', ...$this->supervisedDepartmentRules()],
             'employee_ids' => ['required', 'array', 'min:1', 'max:'.config('schedule.max_bulk_assignment_employees')],
-            'employee_ids.*' => ['required', 'integer', 'distinct', Rule::exists('employees', 'id')->where('department_id', $this->input('department_id'))],
+            'employee_ids.*' => ['required', 'integer', 'distinct', Rule::exists('employees', 'id')->where('department_id', $this->input('department_id')), new EmployeeCanBeRostered],
             'shift_ids' => ['required', 'array', 'min:1', 'max:10', $this->shiftPoolIsCoherent()],
             'shift_ids.*' => ['required', 'integer', 'distinct', 'exists:shifts,id'],
             'schedule_method' => ['nullable', Rule::in(['rotation', 'custom'])],

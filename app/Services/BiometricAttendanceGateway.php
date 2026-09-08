@@ -84,7 +84,11 @@ class BiometricAttendanceGateway
             ->where('is_active', true)
             ->first();
 
-        if ($enrollment === null || $enrollment->employee?->employment_status !== 'active') {
+        // Archived counts the same as not active here: the enrolment sits on
+        // the device until somebody removes it, so the record is what decides.
+        if ($enrollment === null
+            || $enrollment->employee?->employment_status !== 'active'
+            || $enrollment->employee->isArchived()) {
             $event->update([
                 'status' => 'unmatched',
                 'failure_reason' => 'No active employee enrollment matched the device identity.',

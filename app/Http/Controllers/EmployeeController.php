@@ -40,7 +40,10 @@ class EmployeeController extends Controller
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
-            'status' => ['nullable', 'in:active,inactive,on_leave,terminated'],
+            // "archived" is not an employment status — it is the shelf the
+            // record sits on. It shares the one Status control because that is
+            // where somebody looking for a former colleague will reach first.
+            'status' => ['nullable', 'in:active,inactive,on_leave,terminated,archived'],
         ]);
         $query = Employee::query()->with(['user', 'department', 'position', 'supervisor']);
 
@@ -55,7 +58,13 @@ class EmployeeController extends Controller
                 $builder->matchingSearch($search, $canSearchEmail);
             })
             ->when($filters['department_id'] ?? null, fn (Builder $builder, int $departmentId) => $builder->where('department_id', $departmentId))
-            ->when($filters['status'] ?? null, fn (Builder $builder, string $status) => $builder->where('employment_status', $status));
+            ->when(
+                ($filters['status'] ?? null) === 'archived',
+                fn (Builder $builder) => $builder->archived(),
+                fn (Builder $builder) => $builder
+                    ->notArchived()
+                    ->when($filters['status'] ?? null, fn (Builder $nested, string $status) => $nested->where('employment_status', $status)),
+            );
 
         $canManage = $this->canWrite($request);
         // The filters, and only the filters. `withQueryString()` would drag the
@@ -115,6 +124,10 @@ class EmployeeController extends Controller
             'position',
             'supervisor.position',
             'directReports.position',
+            // Named on the archived notice at the top of the record, so it is
+            // loaded with everything else rather than costing a query of its
+            // own on the one profile that shows it.
+            'archiver',
         ]);
         $canViewPrivate = $this->canManage($request) || $request->user()->employee?->is($employee);
         $canReissueAttendanceQr = $this->canWrite($request);
@@ -273,7 +286,7 @@ class EmployeeController extends Controller
                     'name' => $this->displayName($data),
                     'email' => $data['email'],
                     'password' => $this->initialEmployeePassword(),
-                    'is_active' => $this->accountIsActive($data['employment_status']),
+                    'is_active' => $this->accountIsActive($data['employment_status'], $employee),
                 ]);
                 $employee->user()->associate($user);
             } else {
@@ -282,12 +295,19 @@ class EmployeeController extends Controller
                     'name' => $this->displayName($data),
                     'email' => $data['email'],
                     'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
-                    'is_active' => $this->accountIsActive($data['employment_status']),
+                    'is_active' => $this->accountIsActive($data['employment_status'], $employee),
                 ]);
             }
 
             $employee->fill($this->employeeData($data))->save();
             $this->syncRoleForPosition($user, (int) $data['position_id']);
+
+            // Ending somebody's employment closes their account, and a
+            // personal access token is the one credential that would keep
+            // answering afterwards: it is checked at issue, not per request.
+            if (! $user->is_active) {
+                $user->tokens()->delete();
+            }
         });
 
         return redirect()->route('employees.index', ['employee' => $employee->id])->with('success', 'Employee profile updated successfully.');
@@ -306,7 +326,7 @@ class EmployeeController extends Controller
                 ->where(fn (Builder $query) => $query->where('is_active', true)->when($employee, fn (Builder $nested) => $nested->orWhere('id', $employee->position_id)))
                 ->orderBy('title')
                 ->get(),
-            'supervisors' => Employee::query()->where('employment_status', 'active')->orderBy('last_name')->get(),
+            'supervisors' => Employee::query()->notArchived()->where('employment_status', 'active')->orderBy('last_name')->get(),
             'employeeNumberAutoGenerate' => $this->employeeNumberSettings->autoGenerateEnabled(),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
         ];
@@ -328,8 +348,18 @@ class EmployeeController extends Controller
         return collect([$data['first_name'], $data['middle_name'], $data['last_name'], $data['suffix']])->filter()->implode(' ');
     }
 
-    private function accountIsActive(string $status): bool
+    /**
+     * Employment decides access — unless the record has been archived, which
+     * overrules it. Without the second half, saving any edit on an archived
+     * employee whose status still reads active would quietly reopen the
+     * sign-in that archiving had closed.
+     */
+    private function accountIsActive(string $status, ?Employee $employee = null): bool
     {
+        if ($employee?->isArchived()) {
+            return false;
+        }
+
         return in_array($status, ['active', 'on_leave'], true);
     }
 
@@ -378,6 +408,110 @@ class EmployeeController extends Controller
     private function usesLocalEmployeeDefaultPassword(): bool
     {
         return app()->environment(['local', 'testing']);
+    }
+
+    /**
+     * Put a record on the shelf.
+     *
+     * Nothing is deleted and nothing is anonymised — the row keeps every field
+     * it had, and its timesheets, leave and attendance history stay attached
+     * and countable. It leaves the directory's working list, and it stops being
+     * offered as somebody to roster or report to.
+     */
+    public function archive(Request $request, Employee $employee): RedirectResponse
+    {
+        $this->requireManager($request);
+        $this->requireSupervision($request, $employee, 'workforce.manage.record');
+
+        if ($employee->isArchived()) {
+            return back()->with('warning', $employee->full_name.' is already archived.');
+        }
+
+        $outstanding = $this->outstandingWork($employee);
+
+        if ($outstanding !== []) {
+            return back()->with('warning', $employee->full_name.' still has '.$this->listPhrase($outstanding).'. Clear that first, then archive the record.');
+        }
+
+        DB::transaction(function () use ($employee, $request): void {
+            $employee->forceFill([
+                'archived_at' => now(),
+                'archived_by' => $request->user()->id,
+            ])->save();
+
+            // Archived means out of the organisation's working day, not merely
+            // out of one list. Leaving the account open would let somebody the
+            // directory no longer shows sign in and clock in as usual.
+            $employee->user?->update(['is_active' => false]);
+            // A personal access token outlives sessions and ignores is_active
+            // at the point of issue, so it is the one credential that would
+            // still answer for an archived account.
+            $employee->user?->tokens()->delete();
+        });
+
+        return back()->with('success', $employee->full_name.' was archived and their sign-in was closed. The record is kept in full and can be restored at any time.');
+    }
+
+    /** Back onto the working list, exactly as it was. */
+    public function restore(Request $request, Employee $employee): RedirectResponse
+    {
+        $this->requireManager($request);
+        $this->requireSupervision($request, $employee, 'workforce.manage.record');
+
+        if (! $employee->isArchived()) {
+            return back()->with('warning', $employee->full_name.' is not archived.');
+        }
+
+        DB::transaction(function () use ($employee): void {
+            $employee->forceFill([
+                'archived_at' => null,
+                'archived_by' => null,
+            ])->save();
+
+            // Access follows employment again, by the same rule the employee
+            // form uses. A restored record whose status still reads active but
+            // whose account stayed shut would be a person locked out with
+            // nothing on screen to explain why.
+            $employee->user?->update(['is_active' => $this->accountIsActive($employee->employment_status)]);
+        });
+
+        return back()->with('success', $employee->full_name.' was restored to the directory.');
+    }
+
+    /**
+     * What has to be settled before a record can be filed away.
+     *
+     * Archiving is the end of somebody's presence in the working day, so the
+     * three things that would outlive them are checked first: a shift still
+     * rostered in their name, a leave request nobody has decided, and the
+     * colleagues who report to them — who would otherwise keep pointing at a
+     * supervisor the directory no longer shows.
+     *
+     * @return array<int, string>
+     */
+    private function outstandingWork(Employee $employee): array
+    {
+        $futureShifts = $employee->scheduleAssignments()->whereDate('work_date', '>=', now()->toDateString())->count();
+        $pendingLeave = $employee->leaveRequests()->where('status', 'pending')->count();
+        $directReports = $employee->directReports()->notArchived()->count();
+
+        return array_values(array_filter([
+            $futureShifts > 0 ? $futureShifts.' '.str('scheduled shift')->plural($futureShifts).' from today onwards' : null,
+            $pendingLeave > 0 ? $pendingLeave.' pending leave '.str('request')->plural($pendingLeave) : null,
+            $directReports > 0 ? $directReports.' direct '.str('report')->plural($directReports) : null,
+        ]));
+    }
+
+    /** @param array<int, string> $items */
+    private function listPhrase(array $items): string
+    {
+        if (count($items) === 1) {
+            return $items[0];
+        }
+
+        $last = array_pop($items);
+
+        return implode(', ', $items).' and '.$last;
     }
 
     /**

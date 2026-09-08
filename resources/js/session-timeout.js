@@ -176,21 +176,38 @@ if (element) {
         modal.show();
     };
 
+    // Three ways a session ends, and each is owed its own sentence. Idle is
+    // the default; the other two arrive as a `reason` from the server, and
+    // getting them wrong is worse than saying nothing — telling somebody whose
+    // account HR just closed to "sign in again to continue" sends them to a
+    // form that will refuse them, with no idea why.
+    const endings = {
+        signed_in_elsewhere: {
+            title: 'Your account was opened on another device',
+            // Not a handover: whoever tried to sign in elsewhere was turned
+            // away too, so saying only that this device lost the account would
+            // leave the person here expecting someone to be using it.
+            message: 'Someone signed in to this account somewhere else. Only one device can use it at a time, so this session was ended and that sign-in was stopped as well.',
+        },
+        account_closed: {
+            title: 'This account is no longer active',
+            message: 'This account has been closed and can no longer be used to sign in. Contact HR if you believe this is a mistake.',
+        },
+    };
+
+    const idleEnding = {
+        title: 'You were signed out for inactivity',
+        message: 'Your saved Employee ID is ready on the login page. Enter your password and authenticator code to continue.',
+    };
+
     const showExpired = (reason = null) => {
-        const displaced = reason === 'signed_in_elsewhere';
+        const ending = endings[reason] ?? idleEnding;
         expired = true;
         expiredReason = reason;
         warningVisible = true;
         kicker.textContent = 'Session ended';
-        title.textContent = displaced
-            ? 'Your account was opened on another device'
-            : 'You were signed out for inactivity';
-        // Not a handover: whoever tried to sign in elsewhere was turned away
-        // too, so saying only that this device lost the account would leave
-        // the person here expecting someone to be using it.
-        message.textContent = displaced
-            ? 'Someone signed in to this account somewhere else. Only one device can use it at a time, so this session was ended and that sign-in was stopped as well.'
-            : 'Your saved Employee ID is ready on the login page. Enter your password and authenticator code to continue.';
+        title.textContent = ending.title;
+        message.textContent = ending.message;
         countdownWrap.classList.add('d-none');
         continueButton.classList.add('d-none');
         signOutButton.classList.add('d-none');

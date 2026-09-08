@@ -24,6 +24,14 @@ class EmployeeEligibilityService
         $employees = Employee::query()
             ->with(['department', 'position'])
             ->where('department_id', $department->id)
+            // Left the organisation, or filed away by HR: not candidates, and
+            // not names to read either. Everyone else in the department is
+            // still evaluated and still listed with the reason they were
+            // passed over — being on leave this week is a fact the person
+            // building the roster needs, while a colleague who resigned in
+            // March is noise on every screen they appear on.
+            ->notArchived()
+            ->where('employment_status', '!=', 'terminated')
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get();
@@ -50,6 +58,15 @@ class EmployeeEligibilityService
 
         if ($employee->employment_status !== 'active') {
             $reasons->push(['code' => 'employee_inactive', 'message' => 'Employee is not active.']);
+        }
+
+        // Separate from the status check above, and not covered by it: a record
+        // can be archived while its employment status still reads active, and
+        // the roster board draws its candidates from the whole department
+        // rather than from a filtered picker. Without this, the one employee
+        // HR has deliberately filed away is the one the board can still roster.
+        if ($employee->isArchived()) {
+            $reasons->push(['code' => 'employee_archived', 'message' => 'Employee record is archived.']);
         }
 
         if (! $employee->department?->is_active) {

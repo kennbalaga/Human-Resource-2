@@ -34,7 +34,7 @@
                     @forelse ($employees as $employee)
                         <a class="global-search-result" href="{{ route('employees.show', $employee) }}">
                             <span class="avatar avatar-table">{{ strtoupper(substr($employee->first_name, 0, 1).substr($employee->last_name, 0, 1)) }}</span>
-                            <span class="global-search-result-text"><strong>{{ $employee->full_name }}</strong><small>{{ $employee->employee_number }} · {{ $employee->department?->name ?? 'Unassigned department' }} · {{ $employee->position?->title ?? 'Unassigned position' }}</small></span>
+                            <span class="global-search-result-text"><strong>{{ $employee->full_name }}</strong><small>{{ $employee->employee_number }} · {{ $employee->department?->name ?? 'Unassigned department' }} · {{ $employee->position?->title ?? 'Unassigned position' }}@if($employee->isArchived()) · Archived @endif</small></span>
                             <x-icon name="chevron-right" />
                         </a>
                     @empty

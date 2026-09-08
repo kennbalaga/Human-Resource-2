@@ -4,6 +4,7 @@ namespace App\Http\Requests\Schedule;
 
 use App\Http\Requests\Concerns\ScopesToSupervisedDepartments;
 use App\Models\Position;
+use App\Rules\EmployeeCanBeRostered;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -54,6 +55,7 @@ class RosterDraftRequest extends FormRequest
                 'required',
                 'integer',
                 Rule::exists('employees', 'id')->where('department_id', $this->input('department_id')),
+                new EmployeeCanBeRostered,
             ],
             // Null marks a rest day, which is a deliberate roster decision rather
             // than the absence of one.

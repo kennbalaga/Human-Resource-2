@@ -79,6 +79,20 @@
             </div>
         </header>
 
+        {{-- Said once, at the top, before anything else on the record is read.
+             Everything below still works — the profile is meant to stay
+             readable — so without this line a viewer sees an ordinary record
+             and cannot tell why the person is missing from every picker. --}}
+        @if($employee->isArchived())
+            <div class="attendance-alert attendance-alert-warning employee-record-archived" role="status">
+                <x-icon name="alert" />
+                <span>
+                    This record is archived, so {{ $employee->first_name }} is not offered for scheduling and cannot sign in.
+                    Archived {{ $employee->archived_at?->timezone(config('schedule.timezone'))->format('j M Y') }}@if($employee->archiver) by {{ $employee->archiver->name }}@endif.
+                </span>
+            </div>
+        @endif
+
         <div class="employee-record-body">
             {{-- The information rail leads, the way the reference puts the facts
                  about a person to the left of whatever section is open. --}}
@@ -88,7 +102,7 @@
                     <dl class="employee-side-list">
                         <div><dt><x-icon name="calendar" /> Hire date</dt><dd>{{ $hireDate?->format('j M, Y') ?? 'Not recorded' }}</dd></div>
                         <div><dt><x-icon name="clock" /> Service</dt><dd>{{ $tenure ?? 'Not yet counted' }}</dd></div>
-                        <div><dt><x-icon name="check-circle" /> Status</dt><dd>{{ str($employee->employment_status)->replace('_', ' ')->headline() }}</dd></div>
+                        <div><dt><x-icon name="check-circle" /> Status</dt><dd>{{ str($employee->employment_status)->replace('_', ' ')->headline() }}@if($employee->isArchived()) · Archived @endif</dd></div>
                     </dl>
                 </section>
 

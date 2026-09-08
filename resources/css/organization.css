@@ -177,6 +177,19 @@
 
 .organization-row-actions {
     justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: .4rem;
+    row-gap: .35rem;
+}
+
+/* An archived record shows two badges — its employment status and the shelf it
+   sits on — and they belong side by side, wrapping together rather than
+   spilling under the row's buttons. */
+.organization-status-cell {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .3rem;
 }
 
 .organization-row-actions .btn {

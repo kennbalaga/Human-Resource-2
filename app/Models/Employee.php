@@ -45,6 +45,7 @@ class Employee extends Model
     {
         return [
             'hire_date' => 'date',
+            'archived_at' => 'datetime',
             'preferred_weekly_off_day' => 'integer',
         ];
     }
@@ -52,6 +53,38 @@ class Employee extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Who filed this record away. Null on a record nobody has archived. */
+    public function archiver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    /**
+     * Archived records are kept, not hidden from the system: they still count
+     * in headcounts, still carry their attendance and timesheet history, and
+     * are still readable in the directory under the Archived filter. These two
+     * scopes exist for the places where an employee is offered as a *choice* —
+     * the directory's working list, and the pickers that assign work — because
+     * nobody should be able to roster a person the organisation has filed away.
+     *
+     * @param  Builder<Employee>  $query
+     */
+    public function scopeArchived(Builder $query): Builder
+    {
+        return $query->whereNotNull('archived_at');
+    }
+
+    /** @param  Builder<Employee>  $query */
+    public function scopeNotArchived(Builder $query): Builder
+    {
+        return $query->whereNull('archived_at');
     }
 
     public function department(): BelongsTo
