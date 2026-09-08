@@ -1928,7 +1928,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (stepNextButton) stepNextButton.hidden = step === 5;
         if (bulkSaveButton) bulkSaveButton.hidden = step !== 5;
         setStepError(null);
-        const scroller = bulkForm.querySelector('.bulk-schedule-form');
+        // Nullable, unlike the other two uses in this file: both of those are
+        // reached only from the roster board, while showStep(1) runs on load —
+        // and schedule.js loads on every page, most of which have no wizard.
+        const scroller = bulkForm?.querySelector('.bulk-schedule-form');
         if (scroller) scroller.scrollTop = 0;
         // Entering the draft step should reflect whatever was just
         // configured, not a stale board from an earlier pass.
