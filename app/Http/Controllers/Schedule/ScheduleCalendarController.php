@@ -262,6 +262,78 @@ class ScheduleCalendarController extends Controller
         }));
     }
 
+    /**
+     * The full published roster for one date, grouped by department —
+     * everything a manager sees when they click a shift, replacing the old
+     * single-assignment popup with the whole day's coverage at once.
+     */
+    public function dayRoster(Request $request): JsonResponse
+    {
+        abort_unless($this->canManage($request) && $request->user()->canManageData(), 403);
+
+        $validated = $request->validate(['date' => ['required', 'date']]);
+        $today = now(config('schedule.timezone'))->startOfDay();
+        $isEditable = Carbon::parse($validated['date'], config('schedule.timezone'))->startOfDay()->greaterThan($today);
+
+        $assignments = ScheduleAssignment::query()
+            ->with(['employee.department', 'employee.position', 'shift'])
+            ->where('work_date', $validated['date'])
+            ->where('status', 'scheduled')
+            ->tap(fn (Builder $query) => Employee::constrainRelatedQuery($query, $request->user()))
+            ->get();
+
+        $rows = $assignments->map(function (ScheduleAssignment $assignment) use ($isEditable) {
+            $hour = (int) Carbon::parse($assignment->shift->start_time)->format('G');
+            $shiftType = match (true) {
+                $hour >= 6 && $hour < 14 => 'day',
+                $hour >= 14 && $hour < 18 => 'evening',
+                default => 'night',
+            };
+
+            return [
+                'id' => $assignment->id,
+                'employee_id' => $assignment->employee_id,
+                'shift_id' => $assignment->shift_id,
+                'date' => $assignment->work_date->toDateString(),
+                'department' => $assignment->employee->department?->name ?? 'Unassigned',
+                'department_id' => $assignment->employee->department_id,
+                'position' => $assignment->employee->position?->title ?? '—',
+                'employee' => $assignment->employee->full_name,
+                'employee_number' => $assignment->employee->employee_number,
+                'shift' => $assignment->shift->name,
+                'shift_type' => $shiftType,
+                'time' => $assignment->shift->formatted_time,
+                'notes' => $assignment->notes,
+                'recurring' => $assignment->recurring_schedule_id !== null,
+                'editable' => $isEditable,
+            ];
+        });
+
+        $departments = $rows
+            ->groupBy('department')
+            ->map(fn ($group, $name) => [
+                'name' => $name,
+                'rows' => $group->sortBy('employee')->values(),
+            ])
+            ->sortBy('name')
+            ->values();
+
+        return response()->json([
+            'date' => $validated['date'],
+            'formatted_date' => Carbon::parse($validated['date'], config('schedule.timezone'))->format('l, F j, Y'),
+            'departments' => $departments,
+            'summary' => [
+                'total_staff' => $rows->count(),
+                'departments_active' => $departments->count(),
+                'coverage' => [
+                    'day' => $rows->where('shift_type', 'day')->count(),
+                    'evening' => $rows->where('shift_type', 'evening')->count(),
+                    'night' => $rows->where('shift_type', 'night')->count(),
+                ],
+            ],
+        ]);
+    }
+
     public function conflicts(ScheduleAssignmentRequest $request, ScheduleService $scheduleService): JsonResponse
     {
         $data = $request->validated();

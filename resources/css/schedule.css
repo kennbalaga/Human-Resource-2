@@ -652,6 +652,181 @@
     min-height: 0;
 }
 
+/* Clicking any shift opens this instead of a single-assignment popup: the
+   whole day's coverage, grouped by department, with the same edit/remove a
+   manager had before now living on each row. */
+.day-roster-dialog {
+    max-width: min(1100px, 92vw);
+}
+
+.day-roster-header {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.day-roster-header h2 {
+    margin: 0 0 .2rem;
+    font-size: var(--fs-lg);
+}
+
+.day-roster-header > div:first-child > p:last-child {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.day-roster-controls {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .6rem;
+}
+
+.day-roster-search {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 14rem;
+    padding: .55rem .8rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+}
+
+.day-roster-search svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    color: var(--hr-subtle);
+}
+
+.day-roster-search input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    color: var(--hr-text);
+    background: transparent;
+    font-size: var(--fs-sm);
+}
+
+.day-roster-body {
+    padding: 1.25rem;
+}
+
+.day-roster-board {
+    border: 1px solid var(--hr-primary);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+}
+
+.day-roster-department + .day-roster-department {
+    border-top: 1px dashed var(--hr-border-strong);
+}
+
+.day-roster-department-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: .85rem 1rem;
+    border: 0;
+    background: var(--hr-surface-2);
+    text-align: left;
+    gap: .6rem;
+}
+
+.day-roster-department-header strong {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-weight: 800;
+}
+
+.day-roster-department-header span {
+    margin-left: auto;
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
+}
+
+.day-roster-department-caret {
+    width: .9rem;
+    height: .9rem;
+    color: var(--hr-muted);
+    transition: transform .16s ease;
+}
+
+.day-roster-department-header[aria-expanded="false"] .day-roster-department-caret {
+    transform: rotate(-90deg);
+}
+
+.day-roster-table .day-roster-id {
+    color: var(--hr-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.day-roster-badge {
+    display: inline-flex;
+    padding: .25rem .6rem;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.day-roster-badge-day { color: var(--hr-success); background: var(--hr-primary-soft); }
+.day-roster-badge-evening { color: var(--hr-warning-text); background: var(--hr-tint-warning); }
+.day-roster-badge-night { color: var(--hr-violet); background: var(--hr-tint-violet); }
+
+.day-roster-summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.day-roster-summary-stat {
+    display: grid;
+    gap: .2rem;
+}
+
+.day-roster-summary-stat > span {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.day-roster-summary-stat strong {
+    color: var(--hr-text);
+    font-size: var(--fs-lg);
+}
+
+.day-roster-coverage div {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+}
+
+.coverage-dot {
+    display: inline-block;
+    width: .55rem;
+    height: .55rem;
+    border-radius: 50%;
+}
+
+.coverage-dot.coverage-day { background: var(--hr-success); }
+.coverage-dot.coverage-evening { background: var(--hr-warning-text); }
+.coverage-dot.coverage-night { background: var(--hr-violet); }
+
+.day-roster-summary .btn {
+    margin-left: auto;
+}
+
 .schedule-form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -788,62 +963,6 @@
     border-color: var(--hr-primary);
     color: var(--hr-primary);
     background: var(--hr-tint-info);
-}
-
-.schedule-detail-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-    padding: 1.25rem;
-}
-
-.schedule-detail-grid > div {
-    display: grid;
-    gap: .2rem;
-}
-
-.schedule-detail-grid span {
-    color: var(--hr-subtle);
-    font-size: var(--fs-2xs);
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.schedule-detail-grid strong {
-    color: var(--hr-text);
-    font-size: var(--fs-base);
-}
-
-.schedule-detail-lock {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    margin: 0;
-    padding: .6rem .75rem;
-    border: 1px solid var(--hr-border);
-    border-radius: var(--r-md);
-    background: var(--hr-surface-2);
-    color: var(--hr-muted);
-    font-size: var(--fs-sm);
-}
-
-.schedule-detail-lock svg {
-    flex: none;
-    width: .95rem;
-    height: .95rem;
-    color: var(--hr-subtle);
-}
-
-/* Reads as a sentence, not as one of the grid's uppercase field labels. */
-.schedule-detail-grid .schedule-detail-lock span {
-    color: inherit;
-    font-size: var(--fs-sm);
-    font-weight: 500;
-    text-transform: none;
-}
-
-.schedule-detail-lock[hidden] {
-    display: none;
 }
 
 .shift-template-hint {
@@ -2489,13 +2608,11 @@
         max-width: none;
     }
 
-    .schedule-form-grid,
-    .schedule-detail-grid {
+    .schedule-form-grid {
         grid-template-columns: 1fr;
     }
 
-    .schedule-form-grid > *,
-    .schedule-detail-grid > * {
+    .schedule-form-grid > * {
         grid-column: 1;
     }
 

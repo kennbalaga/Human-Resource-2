@@ -586,11 +586,42 @@
             </div></div>
         </div>
 
-        <div class="modal fade" id="scheduleDetailModal" tabindex="-1" aria-labelledby="scheduleDetailModalLabel" aria-hidden="true" data-schedule-today="{{ $today->toDateString() }}">
-            <div class="modal-dialog modal-dialog-centered"><div class="modal-content schedule-modal-content">
-                <div class="modal-header"><div><p class="panel-kicker">Assignment details</p><h2 class="modal-title" id="scheduleDetailModalLabel" data-detail-shift>Scheduled shift</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-                <div class="modal-body schedule-detail-grid"><div><span>Employee</span><strong data-detail-employee>—</strong></div><div><span>Employee ID</span><strong data-detail-employee-number>—</strong></div><div><span>Date</span><strong data-detail-date>—</strong></div><div><span>Shift time</span><strong data-detail-time>—</strong></div><div><span>Department</span><strong data-detail-department>—</strong></div><div><span>Series</span><strong data-detail-recurring>—</strong></div><div class="full-width"><span>Notes</span><strong data-detail-notes>—</strong></div><p class="schedule-detail-lock full-width" data-detail-lock hidden><x-icon name="lock" /><span data-detail-lock-message></span></p></div>
-                <div class="modal-footer"><form method="POST" action="#" data-delete-assignment-form data-confirm="Remove this schedule assignment?">@csrf @method('DELETE')<button class="btn btn-outline-danger" type="submit"><x-icon name="trash" /> Remove</button></form><button class="btn btn-outline-primary" type="button" data-edit-assignment><x-icon name="edit" /> Edit</button><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button></div>
+        <div class="modal fade day-roster-modal" id="dayRosterModal" tabindex="-1" aria-labelledby="dayRosterModalLabel" aria-hidden="true" data-schedule-today="{{ $today->toDateString() }}" data-day-roster-url="{{ route('schedules.day-roster') }}" data-update-url-template="{{ route('schedules.update', ['scheduleAssignment' => '__ID__']) }}">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl day-roster-dialog"><div class="modal-content schedule-modal-content">
+                <div class="modal-header day-roster-header">
+                    <div><p class="eyebrow">Operations Control</p><h2 class="modal-title" id="dayRosterModalLabel">Published Schedules</h2><p data-day-roster-date>—</p></div>
+                    <div class="day-roster-controls">
+                        <label class="day-roster-search"><x-icon name="search" /><input type="search" placeholder="Search positions or staff…" data-day-roster-search></label>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><x-icon name="chevron-down" /> Filter Shifts</button>
+                            <ul class="dropdown-menu dropdown-menu-end" data-day-roster-shift-filter>
+                                <li><button class="dropdown-item active" type="button" data-shift-filter="">All shifts</button></li>
+                                <li><button class="dropdown-item" type="button" data-shift-filter="day">Day</button></li>
+                                <li><button class="dropdown-item" type="button" data-shift-filter="evening">Evening</button></li>
+                                <li><button class="dropdown-item" type="button" data-shift-filter="night">Night</button></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body day-roster-body">
+                    <div class="day-roster-board" data-day-roster-board></div>
+                    <div class="compact-empty-state" data-day-roster-empty hidden><x-icon name="calendar" /><p>No shifts match the current search or filter.</p></div>
+                    <div class="compact-empty-state" data-day-roster-loading hidden><x-icon name="clock" /><p>Loading the published roster…</p></div>
+                </div>
+                <div class="modal-footer day-roster-summary">
+                    <div class="day-roster-summary-stat"><span>Total staff on duty</span><strong data-day-roster-total>0</strong></div>
+                    <div class="day-roster-summary-stat day-roster-coverage">
+                        <span>Shift coverage</span>
+                        <div>
+                            <em class="coverage-dot coverage-day"></em><strong data-day-roster-coverage-day>0</strong>
+                            <em class="coverage-dot coverage-evening"></em><strong data-day-roster-coverage-evening>0</strong>
+                            <em class="coverage-dot coverage-night"></em><strong data-day-roster-coverage-night>0</strong>
+                        </div>
+                    </div>
+                    <div class="day-roster-summary-stat"><span>Departments active</span><strong data-day-roster-departments>0</strong></div>
+                    <button type="button" class="btn btn-primary" data-day-roster-export><x-icon name="download" /> Export Roster</button>
+                </div>
             </div></div>
         </div>
     @endif

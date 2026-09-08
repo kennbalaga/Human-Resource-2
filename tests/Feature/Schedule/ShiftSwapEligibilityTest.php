@@ -19,8 +19,11 @@ use Tests\TestCase;
  * Shift swaps cover a clinical shift — a nurse cannot make the ward, a
  * colleague takes it. Administrative staff work fixed office hours with
  * nothing to trade, so the feature does not extend to them: not requesting,
- * not being asked, not even seeing the page. Managers review requests but no
- * longer carry the sidebar link — they arrive from the notification instead.
+ * not being asked, not even seeing the section. The section now lives inside
+ * the shared Preferences page (everyone reaches the same "Preferences and
+ * Swaps" sidebar link, since preferences apply to every employee); it is the
+ * shift-swap content within that page — not the link itself — that is gated
+ * by eligibility.
  */
 class ShiftSwapEligibilityTest extends TestCase
 {
@@ -81,8 +84,14 @@ class ShiftSwapEligibilityTest extends TestCase
         $mine = $this->assignmentFor($this->clinicalEmployee, '2027-06-01');
         $theirs = $this->assignmentFor($this->clinicalColleague, '2027-06-02');
 
+        // Shift swaps live inside the Preferences page now; the standalone
+        // route only checks eligibility and forwards there.
         $this->actingAs($this->clinicalEmployee->user)
             ->get(route('shift-swaps.index'))
+            ->assertRedirect(route('schedule-preferences.index').'#shift-swaps');
+
+        $this->actingAs($this->clinicalEmployee->user)
+            ->get(route('schedule-preferences.index'))
             ->assertOk()
             ->assertSee('Request swap');
 
@@ -177,6 +186,10 @@ class ShiftSwapEligibilityTest extends TestCase
         // own employee record is administrative.
         $this->actingAs($this->manager)
             ->get(route('shift-swaps.index'))
+            ->assertRedirect(route('schedule-preferences.index').'#shift-swaps');
+
+        $this->actingAs($this->manager)
+            ->get(route('schedule-preferences.index'))
             ->assertOk()
             ->assertSee($this->clinicalEmployee->full_name)
             // Reviewing others' requests is not the same as personal
@@ -208,21 +221,33 @@ class ShiftSwapEligibilityTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_the_sidebar_link_is_shown_to_clinical_staff(): void
+    // Preferences apply to every employee, so the single "Preferences and
+    // Swaps" link no longer varies by shift-swap eligibility — only the swap
+    // content inside the page does. Each role gets its own test rather than
+    // three actingAs() calls in one, since switching the authenticated user
+    // mid-test triggers a real logout (authenticateSessions()).
+    public function test_the_combined_sidebar_link_is_shown_to_clinical_staff(): void
     {
-        $this->actingAs($this->clinicalEmployee->user)->get(route('dashboard'))->assertSee('Shift Swaps');
+        $this->actingAs($this->clinicalEmployee->user)->get(route('dashboard'))->assertSee('Preferences and Swaps');
     }
 
-    public function test_the_sidebar_link_is_hidden_from_a_manager(): void
+    public function test_the_combined_sidebar_link_is_shown_to_a_manager(): void
     {
-        // The link is a staff-side tool. A manager still reviews requests, but
-        // reaches the page from the notification rather than the sidebar.
-        $this->actingAs($this->manager)->get(route('dashboard'))->assertDontSee('Shift Swaps');
+        $this->actingAs($this->manager)->get(route('dashboard'))->assertSee('Preferences and Swaps');
     }
 
-    public function test_the_sidebar_link_is_hidden_from_administrative_staff(): void
+    public function test_the_combined_sidebar_link_is_shown_to_administrative_staff(): void
     {
-        $this->actingAs($this->administrativeEmployee->user)->get(route('dashboard'))->assertDontSee('Shift Swaps');
+        $this->actingAs($this->administrativeEmployee->user)->get(route('dashboard'))->assertSee('Preferences and Swaps');
+    }
+
+    public function test_the_shift_swap_section_is_hidden_from_administrative_staff(): void
+    {
+        $this->actingAs($this->administrativeEmployee->user)
+            ->get(route('schedule-preferences.index'))
+            ->assertOk()
+            ->assertDontSee('Shift Swaps')
+            ->assertDontSee('Request swap');
     }
 
     public function test_a_support_category_department_is_also_not_eligible(): void
