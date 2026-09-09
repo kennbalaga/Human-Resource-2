@@ -53,7 +53,7 @@ class LeaveController extends Controller
             ->when($canManage && ! empty($filters['employee_id']), fn (Builder $builder) => $builder->where('employee_id', $filters['employee_id']))
             ->when($canManage && ! empty($filters['department_id']), fn (Builder $builder) => $builder->whereHas('employee', fn (Builder $employeeQuery) => $employeeQuery->where('department_id', $filters['department_id'])))
             ->when($filters['leave_type_id'] ?? null, fn (Builder $builder, $typeId) => $builder->where('leave_type_id', $typeId))
-            ->when($filters['status'] ?? null, fn (Builder $builder, $status) => $builder->where('status', $status));
+            ->when($filters['status'] ?? null, fn (Builder $builder, $status) => $builder->whereLifecycleStatus($status));
 
         $types = $reference->leaveTypes()->where('is_active', true)->sortBy('name')->values();
         $balances = $service->balancesFor($employee, $types, (int) $filters['year']);
@@ -102,7 +102,10 @@ class LeaveController extends Controller
             'summary' => [
                 'pending' => (int) $summaryRow['pending'],
                 'approved_days' => (float) $summaryRow['approved_days'],
-                'available_days' => $balances->sum->available_days,
+                // Uncapped types are left out of the headline figure. Adding
+                // their placeholder entitlement to it drowned the credits the
+                // employee actually holds: two of them made this tile read 890.
+                'available_days' => $balances->reject(fn ($balance) => $balance->leaveType->isUncapped())->sum->available_days,
                 'attachments' => (int) $summaryRow['attachments'],
             ],
             'balances' => $balances,

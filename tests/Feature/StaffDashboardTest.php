@@ -433,7 +433,9 @@ class StaffDashboardTest extends TestCase
 
         $this->assertSame(['VAC', 'SICK', 'EMER'], collect($leave['balances'])->pluck('code')->all());
         $this->assertEqualsWithDelta(12.0, collect($leave['balances'])->firstWhere('code', 'VAC')['available'], 0.01);
-        $this->assertSame('Approved', $leave['recent'][0]['status_label']);
+        // Approved leave that has not started yet reads as its phase, not as a
+        // bare "Approved" the employee would have to check the dates against.
+        $this->assertSame('Upcoming', $leave['recent'][0]['status_label']);
 
         $response
             ->assertSee('Vacation Leave')

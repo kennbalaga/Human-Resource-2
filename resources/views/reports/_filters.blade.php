@@ -83,8 +83,8 @@
                 <span>Leave status</span>
                 <select name="leave_status">
                     <option value="">All statuses</option>
-                    @foreach (['pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected', 'cancelled' => 'Cancelled'] as $value => $label)
-                        <option value="{{ $value }}" @selected(($filters['leave_status'] ?? '') === $value)>{{ $label }}</option>
+                    @foreach (\App\Models\LeaveRequest::FILTERABLE_STATUSES as $value)
+                        <option value="{{ $value }}" @selected(($filters['leave_status'] ?? '') === $value)>{{ str($value)->headline() }}</option>
                     @endforeach
                 </select>
             </label>

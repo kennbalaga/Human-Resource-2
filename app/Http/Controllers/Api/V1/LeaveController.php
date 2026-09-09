@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class LeaveController extends Controller
@@ -26,7 +27,7 @@ class LeaveController extends Controller
     {
         $this->requireRead($request->user());
         $validated = $request->validate([
-            'status' => ['nullable', 'in:pending,approved,rejected,cancelled'],
+            'status' => ['nullable', Rule::in(LeaveRequest::FILTERABLE_STATUSES)],
             'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'per_page' => ['nullable', 'integer', 'between:1,100'],
         ]);
@@ -35,7 +36,7 @@ class LeaveController extends Controller
             ->when($manager, fn (Builder $query) => $this->constrainToSupervised($query, $request->user()))
             ->when(! $manager, fn (Builder $query) => $query->where('employee_id', $request->user()->employee?->id))
             ->when($manager && ! empty($validated['employee_id']), fn (Builder $query) => $query->where('employee_id', $validated['employee_id']))
-            ->when($validated['status'] ?? null, fn (Builder $query, $status) => $query->where('status', $status))
+            ->when($validated['status'] ?? null, fn (Builder $query, $status) => $query->whereLifecycleStatus($status))
             ->latest()->paginate($validated['per_page'] ?? 25);
 
         return LeaveRequestResource::collection($records);

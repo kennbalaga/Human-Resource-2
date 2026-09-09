@@ -131,6 +131,13 @@ class LeaveService
                 throw ValidationException::withMessages(['leave' => 'Only pending or approved requests can be cancelled.']);
             }
 
+            // Checked inside the lock, against the row as it stands: the last
+            // day of leave can pass between the page rendering the button and
+            // the form arriving.
+            if (! $request->isCancellable()) {
+                throw ValidationException::withMessages(['leave' => 'This leave has already been taken and can no longer be cancelled.']);
+            }
+
             $balance = $this->balanceFor($request->employee, $request->leaveType, $request->start_date->year, true);
             $field = $request->status === 'approved' ? 'used_days' : 'pending_days';
             $balance->update([$field => max(0, (float) $balance->{$field} - (float) $request->requested_days)]);

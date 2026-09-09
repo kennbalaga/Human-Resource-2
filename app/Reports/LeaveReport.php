@@ -57,7 +57,7 @@ class LeaveReport extends Report
             ReportColumn::make('Start', fn (LeaveRequest $r) => $r->start_date->toDateString()),
             ReportColumn::make('End', fn (LeaveRequest $r) => $r->end_date->toDateString()),
             ReportColumn::make('Days', fn (LeaveRequest $r) => (float) $r->requested_days)->numeric(),
-            ReportColumn::make('Status', fn (LeaveRequest $r) => $r->status),
+            ReportColumn::make('Status', fn (LeaveRequest $r) => $r->lifecycle_status),
             ReportColumn::make('Filed On', fn (LeaveRequest $r) => $r->created_at?->toDateString()),
             ReportColumn::make('Reviewed By', fn (LeaveRequest $r) => $r->reviewer?->name)->wide(),
             ReportColumn::make('Reviewed On', fn (LeaveRequest $r) => $r->reviewed_at?->toDateString())->wide(),
@@ -79,7 +79,7 @@ class LeaveReport extends Report
             ->when($filters['employee_id'] ?? null, fn (Builder $query, $employeeId) => $query
                 ->where('employee_id', $employeeId))
             ->when($filters['leave_status'] ?? null, fn (Builder $query, $status) => $query
-                ->where('status', $status))
+                ->whereLifecycleStatus($status))
             ->when($filters['leave_type_id'] ?? null, fn (Builder $query, $typeId) => $query
                 ->where('leave_type_id', $typeId))
             ->latest('start_date');

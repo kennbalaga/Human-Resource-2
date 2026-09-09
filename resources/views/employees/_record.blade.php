@@ -334,7 +334,7 @@
                                             <h3>{{ $leaveRequest->leaveType?->name ?? 'Leave' }}</h3>
                                             <p>{{ $leaveRequest->start_date?->format('j M Y') }} – {{ $leaveRequest->end_date?->format('j M Y') }}</p>
                                         </div>
-                                        <x-status-badge :status="str($leaveRequest->status)->replace('_', ' ')" />
+                                        <x-status-badge :status="str($leaveRequest->lifecycle_status)->replace('_', ' ')" />
                                     </div>
                                     <div class="employee-card-foot">
                                         <dl class="employee-card-meta">

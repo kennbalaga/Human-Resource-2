@@ -71,6 +71,19 @@ All paths above are relative to `/api/v1`.
 
 List endpoints return Laravel pagination metadata. Use `per_page` from 1 to 100. Supported filters are discoverable in the included Postman requests and include status, employee, department, and date filters where applicable.
 
+### Leave status
+
+A leave request carries its approval state in `status` — `pending`, `approved`, `rejected` or `cancelled` — and that field never changes on its own.
+
+Two further fields describe where an approved request sits against today's date. They are derived on read, so they move with the calendar rather than being written by any job:
+
+| Field | Value |
+| --- | --- |
+| `phase` | `upcoming` before the leave starts, `ongoing` between the start and end dates inclusive, `completed` once the end date has passed. `null` for anything not approved. |
+| `lifecycle_status` | The `phase` when a request is approved, otherwise the `status`. This is what the web UI displays. |
+
+`GET /leaves?status=` accepts any of the four approval states or any of the three phases. Asking for `approved` returns all three phases; asking for `completed` returns only approved leave whose end date is in the past.
+
 ## Response and error conventions
 
 Resources are returned under `data`. Collections include `links` and `meta`. Validation errors return HTTP 422 with an `errors` object. Other common statuses are 401 unauthenticated, 403 forbidden, 404 not found, 429 rate limited, and 500 unexpected server error. Production 500 responses never expose exception details.

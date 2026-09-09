@@ -17,7 +17,7 @@
     <section class="workforce-stats-grid">
         <article class="report-stat"><span class="report-stat-icon report-stat-amber"><x-icon name="clock" /></span><div><span>Pending requests</span><strong>{{ $summary['pending'] }}</strong></div></article>
         <article class="report-stat"><span class="report-stat-icon report-stat-green"><x-icon name="check-circle" /></span><div><span>Approved days</span><strong>{{ number_format($summary['approved_days'], 1) }}</strong></div></article>
-        <article class="report-stat"><span class="report-stat-icon report-stat-blue"><x-icon name="leave" /></span><div><span>Available balance</span><strong>{{ number_format($summary['available_days'], 1) }}</strong></div></article>
+        <article class="report-stat"><span class="report-stat-icon report-stat-blue"><x-icon name="leave" /></span><div><span>Available credits</span><strong>{{ number_format($summary['available_days'], 1) }}</strong></div></article>
         <article class="report-stat"><span class="report-stat-icon report-stat-violet"><x-icon name="paperclip" /></span><div><span>With documents</span><strong>{{ $summary['attachments'] }}</strong></div></article>
     </section>
 
@@ -28,7 +28,9 @@
         </div>
         <div class="leave-balance-grid">
             @foreach($balances as $balance)
-                <article class="leave-balance-card" style="--leave-color: {{ $balance->leaveType->color }}"><span class="leave-balance-color"></span><div><span title="{{ $balance->leaveType->name }}">{{ $balance->leaveType->name }}</span><strong>{{ number_format($balance->available_days, 1) }} days</strong><small>{{ number_format((float)$balance->used_days, 1) }} used · {{ number_format((float)$balance->pending_days, 1) }} pending</small></div></article>
+                @php($type = $balance->leaveType)
+                @php($committed = (float) $balance->used_days + (float) $balance->pending_days)
+                <article class="leave-balance-card" style="--leave-color: {{ $type->color }}"><span class="leave-balance-color"></span><div><span title="{{ $type->name }}">{{ $type->name }}</span><strong>{{ $type->isUncapped() ? 'No fixed cap' : number_format($balance->available_days, 1).' days' }}</strong>@if($committed > 0)<small>{{ number_format((float)$balance->used_days, 1) }} used · {{ number_format((float)$balance->pending_days, 1) }} pending</small>@endif</div></article>
             @endforeach
         </div>
     </section>
@@ -41,7 +43,7 @@
                 <label><span>Employee</span><select name="employee_id"><option value="">All employees</option>@foreach($employees as $employee)<option value="{{ $employee->id }}" @selected(($filters['employee_id'] ?? '') == $employee->id)>{{ $employee->employee_number }} · {{ $employee->full_name }}</option>@endforeach</select></label>
             @endif
             <label><span>Leave type</span><select name="leave_type_id"><option value="">All types</option>@foreach($types as $type)<option value="{{ $type->id }}" @selected(($filters['leave_type_id'] ?? '') == $type->id)>{{ $type->name }}</option>@endforeach</select></label>
-            <label><span>Status</span><select name="status"><option value="">All statuses</option>@foreach(['pending','approved','rejected','cancelled'] as $status)<option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ str($status)->headline() }}</option>@endforeach</select></label>
+            <label><span>Status</span><select name="status"><option value="">All statuses</option>@foreach(\App\Models\LeaveRequest::FILTERABLE_STATUSES as $status)<option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ str($status)->headline() }}</option>@endforeach</select></label>
             <button class="btn btn-primary" type="submit">Apply filters</button>
         </form>
     </section>
@@ -50,12 +52,12 @@
         <div class="panel-header"><div><p class="panel-kicker">Requests and approvals</p><h2>Leave request history</h2></div><span class="history-caption">{{ $requests->total() }} results</span></div>
         <div class="table-responsive"><table class="dashboard-table workforce-table table-stack"><thead><tr><th>Employee</th><th>Leave</th><th>Dates</th><th>Days</th><th>Reason</th><th>Attachments</th><th>Status</th><th>Actions</th></tr></thead><tbody>
             @forelse($requests as $leave)
-                <tr><td data-label="Employee"><div class="employee-cell"><span class="avatar avatar-table">{{ strtoupper(substr($leave->employee->first_name,0,1).substr($leave->employee->last_name,0,1)) }}</span><div><strong>{{ $leave->employee->full_name }}</strong><span>{{ $leave->employee->employee_number }}</span></div></div></td><td data-label="Leave"><span class="leave-type-label"><i style="background:{{ $leave->leaveType->color }}"></i>{{ $leave->leaveType->name }}</span></td><td data-label="Dates"><strong>{{ $leave->start_date->format('M j') }}–{{ $leave->end_date->format('M j, Y') }}</strong></td><td data-label="Days">{{ number_format((float)$leave->requested_days, 1) }}</td><td data-label="Reason"><span class="truncate-reason" title="{{ $leave->reason }}">{{ $leave->reason }}</span></td><td data-label="Attachments">@forelse($leave->attachments as $attachment)<a class="attachment-link" href="{{ route('leave-attachments.download', $attachment) }}"><x-icon name="paperclip" />{{ $attachment->original_name }}</a>@empty<span>—</span>@endforelse</td><td data-label="Status"><x-status-badge :status="$leave->status" /></td><td><div class="row-action-group">
+                <tr><td data-label="Employee"><div class="employee-cell"><span class="avatar avatar-table">{{ strtoupper(substr($leave->employee->first_name,0,1).substr($leave->employee->last_name,0,1)) }}</span><div><strong>{{ $leave->employee->full_name }}</strong><span>{{ $leave->employee->employee_number }}</span></div></div></td><td data-label="Leave"><span class="leave-type-label"><i style="background:{{ $leave->leaveType->color }}"></i>{{ $leave->leaveType->name }}</span></td><td data-label="Dates"><strong>{{ $leave->start_date->format('M j') }}–{{ $leave->end_date->format('M j, Y') }}</strong></td><td data-label="Days">{{ number_format((float)$leave->requested_days, 1) }}</td><td data-label="Reason"><span class="truncate-reason" title="{{ $leave->reason }}">{{ $leave->reason }}</span></td><td data-label="Attachments">@forelse($leave->attachments as $attachment)<a class="attachment-link" href="{{ route('leave-attachments.download', $attachment) }}"><x-icon name="paperclip" />{{ $attachment->original_name }}</a>@empty<span>—</span>@endforelse</td><td data-label="Status"><x-status-badge :status="$leave->lifecycle_status" /></td><td><div class="row-action-group">
                     @if($canManageData && $leave->status === 'pending')
                         <form method="POST" action="{{ route('leaves.approve', $leave) }}">@csrf<button class="btn btn-sm btn-success">Approve</button></form>
                         <form method="POST" action="{{ route('leaves.reject', $leave) }}" class="inline-review-form">@csrf<input name="reviewer_notes" minlength="5" placeholder="Reason" required><button class="btn btn-sm btn-outline-danger">Reject</button></form>
                     @endif
-                    @if(in_array($leave->status, ['pending','approved']) && ($leave->employee_id === auth()->user()->employee?->id || $canManageData))<form method="POST" action="{{ route('leaves.cancel', $leave) }}" data-confirm="Cancel this leave request?">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>@endif
+                    @if($leave->isCancellable() && ($leave->employee_id === auth()->user()->employee?->id || $canManageData))<form method="POST" action="{{ route('leaves.cancel', $leave) }}" data-confirm="Cancel this leave request?">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>@endif
                 </div></td></tr>
             @empty<tr><td colspan="8" class="empty-table-cell"><x-icon name="leave" /><strong>No leave requests found</strong><span>New requests will appear here.</span></td></tr>@endforelse
         </tbody></table></div>

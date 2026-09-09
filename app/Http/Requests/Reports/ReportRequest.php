@@ -2,11 +2,13 @@
 
 namespace App\Http\Requests\Reports;
 
+use App\Models\LeaveRequest;
 use App\Reports\Report;
 use App\Reports\ReportExporter;
 use App\Reports\ReportRegistry;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * One filter contract for every report.
@@ -73,7 +75,7 @@ class ReportRequest extends FormRequest
             'status' => ['nullable', 'string', 'in:present,late'],
             'approval_status' => ['nullable', 'string', 'in:pending,approved,rejected'],
             'capture_method' => ['nullable', 'string', 'in:manual,biometric,qr,mixed'],
-            'leave_status' => ['nullable', 'string', 'in:pending,approved,rejected,cancelled'],
+            'leave_status' => ['nullable', 'string', Rule::in(LeaveRequest::FILTERABLE_STATUSES)],
             'leave_type_id' => ['nullable', 'integer', 'exists:leave_types,id'],
             'timesheet_status' => ['nullable', 'string', 'in:draft,submitted,approved,rejected'],
             'format' => ['nullable', 'string', 'in:'.implode(',', ReportExporter::FORMATS)],

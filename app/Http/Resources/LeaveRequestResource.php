@@ -20,6 +20,10 @@ class LeaveRequestResource extends JsonResource
             'requested_days' => (float) $this->requested_days,
             'reason' => $this->reason,
             'status' => $this->status,
+            // Where the leave sits against today, derived from the dates. Null
+            // until a request is approved; `status` stays the approval state.
+            'phase' => $this->phase,
+            'lifecycle_status' => $this->lifecycle_status,
             'reviewer_notes' => $this->reviewer_notes,
             'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->map(fn ($attachment) => [
                 'id' => $attachment->id,

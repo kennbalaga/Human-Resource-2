@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Leave;
 
+use App\Models\LeaveRequest;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class LeaveFilterRequest extends FormRequest
 {
@@ -20,7 +22,7 @@ class LeaveFilterRequest extends FormRequest
     {
         return [
             'year' => ['required', 'integer', 'between:2020,2100'],
-            'status' => ['nullable', 'in:pending,approved,rejected,cancelled'],
+            'status' => ['nullable', Rule::in(LeaveRequest::FILTERABLE_STATUSES)],
             'leave_type_id' => ['nullable', 'integer', 'exists:leave_types,id'],
             'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],

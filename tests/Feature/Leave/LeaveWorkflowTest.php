@@ -40,6 +40,32 @@ class LeaveWorkflowTest extends TestCase
         $this->assertSame(3.0, (float) $balance->pending_days);
     }
 
+    /**
+     * Unpaid leave and comp-off are seeded with an entitlement of 366 to stand
+     * for "no fixed annual cap". Summing that alongside real credits had the
+     * page advertising an available balance of 890 days, which is not a number
+     * anybody holds -- two placeholders were contributing 732 of it.
+     */
+    public function test_available_credits_leave_out_the_uncapped_leave_types(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+
+        $summary = $this->actingAs($employee)->get(route('leaves.index'))->assertOk()->viewData('summary');
+
+        $capped = LeaveType::query()->where('is_active', true)->get()
+            ->reject(fn (LeaveType $type) => $type->isUncapped());
+
+        $this->assertEqualsWithDelta(
+            $capped->sum(fn (LeaveType $type) => (float) $type->annual_entitlement),
+            $summary['available_days'],
+            0.01,
+        );
+
+        // Guards the specific regression rather than just the arithmetic: a
+        // single uncapped type creeping back in would clear this bar on its own.
+        $this->assertLessThan(LeaveType::UNCAPPED_ENTITLEMENT, $summary['available_days']);
+    }
+
     public function test_manager_approval_moves_pending_days_to_used(): void
     {
         $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();

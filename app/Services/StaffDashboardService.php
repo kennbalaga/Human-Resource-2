@@ -579,10 +579,14 @@ class StaffDashboardService
             ->get()
             ->map(fn (LeaveRequest $request): array => [
                 'type' => $request->leaveType?->name ?? 'Leave',
-                'status' => $request->status,
-                'status_label' => str($request->status)->replace('_', ' ')->title()->value(),
-                'tone' => match ($request->status) {
-                    'approved' => 'success',
+                // The lifecycle status, not the bare workflow one: an employee
+                // reading their own card wants to know the leave is behind them,
+                // not that it was approved back in July.
+                'status' => $request->lifecycle_status,
+                'status_label' => str($request->lifecycle_status)->replace('_', ' ')->title()->value(),
+                'tone' => match ($request->lifecycle_status) {
+                    'approved', 'upcoming', 'completed' => 'success',
+                    'ongoing' => 'info',
                     'pending' => 'warning',
                     'rejected' => 'danger',
                     default => 'idle',

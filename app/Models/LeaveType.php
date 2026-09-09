@@ -11,6 +11,16 @@ class LeaveType extends Model
 {
     use HasFactory;
 
+    /**
+     * At or above this, an entitlement is a placeholder rather than a credit.
+     *
+     * Unpaid leave and comp-off are granted as circumstances call for them, and
+     * are seeded with 366 -- every day of a leap year -- to mean "no fixed
+     * annual cap". Reading that back as though somebody held 366 days of credit
+     * is what made the leave page advertise a balance of 890 days.
+     */
+    public const UNCAPPED_ENTITLEMENT = 365;
+
     protected $fillable = [
         'code',
         'name',
@@ -43,6 +53,12 @@ class LeaveType extends Model
 
         static::saved($forget);
         static::deleted($forget);
+    }
+
+    /** Whether this type is granted on the circumstances rather than from a yearly allowance. */
+    public function isUncapped(): bool
+    {
+        return (float) $this->annual_entitlement >= self::UNCAPPED_ENTITLEMENT;
     }
 
     public function balances(): HasMany
