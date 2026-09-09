@@ -18,7 +18,7 @@ MAIL_MAILER=gmail
 GMAIL_SMTP_USERNAME="your-sender@gmail.com"
 GMAIL_SMTP_APP_PASSWORD="your-16-character-app-password"
 MAIL_FROM_ADDRESS="your-sender@gmail.com"
-MAIL_FROM_NAME="Dr. Jose N. Rodriguez HRMS"
+MAIL_FROM_NAME="Memorial Hospital & Sanitarium"
 APP_URL="https://your-real-hrms-domain.example"
 ```
 

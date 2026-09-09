@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Two-Factor Verification - Dr. Jose N. Rodriguez Memorial Hospital</title>
+    <title>Two-Factor Verification - {{ config('branding.organization') }}</title>
     @include('partials.favicon')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,14 +12,7 @@
 <body>
     <div class="split-screen">
         <div class="left-pane">
-            <header class="logo"><img
-                    src="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826"
-                    srcset="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826 1x, {{ asset('images/icons/logo-mark-192.png') }}?v=20260826 2x"
-                    alt=""
-                    width="56"
-                    height="56"
-                    class="logo-seal"
-                > Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium</header>
+            <header class="logo"><x-brand-mark :size="56" class="logo-seal" /> {{ config('branding.organization') }} <br> {{ config('branding.tagline') }}</header>
             <main class="login-container two-factor-challenge">
                 <div class="two-factor-challenge-icon"><i class="fa-solid fa-shield-halved"></i></div>
                 <div class="login-header">
@@ -53,7 +46,7 @@
                 <p class="two-factor-help"><i class="fa-solid fa-circle-info"></i> Codes rotate every 30 seconds. If you lost your authenticator and recovery codes, contact the System Administrator for an audited identity-verified reset.</p>
                 <a href="{{ route('login') }}" class="back-to-login"><i class="fa-solid fa-arrow-left"></i> Back to login</a>
             </main>
-            <footer class="footer-links"><span class="copyright">&copy; {{ now()->year }} Dr. Jose N. Rodriguez MHS. All rights reserved.</span><a href="{{ route('privacy-policy') }}" class="privacy">Privacy Policy</a></footer>
+            <footer class="footer-links"><span class="copyright">&copy; {{ now()->year }} {{ config('branding.organization') }}. All rights reserved.</span><a href="{{ route('privacy-policy') }}" class="privacy">Privacy Policy</a></footer>
         </div>
         <div class="right-pane">
             <div class="hero-content"><h2>Secure workforce access at every sign-in.</h2><p>Your authenticator code provides a second check even if a password is exposed.</p><img src="{{ URL('images/doctors.png') }}" alt="Hospital workforce illustration" class="hero-image"></div>

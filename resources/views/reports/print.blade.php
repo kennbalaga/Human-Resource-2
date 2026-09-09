@@ -18,7 +18,7 @@
 <div class="report-print-doc" data-print-title="{{ $filename }}">
     <div class="report-print-header">
         <h1>{{ $title }}</h1>
-        <p>Dr. Jose N. Rodriguez Memorial Hospital and Sanitarium</p>
+        <p>{{ config('branding.organization') }}</p>
     </div>
 
     <div class="report-print-meta">

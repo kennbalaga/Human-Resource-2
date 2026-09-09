@@ -42,7 +42,7 @@ class DashboardTest extends TestCase
             ->assertSee('data-sidebar-label="Collapse sidebar"', false)
             ->assertSee('aria-label="Collapse sidebar"', false)
             ->assertSee('sidebar-brand-toggle', false)
-            ->assertSee('Dr. Jose Rodriguez')
+            ->assertSee(config('branding.organization'))
             ->assertDontSee('sidebar-section-label')
             // Integrations and audit logs are no longer buried in Account
             // settings; they sit in their own sidebar group, gated to the roles

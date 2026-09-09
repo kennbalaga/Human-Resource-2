@@ -92,7 +92,7 @@ body.app-locked {
     place-items: center;
 }
 
-.app-lock-mark img {
+.app-lock-mark svg {
     width: 42px;
     height: 42px;
     border-radius: var(--r-md);
@@ -273,7 +273,7 @@ body.app-locked {
         height: 46px;
     }
 
-    .app-lock-mark img {
+    .app-lock-mark svg {
         width: 32px;
         height: 32px;
     }

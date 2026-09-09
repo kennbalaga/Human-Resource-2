@@ -42,7 +42,7 @@ return [
         'dpo_phone' => env('PRIVACY_DPO_PHONE'),
         'office' => env(
             'PRIVACY_DPO_OFFICE',
-            'Human Resource Management Office, Dr. Jose N. Rodriguez Memorial Hospital and Sanitarium, Tala, Caloocan City',
+            'Human Resource Management Office, ' . env('BRAND_ORGANIZATION', 'Memorial Hospital & Sanitarium'),
         ),
     ],
 ];

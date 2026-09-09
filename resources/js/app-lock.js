@@ -251,7 +251,7 @@ const enrollBiometric = async ({ userKey, userName, userEmail }) => {
     const credential = await navigator.credentials.create({
         publicKey: {
             challenge: randomBytes(32),
-            rp: { name: 'Dr. Jose N. Rodriguez HRMS', id: window.location.hostname },
+            rp: { name: 'Memorial Hospital & Sanitarium', id: window.location.hostname },
             user: {
                 id: new TextEncoder().encode(`hrms-device-lock-${userKey}`),
                 name: userEmail || `user-${userKey}`,

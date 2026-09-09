@@ -954,12 +954,6 @@
         width: 3.6rem;
         height: 3.6rem;
     }
-
-    /* The seal-and-title brand row does not fit beside a close button at this
-       width; the subtitle is the part that can go. */
-    .brand-copy small {
-        display: none;
-    }
 }
 
 /* Bootstrap's pager is a single non-wrapping row. Fifteen pages of an

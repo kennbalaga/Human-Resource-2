@@ -25,7 +25,7 @@
  * deletes every cache whose name is not the current one, so a bump is what
  * evicts the previous build's assets rather than leaving them to accumulate.
  */
-const VERSION = 'hrms-v3';
+const VERSION = 'hrms-v5';
 const ASSET_CACHE = `${VERSION}-assets`;
 
 // Resolved against the worker's own scope so this works both at a document
@@ -36,15 +36,13 @@ const OFFLINE_URL = scoped('offline.html');
 
 /*
  * The launcher icons are precached alongside the offline page for one reason:
- * the offline page and the lock screen both show the hospital mark, and an
- * icon fetched over a dead network is a broken image in exactly the moment the
- * app is trying to look composed. They are content-stable, so caching them
- * costs one fetch each, ever.
+ * the offline page shows the app mark, and an icon fetched over a dead network
+ * is a broken image in exactly the moment the app is trying to look composed.
+ * They are content-stable, so caching them costs one fetch each, ever.
  */
 const PRECACHE_URLS = [
     OFFLINE_URL,
     scoped('images/icons/icon-192.png'),
-    scoped('images/icons/logo-mark-192.png'),
     scoped('images/icons/favicon-32.png'),
 ];
 

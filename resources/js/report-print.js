@@ -40,9 +40,9 @@ const tearDown = () => {
 /**
  * The dialog offers the document title as the default filename, and while the
  * report is injected into the host page that title is the application's -- so a
- * saved export would land as "Attendance Reports · Workforce HRMS.pdf". The
- * fragment carries the name the file should have; it is borrowed for the length
- * of the print and handed back afterwards.
+ * saved export would land as "Attendance Reports · Memorial Hospital &
+ * Sanitarium.pdf". The fragment carries the name the file should have; it is
+ * borrowed for the length of the print and handed back afterwards.
  */
 const useExportTitle = (root) => {
     const title = root.querySelector('[data-print-title]')?.dataset.printTitle;

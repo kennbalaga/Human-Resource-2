@@ -29,26 +29,18 @@
 <aside class="app-sidebar" id="appSidebar" aria-label="Primary navigation">
     <div class="sidebar-brand">
         <span class="brand-mark">
-            {{-- The hospital's own seal. srcset carries the 2x file so it stays
-                 sharp on a phone without shipping a 300KB original to a 44px
-                 box. `alt` is empty because the brand copy beside it already
-                 names the hospital — a screen reader would otherwise read the
-                 name twice. --}}
-            <img
-                src="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826"
-                srcset="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826 1x, {{ asset('images/icons/logo-mark-192.png') }}?v=20260826 2x"
-                alt=""
-                width="34"
-                height="34"
-            >
+            {{-- A neutral placeholder mark until we are cleared to carry the
+                 hospital's own seal. It is decorative: the brand copy beside
+                 it already names the system, and a screen reader would
+                 otherwise read the name twice. --}}
+            <x-brand-mark :size="42" />
         </span>
+        {{-- The name only. The rail leaves ~188px beside the mark, which the
+             name fills over two lines; the tagline that runs under it on the
+             auth pages would take a third line and drop the divider below the
+             topbar's bottom border. --}}
         <span class="brand-copy">
-            <strong>Dr. Jose Rodriguez</strong>
-            {{-- The subtitle wraps to two lines in the 272px rail. The
-                 non-breaking space keeps the ampersand tied to the word
-                 before it, so the break falls after "Hospital &" rather than
-                 leaving a line to open with a stray "&". --}}
-            <small>Memorial Hospital&nbsp;&amp; Sanitarium</small>
+            <strong>{{ config('branding.organization') }}</strong>
         </span>
         <button
             class="sidebar-brand-toggle"

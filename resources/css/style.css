@@ -705,14 +705,15 @@ body {
         font-size: var(--fs-2xl);
     }
 
-    /* The full hospital name beside a 60px seal wraps to four lines on a 360px
-       screen and eats a third of the fold. */
+    /* The full organisation name beside a 60px mark wraps to four lines on a
+       360px screen and eats a third of the fold. */
     .logo {
         gap: 0.75rem;
         font-size: var(--fs-sm);
     }
 
-    .logo img {
+    .logo img,
+    .logo svg {
         width: 44px;
     }
 
@@ -723,22 +724,24 @@ body {
     }
 }
 
-/* The hospital seal in the auth-page header. Sized rather than left at its
-   intrinsic 600px, and given a floor so the two-line hospital name beside it
-   cannot squeeze it. */
+/* The brand mark in the auth-page header. Sized explicitly, and given a floor
+   so the two-line organisation name beside it cannot squeeze it. The mark
+   paints in currentColor, so this is also where it is told to be brand green
+   rather than inheriting the muted grey the header text uses. */
 .logo-seal {
-    width: 56px;
-    height: 56px;
+    width: 52px;
+    height: 52px;
+    color: var(--hr-primary);
     flex: 0 0 auto;
-    /* The source is 600x589, not square: `contain` keeps the seal round
-       instead of stretching it a percent taller than it is wide. */
+    /* A replacement mark may not be square; `contain` keeps it in proportion
+       rather than stretching it to the box. */
     object-fit: contain;
 }
 
 @media (max-width: 420px) {
     .logo-seal {
-        width: 44px;
-        height: 44px;
+        width: 42px;
+        height: 42px;
     }
 }
 

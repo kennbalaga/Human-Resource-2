@@ -10,20 +10,35 @@ class FaviconTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_and_authenticated_pages_use_the_same_hospital_favicon(): void
+    public function test_public_and_authenticated_pages_use_the_same_favicon(): void
     {
         $this->seed();
 
         /*
-         * The seal, not the placeholder hospital glyph this used to assert. The
-         * point of the test is unchanged: sign-in and the app behind it must
-         * show the same mark, because a tab icon that changes at the sign-in
-         * boundary looks like a different site — the exact instinct a phishing
-         * page relies on people ignoring.
+         * Sign-in and the app behind it must show the same mark, because a tab
+         * icon that changes at the sign-in boundary looks like a different
+         * site — the exact instinct a phishing page relies on people ignoring.
+         *
+         * The cache-busting stamp is read off the page rather than written in
+         * here, so bumping it in partials.favicon (which every icon swap has to
+         * do) does not fail a test about consistency.
          */
-        $faviconUrl = asset('images/icons/favicon-32.png').'?v=20260826';
+        $login = $this->get(route('login'))->assertOk();
 
-        $this->get(route('login'))->assertOk()->assertSee($faviconUrl, false);
+        $this->assertMatchesRegularExpression(
+            '#'.preg_quote(asset('images/icons/favicon-32.png'), '#').'\?v=\d+#',
+            $login->getContent(),
+            'The sign-in page is not serving the shared favicon.',
+        );
+
+        preg_match(
+            '#'.preg_quote(asset('images/icons/favicon-32.png'), '#').'\?v=\d+#',
+            $login->getContent(),
+            $matches,
+        );
+
+        $faviconUrl = $matches[0];
+
         $this->get(route('password.request'))->assertOk()->assertSee($faviconUrl, false);
         $this->get(route('password.reset', ['token' => 'preview-token']))->assertOk()->assertSee($faviconUrl, false);
 

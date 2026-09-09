@@ -106,42 +106,40 @@ input {
     align-items: center;
     min-height: calc(var(--topbar-height) - 18px);
     margin: 0 4px 18px;
-    /* 6px, not 14px: the subtitle now wraps to two lines, and this is what
-       keeps the divider on the same horizontal as the topbar's bottom border
-       rather than sitting below it. Measured, not guessed. */
+    /* 6px, not 14px: the name wraps to two lines, and this is what keeps the
+       divider on the same horizontal as the topbar's bottom border rather than
+       sitting below it. Measured, not guessed. */
     padding-bottom: 6px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     gap: 12px;
 }
 
 /*
- * The hospital seal, on a white plate.
+ * The brand mark, sitting directly on the sidebar gradient.
  *
- * The plate is not decoration. The seal is a dark-inked mark — a deep green
- * ring carrying near-black lettering — drawn on a transparent ground. Placed
- * straight onto the sidebar's dark gradient, the ring and the whole outer
- * legend disappear into it and what is left reads as a smudge. Every
- * institutional seal on dark chrome is handled this way.
+ * The placeholder draws in currentColor, so it simply takes the white this
+ * sets and needs no plate behind it. An institutional seal is the opposite
+ * case: dark ink on a transparent ground, which disappears into this gradient
+ * and does need one. Restore a white background, a 1px light border and a
+ * smaller inner size below when the real seal replaces the placeholder.
  */
 .brand-mark {
     display: grid;
-    width: 44px;
-    height: 44px;
-    border: 1px solid rgba(255, 255, 255, 0.28);
+    width: 40px;
+    height: 40px;
     border-radius: var(--r-lg);
     color: #fff;
-    background: #fff;
     flex: none;
     place-items: center;
     overflow: hidden;
 }
 
-.brand-mark img {
+.brand-mark svg {
     display: block;
-    width: 34px;
-    height: 34px;
-    /* The seal is 600x589, not square. `contain` keeps it round instead of
-       stretching it a percent taller than it is wide. */
+    width: 40px;
+    height: 40px;
+    /* A replacement mark may not be square; `contain` keeps it in proportion
+       rather than stretching it to the box. */
     object-fit: contain;
 }
 
@@ -206,36 +204,23 @@ input {
     transition: max-width 180ms ease, opacity 150ms ease;
 }
 
+/*
+ * Two lines, not an ellipsis.
+ *
+ * The rail leaves the name ~188px once the mark and the gaps are taken out,
+ * and an organisation name overruns that. It was losing its last word to an
+ * ellipsis, which is a poor thing to do to an organisation's own name.
+ *
+ * Two lines of this size still measure less than the mark beside them, so the
+ * row height — and with it the divider's alignment to the topbar's bottom
+ * border — is unchanged by the wrap.
+ */
 .brand-copy strong {
-    overflow: hidden;
     color: #fff;
     font-size: var(--fs-md);
     font-weight: 650;
     letter-spacing: 0.01em;
     line-height: 1.2;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/*
- * Two lines, not an ellipsis.
- *
- * The rail is 272px wide; once the 44px seal and the gaps are taken out, the
- * subtitle has ~176px to work with and "Memorial Hospital & Sanitarium" needs
- * about 180. It was losing its last word to "Sanitari...", which is a poor
- * thing to do to the hospital's own name — and --fs-2xs is the type floor, so
- * shrinking the way out was not available.
- *
- * The tightened line-height here and the brand block's reduced bottom padding
- * are what keep the divider under this row level with the topbar's bottom
- * edge now that the row carries a second line.
- */
-.brand-copy small {
-    margin-top: 2px;
-    color: rgba(255, 255, 255, 0.68);
-    font-size: var(--fs-2xs);
-    line-height: 1.25;
-    text-wrap: balance;
 }
 
 .sidebar-close {
@@ -408,9 +393,9 @@ input {
         pointer-events: none;
     }
 
-    /* Clamped to zero width, a wrapping subtitle breaks to one word per line
+    /* Clamped to zero width, the wrapping name breaks to one word per line
        and makes the hidden block taller than the rail hiding it. */
-    html[data-sidebar='collapsed'] .brand-copy small {
+    html[data-sidebar='collapsed'] .brand-copy strong {
         white-space: nowrap;
     }
 

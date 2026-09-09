@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="referrer" content="no-referrer">
-    <title>Forgot Password - Dr. Jose N. Rodriguez Memorial Hospital</title>
+    <title>Forgot Password - {{ config('branding.organization') }}</title>
     @include('partials.favicon')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,14 +14,7 @@
     <div class="split-screen">
         <div class="left-pane">
             <header class="logo">
-                <img
-                    src="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826"
-                    srcset="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826 1x, {{ asset('images/icons/logo-mark-192.png') }}?v=20260826 2x"
-                    alt=""
-                    width="56"
-                    height="56"
-                    class="logo-seal"
-                > Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium
+                <x-brand-mark :size="56" class="logo-seal" /> {{ config('branding.organization') }} <br> {{ config('branding.tagline') }}
             </header>
 
             <main class="login-container">
@@ -62,7 +55,7 @@
             </main>
 
             <footer class="footer-links">
-                <span class="copyright">&copy; {{ now()->year }} Dr. Jose N. Rodriguez MHS. All rights reserved.</span>
+                <span class="copyright">&copy; {{ now()->year }} {{ config('branding.organization') }}. All rights reserved.</span>
                 <a href="{{ route('privacy-policy') }}" class="privacy">Privacy Policy</a>
             </footer>
         </div>

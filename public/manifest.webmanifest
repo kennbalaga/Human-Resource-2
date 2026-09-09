@@ -1,8 +1,8 @@
 {
     "id": "./dashboard",
-    "name": "Dr. Jose N. Rodriguez HRMS",
+    "name": "Memorial Hospital & Sanitarium",
     "short_name": "HRMS",
-    "description": "Attendance, scheduling, leave, and workforce management for Dr. Jose N. Rodriguez Memorial Hospital & Sanitarium.",
+    "description": "Attendance, scheduling, leave, and workforce management for hospital personnel.",
     "start_url": "./dashboard",
     "scope": "./",
     "display": "standalone",

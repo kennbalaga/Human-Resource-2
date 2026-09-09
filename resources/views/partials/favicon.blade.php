@@ -4,12 +4,12 @@
      * one of the most aggressively cached resources a browser holds — without a
      * new stamp, staff would keep seeing the old glyph for days after a deploy.
      */
-    $iconVersion = '20260826';
+    $iconVersion = '20260909d';
 @endphp
 
-{{-- The hospital seal, at the three sizes browsers actually request. These are
-     transparent PNGs: the tab strip is near-white in the light theme and
-     near-black in the dark one, and the seal is a filled circle that reads
+{{-- The placeholder mark, at the three sizes browsers actually request.
+     These are transparent PNGs: the tab strip is near-white in the light theme
+     and near-black in the dark one, and the mark is a filled tile that reads
      correctly on both without a plate behind it. --}}
 <link rel="icon" type="image/png" sizes="48x48" href="{{ asset('images/icons/favicon-48.png') }}?v={{ $iconVersion }}">
 <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/icons/favicon-32.png') }}?v={{ $iconVersion }}">
@@ -43,12 +43,12 @@
 {{-- iOS ignores the manifest entirely: the home-screen icon, the title under
      it, and whether the app opens in its own window all come from these tags.
      `apple-mobile-web-app-capable` is what makes it a standalone app rather
-     than a Safari bookmark. The touch icon is the seal on white because iOS
-     composites a transparent icon onto black. --}}
+     than a Safari bookmark. The touch icon is opaque because iOS composites
+     a transparent icon onto black. --}}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="HRMS">
+<meta name="apple-mobile-web-app-title" content="{{ config('branding.short_name') }}">
 <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/icons/apple-touch-icon.png') }}?v={{ $iconVersion }}">
 
 {{-- Phone-number autolinking turns every employee ID and every time like

@@ -13,7 +13,7 @@
          when the soft keyboard opens instead of squashing the whole page. --}}
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Dashboard') · Workforce HRMS</title>
+    <title>@yield('title', 'Dashboard') · {{ config('branding.organization') }}</title>
     @include('partials.favicon')
 
     <script @if(isset($cspNonce)) nonce="{{ $cspNonce }}" @endif>
@@ -108,7 +108,7 @@
             </main>
 
             <footer class="app-footer">
-                <span>© {{ now()->year }} Dr. Jose N. Rodriguez Memorial Hospital and Sanitarium</span>
+                <span>© {{ now()->year }} {{ config('branding.organization') }}</span>
                 <span>Human Resource Management System</span>
             </footer>
         </div>

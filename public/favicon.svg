@@ -1,6 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Workforce HRMS hospital logo">
-    <rect width="64" height="64" rx="15" fill="#176b43"/>
-    <path d="M17 53V14.5A4.5 4.5 0 0 1 21.5 10h21a4.5 4.5 0 0 1 4.5 4.5V53M7 53V28a4 4 0 0 1 4-4h6M47 24h6a4 4 0 0 1 4 4v25M5 53h54" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M28 18h8v7h7v8h-7v7h-8v-7h-7v-8h7z" fill="#fff"/>
-    <path d="M25 53V43h14v10" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="HRMS">
+    <defs>
+        <linearGradient id="tile" x1="0" y1="0" x2="0" y2="64" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#22935d"/>
+            <stop offset="1" stop-color="#0f5537"/>
+        </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="14" fill="url(#tile)"/>
+    <g transform="translate(32 32) scale(0.84) translate(-32 -32)">
+        <path fill="#fff" fill-rule="evenodd" d="M21 15a5 5 0 0 1 5-5h12a5 5 0 0 1 5 5v38H21zM6 33a4 4 0 0 1 4-4h11v24H6zM58 33a4 4 0 0 0-4-4H43v24h15zM29.5 17h5v5h5v5h-5v5h-5v-5h-5v-5h5zM28 53v-8a4 4 0 0 1 8 0v8z"/>
+    </g>
 </svg>

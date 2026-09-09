@@ -20,8 +20,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Privacy Policy - Dr. Jose N. Rodriguez Memorial Hospital</title>
-    <meta name="description" content="How the Dr. Jose N. Rodriguez Memorial Hospital and Sanitarium HR system collects, uses, and protects personnel data under RA 10173.">
+    <title>Privacy Policy - {{ config('branding.organization') }}</title>
+    <meta name="description" content="How the {{ config('branding.organization') }} system collects, uses, and protects personnel data under RA 10173.">
     @include('partials.favicon')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -34,15 +34,8 @@
 
     <header class="legal-topbar">
         <a href="{{ route('login') }}" class="legal-brand">
-            <img
-                src="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826"
-                srcset="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826 1x, {{ asset('images/icons/logo-mark-192.png') }}?v=20260826 2x"
-                alt=""
-                width="44"
-                height="44"
-                class="logo-seal"
-            >
-            <span>Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium</span>
+            <x-brand-mark :size="44" class="logo-seal" />
+            <span>{{ config('branding.organization') }} <br> {{ config('branding.tagline') }}</span>
         </a>
         <a href="{{ route('login') }}" class="legal-back">
             <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to login
@@ -54,7 +47,7 @@
         <h1>Privacy Policy</h1>
         <p class="legal-lead">
             This notice explains what personal data the Human Resource Management System of
-            Dr. Jose N. Rodriguez Memorial Hospital and Sanitarium holds about you as a member
+            {{ config('branding.organization') }} holds about you as a member
             of hospital personnel, why it is held, who can see it, and the rights you hold over
             it under the Data Privacy Act of 2012 (Republic Act No. 10173).
         </p>
@@ -96,7 +89,7 @@
         <section id="controller">
             <h2>1. Who is responsible for your data</h2>
             <p>
-                Dr. Jose N. Rodriguez Memorial Hospital and Sanitarium is the Personal Information
+                {{ config('branding.organization') }} is the Personal Information
                 Controller for the data described here. The hospital's Data Protection Officer is
                 accountable for how that data is handled and is your first point of contact for any
                 privacy question or request — see <a href="#contact">Contact</a>.
@@ -435,7 +428,7 @@
     </main>
 
     <footer class="legal-footer">
-        <span class="copyright">&copy; {{ now()->year }} Dr. Jose N. Rodriguez MHS. All rights reserved.</span>
+        <span class="copyright">&copy; {{ now()->year }} {{ config('branding.organization') }}. All rights reserved.</span>
         <a href="{{ route('login') }}">Back to login</a>
     </footer>
 

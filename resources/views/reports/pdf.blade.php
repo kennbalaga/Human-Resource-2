@@ -29,7 +29,7 @@
 <body>
     <div class="report-header">
         <h1>{{ $title }}</h1>
-        <p>Dr. Jose N. Rodriguez Memorial Hospital and Sanitarium</p>
+        <p>{{ config('branding.organization') }}</p>
     </div>
     <div class="report-meta">
         {{ \Illuminate\Support\Carbon::parse($filters['date_from'])->format('M j, Y') }}

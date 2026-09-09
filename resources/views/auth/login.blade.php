@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Dr. Jose N. Rodriguez Memorial Hospital - Login</title>
+    <title>{{ config('branding.organization') }} - Login</title>
     {{-- The shared partial, so this page's tab icon can never drift from the
          rest of the app again — and so the install prompt is reachable from
          the sign-in screen, not only from inside the app. It also replaces the
@@ -19,14 +19,7 @@
     <div class="split-screen">
         <div class="left-pane">
             <header class="logo">
-                <img
-                    src="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826"
-                    srcset="{{ asset('images/icons/logo-mark-96.png') }}?v=20260826 1x, {{ asset('images/icons/logo-mark-192.png') }}?v=20260826 2x"
-                    alt=""
-                    width="56"
-                    height="56"
-                    class="logo-seal"
-                > Dr. Jose N. Rodriguez <br> Memorial Hospital and Sanitarium
+                <x-brand-mark :size="56" class="logo-seal" /> {{ config('branding.organization') }} <br> {{ config('branding.tagline') }}
             </header>
 
             <main class="login-container">
@@ -93,7 +86,7 @@
             </main>
 
             <footer class="footer-links">
-                <span class="copyright">&copy; {{ now()->year }} Dr. Jose N. Rodriguez MHS. All rights reserved.</span>
+                <span class="copyright">&copy; {{ now()->year }} {{ config('branding.organization') }}. All rights reserved.</span>
                 <a href="{{ route('privacy-policy') }}" class="privacy">Privacy Policy</a>
             </footer>
         </div>

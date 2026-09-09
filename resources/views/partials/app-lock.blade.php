@@ -32,7 +32,7 @@
 >
     <div class="app-lock-head">
         <span class="app-lock-mark">
-            <img src="{{ asset('images/icons/logo-mark-192.png') }}?v=20260826" alt="" width="42" height="42">
+            <x-brand-mark :size="42" />
         </span>
         <h1 class="app-lock-title" id="appLockTitle">{{ $lockUser->name }}</h1>
         <p class="app-lock-subtitle" data-app-lock-subtitle>Enter your 6-digit PIN to unlock the app.</p>

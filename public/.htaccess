@@ -10,7 +10,7 @@
     # Same reasoning, same negligible size. The filenames are not
     # content-hashed, so without this a changed favicon is invisible until the
     # browser decides to look again.
-    <FilesMatch "^(favicon-|icon-|logo-mark-|apple-touch-icon).*\.png$">
+    <FilesMatch "^(favicon-|icon-|apple-touch-icon).*\.png$">
         Header set Cache-Control "public, max-age=86400, must-revalidate"
     </FilesMatch>
 </IfModule>
