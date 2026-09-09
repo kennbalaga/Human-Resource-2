@@ -42,7 +42,7 @@ return [
         'dpo_phone' => env('PRIVACY_DPO_PHONE'),
         'office' => env(
             'PRIVACY_DPO_OFFICE',
-            'Human Resource Management Office, ' . env('BRAND_ORGANIZATION', 'Memorial Hospital & Sanitarium'),
+            'Human Resource Management Office, '.env('BRAND_ORGANIZATION', 'Memorial Hospital & Sanitarium'),
         ),
     ],
 ];
