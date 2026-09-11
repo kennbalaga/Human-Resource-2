@@ -6,7 +6,7 @@
     <section class="page-heading workforce-heading">
         <div><p class="eyebrow">Workforce Management</p><h1>Leave Management</h1><p>Track balances, submit supporting documents, and manage leave approvals.</p></div>
         <div class="row-action-group">
-            @if($canManageLeaveTypes)<button class="btn btn-outline-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#leaveTypeModal"><x-icon name="plus" /> Add leave type</button>@endif
+            @if($canManageLeaveTypes)<button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#leaveTypeModal"><x-icon name="plus" /> Add leave type</button>@endif
             @if($canRequestLeave)<button class="btn btn-primary dashboard-action" type="button" data-bs-toggle="modal" data-bs-target="#leaveRequestModal"><x-icon name="plus" /> Request leave</button>@endif
         </div>
     </section>
