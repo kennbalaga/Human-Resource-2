@@ -502,6 +502,7 @@ html[data-theme-resolved='dark'] .analytics-table td:first-child small { color:#
 /* Profile and settings */
 html[data-theme-resolved='dark'] .profile-hero-copy p { color:#9bd9ba; }
 html[data-theme-resolved='dark'] .profile-detail-list dt,
+html[data-theme-resolved='dark'] .profile-detail-note,
 html[data-theme-resolved='dark'] .profile-settings-form label>span,
 html[data-theme-resolved='dark'] .appearance-options legend { color:#bfcdc5; }
 html[data-theme-resolved='dark'] .settings-toggle i { background:#4a5c53; }

@@ -103,6 +103,13 @@
                         <div><dt><x-icon name="calendar" /> Hire date</dt><dd>{{ $hireDate?->format('j M, Y') ?? 'Not recorded' }}</dd></div>
                         <div><dt><x-icon name="clock" /> Service</dt><dd>{{ $tenure ?? 'Not yet counted' }}</dd></div>
                         <div><dt><x-icon name="check-circle" /> Status</dt><dd>{{ str($employee->employment_status)->replace('_', ' ')->headline() }}@if($employee->isArchived()) · Archived @endif</dd></div>
+                        <div><dt><x-icon name="users" /> Gender</dt><dd>{{ $employee->gender ? ucfirst($employee->gender) : 'Not recorded' }}</dd></div>
+                        {{-- A solo parent ID is a government-issued number, so
+                             it sits behind the same gate as the contact details
+                             rather than on the open part of the record. --}}
+                        @if($canViewPrivate)
+                            <div><dt><x-icon name="shield" /> Solo parent ID</dt><dd>{{ $employee->soloParentSummary() }}@if($employee->solo_parent_id_expires_on && ! $employee->hasValidSoloParentId())<span class="employee-side-blank"> — solo parent leave withheld until renewed</span>@endif</dd></div>
+                        @endif
                     </dl>
                 </section>
 

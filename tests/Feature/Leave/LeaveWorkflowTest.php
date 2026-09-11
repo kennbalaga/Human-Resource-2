@@ -6,6 +6,7 @@ use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -41,29 +42,212 @@ class LeaveWorkflowTest extends TestCase
     }
 
     /**
-     * Unpaid leave and comp-off are seeded with an entitlement of 366 to stand
-     * for "no fixed annual cap". Summing that alongside real credits had the
-     * page advertising an available balance of 890 days, which is not a number
-     * anybody holds -- two placeholders were contributing 732 of it.
+     * Only a yearly allowance is credits anybody holds. Unpaid leave and
+     * comp-off once carried an entitlement of 366 to stand for "no fixed cap",
+     * and summing that alongside real credits had the page advertising 890
+     * available days -- two placeholders contributing 732 of it. Per-occasion
+     * statutory leave has to stay out of the figure for the same reason: 105
+     * days of maternity leave is a ceiling for one childbirth, not credit.
      */
-    public function test_available_credits_leave_out_the_uncapped_leave_types(): void
+    public function test_available_credits_count_only_the_yearly_allowances(): void
     {
         $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
 
-        $summary = $this->actingAs($employee)->get(route('leaves.index'))->assertOk()->viewData('summary');
+        $response = $this->actingAs($employee)->get(route('leaves.index'))->assertOk();
+        $summary = $response->viewData('summary');
 
-        $capped = LeaveType::query()->where('is_active', true)->get()
-            ->reject(fn (LeaveType $type) => $type->isUncapped());
+        // Read off what the page actually offered this employee, not every
+        // active type: a designated allowance they do not hold -- solo parent
+        // leave without the ID -- is not credit, and never reaches the tile.
+        $allowances = $response->viewData('requestableTypes')
+            ->filter(fn (LeaveType $type) => $type->isBalanceBacked());
 
         $this->assertEqualsWithDelta(
-            $capped->sum(fn (LeaveType $type) => (float) $type->annual_entitlement),
+            $allowances->sum(fn (LeaveType $type) => (float) $type->annual_entitlement),
             $summary['available_days'],
             0.01,
         );
 
         // Guards the specific regression rather than just the arithmetic: a
         // single uncapped type creeping back in would clear this bar on its own.
-        $this->assertLessThan(LeaveType::UNCAPPED_ENTITLEMENT, $summary['available_days']);
+        $this->assertLessThan(105, $summary['available_days']);
+    }
+
+    /**
+     * The check that did not exist before: nothing stopped a male employee
+     * filing the full 105 days of maternity leave, because eligibility was
+     * never consulted -- an active type with a balance was the whole test.
+     */
+    public function test_sex_specific_statutory_leave_is_refused_to_ineligible_employees(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $employee->employee->update(['gender' => LeaveType::GENDER_MALE]);
+        $maternity = LeaveType::query()->where('code', 'MATERNITY')->firstOrFail();
+
+        $this->actingAs($employee)->post('/leaves', [
+            'leave_type_id' => $maternity->id,
+            'start_date' => '2027-06-07',
+            'end_date' => '2027-06-11',
+            'reason' => 'Requesting maternity leave for the delivery.',
+        ])->assertSessionHasErrors('leave_type_id');
+
+        $this->assertDatabaseMissing('leave_requests', ['leave_type_id' => $maternity->id]);
+    }
+
+    /**
+     * A record HR has not completed is unknown, not a refusal, and the message
+     * has to point somewhere that can fix it.
+     */
+    public function test_unrecorded_gender_blocks_the_request_and_says_why(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $employee->employee->update(['gender' => null]);
+        $paternity = LeaveType::query()->where('code', 'PATERNITY')->firstOrFail();
+
+        $this->actingAs($employee)->post('/leaves', [
+            'leave_type_id' => $paternity->id,
+            'start_date' => '2027-06-07',
+            'end_date' => '2027-06-11',
+            'reason' => 'Requesting paternity leave for the delivery.',
+        ])->assertSessionHasErrors('leave_type_id');
+
+        $this->assertStringContainsString('Ask HR', session('errors')->first('leave_type_id'));
+    }
+
+    /**
+     * Maternity leave is 105 calendar days, not 105 working days, and the
+     * 30-day global span cap must not stand in the way of the entitlement the
+     * law grants. It is also per childbirth: no balance is drawn down, so the
+     * entitlement is enforced as a ceiling on the one request instead.
+     */
+    public function test_maternity_leave_is_counted_in_calendar_days_up_to_its_ceiling(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $employee->employee->update(['gender' => LeaveType::GENDER_FEMALE]);
+        $maternity = LeaveType::query()->where('code', 'MATERNITY')->firstOrFail();
+
+        $start = Carbon::parse('2027-02-01');
+        Storage::fake(config('workforce.attachment_disk'));
+
+        $this->actingAs($employee)->post('/leaves', [
+            'leave_type_id' => $maternity->id,
+            'start_date' => $start->toDateString(),
+            'end_date' => $start->copy()->addDays(104)->toDateString(),
+            'reason' => 'Maternity leave for the expected delivery date.',
+            'attachments' => [UploadedFile::fake()->create('medical-certificate.pdf', 100, 'application/pdf')],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('leave_requests', [
+            'leave_type_id' => $maternity->id,
+            'requested_days' => 105,
+        ]);
+
+        $this->flushSession();
+
+        // One day past the ceiling, which no balance would have caught.
+        $this->actingAs($employee)->post('/leaves', [
+            'leave_type_id' => $maternity->id,
+            'start_date' => '2028-02-01',
+            'end_date' => Carbon::parse('2028-02-01')->addDays(105)->toDateString(),
+            'reason' => 'Maternity leave beyond the statutory ceiling.',
+            'attachments' => [UploadedFile::fake()->create('medical-certificate.pdf', 100, 'application/pdf')],
+        ])->assertSessionHasErrors('end_date');
+    }
+
+    /**
+     * The bug the classification exists to kill: a per-occasion entitlement
+     * seeded as a yearly allowance handed every employee a fresh 105 days each
+     * January, whether or not anybody had given birth.
+     */
+    public function test_per_occasion_leave_grants_no_yearly_credits(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $this->actingAs($employee)->get(route('leaves.index'))->assertOk();
+
+        $perEvent = LeaveType::query()->where('accrual_method', LeaveType::ACCRUAL_PER_EVENT)->pluck('id');
+
+        $this->assertTrue($perEvent->isNotEmpty());
+        $this->assertSame(0.0, (float) LeaveBalance::query()
+            ->where('employee_id', $employee->employee->id)
+            ->whereIn('leave_type_id', $perEvent)
+            ->sum('entitled_days'));
+    }
+
+    /**
+     * Solo parent leave is a real yearly allowance, so it grants credits like
+     * any other -- but only to holders of a valid DSWD ID. Shown to the whole
+     * workforce it advertised seven days that nobody without the ID could take.
+     */
+    public function test_designated_leave_is_hidden_from_staff_without_the_status(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $employee->employee->update(['solo_parent_id_number' => null, 'solo_parent_id_expires_on' => null]);
+
+        $shown = $this->actingAs($employee)->get(route('leaves.index'))->assertOk()->viewData('requestableTypes');
+        $this->assertNotContains('SOLO-PARENT', $shown->pluck('code')->all());
+
+        // Still listed in the history filter, which spans the whole workforce.
+        $filterable = $this->actingAs($employee)->get(route('leaves.index'))->assertOk()->viewData('types');
+        $this->assertContains('SOLO-PARENT', $filterable->pluck('code')->all());
+    }
+
+    public function test_designated_leave_appears_once_hr_records_a_valid_id(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $employee->employee->update([
+            'solo_parent_id_number' => 'SP-2026-0001',
+            'solo_parent_id_expires_on' => now()->addYear()->toDateString(),
+        ]);
+
+        $shown = $this->actingAs($employee)->get(route('leaves.index'))->assertOk()->viewData('requestableTypes');
+
+        $this->assertContains('SOLO-PARENT', $shown->pluck('code')->all());
+    }
+
+    /**
+     * A DSWD solo parent ID lapses. An expiry nobody revisits would keep
+     * granting the leave forever, so the date is checked rather than presence.
+     */
+    public function test_a_lapsed_solo_parent_id_refuses_the_leave_and_says_when_it_expired(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $employee->employee->update([
+            'solo_parent_id_number' => 'SP-2020-0001',
+            'solo_parent_id_expires_on' => '2026-01-31',
+        ]);
+        $soloParent = LeaveType::query()->where('code', 'SOLO-PARENT')->firstOrFail();
+        Storage::fake(config('workforce.attachment_disk'));
+
+        $this->actingAs($employee)->post('/leaves', [
+            'leave_type_id' => $soloParent->id,
+            'start_date' => '2027-06-07',
+            'end_date' => '2027-06-08',
+            'reason' => 'Parental leave to attend to my child.',
+            'attachments' => [UploadedFile::fake()->create('solo-parent-id.pdf', 100, 'application/pdf')],
+        ])->assertSessionHasErrors('leave_type_id');
+
+        $this->assertStringContainsString('expired on 31 Jan 2026', session('errors')->first('leave_type_id'));
+        $this->assertDatabaseMissing('leave_requests', ['leave_type_id' => $soloParent->id]);
+    }
+
+    /**
+     * The gate is enforced server-side, not merely hidden from the picker: a
+     * posted id for a type the employee cannot hold has to be refused.
+     */
+    public function test_designated_leave_is_refused_even_when_the_type_id_is_posted_directly(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $employee->employee->update(['solo_parent_id_number' => null, 'solo_parent_id_expires_on' => null]);
+        $soloParent = LeaveType::query()->where('code', 'SOLO-PARENT')->firstOrFail();
+
+        $this->actingAs($employee)->post('/leaves', [
+            'leave_type_id' => $soloParent->id,
+            'start_date' => '2027-06-07',
+            'end_date' => '2027-06-08',
+            'reason' => 'Parental leave to attend to my child.',
+        ])->assertSessionHasErrors('leave_type_id');
+
+        $this->assertDatabaseMissing('leave_requests', ['leave_type_id' => $soloParent->id]);
     }
 
     public function test_manager_approval_moves_pending_days_to_used(): void
@@ -185,15 +369,21 @@ class LeaveWorkflowTest extends TestCase
             'code' => 'FAMILY-RESPITE',
             'name' => 'Family Respite Leave',
             'color' => '#5B21B6',
+            'category' => 'company',
             'annual_entitlement' => 5,
+            'accrual_method' => 'annual',
+            'day_basis' => 'working',
             'max_carry_over' => 0,
             'requires_attachment' => '1',
+            'min_service_months' => 0,
             'is_active' => '1',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('leave_types', [
             'code' => 'FAMILY-RESPITE',
             'name' => 'Family Respite Leave',
+            'category' => 'company',
+            'accrual_method' => 'annual',
             'requires_attachment' => true,
             'is_active' => true,
         ]);
@@ -216,7 +406,7 @@ class LeaveWorkflowTest extends TestCase
 
     public function test_requested_default_leave_types_are_available(): void
     {
-        $this->assertDatabaseCount('leave_types', 10);
+        $this->assertDatabaseCount('leave_types', 14);
         $this->assertDatabaseHas('leave_types', ['code' => 'MATERNITY', 'name' => 'Maternity Leave', 'annual_entitlement' => 105]);
         $this->assertDatabaseHas('leave_types', ['code' => 'PATERNITY', 'name' => 'Paternity Leave', 'annual_entitlement' => 7]);
         $this->assertDatabaseHas('leave_types', ['code' => 'SPECIAL-PRIVILEGE', 'name' => 'Special Leave (Special Privilege Leave)']);

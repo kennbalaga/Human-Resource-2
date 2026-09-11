@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,9 @@ class Employee extends Model
         'middle_name',
         'last_name',
         'suffix',
+        'gender',
+        'solo_parent_id_number',
+        'solo_parent_id_expires_on',
         'employment_status',
         'hire_date',
         'contact_number',
@@ -45,6 +49,7 @@ class Employee extends Model
     {
         return [
             'hire_date' => 'date',
+            'solo_parent_id_expires_on' => 'date',
             'archived_at' => 'datetime',
             'preferred_weekly_off_day' => 'integer',
         ];
@@ -64,6 +69,65 @@ class Employee extends Model
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
+    }
+
+    /**
+     * Whether the employee holds the standing status a leave type demands, as
+     * at the given date.
+     *
+     * Unknown designations return false rather than true: a type asking for
+     * something this method cannot verify must refuse the leave, not wave it
+     * through. Expiry is checked because a DSWD solo parent ID lapses, and an
+     * employee whose ID has run out is not a solo parent for the purpose of
+     * claiming the seven days.
+     */
+    public function hasDesignation(string $designation, Carbon $asOf): bool
+    {
+        return match ($designation) {
+            LeaveType::DESIGNATION_SOLO_PARENT => $this->solo_parent_id_expires_on !== null
+                && $this->solo_parent_id_expires_on->greaterThanOrEqualTo($asOf->copy()->startOfDay()),
+            default => false,
+        };
+    }
+
+    /** Whether the solo parent ID on file is present and still in date today. */
+    public function hasValidSoloParentId(): bool
+    {
+        return $this->hasDesignation(LeaveType::DESIGNATION_SOLO_PARENT, Carbon::now());
+    }
+
+    /**
+     * The solo parent ID as it reads on a record, phrased in one place so the
+     * profile and the employee record cannot describe the same row
+     * differently. A lapsed ID says so rather than being hidden: an employee
+     * whose leave has quietly stopped being available is owed the reason.
+     */
+    public function soloParentSummary(): string
+    {
+        if ($this->solo_parent_id_expires_on === null) {
+            return 'Not recorded';
+        }
+
+        $date = $this->solo_parent_id_expires_on->format('j M Y');
+        $number = $this->solo_parent_id_number ?: 'ID on file';
+
+        return $this->hasValidSoloParentId()
+            ? "{$number} · valid to {$date}"
+            : "{$number} · expired {$date}";
+    }
+
+    /**
+     * Completed months of service as at the given date, for the leave types
+     * that carry a tenure requirement. Counted from the hire date, so a record
+     * without one reads as no service rather than as unlimited service.
+     */
+    public function serviceMonthsAsOf(Carbon $date): int
+    {
+        if ($this->hire_date === null || $this->hire_date->greaterThan($date)) {
+            return 0;
+        }
+
+        return (int) $this->hire_date->diffInMonths($date);
     }
 
     /**

@@ -40,6 +40,56 @@ class ProfileSettingsTest extends TestCase
             ->assertSee(route('settings.edit'), false);
     }
 
+    public function test_profile_shows_the_attributes_the_statutory_leave_gates_read(): void
+    {
+        $user = $this->employeeUser();
+        $user->employee->update([
+            'gender' => 'female',
+            'solo_parent_id_number' => 'SP-2026-0042',
+            'solo_parent_id_expires_on' => now()->addYear()->toDateString(),
+        ]);
+
+        $this->actingAs($user)->get('/profile')
+            ->assertOk()
+            ->assertSee('Gender')
+            ->assertSee('Female')
+            ->assertSee('SP-2026-0042')
+            ->assertSee('valid to');
+    }
+
+    /**
+     * A lapsed ID quietly withdraws solo parent leave. The first the employee
+     * would otherwise know of it is a refused request, so the profile says so
+     * and points at the renewal.
+     */
+    public function test_profile_explains_a_lapsed_solo_parent_id(): void
+    {
+        $user = $this->employeeUser();
+        $user->employee->update([
+            'gender' => 'male',
+            'solo_parent_id_number' => 'SP-2020-0007',
+            'solo_parent_id_expires_on' => now()->subMonth()->toDateString(),
+        ]);
+
+        $this->actingAs($user)->get('/profile')
+            ->assertOk()
+            ->assertSee('SP-2020-0007')
+            ->assertSee('expired')
+            ->assertSee('Renew it with the DSWD');
+    }
+
+    public function test_profile_reads_an_unset_attribute_as_not_recorded(): void
+    {
+        $user = $this->employeeUser();
+        $user->employee->update([
+            'gender' => null,
+            'solo_parent_id_number' => null,
+            'solo_parent_id_expires_on' => null,
+        ]);
+
+        $this->actingAs($user)->get('/profile')->assertOk()->assertSeeInOrder(['Gender', 'Not recorded']);
+    }
+
     public function test_standard_employees_do_not_see_system_administration_tools_in_settings(): void
     {
         $this->actingAs($this->employeeUser())->get(route('settings.edit'))

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Organization;
 
+use App\Models\LeaveType;
 use App\Models\Position;
 use App\Services\Organization\EmployeeNumberSettings;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,6 +25,9 @@ class SaveEmployeeRequest extends FormRequest
             'middle_name' => str($this->input('middle_name'))->trim()->toString() ?: null,
             'last_name' => str($this->input('last_name'))->trim()->toString(),
             'suffix' => str($this->input('suffix'))->trim()->toString() ?: null,
+            'gender' => $this->input('gender') ?: null,
+            'solo_parent_id_number' => str($this->input('solo_parent_id_number'))->trim()->upper()->toString() ?: null,
+            'solo_parent_id_expires_on' => $this->input('solo_parent_id_expires_on') ?: null,
         ]);
     }
 
@@ -49,6 +53,15 @@ class SaveEmployeeRequest extends FormRequest
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'suffix' => ['nullable', 'string', 'max:20'],
+            // Optional, and left blank on a record nobody has completed. It
+            // gates only the sex-specific statutory leaves, which read a blank
+            // as unknown and say so rather than quietly granting or refusing.
+            'gender' => ['nullable', Rule::in(LeaveType::genders())],
+            // The expiry is what grants solo parent leave, so it is the half
+            // that must be present. An ID number on its own records nothing
+            // the eligibility check can act on.
+            'solo_parent_id_number' => ['nullable', 'string', 'max:50', 'required_with:solo_parent_id_expires_on'],
+            'solo_parent_id_expires_on' => ['nullable', 'date', 'required_with:solo_parent_id_number'],
             'department_id' => ['required', 'integer', $departmentExists],
             'position_id' => ['required', 'integer', $positionExists],
             'supervisor_id' => ['nullable', 'integer', Rule::exists('employees', 'id')->where('employment_status', 'active')->whereNull('archived_at'), Rule::notIn(array_filter([$employee?->id]))],

@@ -30,9 +30,21 @@ class LeaveService
                 throw ValidationException::withMessages(['end_date' => 'A leave request must stay within one calendar year.']);
             }
 
-            $days = $this->businessDays($start, $end);
+            $this->assertEligible($employee, $type, $start);
+
+            $days = $this->countDays($start, $end, $type);
             if ($days <= 0) {
                 throw ValidationException::withMessages(['start_date' => 'The selected range contains no working days.']);
+            }
+
+            // A per-occasion entitlement caps the request rather than a
+            // balance: 105 days of maternity leave is the ceiling for one
+            // childbirth, and there is no running total to draw it from.
+            $ceiling = $type->maximumDaysPerRequest();
+            if ($ceiling !== null && $days > $ceiling) {
+                throw ValidationException::withMessages([
+                    'end_date' => "{$type->name} is limited to ".number_format($ceiling, 0).' '.$type->day_basis.' day(s) per occurrence.',
+                ]);
             }
 
             $overlap = LeaveRequest::query()
@@ -45,8 +57,12 @@ class LeaveService
                 throw ValidationException::withMessages(['start_date' => 'This request overlaps another pending or approved leave.']);
             }
 
+            // Usage is recorded for every type, because reporting wants to
+            // know how much maternity or unpaid leave was taken. Only a yearly
+            // allowance is *enforced* against a balance -- the others hold no
+            // credits to run out of, and approval is what governs them.
             $balance = $this->balanceFor($employee, $type, $start->year, true);
-            if ($balance->available_days < $days) {
+            if ($type->isBalanceBacked() && $balance->available_days < $days) {
                 throw ValidationException::withMessages(['leave_type_id' => "Insufficient {$type->name} balance. {$balance->available_days} day(s) available."]);
             }
 
@@ -147,6 +163,79 @@ class LeaveService
         });
     }
 
+    /**
+     * How many days the range costs against the given type. Statutory leave
+     * reckoned in calendar days counts weekends too -- 105 days of maternity
+     * leave is 105 days, not fifteen weeks of working days.
+     */
+    public function countDays(Carbon $start, Carbon $end, LeaveType $type): float
+    {
+        return $type->usesCalendarDays()
+            ? (float) ($start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay()) + 1)
+            : $this->businessDays($start, $end);
+    }
+
+    /**
+     * The entry conditions the law attaches to a leave type, checked before any
+     * balance is touched. Nothing enforced these before, so a male employee
+     * could file the full 105 days of maternity leave and the system took it.
+     */
+    public function assertEligible(Employee $employee, LeaveType $type, Carbon $asOf): void
+    {
+        if ($type->requires_designation !== null && ! $employee->hasDesignation($type->requires_designation, $asOf)) {
+            // Distinguishes a lapsed ID from one that was never recorded. An
+            // employee whose solo parent ID expired last month is owed a
+            // different instruction from one HR never marked at all.
+            $lapsed = $type->requires_designation === LeaveType::DESIGNATION_SOLO_PARENT
+                && $employee->solo_parent_id_expires_on !== null;
+
+            throw ValidationException::withMessages(['leave_type_id' => $lapsed
+                ? "{$type->name} requires a valid solo parent ID. The one on your record expired on {$employee->solo_parent_id_expires_on->format('j M Y')}."
+                : "{$type->name} is available to employees HR has recorded as qualifying. Ask HR if you believe this applies to you."]);
+        }
+
+        if ($type->eligible_gender !== null && $employee->gender !== $type->eligible_gender) {
+            // An unrecorded gender is not a refusal of the entitlement, it is
+            // an incomplete record, and the message has to send the employee
+            // somewhere that can fix it rather than reading as a denial.
+            throw ValidationException::withMessages(['leave_type_id' => $employee->gender === null
+                ? "{$type->name} is available to {$type->eligible_gender} employees, and your record does not state one. Ask HR to complete your profile."
+                : "{$type->name} is available to {$type->eligible_gender} employees."]);
+        }
+
+        $required = (int) $type->min_service_months;
+        if ($required > 0 && ($served = $employee->serviceMonthsAsOf($asOf)) < $required) {
+            throw ValidationException::withMessages([
+                'leave_type_id' => "{$type->name} requires {$required} month(s) of service. You will have {$served} by the start of this leave.",
+            ]);
+        }
+    }
+
+    /**
+     * The types this employee could hold at all, for the balance cards and the
+     * request picker.
+     *
+     * Only the standing gates narrow the list -- gender and designation --
+     * because those do not change by waiting. A tenure requirement is left in
+     * so the card still shows: the employee will qualify for it in a few
+     * months, and hiding it would read as though the entitlement did not
+     * exist. assertEligible is still what refuses the request; this only keeps
+     * the page from advertising leave nobody can take.
+     *
+     * @param  Collection<int, LeaveType>  $types
+     * @return Collection<int, LeaveType>
+     */
+    public function selectableTypes(Employee $employee, Collection $types, Carbon $asOf): Collection
+    {
+        return $types->filter(function (LeaveType $type) use ($employee, $asOf): bool {
+            if ($type->requires_designation !== null && ! $employee->hasDesignation($type->requires_designation, $asOf)) {
+                return false;
+            }
+
+            return $type->eligible_gender === null || $employee->gender === $type->eligible_gender;
+        })->values();
+    }
+
     public function businessDays(Carbon $start, Carbon $end): float
     {
         return (float) collect(CarbonPeriod::create($start->copy()->startOfDay(), $end->copy()->startOfDay()))
@@ -158,7 +247,7 @@ class LeaveService
     {
         LeaveBalance::query()->firstOrCreate(
             ['employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => $year],
-            ['entitled_days' => $type->annual_entitlement],
+            ['entitled_days' => $this->entitlementFor($type)],
         );
 
         $query = LeaveBalance::query()
@@ -187,7 +276,7 @@ class LeaveService
                 'employee_id' => $employee->id,
                 'leave_type_id' => $type->id,
                 'year' => $year,
-                'entitled_days' => $type->annual_entitlement,
+                'entitled_days' => $this->entitlementFor($type),
                 'created_at' => now(),
                 'updated_at' => now(),
             ])->values()->all());
@@ -220,6 +309,17 @@ class LeaveService
             ->whereIn('leave_type_id', $types->pluck('id'))
             ->get()
             ->keyBy('leave_type_id');
+    }
+
+    /**
+     * The credits to open a year with. Only a yearly allowance grants any: a
+     * per-occasion or uncapped type would otherwise hand every employee a
+     * fresh 105 days of maternity leave each January, and an entitlement
+     * nobody holds is exactly what once had the balance tile reading 890 days.
+     */
+    private function entitlementFor(LeaveType $type): float
+    {
+        return $type->isBalanceBacked() ? (float) $type->annual_entitlement : 0.0;
     }
 
     private function ensurePending(LeaveRequest $request): void

@@ -35,6 +35,12 @@
                     <div><dt>Position</dt><dd>{{ $employee->position?->name ?? '—' }}</dd></div>
                     <div><dt>Supervisor</dt><dd>{{ $employee->supervisor?->full_name ?? 'Not assigned' }}</dd></div>
                     <div><dt>Hire date</dt><dd>{{ $employee->hire_date?->format('F j, Y') ?? '—' }}</dd></div>
+                    <div><dt>Gender</dt><dd>{{ $employee->gender ? ucfirst($employee->gender) : 'Not recorded' }}</dd></div>
+                    {{-- Shown to the employee because it is theirs to check. A
+                         lapsed solo parent ID silently withdraws the seven days,
+                         and the first they would otherwise know of it is a
+                         refused request. --}}
+                    <div><dt>Solo parent ID</dt><dd>{{ $employee->soloParentSummary() }}@if($employee->solo_parent_id_expires_on && ! $employee->hasValidSoloParentId())<br><small class="profile-detail-note">Renew it with the DSWD and ask HR to update your record to restore solo parent leave.</small>@endif</dd></div>
                     <div><dt>Account email</dt><dd>{{ $user->email }}</dd></div>
                     <div><dt>Last login</dt><dd>{{ $user->last_login_at?->format('M j, Y · g:i A') ?? 'No recorded login' }}</dd></div>
                 </dl>

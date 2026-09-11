@@ -56,7 +56,15 @@ class LeaveController extends Controller
             ->when($filters['status'] ?? null, fn (Builder $builder, $status) => $builder->whereLifecycleStatus($status));
 
         $types = $reference->leaveTypes()->where('is_active', true)->sortBy('name')->values();
-        $balances = $service->balancesFor($employee, $types, (int) $filters['year']);
+
+        // Two lists on purpose. The history filter below keeps every type,
+        // because a manager filters across the whole workforce and an employee
+        // may have older requests against a type they no longer qualify for.
+        // The balance cards and the request picker get only what this employee
+        // could actually hold -- otherwise every member of staff was shown
+        // seven solo parent days they have no ID for.
+        $requestableTypes = $service->selectableTypes($employee, $types, now(config('workforce.timezone')));
+        $balances = $service->balancesFor($employee, $requestableTypes, (int) $filters['year']);
         $focusDate = ! empty($filters['date']) ? Carbon::parse($filters['date']) : now(config('workforce.timezone'));
         $monthStart = $focusDate->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY);
         $monthEnd = $focusDate->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
@@ -102,15 +110,17 @@ class LeaveController extends Controller
             'summary' => [
                 'pending' => (int) $summaryRow['pending'],
                 'approved_days' => (float) $summaryRow['approved_days'],
-                // Uncapped types are left out of the headline figure. Adding
-                // their placeholder entitlement to it drowned the credits the
-                // employee actually holds: two of them made this tile read 890.
-                'available_days' => $balances->reject(fn ($balance) => $balance->leaveType->isUncapped())->sum->available_days,
+                // Only a yearly allowance is credits somebody actually holds.
+                // Per-occasion and uncapped types are granted on the occasion,
+                // and adding their ceilings in drowned the real figure: two
+                // placeholders once made this tile read 890 days.
+                'available_days' => $balances->filter(fn ($balance) => $balance->leaveType->isBalanceBacked())->sum->available_days,
                 'attachments' => (int) $summaryRow['attachments'],
             ],
             'balances' => $balances,
             'employee' => $employee,
             'types' => $types,
+            'requestableTypes' => $requestableTypes,
             'employees' => Employee::query()->visibleTo($request->user())->notArchived()->where('employment_status', 'active')->orderBy('last_name')->get(),
             'departments' => $this->selectableDepartments($request),
             'calendarDays' => $calendarDays,
@@ -132,6 +142,13 @@ class LeaveController extends Controller
     ): RedirectResponse {
         $data = $request->validated();
         $type = LeaveType::query()->findOrFail($data['leave_type_id']);
+
+        // Ahead of the attachment demand on purpose: nobody should be asked to
+        // upload a medical certificate for an entitlement they cannot claim.
+        // LeaveService checks this again inside the transaction, which is what
+        // the API path and any future caller rely on.
+        $service->assertEligible($request->user()->employee, $type, Carbon::parse($data['start_date'], config('workforce.timezone')));
+
         if ($type->requires_attachment && ! $request->hasFile('attachments')) {
             throw ValidationException::withMessages(['attachments' => "{$type->name} requires a supporting attachment."]);
         }
