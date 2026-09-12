@@ -11,6 +11,7 @@ use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Attendance\AttendanceQrService;
+use App\Services\Organization\EmployeeArchiver;
 use App\Services\Organization\EmployeeNumberGenerator;
 use App\Services\Organization\EmployeeNumberSettings;
 use App\Support\Qr\QrEncoder;
@@ -110,7 +111,7 @@ class EmployeeController extends Controller
      * already open on this employee, rather than 404ing on a page that was
      * deleted.
      */
-    public function show(Request $request, Employee $employee): View|RedirectResponse
+    public function show(Request $request, Employee $employee, EmployeeArchiver $archiver): View|RedirectResponse
     {
         if (! $request->boolean('panel')) {
             return redirect()->route('employees.index', ['employee' => $employee->id]);
@@ -181,6 +182,10 @@ class EmployeeController extends Controller
             'canReissueAttendanceQr' => $canReissueAttendanceQr,
             'timeOff' => $timeOff,
             'attendance' => $attendance,
+            // Printed on a terminated record so the date the sweep will act on
+            // is a fact on the page rather than arithmetic the reader has to do
+            // from a policy they half remember. Null on everybody else.
+            'autoArchiveDueAt' => $archiver->dueAt($employee),
             'canResetTwoFactor' => $request->user()->hasRole('system-administrator')
                 && $employee->user !== null
                 && ! $employee->user->is($request->user())
@@ -360,7 +365,7 @@ class EmployeeController extends Controller
             return false;
         }
 
-        return in_array($status, ['active', 'on_leave'], true);
+        return Employee::employmentGrantsAccess($status);
     }
 
     private function syncRoleForPosition(User $user, int $positionId): void
@@ -411,14 +416,14 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Put a record on the shelf.
+     * Put a record on the shelf, by hand.
      *
-     * Nothing is deleted and nothing is anonymised — the row keeps every field
-     * it had, and its timesheets, leave and attendance history stay attached
-     * and countable. It leaves the directory's working list, and it stops being
-     * offered as somebody to roster or report to.
+     * Only ever the second half of a termination. The automatic sweep does the
+     * same thing thirty days on; this is the button for the cases where waiting
+     * serves nobody, and for the record that was restored for a last check and
+     * is now genuinely finished with.
      */
-    public function archive(Request $request, Employee $employee): RedirectResponse
+    public function archive(Request $request, Employee $employee, EmployeeArchiver $archiver): RedirectResponse
     {
         $this->requireManager($request);
         $this->requireSupervision($request, $employee, 'workforce.manage.record');
@@ -427,33 +432,26 @@ class EmployeeController extends Controller
             return back()->with('warning', $employee->full_name.' is already archived.');
         }
 
-        $outstanding = $this->outstandingWork($employee);
-
-        if ($outstanding !== []) {
-            return back()->with('warning', $employee->full_name.' still has '.$this->listPhrase($outstanding).'. Clear that first, then archive the record.');
+        // The directory only offers the button on a terminated record, so this
+        // is the stale page, the hand-written request, and the two managers who
+        // opened the same row before one of them reinstated the person.
+        if (! $employee->isTerminated()) {
+            return back()->with('warning', $employee->full_name.' is still employed. Set their employment status to Terminated first — archiving closes the account, and only a termination should do that.');
         }
 
-        DB::transaction(function () use ($employee, $request): void {
-            $employee->forceFill([
-                'archived_at' => now(),
-                'archived_by' => $request->user()->id,
-            ])->save();
+        $outstanding = $archiver->outstandingWork($employee);
 
-            // Archived means out of the organisation's working day, not merely
-            // out of one list. Leaving the account open would let somebody the
-            // directory no longer shows sign in and clock in as usual.
-            $employee->user?->update(['is_active' => false]);
-            // A personal access token outlives sessions and ignores is_active
-            // at the point of issue, so it is the one credential that would
-            // still answer for an archived account.
-            $employee->user?->tokens()->delete();
-        });
+        if ($outstanding !== []) {
+            return back()->with('warning', $employee->full_name.' still has '.$archiver->listPhrase($outstanding).'. Clear that first, then archive the record.');
+        }
+
+        $archiver->archive($employee, $request->user());
 
         return back()->with('success', $employee->full_name.' was archived and their sign-in was closed. The record is kept in full and can be restored at any time.');
     }
 
     /** Back onto the working list, exactly as it was. */
-    public function restore(Request $request, Employee $employee): RedirectResponse
+    public function restore(Request $request, Employee $employee, EmployeeArchiver $archiver): RedirectResponse
     {
         $this->requireManager($request);
         $this->requireSupervision($request, $employee, 'workforce.manage.record');
@@ -462,68 +460,21 @@ class EmployeeController extends Controller
             return back()->with('warning', $employee->full_name.' is not archived.');
         }
 
-        DB::transaction(function () use ($employee): void {
-            $employee->forceFill([
-                'archived_at' => null,
-                'archived_by' => null,
-            ])->save();
+        $archiver->restore($employee);
 
-            // Access follows employment again, by the same rule the employee
-            // form uses. A restored record whose status still reads active but
-            // whose account stayed shut would be a person locked out with
-            // nothing on screen to explain why.
-            $employee->user?->update(['is_active' => $this->accountIsActive($employee->employment_status)]);
-        });
+        $message = $employee->full_name.' was restored to the directory.';
 
-        return back()->with('success', $employee->full_name.' was restored to the directory.');
-    }
-
-    /**
-     * What has to be settled before a record can be filed away.
-     *
-     * Archiving is the end of somebody's presence in the working day, so the
-     * things that would outlive them are checked first: a shift still rostered
-     * in their name, a leave request nobody has decided, the colleagues who
-     * report to them — who would otherwise keep pointing at a supervisor the
-     * directory no longer shows — and a day they are still standing in.
-     *
-     * That last one is the trap the others do not cover. Archiving closes the
-     * account and turns away the badge, so a person archived between their
-     * check-in and their check-out can no longer record the second half: not
-     * from the website they can no longer sign in to, and not at the scanner
-     * that now refuses their card. The day would stay open forever, and the
-     * timesheet built from it would be wrong with nobody to fix it.
-     *
-     * @return array<int, string>
-     */
-    private function outstandingWork(Employee $employee): array
-    {
-        $futureShifts = $employee->scheduleAssignments()->whereDate('work_date', '>=', now()->toDateString())->count();
-        $pendingLeave = $employee->leaveRequests()->where('status', 'pending')->count();
-        $directReports = $employee->directReports()->notArchived()->count();
-        $stillClockedIn = $employee->attendanceRecords()
-            ->whereNotNull('check_in_at')
-            ->whereNull('check_out_at')
-            ->exists();
-
-        return array_values(array_filter([
-            $stillClockedIn ? 'an attendance day that has not been checked out' : null,
-            $futureShifts > 0 ? $futureShifts.' '.str('scheduled shift')->plural($futureShifts).' from today onwards' : null,
-            $pendingLeave > 0 ? $pendingLeave.' pending leave '.str('request')->plural($pendingLeave) : null,
-            $directReports > 0 ? $directReports.' direct '.str('report')->plural($directReports) : null,
-        ]));
-    }
-
-    /** @param array<int, string> $items */
-    private function listPhrase(array $items): string
-    {
-        if (count($items) === 1) {
-            return $items[0];
+        // The deadline, said out loud. A manager restoring a former colleague
+        // needs to know two things this sentence answers: that they have time
+        // to do the checking, and that forgetting to re-file the record
+        // afterwards will not leave it in the directory for good.
+        if ($dueAt = $archiver->dueAt($employee->fresh())) {
+            $message .= ' Anything still to check can be checked until '
+                .$dueAt->timezone(config('workforce.timezone'))->format('j M Y')
+                .', when the record is archived again automatically.';
         }
 
-        $last = array_pop($items);
-
-        return implode(', ', $items).' and '.$last;
+        return back()->with('success', $message);
     }
 
     /**

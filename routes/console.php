@@ -24,6 +24,18 @@ Artisan::command('notifications:prune', function () {
 
 Schedule::command('notifications:prune')->daily();
 
+/*
+ * The terminated-record sweep.
+ *
+ * Overnight and once a day, because the window it enforces is measured in days
+ * — running it more often would only mean archiving somebody at 09:15 instead
+ * of at 01:15 on the same date, in the middle of the working morning, while
+ * their colleagues have the directory open.
+ */
+Schedule::command('employees:archive-terminated')
+    ->dailyAt('01:15')
+    ->timezone(config('workforce.timezone'));
+
 Artisan::command('attendance:remind {type}', function (string $type) {
     $sent = app(AttendanceReminderService::class)->send($type);
     $this->info("Attendance reminders sent: {$sent}");

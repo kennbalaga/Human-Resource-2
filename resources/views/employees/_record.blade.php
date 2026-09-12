@@ -89,6 +89,29 @@
                 <span>
                     This record is archived, so {{ $employee->first_name }} is not offered for scheduling and cannot sign in.
                     Archived {{ $employee->archived_at?->timezone(config('schedule.timezone'))->format('j M Y') }}@if($employee->archiver) by {{ $employee->archiver->name }}@endif.
+                    @if($employee->wasArchivedAutomatically())
+                        Filed by the system, {{ config('workforce.terminated_archive_after_days') }} days after the termination, rather than by a person.
+                    @endif
+                </span>
+            </div>
+        {{-- The other end of the same story, said before it happens rather than
+             after: a terminated record is on its way to the shelf, and the date
+             belongs on the page instead of in the reader's head. A record a
+             manager has restored says so too — otherwise the sweep looks broken
+             when it leaves that one alone. --}}
+        @elseif($employee->isTerminated())
+            <div class="attendance-alert attendance-alert-warning employee-record-archived" role="status">
+                <x-icon name="alert" />
+                <span>
+                    {{ $employee->first_name }}'s employment ended{{ $employee->terminated_at ? ' on '.$employee->terminated_at->timezone(config('schedule.timezone'))->format('j M Y') : '' }}, so the account is closed.
+                    @if($autoArchiveDueAt ?? null)
+                        The record is archived automatically on {{ $autoArchiveDueAt->timezone(config('schedule.timezone'))->format('j M Y') }}, and can be archived now from the directory.
+                        @if($employee->restored_at)
+                            That date counts from {{ $employee->restored_at->timezone(config('schedule.timezone'))->format('j M Y') }}, when the record was last restored.
+                        @endif
+                    @else
+                        It can be archived from the directory whenever the paperwork is finished.
+                    @endif
                 </span>
             </div>
         @endif

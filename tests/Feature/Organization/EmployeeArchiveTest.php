@@ -17,13 +17,18 @@ use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 /**
- * Archiving is a shelf, not a delete.
+ * Archiving is a shelf, not a delete — and it is the second half of a
+ * termination, never a shortcut past one.
  *
  * The record stays in the database whole — that is the point of it, since every
  * timesheet, leave balance and attendance row an employee ever produced points
  * back at this row. What changes is where it is offered: out of the directory's
  * working list, out of the pickers that hand somebody work, and into the
  * Archived filter, from which it comes back unchanged.
+ *
+ * What is asserted here is the manual half: who may file a record, which
+ * records may be filed at all, and what restoring one does. The clock that
+ * files the rest on its own is in TerminatedEmployeeAutoArchiveTest.
  */
 class EmployeeArchiveTest extends TestCase
 {
@@ -40,9 +45,10 @@ class EmployeeArchiveTest extends TestCase
     public function test_an_employee_with_work_still_on_the_books_cannot_be_archived(): void
     {
         $manager = $this->manager();
-        // Seeded with four rostered shifts from today onwards, and nothing has
-        // been settled: exactly the record that must not be filed away yet.
-        $employee = $this->employee('HR-OFFICER-2026-0001');
+        // Employment over, but a shift still standing in their name: exactly
+        // the record that must not be filed away yet.
+        $employee = $this->terminated($this->employee('HR-OFFICER-2026-0001'));
+        $this->rosterAFutureShift($employee);
 
         $this->actingAs($manager)
             ->post(route('employees.archive', $employee))
@@ -57,7 +63,8 @@ class EmployeeArchiveTest extends TestCase
     {
         $manager = $this->manager();
         // Rostered, awaiting a leave decision, and supervising seven people.
-        $employee = $this->employee('HR-MGR-2026-0001');
+        $employee = $this->terminated($this->employee('HR-MGR-2026-0001'));
+        $this->rosterAFutureShift($employee);
         $employee->leaveRequests()->create([
             'uuid' => (string) Str::uuid(),
             'leave_type_id' => LeaveType::query()->value('id'),
@@ -76,6 +83,49 @@ class EmployeeArchiveTest extends TestCase
                 && str_contains($message, 'direct report'));
 
         $this->assertNull($employee->fresh()->archived_at);
+    }
+
+    public function test_an_employee_who_is_still_employed_cannot_be_archived(): void
+    {
+        $manager = $this->manager();
+        // Settled in every other respect: nothing is rostered, nothing is
+        // pending, nobody reports to them. The only thing standing between this
+        // record and the shelf is that the person still works here.
+        $employee = $this->employee('HR-OFFICER-2026-0001');
+        $employee->scheduleAssignments()->delete();
+        $employee->leaveRequests()->where('status', 'pending')->delete();
+        Employee::query()->where('supervisor_id', $employee->id)->update(['supervisor_id' => null]);
+
+        foreach (['active', 'on_leave', 'inactive'] as $status) {
+            $employee->forceFill(['employment_status' => $status])->save();
+
+            $this->actingAs($manager)
+                ->post(route('employees.archive', $employee))
+                ->assertRedirect()
+                ->assertSessionHas('warning', fn (string $message) => str_contains($message, 'still employed'));
+
+            $this->assertNull($employee->fresh()->archived_at);
+            $this->assertTrue($employee->user->fresh()->is_active || $status === 'inactive');
+        }
+    }
+
+    public function test_the_directory_offers_archive_only_once_the_employment_has_ended(): void
+    {
+        $manager = $this->manager();
+        $employee = $this->employee('HR-OFFICER-2026-0001');
+        $archiveUrl = route('employees.archive', $employee);
+
+        // Absent on an employed colleague, so the click that closes an account
+        // is never one mis-aimed press away.
+        $this->actingAs($manager)->get(route('employees.index', ['search' => $employee->employee_number]))
+            ->assertOk()
+            ->assertDontSee($archiveUrl);
+
+        $this->terminated($employee);
+
+        $this->actingAs($manager)->get(route('employees.index', ['search' => $employee->employee_number]))
+            ->assertOk()
+            ->assertSee($archiveUrl);
     }
 
     public function test_archiving_keeps_the_row_and_moves_it_out_of_the_working_list(): void
@@ -99,13 +149,18 @@ class EmployeeArchiveTest extends TestCase
         $this->assertNotNull($employee->fresh()->archived_at);
         $this->assertNull($employee->fresh()->deleted_at);
 
-        $this->actingAs($manager)->get(route('employees.index'))
+        // Searched for, and asserted against the list the page was handed
+        // rather than against its markup: the directory pages at fifteen, so a
+        // record that was never on page one would satisfy assertDontSee while
+        // proving nothing — and the search box echoes the term it was given,
+        // so the number is on the page either way.
+        $this->actingAs($manager)->get(route('employees.index', ['search' => $employee->employee_number]))
             ->assertOk()
-            ->assertDontSee($employee->employee_number);
+            ->assertViewHas('employees', fn ($employees) => ! $employees->contains('id', $employee->id));
 
-        $this->actingAs($manager)->get(route('employees.index', ['status' => 'archived']))
+        $this->actingAs($manager)->get(route('employees.index', ['search' => $employee->employee_number, 'status' => 'archived']))
             ->assertOk()
-            ->assertSee($employee->employee_number);
+            ->assertViewHas('employees', fn ($employees) => $employees->contains('id', $employee->id));
     }
 
     public function test_a_restored_employee_returns_to_the_directory(): void
@@ -122,9 +177,9 @@ class EmployeeArchiveTest extends TestCase
         $this->assertNull($employee->archived_at);
         $this->assertNull($employee->archived_by);
 
-        $this->actingAs($manager)->get(route('employees.index'))
+        $this->actingAs($manager)->get(route('employees.index', ['search' => $employee->employee_number]))
             ->assertOk()
-            ->assertSee($employee->employee_number);
+            ->assertViewHas('employees', fn ($employees) => $employees->contains('id', $employee->id));
     }
 
     public function test_an_archived_employee_is_no_longer_offered_as_somebody_to_assign(): void
@@ -204,10 +259,13 @@ class EmployeeArchiveTest extends TestCase
         $this->actingAs($manager)->post(route('employees.archive', $employee))->assertRedirect();
         $this->assertFalse($employee->user->fresh()->is_active);
 
-        // Employment status still reads active, and the form recomputes access
-        // from it — the archive has to outrank that.
+        // An archived record can still be edited, and the form recomputes
+        // access from the employment status it is given. Reinstating somebody
+        // on paper while their record is still on the shelf must not hand the
+        // sign-in back — the archive outranks the status until the record is
+        // actually restored.
         $this->actingAs($manager)
-            ->patch(route('employees.update', $employee), $this->payloadFor($employee->fresh()))
+            ->patch(route('employees.update', $employee), $this->payloadFor($employee->fresh(), ['employment_status' => 'active']))
             ->assertSessionHasNoErrors();
 
         $this->assertFalse($employee->user->fresh()->is_active);
@@ -215,6 +273,20 @@ class EmployeeArchiveTest extends TestCase
         // Restoring hands access back, by the same employment rule.
         $this->actingAs($manager)->post(route('employees.restore', $employee))->assertRedirect();
         $this->assertTrue($employee->user->fresh()->is_active);
+    }
+
+    public function test_restoring_a_record_that_is_still_terminated_leaves_the_sign_in_shut(): void
+    {
+        $manager = $this->manager();
+        $employee = $this->settledEmployee('HR-OFFICER-2026-0001');
+
+        $this->actingAs($manager)->post(route('employees.archive', $employee))->assertRedirect();
+        $this->actingAs($manager)->post(route('employees.restore', $employee))->assertRedirect();
+
+        // Back in the directory so the remaining paperwork can be read, but the
+        // employment is still over: restoring a record is not rehiring anyone.
+        $this->assertNull($employee->fresh()->archived_at);
+        $this->assertFalse($employee->user->fresh()->is_active);
     }
 
     public function test_an_archived_or_terminated_employee_cannot_be_rostered_by_hand(): void
@@ -309,6 +381,9 @@ class EmployeeArchiveTest extends TestCase
     {
         $manager = $this->manager();
         $employee = $this->settledEmployee('HR-OFFICER-2026-0001');
+        // A termination signed while the person is still standing in the ward
+        // is ordinary: the last day is worked, and the record is only filed
+        // once that day is closed.
 
         $employee->attendanceRecords()->create([
             'attendance_date' => now()->toDateString(),
@@ -342,8 +417,10 @@ class EmployeeArchiveTest extends TestCase
     }
 
     /**
-     * A seeded employee with nothing left on the books: the archive guard
-     * refuses anybody still rostered, which every seeded person is.
+     * A seeded employee who can actually be archived: employment ended, and
+     * nothing left on the books. Both halves are needed — the guard refuses
+     * anybody still employed, and it refuses anybody still rostered, which
+     * every seeded person is.
      */
     private function settledEmployee(string $employeeNumber): Employee
     {
@@ -352,13 +429,50 @@ class EmployeeArchiveTest extends TestCase
         $employee->leaveRequests()->where('status', 'pending')->delete();
         Employee::query()->where('supervisor_id', $employee->id)->update(['supervisor_id' => null]);
 
+        return $this->terminated($employee->fresh(['user']));
+    }
+
+    /**
+     * Put one shift back in front of today.
+     *
+     * The seeded roster covers Monday to Friday of the current week, so on a
+     * Saturday there is nothing "from today onwards" left to refuse an archive
+     * with, and a test about the refusal would pass or fail on the day it ran.
+     * Moved rather than created: a schedule assignment carries provenance rules
+     * this test has no business restating.
+     */
+    private function rosterAFutureShift(Employee $employee): void
+    {
+        ScheduleAssignment::query()
+            ->whereKey($employee->scheduleAssignments()->orderByDesc('work_date')->value('id'))
+            ->update(['work_date' => now()->addWeek()->toDateString()]);
+    }
+
+    /** End the employment, the way the employee form does. */
+    private function terminated(Employee $employee, ?string $on = null): Employee
+    {
+        $employee->forceFill(array_filter([
+            'employment_status' => 'terminated',
+            'terminated_at' => $on,
+        ]))->save();
+
         return $employee->fresh(['user']);
     }
 
-    /** @param array<string, mixed> $overrides @return array<string, mixed> */
+    /**
+     * The employee form's payload for a record as it currently stands.
+     *
+     * The overrides go on the left of `+`: array union keeps the left operand's
+     * value for a duplicate key, so an override of a field the record already
+     * has — the employment status, most usefully — would otherwise be dropped
+     * on the floor and the test would silently assert the unchanged case.
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
     private function payloadFor(Employee $employee, array $overrides = []): array
     {
-        return [
+        return $overrides + [
             'first_name' => $employee->first_name,
             'last_name' => $employee->last_name,
             'email' => $employee->user->email,
@@ -366,7 +480,7 @@ class EmployeeArchiveTest extends TestCase
             'position_id' => $employee->position_id,
             'employment_status' => $employee->employment_status,
             'hire_date' => $employee->hire_date->toDateString(),
-        ] + $overrides;
+        ];
     }
 
     private function employee(string $employeeNumber): Employee

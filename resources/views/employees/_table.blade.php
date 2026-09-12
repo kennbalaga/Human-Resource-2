@@ -24,9 +24,14 @@
                         </div>
                     </td>
                     <td><div class="organization-row-actions"><a class="btn btn-sm btn-light" data-employee-panel href="{{ route('employees.show', $employee) }}">View</a>@if($canManage)<a class="btn btn-sm btn-outline-primary" data-employee-edit href="{{ route('employees.edit', $employee) }}">Edit</a>
+                        {{-- Archive is the second half of a termination, so it
+                             appears only once the first half has happened. On
+                             everybody still employed the button is absent
+                             rather than disabled: a greyed-out control invites
+                             the click that the rule exists to prevent. --}}
                         @if($employee->isArchived())
-                            <form method="POST" action="{{ route('employees.restore', $employee) }}" data-confirm="Restore {{ $employee->full_name }} to the directory?">@csrf<button class="btn btn-sm btn-light" type="submit">Restore</button></form>
-                        @else
+                            <form method="POST" action="{{ route('employees.restore', $employee) }}" data-confirm="Restore {{ $employee->full_name }} to the directory? They stay out of the archive until you archive them again.">@csrf<button class="btn btn-sm btn-light" type="submit">Restore</button></form>
+                        @elseif($employee->canBeArchived())
                             <form method="POST" action="{{ route('employees.archive', $employee) }}" data-confirm="Archive {{ $employee->full_name }}? The record is kept in full and can be restored at any time.">@csrf<button class="btn btn-sm btn-light" type="submit">Archive</button></form>
                         @endif
                     @endif</div></td>

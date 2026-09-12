@@ -13,6 +13,12 @@ return [
     // to a persistent disk or uploads disappear on the next deploy.
     'attachment_disk' => env('WORKFORCE_ATTACHMENT_DISK', 'local'),
     'employee_number_auto_generate' => env('WORKFORCE_EMPLOYEE_ID_AUTO_GENERATE', true),
+    // How many days a record sits in Terminated before `employees:archive-terminated`
+    // files it away on its own. HR can still archive by hand the moment the
+    // termination is saved, and can restore an archived record at any time —
+    // this only decides when nobody has to remember to. Set it to 0 to switch
+    // the automatic half off and leave archiving entirely manual.
+    'terminated_archive_after_days' => (int) env('WORKFORCE_TERMINATED_ARCHIVE_AFTER_DAYS', 30),
     'attendance_capture_mode' => env('WORKFORCE_ATTENDANCE_CAPTURE_MODE', 'hybrid'),
     'local_employee_default_password' => env('LOCAL_EMPLOYEE_DEFAULT_PASSWORD', 'ChangeMe123!'),
 ];

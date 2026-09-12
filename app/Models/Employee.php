@@ -14,6 +14,13 @@ class Employee extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * The end of an employment, and the only status from which a record may be
+     * archived. Named because the archive rules read it in four places and a
+     * typo in any one of them would open the shelf to everybody again.
+     */
+    public const STATUS_TERMINATED = 'terminated';
+
     protected $fillable = [
         'user_id',
         'department_id',
@@ -50,9 +57,44 @@ class Employee extends Model
         return [
             'hire_date' => 'date',
             'solo_parent_id_expires_on' => 'date',
+            'terminated_at' => 'datetime',
             'archived_at' => 'datetime',
+            'restored_at' => 'datetime',
             'preferred_weekly_off_day' => 'integer',
         ];
+    }
+
+    /**
+     * The termination clock, wound by the save that ends the employment.
+     *
+     * This lives on the model rather than in the controller because the status
+     * is written from more than one place -- the employee form, the seeders, a
+     * console command correcting a record -- and a clock that only some of them
+     * wind is worse than no clock: the automatic sweep would file some records
+     * and silently forget others.
+     *
+     * An already-set stamp is left alone so a deliberate value (a backfill, a
+     * test, a correction) survives the save that carries it.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $employee): void {
+            if (! $employee->isDirty('employment_status')) {
+                return;
+            }
+
+            if ($employee->employment_status === self::STATUS_TERMINATED) {
+                $employee->terminated_at ??= now();
+
+                return;
+            }
+
+            // Reinstated, or the status was wrong in the first place. Either
+            // way there is no termination to count from any more, and the
+            // archive lifecycle this record was part of is over.
+            $employee->terminated_at = null;
+            $employee->restored_at = null;
+        });
     }
 
     public function user(): BelongsTo
@@ -69,6 +111,62 @@ class Employee extends Model
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
+    }
+
+    public function isTerminated(): bool
+    {
+        return $this->employment_status === self::STATUS_TERMINATED;
+    }
+
+    /**
+     * Whether this record may be put on the shelf.
+     *
+     * Archiving is the second half of a termination, never a shortcut past one.
+     * A colleague on leave, on a break in service, or simply inactive is still
+     * somebody the organisation employs, and filing their record away would
+     * close their sign-in and pull them out of every picker on the strength of
+     * one mis-aimed click.
+     */
+    public function canBeArchived(): bool
+    {
+        return $this->isTerminated() && ! $this->isArchived();
+    }
+
+    /**
+     * Filed by the nightly sweep rather than by a person.
+     *
+     * Read off the absence of an archiver, which is the only actor the
+     * automatic path has: nobody signed in, so nobody is named. The record
+     * still says when, which is the half that matters months later.
+     */
+    public function wasArchivedAutomatically(): bool
+    {
+        return $this->isArchived() && $this->archived_by === null;
+    }
+
+    /**
+     * When the current run at the archive clock began.
+     *
+     * The termination, normally. On a record somebody pulled back out of the
+     * archive, the restore — so the checking it was pulled out for gets a full
+     * window before the sweep comes round again, and a manager who then forgets
+     * to re-file it does not leave the record in the directory for good.
+     */
+    public function archiveClockStartedAt(): ?Carbon
+    {
+        if (! $this->isTerminated() || $this->terminated_at === null) {
+            return null;
+        }
+
+        return $this->restored_at !== null && $this->restored_at->greaterThan($this->terminated_at)
+            ? $this->restored_at
+            : $this->terminated_at;
+    }
+
+    /** Whether employment as it currently reads should open the sign-in at all. */
+    public static function employmentGrantsAccess(string $status): bool
+    {
+        return in_array($status, ['active', 'on_leave'], true);
     }
 
     /**
@@ -149,6 +247,34 @@ class Employee extends Model
     public function scopeNotArchived(Builder $query): Builder
     {
         return $query->whereNull('archived_at');
+    }
+
+    /**
+     * The records the automatic sweep is entitled to consider: terminated
+     * before the cutoff, not already filed, and — if somebody restored them —
+     * restored before the cutoff too, so a record pulled out for checking gets
+     * a full window before the sweep comes round again.
+     *
+     * The two dates are compared separately rather than through GREATEST or
+     * COALESCE: this query runs on MySQL in production and SQLite under test,
+     * and those two disagree about both.
+     *
+     * Whether each one can actually go is a separate question — a rostered
+     * shift or an open attendance day still blocks it — and the sweep asks that
+     * per record rather than trying to express it here.
+     *
+     * @param  Builder<Employee>  $query
+     */
+    public function scopeDueForAutomaticArchive(Builder $query, Carbon $clockStartedBefore): Builder
+    {
+        return $query
+            ->where('employment_status', self::STATUS_TERMINATED)
+            ->whereNotNull('terminated_at')
+            ->where('terminated_at', '<=', $clockStartedBefore)
+            ->where(fn (Builder $restored) => $restored
+                ->whereNull('restored_at')
+                ->orWhere('restored_at', '<=', $clockStartedBefore))
+            ->notArchived();
     }
 
     public function department(): BelongsTo
