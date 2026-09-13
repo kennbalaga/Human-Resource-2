@@ -8,10 +8,10 @@ use App\Http\Requests\Leave\StoreLeaveRequest;
 use App\Http\Requests\Leave\StoreLeaveTypeRequest;
 use App\Models\Department;
 use App\Models\Employee;
-use App\Models\LeaveAttachment;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Notifications\PreferenceMailNotification;
+use App\Services\Leave\LeaveAttachmentStorage;
 use App\Services\LeaveService;
 use App\Services\PreferenceNotificationService;
 use App\Services\ReferenceDataCache;
@@ -24,7 +24,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -139,6 +138,7 @@ class LeaveController extends Controller
         LeaveService $service,
         PreferenceNotificationService $notifications,
         AttachmentMalwareScanner $scanner,
+        LeaveAttachmentStorage $attachments,
     ): RedirectResponse {
         $data = $request->validated();
         $type = LeaveType::query()->findOrFail($data['leave_type_id']);
@@ -162,19 +162,8 @@ class LeaveController extends Controller
         }
 
         $leave = $service->create($request->user()->employee, $data);
-        $disk = config('workforce.attachment_disk');
         foreach ($request->file('attachments', []) as $file) {
-            $filename = Str::uuid().'.'.$file->getClientOriginalExtension();
-            $path = $file->storeAs('leave-attachments/'.$leave->uuid, $filename, $disk);
-            LeaveAttachment::query()->create([
-                'leave_request_id' => $leave->id,
-                'disk' => $disk,
-                'path' => $path,
-                'original_name' => $file->getClientOriginalName(),
-                'mime_type' => $file->getMimeType(),
-                'size_bytes' => $file->getSize(),
-                'uploaded_by' => $request->user()->id,
-            ]);
+            $attachments->store($file, $leave, $request->user());
         }
         $this->notifyEmployee($leave, 'submitted', $notifications);
 

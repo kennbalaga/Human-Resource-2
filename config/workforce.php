@@ -9,9 +9,13 @@ return [
     // Leave attachments are medical and personal records, so this stays a
     // separate setting from FILESYSTEM_DISK: pointing the app's general
     // default at a public disk must never make supporting documents
-    // reachable by URL. On any host with an ephemeral filesystem, set this
-    // to a persistent disk or uploads disappear on the next deploy.
-    'attachment_disk' => env('WORKFORCE_ATTACHMENT_DISK', 'local'),
+    // reachable by URL.
+    //
+    // `database` keeps the file in the database beside its row, so every
+    // computer running against the shared database can open it, and nothing
+    // is lost to an ephemeral filesystem. Any filesystem disk name still works;
+    // see LeaveAttachmentStorage.
+    'attachment_disk' => env('WORKFORCE_ATTACHMENT_DISK', 'database'),
     'employee_number_auto_generate' => env('WORKFORCE_EMPLOYEE_ID_AUTO_GENERATE', true),
     // How many days a record sits in Terminated before `employees:archive-terminated`
     // files it away on its own. HR can still archive by hand the moment the

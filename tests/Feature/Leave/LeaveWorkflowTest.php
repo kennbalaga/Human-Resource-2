@@ -297,22 +297,28 @@ class LeaveWorkflowTest extends TestCase
 
     public function test_sick_leave_accepts_and_secures_attachment(): void
     {
-        $disk = config('workforce.attachment_disk');
-        Storage::fake($disk);
+        Storage::fake('local');
         $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
         $sick = LeaveType::query()->where('code', 'SICK')->firstOrFail();
+        $certificate = UploadedFile::fake()->create('medical-certificate.pdf', 100, 'application/pdf');
+        $contents = (string) file_get_contents($certificate->getRealPath());
 
         $this->actingAs($employee)->post('/leaves', [
             'leave_type_id' => $sick->id,
             'start_date' => '2027-07-01',
             'end_date' => '2027-07-01',
             'reason' => 'Medical rest advised by physician.',
-            'attachments' => [UploadedFile::fake()->create('medical-certificate.pdf', 100, 'application/pdf')],
+            'attachments' => [$certificate],
         ])->assertSessionHasNoErrors();
 
+        // Kept in the shared database, not on the computer that took the upload.
         $attachment = LeaveRequest::query()->firstOrFail()->attachments()->firstOrFail();
-        Storage::disk($disk)->assertExists($attachment->path);
-        $this->actingAs($employee)->get(route('leave-attachments.download', $attachment))->assertOk();
+        $this->assertSame('database', $attachment->disk);
+        Storage::disk('local')->assertMissing($attachment->path);
+
+        $this->actingAs($employee)->get(route('leave-attachments.download', $attachment))
+            ->assertOk()
+            ->assertStreamedContent($contents);
     }
 
     /**

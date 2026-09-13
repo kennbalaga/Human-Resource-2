@@ -6,16 +6,15 @@ use App\Http\Controllers\Api\V1\Concerns\AuthorizesWorkforce;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Leave\StoreLeaveRequest;
 use App\Http\Resources\LeaveRequestResource;
-use App\Models\LeaveAttachment;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Services\Leave\LeaveAttachmentStorage;
 use App\Services\LeaveService;
 use App\Services\Security\AttachmentMalwareScanner;
 use App\Services\Security\UnsafeAttachmentException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -53,6 +52,7 @@ class LeaveController extends Controller
         StoreLeaveRequest $request,
         LeaveService $service,
         AttachmentMalwareScanner $scanner,
+        LeaveAttachmentStorage $attachments,
     ): LeaveRequestResource {
         abort_unless($request->user()->tokenCan('leave:write') || $request->user()->tokenCan('workforce:write'), 403);
         $data = $request->validated();
@@ -70,18 +70,8 @@ class LeaveController extends Controller
         }
 
         $leave = $service->create($request->user()->employee, $data);
-        $disk = config('workforce.attachment_disk');
         foreach ($request->file('attachments', []) as $file) {
-            $path = $file->storeAs('leave-attachments/'.$leave->uuid, Str::uuid().'.'.$file->getClientOriginalExtension(), $disk);
-            LeaveAttachment::query()->create([
-                'leave_request_id' => $leave->id,
-                'disk' => $disk,
-                'path' => $path,
-                'original_name' => $file->getClientOriginalName(),
-                'mime_type' => $file->getMimeType(),
-                'size_bytes' => $file->getSize(),
-                'uploaded_by' => $request->user()->id,
-            ]);
+            $attachments->store($file, $leave, $request->user());
         }
 
         return new LeaveRequestResource($leave->load(['employee.user', 'employee.department', 'employee.position', 'leaveType', 'attachments']));

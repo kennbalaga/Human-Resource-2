@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Models\LeaveAttachment;
+use App\Services\Leave\LeaveAttachmentStorage;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LeaveAttachmentController extends Controller
@@ -18,7 +18,7 @@ class LeaveAttachmentController extends Controller
      * reaches them only for their own unit; everyone else reaches only their
      * own.
      */
-    public function download(Request $request, LeaveAttachment $leaveAttachment): StreamedResponse
+    public function download(Request $request, LeaveAttachment $leaveAttachment, LeaveAttachmentStorage $storage): StreamedResponse
     {
         $leaveAttachment->load('leaveRequest.employee');
         $employee = $leaveAttachment->leaveRequest->employee;
@@ -32,6 +32,6 @@ class LeaveAttachmentController extends Controller
             $this->requireSupervision($request, $employee);
         }
 
-        return Storage::disk($leaveAttachment->disk)->download($leaveAttachment->path, $leaveAttachment->original_name);
+        return $storage->download($leaveAttachment);
     }
 }

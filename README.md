@@ -30,6 +30,31 @@ Open `http://127.0.0.1:8000`. Seeded accounts use the password configured in `IN
 | Department head | `NUR-HEAD-DERM-2026-0001` |
 | Employee | `HR-OFFICER-2026-0001` |
 
+## Working as a group
+
+Everyone runs the app on their own computer against the same Railway database, with the same `.env`. The `.env` is committed only in encrypted form, as `.env.encrypted`. The key to open it is shared in the group chat and must never be committed.
+
+First time, and after any pull that changes `.env.encrypted`:
+
+```bash
+git pull
+php artisan env:decrypt --key="KEY_FROM_THE_GROUP_CHAT" --force
+composer install
+npm install
+npm run build
+php artisan serve
+```
+
+Once, on every computer that ever uploaded a leave attachment, so the files only that computer has reach everyone:
+
+```bash
+php artisan leave-attachments:move-to-database
+```
+
+- Do not run `php artisan migrate --seed` or `db:seed`. The database is shared and already set up. Run `php artisan migrate` only when a pull adds a migration.
+- To change a setting for everyone, edit `.env`, then run `php artisan env:encrypt --key="KEY_FROM_THE_GROUP_CHAT" --force` and commit `.env.encrypted`.
+- An account can be signed in on one device at a time. If two people use the same account at once, each sign-in closes the other's session.
+
 ## Development services
 
 ```bash
