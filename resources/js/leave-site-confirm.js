@@ -44,6 +44,37 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('submit', (event) => markUntilCancelled(event), true);
 
+// Back and forward are only an exit when they leave the system. Moving between
+// Timesheets and Payslips with the mouse's side buttons is ordinary use and
+// must not ask "Leave site?".
+//
+// Those buttons reach the page as a mouseup -- back is 3, forward 4 -- just
+// before the browser acts on them. The Navigation API lists only this origin's
+// history entries, so a press that would step past the first or last of them
+// is leaving the app, and keeps the prompt.
+//
+// The toolbar's arrows and a trackpad swipe cannot be exempted the same way.
+// Chrome raises beforeunload for them before the page hears anything of the
+// traversal -- a navigate listener was tried and measured to fire too late --
+// so they still prompt, as a typed address or a reload does.
+document.addEventListener('mouseup', (event) => {
+    if (event.button !== 3 && event.button !== 4) return;
+
+    const current = window.navigation?.currentEntry;
+    if (current) {
+        const target = current.index + (event.button === 3 ? -1 : 1);
+        if (target < 0 || target >= window.navigation.entries().length) return;
+    }
+
+    window.markIntentionalNavigation();
+}, true);
+
+// A page brought back from the back/forward cache resumes with whatever flag it
+// left with. It is a fresh visit, so it starts guarded again.
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) isIntentionalNavigation = false;
+});
+
 window.addEventListener('beforeunload', (event) => {
     if (isIntentionalNavigation) return;
     event.preventDefault();
