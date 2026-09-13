@@ -28,6 +28,9 @@ class LeaveAttachmentStorageTest extends TestCase
 
     public function test_an_attachment_opens_on_a_computer_that_never_had_the_file(): void
     {
+        // Set here rather than read from the environment: CI builds its .env
+        // from .env.example, and this test is about the database disk itself.
+        config(['workforce.attachment_disk' => 'database']);
         Storage::fake('local');
         $employee = $this->employee();
         $certificate = UploadedFile::fake()->create('fit-note.pdf', 50, 'application/pdf');

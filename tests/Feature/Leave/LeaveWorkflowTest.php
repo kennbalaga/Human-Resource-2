@@ -297,6 +297,7 @@ class LeaveWorkflowTest extends TestCase
 
     public function test_sick_leave_accepts_and_secures_attachment(): void
     {
+        config(['workforce.attachment_disk' => 'database']);
         Storage::fake('local');
         $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
         $sick = LeaveType::query()->where('code', 'SICK')->firstOrFail();
