@@ -4,9 +4,11 @@ namespace Tests\Feature\Attendance;
 
 use App\Models\AttendanceRecord;
 use App\Models\Employee;
+use App\Models\OfficeLocation;
 use App\Models\User;
 use App\Services\Attendance\AttendanceQrService;
 use App\Support\Qr\QrEncoder;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -30,6 +32,14 @@ class AttendanceQrTest extends TestCase
         parent::setUp();
 
         $this->seed();
+
+        // Several tests scan, travel a few minutes, and scan again, expecting the
+        // same attendance day. Run near midnight in the office timezone and those
+        // minutes cross into tomorrow, where a "third scan" is a fresh time-in.
+        // CI hit exactly that, so the clock is pinned to mid-morning.
+        $office = OfficeLocation::query()->where('is_active', true)->firstOrFail();
+        $this->travelTo(Carbon::now($office->timezone)->setTime(10, 0));
+
         $this->codes = app(AttendanceQrService::class);
         $this->manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
         $this->employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail()->employee;
