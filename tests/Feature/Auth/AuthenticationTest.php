@@ -230,6 +230,22 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_keep_alive_answers_an_account_that_still_owes_two_factor_enrollment(): void
+    {
+        // The timer runs on the enrollment page too. A 403 here read as a
+        // session that had ended, and signed the person out before they could
+        // finish setting up the authenticator the page was asking for.
+        config(['security.two_factor.required_roles' => ['hr-manager']]);
+        $user = $this->userForEmployee('HR-MGR-2026-0001');
+
+        $this->actingAs($user)
+            ->getJson(route('session.keep-alive'))
+            ->assertOk()
+            ->assertJsonPath('active', true);
+
+        $this->get('/dashboard')->assertRedirect(route('settings.edit').'#two-factor');
+    }
+
     private function userForEmployee(string $employeeNumber): User
     {
         return User::query()

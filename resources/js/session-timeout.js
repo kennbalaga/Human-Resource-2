@@ -114,6 +114,21 @@ if (element) {
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     };
 
+    // Only the server saying so ends a session. A keep-alive that fails for any
+    // other reason -- a request that timed out behind a slow page, a network
+    // blip, a 500, a rate limit -- says nothing about whether this person is
+    // still signed in, and used to sign them out as though they had walked
+    // away. Those are left for the next heartbeat to try again; if the session
+    // really has gone, the next request that reaches the server will say so.
+    const sessionEndedBy = (response, detail) => {
+        if (response.status === 401 || response.status === 419 || detail?.reason) {
+            return true;
+        }
+
+        return response.redirected
+            && new URL(response.url).pathname === new URL(element.dataset.loginUrl, window.location.origin).pathname;
+    };
+
     const request = async (url, options = {}) => {
         const controller = new AbortController();
         const requestTimeout = window.setTimeout(() => controller.abort(), 10000);
@@ -141,6 +156,7 @@ if (element) {
             // an idle timeout, and the person at this screen needs to be told
             // which of the two happened.
             error.detail = await response.json().catch(() => null);
+            error.sessionEnded = sessionEndedBy(response, error.detail);
 
             throw error;
         }
@@ -248,7 +264,13 @@ if (element) {
             warningVisible = false;
             modal.hide();
         } catch (error) {
-            await endSession(error.detail?.reason ?? null);
+            if (error.sessionEnded) {
+                await endSession(error.detail?.reason ?? null);
+            } else {
+                // The warning stays up and its countdown keeps running, so a
+                // server that never answers still ends the session on time.
+                message.textContent = 'We could not reach the server just now. Check your connection, then choose Continue again.';
+            }
         } finally {
             continueButton.disabled = false;
         }
@@ -276,7 +298,9 @@ if (element) {
         try {
             await request(element.dataset.keepAliveUrl);
         } catch (error) {
-            await endSession(error.detail?.reason ?? null);
+            if (error.sessionEnded) {
+                await endSession(error.detail?.reason ?? null);
+            }
         }
     };
 
