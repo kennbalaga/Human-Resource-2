@@ -27,6 +27,7 @@ class PreferenceNotificationService
         'attendance_reminders',
         'schedule_updates',
         'leave_updates',
+        'payroll_updates',
     ];
 
     public function __construct(private readonly NotificationEmailSettings $emailSettings) {}
@@ -85,16 +86,19 @@ class PreferenceNotificationService
                     'tone' => match ($category) {
                         'attendance_reminders' => 'warning',
                         'schedule_updates' => 'primary',
+                        'payroll_updates' => 'success',
                         default => Str::contains(Str::lower($notification->subject), ['approved', 'received']) ? 'success' : 'primary',
                     },
                     'icon' => match ($category) {
                         'attendance_reminders' => 'clock',
                         'schedule_updates' => 'calendar',
+                        'payroll_updates' => 'report',
                         default => 'leave',
                     },
                     'category' => match ($category) {
                         'attendance_reminders' => 'attendance',
                         'schedule_updates' => 'schedule',
+                        'payroll_updates' => 'payroll',
                         default => 'leave',
                     },
                 ],

@@ -97,6 +97,9 @@
             <x-sidebar-link :href="route('timesheets.index')" icon="timesheet" :active="request()->routeIs('timesheets.*')">
                 Timesheets
             </x-sidebar-link>
+            <x-sidebar-link :href="route('payslips.index')" icon="report" :active="request()->routeIs('payslips.*')">
+                Payslips
+            </x-sidebar-link>
             <x-sidebar-link :href="route('leaves.index')" icon="leave" :active="request()->routeIs('leaves.*') || request()->routeIs('leave-attachments.*')">
                 Leave Management
             </x-sidebar-link>

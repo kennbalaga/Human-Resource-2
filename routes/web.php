@@ -15,6 +15,7 @@ use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\LeaveAttachmentController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Reports\ReportController;
@@ -163,6 +164,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/timesheets/{timesheet}/submit', [TimesheetController::class, 'submit'])->name('timesheets.submit');
     Route::post('/timesheets/{timesheet}/approve', [TimesheetController::class, 'approve'])->name('timesheets.approve');
     Route::post('/timesheets/{timesheet}/reject', [TimesheetController::class, 'reject'])->name('timesheets.reject');
+
+    Route::get('/payslips', [PayslipController::class, 'index'])->name('payslips.index');
+    Route::get('/payslips/{employee}/{period}', [PayslipController::class, 'show'])
+        ->where('period', '\d{4}-\d{2}-[12]')->name('payslips.show');
+    Route::get('/payslips/{employee}/{period}/pdf', [PayslipController::class, 'download'])
+        ->where('period', '\d{4}-\d{2}-[12]')->name('payslips.download');
 
     Route::get('/leaves', [LeaveController::class, 'index'])->name('leaves.index');
     Route::post('/leaves', [LeaveController::class, 'store'])->name('leaves.store');

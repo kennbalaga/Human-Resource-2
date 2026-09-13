@@ -26,6 +26,7 @@
             'attendance' => ['label' => 'Attendance', 'tone' => 'warning'],
             'schedule' => ['label' => 'Schedule', 'tone' => 'primary'],
             'leave' => ['label' => 'Leave', 'tone' => 'success'],
+            'payroll' => ['label' => 'Payroll', 'tone' => 'primary'],
             'security' => ['label' => 'Security', 'tone' => 'danger'],
             'general' => ['label' => 'General', 'tone' => 'secondary'],
         ];
@@ -50,7 +51,7 @@
         @forelse($notificationPage as $notification)
             @php
                 $tone = in_array(data_get($notification->data, 'tone'), ['success', 'primary', 'warning'], true) ? data_get($notification->data, 'tone') : 'primary';
-                $icon = in_array(data_get($notification->data, 'icon'), ['clock', 'calendar', 'leave'], true) ? data_get($notification->data, 'icon') : 'bell';
+                $icon = in_array(data_get($notification->data, 'icon'), ['clock', 'calendar', 'leave', 'report'], true) ? data_get($notification->data, 'icon') : 'bell';
                 $category = data_get($notification->data, 'category');
                 if (! array_key_exists($category, $categoryMeta)) {
                     $category = match ($icon) {

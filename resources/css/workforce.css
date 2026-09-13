@@ -128,6 +128,33 @@
 .ai-system-control-actions svg { width:1rem; }
 .ai-system-control-form .settings-security-note { margin:0; }
 .workforce-table code { color:var(--hr-muted); font-size: var(--fs-2xs); }
+/* Payslip: one document, laid out the way a printed payslip reads. */
+.payslip-sheet { display:grid; gap:1.25rem; max-width:60rem; padding:1.5rem; margin-bottom:1.25rem; }
+.payslip-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; padding-bottom:1rem; border-bottom:2px solid var(--hr-primary); }
+.payslip-brand { display:flex; align-items:center; gap:.85rem; }
+.payslip-logo { display:inline-flex; flex:0 0 auto; color:var(--hr-primary); }
+.payslip-flags { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.5rem; }
+.payslip-confidential { padding:.2rem .55rem; border:1px solid currentColor; border-radius:var(--r-md); color:var(--hr-danger-text, #b42318); font-size: var(--fs-2xs); font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+.payslip-stack { display:grid; align-content:start; gap:1.25rem; }
+.payslip-partial { margin:0; }
+.payslip-header h2 { margin:0; color:var(--hr-text); font-size: var(--fs-xl, 1.5rem); }
+.payslip-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.85rem 1.25rem; margin:0; }
+.payslip-meta dt { color:var(--hr-muted); font-size: var(--fs-2xs); font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+.payslip-meta dd { margin:.15rem 0 0; color:var(--hr-text); font-size: var(--fs-sm); }
+.payslip-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.25rem; }
+.payslip-section h3 { margin:0 0 .5rem; padding-bottom:.35rem; border-bottom:1px solid var(--hr-border); color:var(--hr-muted); font-size: var(--fs-xs); font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+.payslip-table { width:100%; border-collapse:collapse; font-size: var(--fs-sm); }
+.payslip-table th,.payslip-table td { padding:.45rem 0; border-bottom:1px solid var(--hr-border); color:var(--hr-text); text-align:left; }
+.payslip-table tbody th { font-weight:600; }
+.payslip-table tbody td { text-align:right; }
+.payslip-table th small { display:block; color:var(--hr-subtle); font-size: var(--fs-2xs); font-weight:400; }
+.payslip-daily thead th { color:var(--hr-muted); font-size: var(--fs-2xs); text-transform:uppercase; }
+.payslip-daily th,.payslip-daily td,.payslip-daily tbody td { padding-inline:.5rem; text-align:left; }
+.payslip-pending { color:var(--hr-muted); font-style:italic; }
+.payslip-empty { margin:0; color:var(--hr-muted); font-size: var(--fs-sm); }
+.payslip-net { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.85rem 1rem; border-radius:var(--r-md); background:var(--hr-surface-2); color:var(--hr-text); font-weight:800; }
+.payslip-footnote { margin:0; color:var(--hr-subtle); font-size: var(--fs-2xs); }
+@media(max-width:700px){.payslip-sheet{padding:1rem}.payslip-meta{grid-template-columns:repeat(2,minmax(0,1fr))}.payslip-columns{grid-template-columns:1fr}}
 @media(max-width:1100px){.workforce-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.timesheet-entry-grid{grid-template-columns:repeat(4,minmax(7rem,1fr))}}
 @media(max-width:900px){.leave-balance-grid{grid-template-columns:1fr}.leave-calendar{min-width:48rem}.leave-calendar-panel{overflow-x:auto}.workforce-heading{align-items:stretch}.workforce-table-panel>.table-responsive{padding:0 .75rem .75rem}.integration-card-grid,.ai-system-control-layout{grid-template-columns:1fr}}
 @media(max-width:600px){.workforce-stats-grid{grid-template-columns:1fr}.workforce-filters{align-items:stretch;flex-direction:column}.workforce-filters label{width:100%;max-width:none;flex:auto}.workforce-filters .btn{width:100%}.timesheet-entry-grid{grid-template-columns:repeat(2,minmax(7rem,1fr))}}

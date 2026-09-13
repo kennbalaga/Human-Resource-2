@@ -11,7 +11,7 @@ use Illuminate\View\View;
 class NotificationController extends Controller
 {
     /** @var array<int, string> */
-    private const CATEGORIES = ['attendance', 'schedule', 'leave', 'security', 'general'];
+    private const CATEGORIES = ['attendance', 'schedule', 'leave', 'payroll', 'security', 'general'];
 
     /**
      * Older notifications stored before category tracking existed have no
