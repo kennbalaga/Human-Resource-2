@@ -177,6 +177,30 @@
         @case('moon')
             <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z" />
             @break
+        @case('scan')
+            <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
+            <path d="M8 8h3v3H8zM13 13h3v3h-3zM13 8h3v3M8 13v3h3" />
+            @break
+        @case('camera-off')
+            <path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z" />
+            <circle cx="12" cy="13" r="3.5" />
+            <path d="m3 3 18 18" />
+            @break
+        @case('x-circle')
+            <circle cx="12" cy="12" r="9" />
+            <path d="m15 9-6 6M9 9l6 6" />
+            @break
+        @case('receipt')
+            <path d="M5 3v18l2.5-1.5L10 21l2-1.5 2 1.5 2.5-1.5L19 21V3l-2.5 1.5L14 3l-2 1.5L10 3 7.5 4.5Z" />
+            <path d="M9 9h6M9 13h6" />
+            @break
+        @case('swap')
+            <path d="M7 4 3 8l4 4M3 8h13M17 12l4 4-4 4M21 16H8" />
+            @break
+        @case('layers')
+            <path d="m12 3 9 5-9 5-9-5Z" />
+            <path d="m3 13 9 5 9-5" />
+            @break
         @case('sun')
             <circle cx="12" cy="12" r="4" />
             <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" />

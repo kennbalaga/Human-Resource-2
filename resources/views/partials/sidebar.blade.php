@@ -78,11 +78,11 @@
             <x-sidebar-link :href="route('schedules.index')" icon="calendar" :active="request()->routeIs('schedules.*')">
                 Schedules
             </x-sidebar-link>
-            <x-sidebar-link :href="route('schedule-preferences.index')" icon="clock" :active="request()->routeIs('schedule-preferences.*', 'shift-swaps.*')">
+            <x-sidebar-link :href="route('schedule-preferences.index')" icon="swap" :active="request()->routeIs('schedule-preferences.*', 'shift-swaps.*')">
                 Preferences and Swaps
             </x-sidebar-link>
             @if ($sidebarCanManageShifts)
-                <x-sidebar-link :href="route('shifts.index')" icon="repeat" :active="request()->routeIs('shifts.*')">
+                <x-sidebar-link :href="route('shifts.index')" icon="layers" :active="request()->routeIs('shifts.*')">
                     Shift templates
                 </x-sidebar-link>
             @endif
@@ -91,17 +91,25 @@
         <div class="sidebar-nav-group" role="group" aria-labelledby="sidebar-group-time">
             <h2 class="sidebar-nav-heading" id="sidebar-group-time">Time &amp; attendance</h2>
 
+            {{-- The badge scanner is a tab on this page, so Attendance stays
+                 highlighted on both of its views. --}}
             <x-sidebar-link :href="route('attendance.index')" icon="clock" :active="request()->routeIs('attendance.index')">
                 Attendance
             </x-sidebar-link>
             <x-sidebar-link :href="route('timesheets.index')" icon="timesheet" :active="request()->routeIs('timesheets.*')">
                 Timesheets
             </x-sidebar-link>
-            <x-sidebar-link :href="route('payslips.index')" icon="report" :active="request()->routeIs('payslips.*')">
-                Payslips
-            </x-sidebar-link>
+        </div>
+
+        {{-- Pay and time off are not attendance, so they no longer sit under it. --}}
+        <div class="sidebar-nav-group" role="group" aria-labelledby="sidebar-group-pay">
+            <h2 class="sidebar-nav-heading" id="sidebar-group-pay">Time off &amp; pay</h2>
+
             <x-sidebar-link :href="route('leaves.index')" icon="leave" :active="request()->routeIs('leaves.*') || request()->routeIs('leave-attachments.*')">
                 Leave Management
+            </x-sidebar-link>
+            <x-sidebar-link :href="route('payslips.index')" icon="receipt" :active="request()->routeIs('payslips.*')">
+                Payslips
             </x-sidebar-link>
         </div>
 
@@ -125,7 +133,7 @@
                 <x-sidebar-link :href="route('integrations.index')" icon="plug" :active="request()->routeIs('integrations.*')">
                     Integrations
                 </x-sidebar-link>
-                <x-sidebar-link :href="route('audit-logs.index')" icon="report" :active="request()->routeIs('audit-logs.*')">
+                <x-sidebar-link :href="route('audit-logs.index')" icon="shield" :active="request()->routeIs('audit-logs.*')">
                     Audit logs
                 </x-sidebar-link>
             </div>

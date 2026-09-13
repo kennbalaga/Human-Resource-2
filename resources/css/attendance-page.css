@@ -1,0 +1,909 @@
+/* ---------------------------------------------------------------------------
+   Attendance page: today's status, the last week, and the badge scanner.
+
+   Everything reads off tokens.css, which dark-mode.css re-points, so none of
+   this needs a dark-theme twin. The camera viewport is the one surface that is
+   dark in both themes, because it frames a live video feed.
+   ------------------------------------------------------------------------ */
+
+.attendance-page {
+    display: grid;
+    margin-bottom: 22px;
+    gap: var(--sp-5);
+}
+
+.attendance-page > .page-heading,
+.attendance-page > .attendance-alert {
+    margin-bottom: 0;
+}
+
+/* ---- View tabs --------------------------------------------------------- */
+
+/*
+ * The bar scrolls sideways on a narrow phone, but never vertically. Setting
+ * overflow-x alone makes overflow-y compute to auto as well, and the tabs used
+ * to hang 1px below the bar to cover its border -- that 1px was enough for
+ * Windows to draw a full vertical scrollbar, arrows and all, beside the tabs.
+ * The divider is now an inset shadow the tab underline paints over, so nothing
+ * leaves the box, and the sideways scrollbar stays hidden since swiping works.
+ */
+.attendance-tabs {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    box-shadow: inset 0 -1px 0 var(--hr-border);
+    scrollbar-width: none;
+    gap: 4px;
+}
+
+.attendance-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.attendance-tab {
+    display: inline-flex;
+    min-height: var(--tap-min);
+    padding: 0 14px;
+    border-bottom: 2px solid transparent;
+    color: var(--hr-muted);
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.attendance-tab .ui-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.attendance-tab:hover {
+    color: var(--hr-text);
+}
+
+.attendance-tab.is-active {
+    border-bottom-color: var(--hr-primary);
+    color: var(--hr-primary);
+}
+
+/* ---- Today ------------------------------------------------------------- */
+
+.attendance-today {
+    display: grid;
+    padding: var(--sp-6);
+    gap: var(--sp-5);
+}
+
+.attendance-today-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--sp-4);
+}
+
+.attendance-today-summary {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 320px;
+    align-items: flex-start;
+    gap: var(--sp-4);
+}
+
+.attendance-today-icon {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    flex: none;
+    border-radius: 50%;
+    color: var(--hr-muted);
+    background: var(--hr-tint-neutral);
+    place-items: center;
+}
+
+.attendance-today-icon .ui-icon {
+    width: 26px;
+    height: 26px;
+}
+
+.attendance-today.is-success .attendance-today-icon { color: var(--hr-success); background: var(--hr-tint-success); }
+.attendance-today.is-warning .attendance-today-icon { color: var(--hr-warning-text); background: var(--hr-tint-warning); }
+.attendance-today.is-danger .attendance-today-icon { color: var(--hr-danger); background: var(--hr-tint-danger); }
+.attendance-today.is-info .attendance-today-icon { color: var(--hr-info); background: var(--hr-tint-info); }
+
+.attendance-today-date {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+}
+
+.attendance-today h2 {
+    margin: 2px 0 4px;
+    color: var(--hr-text);
+    font-size: var(--fs-2xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+}
+
+.attendance-today.is-success h2 { color: var(--hr-success); }
+.attendance-today.is-warning h2 { color: var(--hr-warning-text); }
+.attendance-today.is-danger h2 { color: var(--hr-danger); }
+
+.attendance-today-line {
+    max-width: 62ch;
+    margin: 0;
+    color: var(--hr-muted);
+}
+
+/* A live clock staff can check against before they punch. It stays one step
+   below the status heading so "Checked in · Late" is read first, and tabular
+   digits keep the seconds ticking over from nudging the layout. */
+.attendance-today-clock {
+    display: flex;
+    margin: 0;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    text-align: right;
+}
+
+.attendance-today-clock time {
+    color: var(--hr-text);
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    line-height: var(--lh-tight);
+    white-space: nowrap;
+}
+
+.attendance-today-clock span {
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.attendance-today-shift {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: var(--r-md);
+    background: var(--hr-surface-2);
+    list-style: none;
+    gap: 6px 20px;
+    font-size: var(--fs-sm);
+}
+
+.attendance-today-shift li {
+    display: inline-flex;
+    color: var(--hr-text);
+    align-items: center;
+    gap: 8px;
+}
+
+.attendance-today-shift .ui-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--hr-muted);
+}
+
+.attendance-today-shift strong {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.attendance-today-tiles {
+    display: grid;
+    margin: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sp-3);
+}
+
+.attendance-today-tiles > div {
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+}
+
+.attendance-today-tiles dt {
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+}
+
+.attendance-today-tiles dd {
+    margin: 2px 0 0;
+    color: var(--hr-text);
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: var(--lh-tight);
+}
+
+.attendance-today-tiles .attendance-today-tile-detail {
+    min-height: 1.4em;
+    margin-top: 4px;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 500;
+    line-height: var(--lh-snug);
+}
+
+.attendance-today-foot {
+    display: flex;
+    flex-wrap: wrap;
+    padding-top: var(--sp-4);
+    border-top: 1px solid var(--hr-border);
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--sp-3) var(--sp-5);
+}
+
+.attendance-today-mode {
+    display: flex;
+    max-width: 62ch;
+    margin: 0;
+    color: var(--hr-muted);
+    align-items: flex-start;
+    gap: 10px;
+    font-size: var(--fs-sm);
+}
+
+.attendance-today-mode .ui-icon {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    color: var(--hr-primary);
+}
+
+.attendance-today-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--sp-3);
+}
+
+.attendance-today-note {
+    display: grid;
+    min-width: min(100%, 16rem);
+    gap: 6px;
+}
+
+.attendance-today-note span {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+}
+
+.attendance-today-note input {
+    min-height: var(--tap-min);
+    padding: 0 12px;
+    border: 1px solid var(--hr-border-strong);
+    border-radius: var(--r-md);
+    outline: 0;
+    color: var(--hr-text);
+    background: var(--hr-surface);
+    font-size: var(--fs-sm);
+}
+
+.attendance-today-note input:focus {
+    border-color: var(--hr-primary);
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), 0.15);
+}
+
+.attendance-today-action {
+    display: inline-flex;
+    min-height: var(--tap-min);
+    padding: 0 18px;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+
+.attendance-today-action .ui-icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* ---- Records that need attention ------------------------------------------ */
+
+.attendance-exception {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    border: 1px solid color-mix(in srgb, var(--hr-warning) 45%, transparent);
+    border-radius: var(--r-md);
+    color: var(--hr-text);
+    background: var(--hr-tint-warning);
+    align-items: center;
+    gap: var(--sp-3);
+    font-size: var(--fs-sm);
+}
+
+.attendance-exception > .ui-icon {
+    color: var(--hr-warning-text);
+}
+
+.attendance-exception p {
+    margin: 0;
+    flex: 1 1 280px;
+}
+
+/* ---- Last seven days ---------------------------------------------------- */
+
+/* Same trap as the tab bar: Bootstrap's wrapper sets overflow-x only, so any
+   sub-pixel height difference in a row earns it a vertical scrollbar too. */
+.attendance-history-panel .table-responsive {
+    overflow-y: hidden;
+}
+
+.attendance-table {
+    min-width: 760px;
+}
+
+.attendance-table .is-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.attendance-time span {
+    color: var(--hr-text);
+}
+
+.attendance-time small,
+.attendance-today-marker {
+    display: block;
+    font-size: var(--fs-2xs);
+}
+
+.attendance-time small {
+    color: var(--hr-subtle);
+}
+
+.attendance-today-marker {
+    color: var(--hr-primary);
+    font-weight: 700;
+}
+
+.attendance-table tbody tr.is-flagged td {
+    background: var(--hr-tint-danger);
+}
+
+.attendance-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-self: start;
+    gap: 6px;
+}
+
+.attendance-history-footer {
+    display: flex;
+    padding: 12px 20px;
+    border-top: 1px solid var(--hr-border);
+    justify-content: flex-end;
+}
+
+/* ---- Badge scanner ------------------------------------------------------ */
+
+.attendance-scanner {
+    display: grid;
+    gap: var(--sp-5);
+}
+
+.attendance-scanner-intro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--sp-3);
+}
+
+.attendance-scanner-intro h2 {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-lg);
+    font-weight: 650;
+}
+
+.attendance-scanner-intro p {
+    max-width: 62ch;
+    margin: 4px 0 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.attendance-scanner-intro .attendance-scanner-officer {
+    display: inline-flex;
+    margin: 0;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-xs);
+}
+
+.attendance-scanner-officer .ui-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--hr-primary);
+}
+
+.attendance-scanner-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: var(--sp-5);
+}
+
+.attendance-scanner-viewport {
+    position: relative;
+    display: grid;
+    overflow: hidden;
+    max-width: 100%;
+    aspect-ratio: 4 / 3;
+    border: 3px solid transparent;
+    border-radius: var(--r-lg);
+    background: #0c1a14;
+    place-items: center;
+    transition: border-color 200ms ease;
+}
+
+/* The frame answers before the eye reaches the result card. */
+.attendance-scanner-viewport[data-flash='success'] { border-color: #4cc38a; }
+.attendance-scanner-viewport[data-flash='warning'] { border-color: #e0a03a; }
+.attendance-scanner-viewport[data-flash='danger'] { border-color: #f07a88; }
+
+.attendance-scanner-viewport video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.attendance-scanner-reticle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 56%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.attendance-scanner-reticle i {
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    border: 3px solid rgba(255, 255, 255, 0.92);
+}
+
+.attendance-scanner-reticle i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 10px; }
+.attendance-scanner-reticle i:nth-child(2) { top: 0; right: 0; border-bottom: 0; border-left: 0; border-top-right-radius: 10px; }
+.attendance-scanner-reticle i:nth-child(3) { bottom: 0; left: 0; border-top: 0; border-right: 0; border-bottom-left-radius: 10px; }
+.attendance-scanner-reticle i:nth-child(4) { right: 0; bottom: 0; border-top: 0; border-left: 0; border-bottom-right-radius: 10px; }
+
+.attendance-scanner-viewport:not(.is-live) .attendance-scanner-reticle {
+    opacity: 0.18;
+}
+
+.attendance-scanner-idle {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    max-width: 22rem;
+    padding: var(--sp-6);
+    color: #fff;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+}
+
+.attendance-scanner-idle[hidden] {
+    display: none;
+}
+
+.attendance-scanner-idle > .ui-icon {
+    width: 36px;
+    height: 36px;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.attendance-scanner-idle.is-error > .ui-icon {
+    color: #f58e9a;
+}
+
+.attendance-scanner-idle strong {
+    font-size: var(--fs-lg);
+}
+
+.attendance-scanner-idle p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: var(--fs-sm);
+}
+
+.attendance-scanner-idle .btn,
+.attendance-scan-actions .btn {
+    display: inline-flex;
+    min-height: var(--tap-min);
+    padding: 0 18px;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+
+.attendance-scanner-idle .btn .ui-icon,
+.attendance-scan-actions .btn .ui-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.attendance-scanner-live {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    z-index: 1;
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: var(--r-pill);
+    color: #fff;
+    background: rgba(0, 0, 0, 0.55);
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-xs);
+}
+
+.attendance-scanner-live[hidden] {
+    display: none;
+}
+
+.attendance-scanner-live span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4cc38a;
+}
+
+.attendance-scanner-stop {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 1;
+    min-height: 38px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #fff;
+    background: rgba(0, 0, 0, 0.55);
+    font-size: var(--fs-sm);
+}
+
+.attendance-scanner-stop:hover,
+.attendance-scanner-stop:focus-visible {
+    border-color: rgba(255, 255, 255, 0.6);
+    color: #fff;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.attendance-scan-result {
+    position: relative;
+    display: flex;
+    overflow: hidden;
+    min-height: 100%;
+    padding: var(--sp-6);
+    flex-direction: column;
+    gap: var(--sp-4);
+}
+
+.attendance-scan-result.is-success { background: linear-gradient(var(--hr-tint-success), var(--hr-tint-success)), var(--hr-surface); }
+.attendance-scan-result.is-warning { background: linear-gradient(var(--hr-tint-warning), var(--hr-tint-warning)), var(--hr-surface); }
+.attendance-scan-result.is-danger { background: linear-gradient(var(--hr-tint-danger), var(--hr-tint-danger)), var(--hr-surface); }
+
+.attendance-scan-heading {
+    display: flex;
+    margin: 0;
+    color: var(--hr-muted);
+    align-items: center;
+    gap: 10px;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+}
+
+.attendance-scan-heading .ui-icon {
+    width: 26px;
+    height: 26px;
+}
+
+.attendance-scan-result.is-success .attendance-scan-heading { color: var(--hr-success); }
+.attendance-scan-result.is-warning .attendance-scan-heading { color: var(--hr-warning-text); }
+.attendance-scan-result.is-danger .attendance-scan-heading { color: var(--hr-danger); }
+
+.attendance-scan-employee {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 14px;
+}
+
+.attendance-scan-avatar {
+    display: grid;
+    width: 64px;
+    height: 64px;
+    flex: none;
+    border: 1px solid var(--hr-border);
+    border-radius: 50%;
+    color: var(--hr-primary);
+    background: var(--hr-surface);
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    place-items: center;
+}
+
+.attendance-scan-employee strong {
+    display: block;
+    color: var(--hr-text);
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    line-height: var(--lh-tight);
+    overflow-wrap: anywhere;
+}
+
+.attendance-scan-employee small {
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.attendance-scan-punch {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    align-items: baseline;
+    gap: 8px 12px;
+}
+
+.attendance-scan-punch > span:first-child {
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.attendance-scan-time {
+    color: var(--hr-text);
+    font-size: var(--fs-3xl);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.attendance-scan-message {
+    max-width: 46ch;
+    margin: 0;
+    color: var(--hr-text);
+}
+
+.attendance-scan-hint {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.attendance-scan-actions {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: auto;
+    gap: var(--sp-2);
+}
+
+/* Drains over the hold time, so the officer can see the card is about to clear. */
+.attendance-scan-timer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: currentColor;
+    opacity: 0.5;
+    transform-origin: left;
+    animation: attendance-scan-drain linear forwards;
+}
+
+.attendance-scan-result.is-success .attendance-scan-timer { color: var(--hr-success); }
+.attendance-scan-result.is-warning .attendance-scan-timer { color: var(--hr-warning-text); }
+.attendance-scan-result.is-danger .attendance-scan-timer { color: var(--hr-danger); }
+
+@keyframes attendance-scan-drain {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+
+.attendance-session {
+    overflow: hidden;
+}
+
+.attendance-session-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.attendance-session-row {
+    display: grid;
+    padding: 10px 20px;
+    border-top: 1px solid var(--hr-border);
+    grid-template-columns: 6.5rem minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--sp-3) var(--sp-4);
+    font-size: var(--fs-sm);
+}
+
+.attendance-session-row:first-child {
+    border-top: 0;
+}
+
+.attendance-session-row.is-new {
+    animation: attendance-session-new 1.6s ease-out;
+}
+
+@keyframes attendance-session-new {
+    from { background: var(--hr-primary-soft); }
+    to { background: transparent; }
+}
+
+.attendance-session-time {
+    color: var(--hr-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.attendance-session-who {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+}
+
+.attendance-session-who > span:last-child {
+    min-width: 0;
+}
+
+.attendance-session-who .attendance-scan-avatar {
+    width: 34px;
+    height: 34px;
+    font-size: var(--fs-2xs);
+}
+
+.attendance-session-who strong {
+    display: block;
+    overflow: hidden;
+    color: var(--hr-text);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attendance-session-who small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.attendance-session-direction {
+    display: inline-flex;
+    color: var(--hr-text);
+    align-items: center;
+    gap: 6px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+}
+
+.attendance-session-direction .ui-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--hr-muted);
+}
+
+.attendance-session-empty {
+    margin: 0;
+    padding: 20px;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+/* ---- Narrow screens ----------------------------------------------------- */
+
+@media (max-width: 900px) {
+    .attendance-table .is-num {
+        text-align: left;
+    }
+
+    .attendance-scanner-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .attendance-scanner-viewport {
+        aspect-ratio: 1 / 1;
+    }
+}
+
+@media (max-width: 700px) {
+    .attendance-today {
+        padding: var(--sp-4);
+    }
+
+    .attendance-today h2 {
+        font-size: var(--fs-xl);
+    }
+
+    .attendance-today-clock {
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .attendance-today-clock time {
+        font-size: var(--fs-lg);
+    }
+
+    .attendance-today-tiles {
+        gap: var(--sp-2);
+    }
+
+    .attendance-today-tiles > div {
+        padding: 10px;
+    }
+
+    .attendance-today-tiles dd {
+        font-size: var(--fs-md);
+    }
+
+    .attendance-today-form,
+    .attendance-today-note,
+    .attendance-today-action {
+        width: 100%;
+    }
+
+    .attendance-scan-result {
+        padding: var(--sp-4);
+    }
+
+    .attendance-scan-time {
+        font-size: var(--fs-2xl);
+    }
+
+    .attendance-session-row {
+        padding: 10px 14px;
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .attendance-session-time {
+        grid-column: 1 / -1;
+        font-size: var(--fs-2xs);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .attendance-scan-timer {
+        display: none;
+    }
+
+    .attendance-session-row.is-new {
+        animation: none;
+    }
+
+    .attendance-scanner-viewport {
+        transition: none;
+    }
+}
+
+.reduce-motion .attendance-scan-timer {
+    display: none;
+}
+
+.reduce-motion .attendance-session-row.is-new {
+    animation: none;
+}

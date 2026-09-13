@@ -208,24 +208,35 @@ class AttendanceQrTest extends TestCase
         ]);
     }
 
-    public function test_the_scanner_panel_is_rendered_for_staff_who_may_record_attendance(): void
+    public function test_the_scanner_view_is_rendered_for_staff_who_may_record_attendance(): void
     {
         $this->actingAs($this->manager)->get('/attendance')
             ->assertOk()
-            ->assertSee('Scan employee QR');
+            ->assertSee('Badge scanner');
+
+        $this->actingAs($this->manager)->get('/attendance?view=scanner')
+            ->assertOk()
+            ->assertSee('data-qr-scanner', false)
+            ->assertSee('Scans this session');
     }
 
     /**
-     * The scanner refreshes these two regions after each badge by re-fetching
-     * the page, so the personal log below it does not sit on pre-scan data.
-     * Rename or drop either hook and the refresh silently stops working.
+     * An officer at the entrance and an employee checking their own week are
+     * doing different jobs, so the camera and the personal record never share
+     * a screen.
      */
-    public function test_the_page_exposes_the_regions_the_scanner_refreshes(): void
+    public function test_the_personal_record_and_the_scanner_are_separate_views(): void
     {
         $this->actingAs($this->manager)->get('/attendance')
             ->assertOk()
             ->assertSee('data-attendance-live', false)
-            ->assertSee('attendance-history-panel', false);
+            ->assertSee('attendance-history-panel', false)
+            ->assertDontSee('data-qr-scanner', false);
+
+        $this->actingAs($this->manager)->get('/attendance?view=scanner')
+            ->assertOk()
+            ->assertSee('data-qr-scanner', false)
+            ->assertDontSee('data-attendance-live', false);
     }
 
     /**
@@ -291,12 +302,15 @@ class AttendanceQrTest extends TestCase
         );
     }
 
-    public function test_the_scanner_panel_is_hidden_from_an_ordinary_employee(): void
+    public function test_the_scanner_is_hidden_from_an_ordinary_employee(): void
     {
+        // Asking for the scanner by URL falls back to the employee's own view.
         $this->actingAs(User::query()->where('email', 'employee@hrms.local')->firstOrFail())
-            ->get('/attendance')
+            ->get('/attendance?view=scanner')
             ->assertOk()
-            ->assertDontSee('Scan employee QR');
+            ->assertDontSee('data-qr-scanner', false)
+            ->assertDontSee('Badge scanner')
+            ->assertSee('Recent attendance');
     }
 
     public function test_qr_records_can_be_filtered_and_read_back_in_the_reports(): void

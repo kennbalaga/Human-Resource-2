@@ -227,8 +227,7 @@ class BiometricAttendanceTest extends TestCase
             ->assertOk()
             ->assertDontSee('data-manual-mode-expires-at')
             ->assertDontSee('Check in now')
-            ->assertSee('Manual attendance')
-            ->assertSee('Disabled by System Administrator');
+            ->assertSee('Record your time at a biometric terminal');
     }
 
     public function test_local_simulator_processes_a_device_identified_employee(): void

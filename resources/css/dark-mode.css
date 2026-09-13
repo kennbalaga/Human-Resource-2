@@ -242,11 +242,7 @@ html[data-theme-resolved='dark'] .shift-template-table-wrap { border-color:var(-
 html[data-theme-resolved='dark'] .recurrence-summary,
 html[data-theme-resolved='dark'] .schedule-conflict-status { color:#b3c2b9; border-color:var(--hr-border); background:#202b25; }
 
-html[data-theme-resolved='dark'] .attendance-clock-hero,
-html[data-theme-resolved='dark'] .attendance-policy,
 html[data-theme-resolved='dark'] .attendance-note { color:#ccd8d2; border-color:var(--hr-border); background:#161f1b; }
-html[data-theme-resolved='dark'] .attendance-clock-hero strong,
-html[data-theme-resolved='dark'] .attendance-state strong { color:var(--hr-text); }
 
 html[data-theme-resolved='dark'] .horizontal-track,
 html[data-theme-resolved='dark'] .bar-track { background:#2b3831; }
@@ -300,7 +296,6 @@ html[data-theme-resolved='dark'] .attachment-link { color:#9ec5ec; }
 
 /* Shared content contrast */
 html[data-theme-resolved='dark'] .stat-value,
-html[data-theme-resolved='dark'] .attendance-state h2,
 html[data-theme-resolved='dark'] .attendance-table td:first-child strong,
 html[data-theme-resolved='dark'] .report-table td:first-child strong,
 html[data-theme-resolved='dark'] .report-stat strong,
@@ -317,10 +312,7 @@ html[data-theme-resolved='dark'] .modal-title { color:var(--hr-text); }
 
 html[data-theme-resolved='dark'] .employee-cell span,
 html[data-theme-resolved='dark'] .employee-number,
-html[data-theme-resolved='dark'] .attendance-state>div>span,
 html[data-theme-resolved='dark'] .attendance-note>span,
-html[data-theme-resolved='dark'] .attendance-policy span,
-html[data-theme-resolved='dark'] .attendance-policy strong,
 html[data-theme-resolved='dark'] .report-filters label>span,
 html[data-theme-resolved='dark'] .audit-filters label>span,
 html[data-theme-resolved='dark'] .workforce-filters label span,
@@ -403,8 +395,6 @@ html[data-theme-resolved='dark'] .report-filters select,
 html[data-theme-resolved='dark'] .audit-filters input,
 html[data-theme-resolved='dark'] .audit-combobox-input,
 html[data-theme-resolved='dark'] .audit-filters select { color:var(--hr-text); border-color:#33443c; background:#131b17; }
-html[data-theme-resolved='dark'] .attendance-policy { border-color:var(--hr-border); background:#141d19; }
-html[data-theme-resolved='dark'] .attendance-policy strong { color:#cdd9d3; }
 
 /* Scheduling */
 html[data-theme-resolved='dark'] .schedule-toolbar,
@@ -748,12 +738,6 @@ html[data-theme-resolved='dark'] .btn-primary.dashboard-action:focus { color:#0a
 
 /* Attendance clock buttons: the light theme uses deep gradients that turn into
    mud on a dark canvas, so they get flat, desaturated fills instead. */
-html[data-theme-resolved='dark'] .attendance-checkin { color:#0a1a12; border-color:var(--hr-primary); background:var(--hr-primary); box-shadow:none; }
-html[data-theme-resolved='dark'] .attendance-checkin:hover,
-html[data-theme-resolved='dark'] .attendance-checkin:focus { color:#0a1a12; border-color:var(--hr-primary-dark); background:var(--hr-primary-dark); }
-html[data-theme-resolved='dark'] .attendance-checkout { color:#2a1216; border-color:#e79aa4; background:#e79aa4; box-shadow:none; }
-html[data-theme-resolved='dark'] .attendance-checkout:hover,
-html[data-theme-resolved='dark'] .attendance-checkout:focus { color:#2a1216; border-color:#f0b0b8; background:#f0b0b8; }
 
 html[data-theme-resolved='dark'] .profile-hero-avatar { color:#0a1a12; background:linear-gradient(145deg,#8fcfae,#69b48e); box-shadow:none; }
 html[data-theme-resolved='dark'] .settings-toggle input:checked+i { background:var(--hr-primary); }
@@ -1155,15 +1139,6 @@ html[data-theme-resolved='dark'] .profile-qr-code { border-color:var(--hr-border
 html[data-theme-resolved='dark'] .profile-qr-copy>p { color:#b3c2b9; }
 html[data-theme-resolved='dark'] .profile-qr-copy dd { color:var(--hr-text); }
 html[data-theme-resolved='dark'] .profile-qr-warning { color:#e2cd8f; border-color:#3d3320; background:#241f12; }
-html[data-theme-resolved='dark'] .attendance-scanner-status { color:#ccd8d2; border-color:var(--hr-border); background:#161f1b; }
-html[data-theme-resolved='dark'] .attendance-scanner-status.is-scanning { border-color:rgba(var(--hr-primary-rgb),.4); background:#1b2b22; }
-html[data-theme-resolved='dark'] .attendance-scanner-status.is-error { color:#f0b3ac; border-color:#4a2b27; background:#2a1a18; }
-html[data-theme-resolved='dark'] .attendance-scanner-viewport { border-color:var(--hr-border); }
-html[data-theme-resolved='dark'] .attendance-scanner-result { border-color:var(--hr-border); background:#141d19; }
-html[data-theme-resolved='dark'] .attendance-scanner-result strong { color:var(--hr-text); }
-html[data-theme-resolved='dark'] .attendance-scanner-result small { color:#8fa197; }
-html[data-theme-resolved='dark'] .attendance-scanner-result p { color:#c3d1c9; }
-html[data-theme-resolved='dark'] .attendance-scanner-hint { color:#8fa197; }
 
 /* Skip link: --hr-primary is a pale pastel on this theme, so the white label
    that works on the light theme's deep green would sit at about 1.7:1 here.

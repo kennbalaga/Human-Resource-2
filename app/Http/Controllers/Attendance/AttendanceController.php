@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Attendance\AttendanceActionRequest;
 use App\Models\AttendanceRecord;
 use App\Models\OfficeLocation;
+use App\Services\Attendance\MyAttendanceService;
 use App\Services\AttendanceCaptureSettings;
 use App\Services\AttendanceService;
 use Carbon\CarbonInterface;
@@ -18,8 +19,11 @@ use Illuminate\View\View;
 
 class AttendanceController extends Controller
 {
-    public function index(Request $request, AttendanceCaptureSettings $captureSettings): View
-    {
+    public function index(
+        Request $request,
+        AttendanceCaptureSettings $captureSettings,
+        MyAttendanceService $myAttendance,
+    ): View {
         $employee = $request->user()->employee;
         abort_if($employee === null, 403, 'Your user account is not linked to an employee profile.');
 
@@ -32,24 +36,21 @@ class AttendanceController extends Controller
             ->whereDate('attendance_date', $today)
             ->first();
 
-        $recentRecords = AttendanceRecord::query()
-            ->with(['officeLocation', 'checkInBiometricDevice', 'checkOutBiometricDevice'])
-            ->where('employee_id', $employee->id)
-            ->latest('attendance_date')
-            ->limit(7)
-            ->get();
+        // Scanning writes somebody else's attendance, so the camera belongs to
+        // the people who already carry workforce records, not to whoever happens
+        // to open the page. Anyone else asking for the scanner gets their own view.
+        $canScanQr = Gate::forUser($request->user())->allows('workforce.view');
+        $view = $canScanQr && $request->query('view') === 'scanner' ? 'scanner' : 'mine';
 
         $captureState = $this->captureState($captureSettings);
 
         return view('attendance.index', [
             'employee' => $employee,
             'office' => $office,
-            // Scanning writes somebody else's attendance, so the camera belongs
-            // to the people who already carry workforce records, not to whoever
-            // happens to open the page.
-            'canScanQr' => Gate::forUser($request->user())->allows('workforce.view'),
+            'canScanQr' => $canScanQr,
+            'view' => $view,
             'todayRecord' => $todayRecord,
-            'recentRecords' => $recentRecords,
+            'attendance' => $view === 'mine' ? $myAttendance->forEmployee($employee, $office) : null,
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'attendanceCaptureMode' => $captureState['mode'],
             'attendanceCaptureState' => $captureState['identifier'],

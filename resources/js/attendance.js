@@ -2,24 +2,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = document.getElementById('attendanceApp');
     const clockElement = document.getElementById('liveAttendanceClock');
 
-    if (!app || !clockElement) {
+    if (!app) {
         return;
     }
 
-    const clockFormatter = new Intl.DateTimeFormat('en-PH', {
-        timeZone: app.dataset.officeTimezone || 'Asia/Manila',
-        hour: 'numeric',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-    });
+    // The clock lives only on the personal view; the scanner view still needs
+    // the capture-mode sync below. It sits outside any live region, so a screen
+    // reader is not told the time every second.
+    if (clockElement) {
+        const clockFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: app.dataset.officeTimezone || 'Asia/Manila',
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+        });
 
-    const updateClock = () => {
-        clockElement.textContent = clockFormatter.format(new Date());
-    };
+        const updateClock = () => {
+            clockElement.textContent = clockFormatter.format(new Date());
+        };
 
-    updateClock();
-    window.setInterval(updateClock, 1000);
+        updateClock();
+        window.setInterval(updateClock, 1000);
+    }
 
     const manualModeExpiry = Number(app.dataset.manualModeExpiresAt);
     const attendanceStateUrl = app.dataset.attendanceStateUrl;
