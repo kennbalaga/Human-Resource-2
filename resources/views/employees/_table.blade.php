@@ -3,7 +3,12 @@
 </div>
 <div class="table-responsive">
     <table class="dashboard-table organization-table table-stack">
-        <colgroup><col style="width: 21%"><col style="width: 12%"><col style="width: 13%"><col style="width: 13%"><col style="width: 12%"><col style="width: 13%"><col style="width: 16%"></colgroup>
+        {{-- The actions column carries three controls on a terminated record (View,
+             Edit, Archive) and two on everybody else. At 16% the third one did not
+             fit and wrapped onto its own line, which read as a stray button rather
+             than part of the set. 19% holds all three on one line; the 3% comes from
+             Employee, Supervisor and Status, none of which were using theirs. --}}
+        <colgroup><col style="width: 20%"><col style="width: 12%"><col style="width: 13%"><col style="width: 13%"><col style="width: 11%"><col style="width: 12%"><col style="width: 19%"></colgroup>
         <thead><tr><th>Employee</th><th>Employee ID</th><th>Department</th><th>Position</th><th>Supervisor</th><th>Status</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
         <tbody>
             @forelse ($employees as $employee)

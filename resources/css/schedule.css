@@ -22,7 +22,7 @@
     min-height: var(--tap-min);
     padding: 0 var(--sp-2);
     border-radius: var(--r-md);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-sm);
     font-weight: 600;
     text-decoration: none;
@@ -206,7 +206,7 @@
 }
 
 .calendar-view-switch a.active {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-surface);
     box-shadow: 0 1px 3px rgba(28, 43, 70, .12);
 }
@@ -270,7 +270,7 @@
 }
 
 .calendar-day-header small {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-2xs);
     text-transform: uppercase;
 }
@@ -961,7 +961,7 @@
 
 .weekday-selector input:checked + span {
     border-color: var(--hr-primary);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-tint-info);
 }
 
@@ -1199,8 +1199,8 @@
 }
 
 .shift-color-choices input:checked + .shift-color-choice {
-    border-color: #fff;
-    box-shadow: 0 0 0 2px #176b43;
+    border-color: var(--hr-surface);
+    box-shadow: 0 0 0 2px var(--hr-primary);
 }
 
 .shift-color-choices input:focus-visible + .shift-color-choice {
@@ -1372,9 +1372,9 @@
 }
 
 .bulk-flow-steps .active span {
-    color: #fff;
-    border-color: var(--hr-primary);
-    background: var(--hr-primary);
+    color: var(--hr-on-primary);
+    border-color: var(--hr-primary-fill);
+    background: var(--hr-primary-fill);
 }
 
 .bulk-flow-steps .done {
@@ -1438,7 +1438,7 @@
     width: auto;
     margin: 0;
     padding: 0 .35rem;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-xs);
     font-weight: 800;
 }
@@ -1567,7 +1567,7 @@
 
 .bulk-inline-step-heading h3 {
     margin: 0;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-base);
 }
 
@@ -1621,7 +1621,7 @@
 .bulk-pattern-step-heading {
     padding: .7rem 0 .15rem;
     border-top: 1px solid var(--hr-border);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-xs);
     font-weight: 800;
     text-transform: uppercase;
@@ -1689,7 +1689,7 @@
 
 .rotation-shift-picker legend {
     padding: 0 .25rem;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-xs);
     font-weight: 800;
 }
@@ -1761,7 +1761,7 @@
 
 .bulk-position-picker legend {
     padding: 0 .25rem;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-xs);
     font-weight: 800;
 }
@@ -1814,7 +1814,7 @@
     justify-content: space-between;
     gap: 1rem;
     padding: .75rem .9rem;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-tint-info);
 }
 
@@ -2195,9 +2195,9 @@
 }
 
 .bulk-employee-option input:checked + .bulk-employee-check {
-    color: #fff;
-    background: var(--hr-primary);
-    border-color: var(--hr-primary);
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
+    border-color: var(--hr-primary-fill);
 }
 
 .bulk-employee-option input:focus-visible + .bulk-employee-check {
@@ -3004,7 +3004,7 @@
     padding: 0 .35rem;
     color: var(--hr-danger);
     border: 0;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, #fdecea 45%);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, var(--hr-tint-danger) 45%);
     cursor: pointer;
     place-items: center;
     transform: translateX(100%);
@@ -3054,7 +3054,7 @@
     border-radius: var(--r-md);
     border: 1px solid var(--hr-border-strong);
     background: var(--hr-tint-info);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-base);
     line-height: 1.4;
 }
@@ -3185,7 +3185,7 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
 
 @keyframes roster-shift-flash {
     0%, 100% { box-shadow: none; }
-    15%, 45% { box-shadow: 0 0 0 3px #e4a95e; }
+    15%, 45% { box-shadow: 0 0 0 3px var(--hr-warning); }
 }
 
 /* Step 5 publish summary — what the attestation checkbox is actually
@@ -3364,7 +3364,7 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
 }
 
 .publish-stat strong {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-xl);
     font-variant-numeric: tabular-nums;
 }

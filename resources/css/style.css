@@ -8,7 +8,15 @@
        palette - the old --primary-blue held #1B5E3A, a green, and sat 4 points
        away from the app's own --hr-primary, so login and dashboard never quite
        matched. */
+    /*
+     * Two names, because the green behind them is two colours: --primary-blue
+     * is the FILL (a button, the brand panel) and --primary-blue-text is the
+     * darker counterpart anything READ takes. Every `color:` in this sheet was
+     * on the fill value, which is tuned for white sitting on it rather than for
+     * sitting on white.
+     */
     --primary-blue: var(--hr-primary);
+    --primary-blue-text: var(--hr-primary-text);
     --primary-hover: var(--hr-primary-dark);
     --text-dark: var(--hr-text);
     --text-gray: var(--hr-muted);
@@ -61,7 +69,7 @@ body {
 }
 
 .icon-logo {
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
     font-size: var(--fs-2xl);
 }
 
@@ -214,7 +222,7 @@ body {
     width: 56px;
     height: 56px;
     margin: 0 auto 1.25rem;
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
     border: 1px solid var(--hr-border-strong);
     border-radius: var(--r-lg);
     background: var(--hr-primary-soft);
@@ -224,7 +232,7 @@ body {
 
 .auth-dialog-kicker {
     margin-bottom: 0.5rem;
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
     font-size: var(--fs-2xs);
     font-weight: 800;
     letter-spacing: 0.14em;
@@ -293,7 +301,7 @@ body {
 .back-to-login {
     display: block;
     margin-top: 1rem;
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
     text-align: center;
     text-decoration: none;
     font-size: var(--fs-base);
@@ -310,7 +318,7 @@ body {
 .two-factor-challenge .login-header p { max-width:25rem; margin:0 auto; line-height:1.55; }
 .two-factor-challenge .one-time-code { letter-spacing:.28rem; text-align:center; font-size: var(--fs-md)!important; font-weight:700; }
 .recovery-login { margin-top:1rem; border:1px solid var(--border-color); border-radius:var(--r-md); }
-.recovery-login summary { padding:.8rem; color:var(--primary-blue); font-size: var(--fs-sm); font-weight:700; text-align:center; cursor:pointer; }
+.recovery-login summary { padding:.8rem; color:var(--primary-blue-text); font-size: var(--fs-sm); font-weight:700; text-align:center; cursor:pointer; }
 .recovery-login[open] summary { border-bottom:1px solid var(--border-color); }
 .recovery-login form { padding:1rem; }
 .two-factor-help { display:flex; align-items:flex-start; gap:.5rem; margin-top:1rem; padding:.75rem; border-radius:var(--r-md); color:var(--hr-text); background:var(--hr-primary-soft); font-size: var(--fs-xs); line-height:1.5; }
@@ -333,7 +341,7 @@ body {
 }
 
 .forgot-password {
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
     text-decoration: none;
     font-weight: 600;
 }
@@ -417,7 +425,7 @@ body {
 }
 
 .register-text a {
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
     text-decoration: none;
     font-weight: 600;
 }
@@ -731,7 +739,7 @@ body {
 .logo-seal {
     width: 52px;
     height: 52px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     flex: 0 0 auto;
     /* A replacement mark may not be square; `contain` keeps it in proportion
        rather than stretching it to the box. */
@@ -824,7 +832,7 @@ body.legal-page {
     border-radius: var(--r-md);
     font-size: var(--fs-sm);
     font-weight: 600;
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
     text-decoration: none;
 }
 
@@ -846,7 +854,7 @@ body.legal-page {
     font-weight: 700;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
     margin-bottom: 0.5rem;
 }
 
@@ -926,7 +934,7 @@ body.legal-page {
 }
 
 .legal-toc a:hover {
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
     text-decoration: underline;
 }
 
@@ -970,7 +978,7 @@ body.legal-page {
 }
 
 .legal-doc a {
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
     font-weight: 500;
 }
 
@@ -1096,7 +1104,7 @@ body.legal-page {
 
 .legal-contact-list i {
     width: 1rem;
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
 }
 
 .legal-closing {
@@ -1130,7 +1138,7 @@ body.legal-page {
 }
 
 .legal-footer a:hover {
-    color: var(--primary-blue);
+    color: var(--primary-blue-text);
     text-decoration: underline;
 }
 

@@ -16,7 +16,6 @@
 .attendance-page > .attendance-alert {
     margin-bottom: 0;
 }
-
 /* ---- View tabs --------------------------------------------------------- */
 
 /*
@@ -65,7 +64,7 @@
 
 .attendance-tab.is-active {
     border-bottom-color: var(--hr-primary);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 /* ---- Today ------------------------------------------------------------- */
@@ -258,7 +257,7 @@
     width: 18px;
     height: 18px;
     margin-top: 2px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .attendance-today-form {
@@ -368,7 +367,7 @@
 }
 
 .attendance-today-marker {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-weight: 700;
 }
 
@@ -430,7 +429,7 @@
 .attendance-scanner-officer .ui-icon {
     width: 16px;
     height: 16px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .attendance-scanner-grid {
@@ -448,15 +447,15 @@
     aspect-ratio: 4 / 3;
     border: 3px solid transparent;
     border-radius: var(--r-lg);
-    background: #0c1a14;
+    background: var(--hr-bg);
     place-items: center;
     transition: border-color 200ms ease;
 }
 
 /* The frame answers before the eye reaches the result card. */
-.attendance-scanner-viewport[data-flash='success'] { border-color: #4cc38a; }
-.attendance-scanner-viewport[data-flash='warning'] { border-color: #e0a03a; }
-.attendance-scanner-viewport[data-flash='danger'] { border-color: #f07a88; }
+.attendance-scanner-viewport[data-flash='success'] { border-color: var(--hr-success); }
+.attendance-scanner-viewport[data-flash='warning'] { border-color: var(--hr-warning); }
+.attendance-scanner-viewport[data-flash='danger'] { border-color: var(--hr-danger); }
 
 .attendance-scanner-viewport video {
     position: absolute;
@@ -516,7 +515,7 @@
 }
 
 .attendance-scanner-idle.is-error > .ui-icon {
-    color: #f58e9a;
+    color: var(--hr-danger);
 }
 
 .attendance-scanner-idle strong {
@@ -569,7 +568,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #4cc38a;
+    background: var(--hr-success);
 }
 
 .attendance-scanner-stop {
@@ -638,7 +637,7 @@
     flex: none;
     border: 1px solid var(--hr-border);
     border-radius: 50%;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-surface);
     font-size: var(--fs-xl);
     font-weight: 700;

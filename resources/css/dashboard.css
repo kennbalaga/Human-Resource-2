@@ -89,8 +89,13 @@ input {
     min-height: 100vh;
     padding: 18px 16px;
     overflow: visible;
-    color: rgba(255, 255, 255, 0.86);
+    color: var(--hr-sidebar-text);
+    /* A 1px line between a painted slab and the canvas reads as the edge of the
+       slab, not as a divider. The rail spills a little of its own colour to the
+       right instead, which seats the canvas in front of it. */
+    border-right: 0;
     background: linear-gradient(175deg, var(--hr-sidebar) 0%, var(--hr-sidebar-deep) 100%);
+    box-shadow: 1px 0 0 var(--hr-sidebar-glow), 6px 0 20px -8px var(--hr-sidebar-glow);
     flex-direction: column;
     transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1), padding 240ms cubic-bezier(0.4, 0, 0.2, 1), transform 220ms ease, box-shadow 220ms ease;
 }
@@ -110,7 +115,7 @@ input {
        divider on the same horizontal as the topbar's bottom border rather than
        sitting below it. Measured, not guessed. */
     padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid var(--hr-sidebar-border);
     gap: 12px;
 }
 
@@ -129,6 +134,7 @@ input {
     height: 40px;
     border-radius: var(--r-lg);
     color: #fff;
+    background: var(--hr-sidebar-brand-mark);
     flex: none;
     place-items: center;
     overflow: hidden;
@@ -192,7 +198,7 @@ input {
 }
 
 .sidebar-brand-toggle:focus-visible {
-    outline: 3px solid rgba(135, 234, 177, .72);
+    outline: 3px solid rgba(var(--hr-primary-rgb), .6);
     outline-offset: -3px;
 }
 
@@ -216,7 +222,7 @@ input {
  * border — is unchanged by the wrap.
  */
 .brand-copy strong {
-    color: #fff;
+    color: var(--hr-sidebar-text);
     font-size: var(--fs-md);
     font-weight: 650;
     letter-spacing: 0.01em;
@@ -232,7 +238,7 @@ input {
     padding: 6px;
     border: 0;
     border-radius: var(--r-md);
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--hr-sidebar-icon);
     background: transparent;
     place-items: center;
 }
@@ -263,7 +269,7 @@ input {
 .sidebar-nav-heading {
     margin: 12px 0 2px;
     padding: 0 11px;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--hr-sidebar-label);
     font-size: var(--fs-2xs);
     font-weight: 650;
     letter-spacing: 0.08em;
@@ -282,7 +288,7 @@ input {
     border-radius: var(--r-md);
     /* Unselected items still need to be scannable, so they sit well above the
        4.5:1 floor rather than fading into the sidebar gradient. */
-    color: rgba(255, 255, 255, 0.78);
+    color: var(--hr-sidebar-link);
     text-decoration: none;
     align-items: center;
     gap: 11px;
@@ -290,33 +296,45 @@ input {
 }
 
 .sidebar-link:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.07);
+    color: var(--hr-sidebar-text);
+    background: var(--hr-sidebar-hover);
     transform: translateX(2px);
 }
 
+/*
+ * The current page. The emerald fill is the obvious signal and the heavier
+ * label is the one that does not depend on colour (WCAG 1.4.1); `aria-current`
+ * on the anchor carries it to assistive tech. There is deliberately no marker
+ * bar -- the fill is solid enough to stand on its own.
+ *
+ * No drop shadow. It existed to lift an emerald plate off a white rail; over a
+ * painted slab the same shadow only smears the gradient under the plate.
+ */
 .sidebar-link.active {
-    position: relative;
-    color: #fff;
-    background: linear-gradient(90deg, rgba(67, 178, 119, 0.28), rgba(67, 178, 119, 0.12));
+    color: var(--hr-sidebar-active-text);
+    background: var(--hr-sidebar-active-bg);
+    font-weight: 600;
+    box-shadow: none;
 }
 
-/* The fill alone is a small step from the gradient behind it; the bar makes the
-   current page findable at a glance, and in the collapsed rail too. */
-.sidebar-link.active::before {
-    position: absolute;
-    top: 10px;
-    bottom: 10px;
-    left: 0;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    background: #7fdcaa;
-    content: "";
+/* The glyph and the count ride the fill with the label rather than keeping the
+   resting palette, which would leave two white marks on a mint plate. */
+.sidebar-link.active .sidebar-link-icon,
+.sidebar-link.active .sidebar-link-badge {
+    color: var(--hr-sidebar-active-text);
+}
+
+/* The count outlines itself in the label's own colour rather than carrying a
+   translucent-white fill, which on a plate this light would not show up. */
+.sidebar-link.active .sidebar-link-badge {
+    border-color: currentColor;
+    background: transparent;
 }
 
 .sidebar-link-icon {
     display: grid;
     width: 25px;
+    color: var(--hr-sidebar-icon);
     place-items: center;
 }
 
@@ -335,10 +353,10 @@ input {
 
 .sidebar-link-badge {
     padding: 3px 7px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--hr-sidebar-badge-border);
     border-radius: var(--r-pill);
-    color: rgba(255, 255, 255, 0.72);
-    background: rgba(255, 255, 255, 0.09);
+    color: var(--hr-sidebar-badge-text);
+    background: var(--hr-sidebar-badge-bg);
     font-size: var(--fs-2xs);
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -364,7 +382,7 @@ input {
 .sidebar-tooltip .tooltip-inner {
     padding: 6px 10px;
     border: 1px solid var(--hr-border);
-    box-shadow: 0 10px 26px rgba(16, 45, 30, 0.16);
+    box-shadow: 0 10px 26px rgba(22, 48, 42, .15);
     font-weight: 650;
 }
 
@@ -420,7 +438,7 @@ input {
         margin: 10px 10px 9px;
         padding: 0;
         overflow: hidden;
-        border-top: 1px solid rgba(255, 255, 255, 0.13);
+        border-top: 1px solid var(--hr-sidebar-border);
         color: transparent;
     }
 
@@ -461,9 +479,9 @@ input {
     display: flex;
     min-height: var(--topbar-height);
     padding: 0 30px;
-    border-bottom: 1px solid rgba(217, 228, 222, 0.85);
-    background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 3px 12px rgba(31, 67, 50, 0.025);
+    border-bottom: 1px solid var(--hr-border);
+    background: var(--hr-surface);
+    box-shadow: 0 1px 2px rgba(22, 48, 42, .05);
     align-items: center;
     justify-content: space-between;
     gap: 20px;
@@ -540,7 +558,7 @@ input {
 }
 
 .topbar-profile-button:focus-visible {
-    outline: 3px solid rgba(23, 107, 67, 0.35);
+    outline: 3px solid rgba(var(--hr-primary-rgb), 0.35);
     outline-offset: 2px;
 }
 
@@ -616,11 +634,11 @@ input {
 .theme-choice-option[aria-pressed='true'] {
     color: var(--hr-primary-dark);
     background: var(--hr-surface);
-    box-shadow: 0 1px 3px rgba(31, 67, 50, 0.12);
+    box-shadow: 0 1px 3px rgba(22, 48, 42, .11);
 }
 
 .theme-choice-option:focus-visible {
-    outline: 2px solid rgba(23, 107, 67, 0.5);
+    outline: 2px solid rgba(var(--hr-primary-rgb), 0.5);
     outline-offset: 1px;
 }
 
@@ -668,7 +686,7 @@ input {
     border: 1px solid var(--hr-border);
     border-radius: var(--r-md);
     background: var(--hr-surface);
-    box-shadow: 0 18px 40px rgba(15, 35, 25, 0.14);
+    box-shadow: 0 18px 40px rgba(22, 48, 42, .14);
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -702,7 +720,7 @@ input {
 .global-search-dropdown-footer {
     display: block;
     padding: .55rem 1.1rem;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-xs);
     font-weight: 700;
     text-decoration: none;
@@ -842,7 +860,7 @@ input {
 
 .icon-button:hover {
     border-color: var(--hr-border-strong);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-primary-soft);
 }
 
@@ -888,7 +906,7 @@ input {
 .dashboard-action-menu .dropdown-item .ui-icon {
     width: 15px;
     height: 15px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .notification-button {
@@ -912,10 +930,10 @@ input {
     display: inline-grid;
     width: 39px;
     height: 39px;
-    border: 1px solid rgba(23, 107, 67, 0.1);
+    border: 1px solid rgba(var(--hr-primary-rgb), 0.16);
     border-radius: var(--r-md);
-    color: var(--hr-primary-dark);
-    background: linear-gradient(145deg, #dcf4e7, #c8ead8);
+    color: var(--hr-primary-text);
+    background: var(--hr-primary-soft);
     font-size: var(--fs-xs);
     font-weight: 700;
     letter-spacing: 0.02em;
@@ -940,7 +958,7 @@ input {
     padding: 8px;
     border: 1px solid var(--hr-border);
     border-radius: var(--r-lg);
-    box-shadow: 0 18px 50px rgba(28, 62, 46, 0.14);
+    box-shadow: 0 18px 50px rgba(22, 48, 42, .14);
 }
 
 .notifications-menu {
@@ -977,7 +995,7 @@ input {
 .notification-header button {
     padding: 2px;
     border: 0;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: transparent;
     font-size: var(--fs-2xs);
     font-weight: 600;
@@ -1099,7 +1117,7 @@ input {
     display: block;
     padding: 12px 16px;
     border-top: 1px solid var(--hr-border);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-surface-2);
     text-align: center;
     text-decoration: none;
@@ -1147,7 +1165,7 @@ input {
 }
 
 .notification-filter-tab.is-active {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     border-bottom-color: var(--hr-primary);
 }
 
@@ -1246,7 +1264,7 @@ input {
 
 .notification-read-toggle button:hover,
 .notification-read-toggle button:focus-visible {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     border-color: var(--hr-primary);
     background: var(--hr-primary-soft);
 }
@@ -1378,7 +1396,7 @@ input {
 .eyebrow,
 .panel-kicker {
     margin: 0 0 5px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-2xs);
     font-weight: 700;
     letter-spacing: 0.1em;
@@ -1405,33 +1423,33 @@ input {
    gets the equivalent here instead of leaving Bootstrap's default blue on
    every button that isn't explicitly opted in with .dashboard-action. */
 .btn-primary {
-    --bs-btn-color: #fff;
-    --bs-btn-bg: var(--hr-primary);
-    --bs-btn-border-color: var(--hr-primary);
-    --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: var(--hr-primary-dark);
-    --bs-btn-hover-border-color: var(--hr-primary-dark);
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: var(--hr-primary-dark);
-    --bs-btn-active-border-color: var(--hr-primary-dark);
-    --bs-btn-disabled-color: #fff;
-    --bs-btn-disabled-bg: var(--hr-primary);
-    --bs-btn-disabled-border-color: var(--hr-primary);
+    --bs-btn-color: var(--hr-on-primary);
+    --bs-btn-bg: var(--hr-primary-fill);
+    --bs-btn-border-color: var(--hr-primary-fill);
+    --bs-btn-hover-color: var(--hr-on-primary);
+    --bs-btn-hover-bg: var(--hr-primary-fill-hover);
+    --bs-btn-hover-border-color: var(--hr-primary-fill-hover);
+    --bs-btn-active-color: var(--hr-on-primary);
+    --bs-btn-active-bg: var(--hr-primary-fill-hover);
+    --bs-btn-active-border-color: var(--hr-primary-fill-hover);
+    --bs-btn-disabled-color: var(--hr-on-primary);
+    --bs-btn-disabled-bg: var(--hr-primary-fill);
+    --bs-btn-disabled-border-color: var(--hr-primary-fill);
     --bs-btn-focus-shadow-rgb: var(--hr-primary-rgb);
-    color: #fff;
-    border-color: var(--hr-primary);
-    background: var(--hr-primary);
+    color: var(--hr-on-primary);
+    border-color: var(--hr-primary-fill);
+    background: var(--hr-primary-fill);
 }
 
 .btn-primary:hover,
 .btn-primary:focus {
-    color: #fff;
-    border-color: var(--hr-primary-dark);
-    background: var(--hr-primary-dark);
+    color: var(--hr-on-primary);
+    border-color: var(--hr-primary-fill-hover);
+    background: var(--hr-primary-fill-hover);
 }
 
 .btn-outline-primary {
-    --bs-btn-color: var(--hr-primary);
+    --bs-btn-color: var(--hr-primary-text);
     --bs-btn-border-color: var(--hr-primary);
     --bs-btn-hover-color: #fff;
     --bs-btn-hover-bg: var(--hr-primary);
@@ -1440,27 +1458,36 @@ input {
     --bs-btn-active-bg: var(--hr-primary);
     --bs-btn-active-border-color: var(--hr-primary);
     --bs-btn-focus-shadow-rgb: var(--hr-primary-rgb);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     border-color: var(--hr-primary);
 }
 
 .btn-outline-primary:hover,
 .btn-outline-primary:focus {
-    color: #fff;
-    background: var(--hr-primary);
-    border-color: var(--hr-primary);
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
+    border-color: var(--hr-primary-fill);
 }
 
-/* The dashboard's own call-to-action row layers a distinct shape (pill
-   padding, larger radius, a soft shadow) on top of the colours above. */
+/*
+ * The dashboard's own call-to-action row layers a distinct SHAPE (roomier
+ * padding, a soft shadow) on top of .btn-primary — and nothing else. It used
+ * to repaint the fill as well, with --hr-primary instead of the
+ * --hr-primary-fill every other primary button uses, which is why "Add
+ * employee" and "Apply filters" were two different greens on the same page.
+ *
+ * Every primary button in the app now paints with --hr-primary-fill, so this
+ * one shares whatever that token is set to instead of running a second green
+ * beside it. What it still owns is the shape.
+ */
 .btn-primary.dashboard-action {
     display: inline-flex;
     min-height: var(--tap-min);
     padding: 0 17px;
-    border-color: var(--hr-primary);
+    border-color: var(--hr-primary-fill);
     border-radius: var(--r-md);
-    background: var(--hr-primary);
-    box-shadow: 0 7px 18px rgba(23, 107, 67, 0.16);
+    background: var(--hr-primary-fill);
+    box-shadow: 0 7px 18px rgba(var(--hr-primary-rgb), 0.24);
     align-items: center;
     gap: 8px;
     font-size: var(--fs-sm);
@@ -1468,8 +1495,8 @@ input {
 }
 
 .btn-primary.dashboard-action:hover {
-    border-color: var(--hr-primary-dark);
-    background: var(--hr-primary-dark);
+    border-color: var(--hr-primary-fill-hover);
+    background: var(--hr-primary-fill-hover);
 }
 
 .btn-primary.dashboard-action .ui-icon {
@@ -1502,15 +1529,15 @@ input {
 
 .stat-card:hover,
 .stat-card:focus-visible {
-    border-color: rgba(23, 107, 67, .38);
+    border-color: rgba(var(--hr-primary-rgb), .38);
     color: inherit;
     background: var(--hr-primary-soft);
-    box-shadow: 0 16px 34px rgba(25, 68, 49, .12);
+    box-shadow: 0 16px 34px rgba(22, 48, 42, .13);
     transform: translateY(-2px);
 }
 
 .stat-card:focus-visible {
-    outline: 3px solid rgba(23, 107, 67, .2);
+    outline: 3px solid rgba(var(--hr-primary-rgb), .2);
     outline-offset: 3px;
 }
 
@@ -1529,7 +1556,7 @@ input {
     width: 32px;
     height: 32px;
     border-radius: var(--r-md);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-primary-soft);
     place-items: center;
 }
@@ -1558,9 +1585,9 @@ input {
 
 .stat-card:hover .stat-card-link-icon,
 .stat-card:focus-visible .stat-card-link-icon {
-    border-color: var(--hr-primary);
-    color: #fff;
-    background: var(--hr-primary);
+    border-color: var(--hr-primary-fill);
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
     transform: translateX(2px);
 }
 
@@ -1675,7 +1702,7 @@ input {
 .department-footer-link,
 .panel-footer-link {
     display: inline-flex;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     text-decoration: none;
     align-items: center;
     gap: 3px;
@@ -1696,11 +1723,16 @@ input {
     border-collapse: collapse;
 }
 
+/*
+ * The head is a cool neutral, not a green one. Row hover below is the only
+ * green in the table body, and it can only read as "this row" if the header
+ * above it is not already tinted the same colour.
+ */
 .dashboard-table th {
     padding: 11px 15px;
     border-bottom: 1px solid var(--hr-border);
-    color: var(--hr-subtle);
-    background: var(--hr-primary-soft);
+    color: var(--hr-muted);
+    background: var(--hr-surface-2);
     font-size: var(--fs-2xs);
     font-weight: 650;
     letter-spacing: 0.035em;
@@ -1722,7 +1754,7 @@ input {
 .dashboard-table td {
     padding: 13px 15px;
     border-bottom: 1px solid var(--hr-border);
-    color: var(--hr-muted);
+    color: var(--hr-text);
     font-size: var(--fs-xs);
     vertical-align: middle;
 }
@@ -1784,7 +1816,7 @@ input {
 .employee-cell span {
     margin-top: 2px;
     overflow: hidden;
-    color: var(--hr-subtle);
+    color: var(--hr-muted);
     font-size: var(--fs-2xs);
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1815,19 +1847,29 @@ input {
     background: currentColor;
 }
 
+/*
+ * Each tone is its own hue in wording as well as in plate — green on pale
+ * green, red on pale red, amber on pale amber — which is what makes a column of
+ * these scannable at a glance. The dot beside the label is what carries the
+ * same meaning without colour (WCAG 1.4.1), and the wording states it in full.
+ *
+ * The readable half of each pair is used here, never the fill half: these
+ * plates are light, and a fill-weight hue on one is the combination in this
+ * palette that drops under the floor.
+ */
 .status-success {
-    color: var(--hr-text);
-    background: var(--hr-primary-soft);
+    color: var(--hr-success-text);
+    background: var(--hr-success-soft);
 }
 
 .status-danger {
-    color: var(--hr-danger);
-    background: var(--hr-tint-danger);
+    color: var(--hr-danger-text);
+    background: var(--hr-danger-soft);
 }
 
 .status-warning {
     color: var(--hr-warning-text);
-    background: var(--hr-tint-warning);
+    background: var(--hr-warning-soft);
 }
 
 .status-secondary {
@@ -1836,7 +1878,7 @@ input {
 }
 
 .status-primary {
-    color: var(--hr-info);
+    color: var(--hr-info-text);
     background: var(--hr-tint-info);
 }
 
@@ -1890,7 +1932,7 @@ input {
     width: 34px;
     height: 34px;
     border-radius: var(--r-md);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-primary-soft);
     font-size: var(--fs-2xs);
     font-weight: 700;
@@ -1933,7 +1975,7 @@ input {
 
 .department-progress .progress-bar {
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--hr-primary), #54b980);
+    background: var(--hr-primary);
 }
 
 .department-footer-link,
@@ -2001,9 +2043,9 @@ input {
 }
 
 .attendance-range a.is-active {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-surface);
-    box-shadow: 0 1px 2px rgba(20, 60, 40, 0.12);
+    box-shadow: 0 1px 2px rgba(22, 48, 42, .11);
 }
 
 .attendance-overview-caption {
@@ -2185,7 +2227,7 @@ input {
     border: 1px solid var(--hr-border);
     border-radius: var(--r-md);
     background: var(--hr-surface);
-    box-shadow: 0 10px 26px rgba(16, 45, 30, 0.16);
+    box-shadow: 0 10px 26px rgba(22, 48, 42, .15);
     opacity: 0;
     pointer-events: none;
     transform: translateX(-50%);
@@ -2236,7 +2278,7 @@ input {
 
 .attendance-table-view > summary {
     padding: 11px 20px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     cursor: pointer;
     font-size: var(--fs-2xs);
     font-weight: 600;
@@ -2347,7 +2389,7 @@ input {
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-2xs);
     font-weight: 600;
     text-decoration: none;
@@ -2402,7 +2444,7 @@ input {
 .attendance-tile-value {
     flex: none;
     margin: 0;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-md);
     font-variant-numeric: tabular-nums;
     font-weight: 700;
@@ -2519,17 +2561,41 @@ input {
     opacity: 0.65;
 }
 
+/*
+ * The current day.
+ *
+ * --hr-primary-fill rather than --hr-primary, for the reason tokens.css gives:
+ * the brand value is a colour to PAINT with, and the date and weekday sitting
+ * on this cell are text. White on --hr-primary measured 2.91:1 in light and the
+ * same white on the dark theme's brighter green measured 2.16:1 — this cell was
+ * the least readable day of the seven in both themes, which is the opposite of
+ * what highlighting today is for.
+ *
+ * The label is --hr-on-primary rather than a literal #fff so it follows the
+ * fill: white in light, near-black on the dark theme's lifted green (8.53:1).
+ */
 .week-strip-day.is-today a {
-    background: var(--hr-primary);
+    background: var(--hr-primary-fill);
 }
 
 .week-strip-day.is-today .week-strip-name,
 .week-strip-day.is-today .week-strip-number {
-    color: #fff;
+    color: var(--hr-on-primary);
 }
 
 .week-strip-day.is-today .week-strip-dot {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--hr-on-primary);
+}
+
+/*
+ * Today keeps its fill on hover, and the extra class is load-bearing.
+ * dark-mode.css repaints every .week-strip link on hover to --hr-surface-2 at
+ * a specificity that ties with the rule above and wins on source order, which
+ * would strand a near-black label on a plain dark surface. Qualifying with the
+ * parent outranks it in both themes.
+ */
+.week-strip .week-strip-day.is-today a:hover {
+    background: var(--hr-primary-fill-hover);
 }
 
 /* The timeline takes the rail's slack rather than the footer strip: a gap under
@@ -2588,23 +2654,25 @@ input {
     font-weight: 700;
 }
 
+/*
+ * A plain card on all four sides. The left edge used to be a 3px status bar,
+ * which read as a stray mark next to the tinted fill rather than as a signal.
+ * Status now rests on the fill plus the "in progress" tag the markup renders
+ * for a live shift -- wording, so it is not carried by colour alone.
+ */
 .schedule-timeline-card {
     padding: 9px 11px;
     border: 1px solid var(--hr-border);
-    /* The left edge is the status: it is the only part of the card that
-       changes, so a live shift is found by scanning one vertical line. */
-    border-left: 3px solid var(--hr-border-strong);
     border-radius: var(--r-md);
     background: var(--hr-surface);
 }
 
 .schedule-timeline-item.is-live .schedule-timeline-card {
-    border-left-color: var(--hr-primary);
+    border-color: rgba(var(--hr-primary-rgb), .35);
     background: var(--hr-primary-soft);
 }
 
 .schedule-timeline-item.is-quiet .schedule-timeline-card {
-    border-left-color: var(--hr-border);
     background: var(--hr-surface-2);
 }
 
@@ -2665,7 +2733,7 @@ input {
 /* A wash rather than a fill: these people are not accounted for, and painting
    them as solid as the ones who turned up reads as coverage they are not. */
 .schedule-timeline-fill.is-missing {
-    background: rgba(201, 61, 78, .3);
+    background: rgba(208, 65, 79, .3);
 }
 
 /* Rostered, not in yet, and not late either -- left as plain track until the
@@ -2783,7 +2851,7 @@ input {
     padding: 1px 7px;
     border-radius: var(--r-pill);
     color: var(--hr-danger);
-    background: var(--hr-danger-soft, rgba(201, 61, 78, .12));
+    background: var(--hr-danger-soft, rgba(208, 65, 79, .12));
     font-weight: 700;
 }
 
@@ -2849,11 +2917,11 @@ input {
 }
 
 .analytics-metric-violet {
-    --analytics-accent: #7656c9;
+    --analytics-accent: var(--hr-violet);
 }
 
 .analytics-metric-amber {
-    --analytics-accent: #b8760d;
+    --analytics-accent: var(--hr-warning);
 }
 
 .analytics-metric-label {
@@ -2901,7 +2969,7 @@ input {
 
 .analytics-table-view > summary {
     padding: 11px 20px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     cursor: pointer;
     font-size: var(--fs-2xs);
     font-weight: 600;
@@ -2960,7 +3028,7 @@ input {
     padding: 15px 32px;
     border-top: 1px solid var(--hr-border);
     color: var(--hr-subtle);
-    background: rgba(255, 255, 255, 0.62);
+    background: var(--hr-surface-2);
     align-items: center;
     justify-content: space-between;
     gap: 12px;
@@ -3008,7 +3076,7 @@ input {
     }
 
     body.sidebar-open .app-sidebar {
-        box-shadow: 20px 0 60px rgba(5, 35, 21, 0.28);
+        box-shadow: 20px 0 60px rgba(2, 30, 21, .34);
         transform: translateX(0);
     }
 
@@ -3020,7 +3088,7 @@ input {
         visibility: hidden;
         border: 0;
         opacity: 0;
-        background: rgba(7, 28, 18, 0.48);
+        background: rgba(2, 30, 21, .52);
         transition: opacity 180ms ease, visibility 180ms ease;
     }
 
@@ -3366,9 +3434,25 @@ body.reduce-motion *::after {
     border-radius: var(--r-sm);
 }
 
-/* On the sidebar's dark ground the green ring disappears; white reads there. */
-.app-sidebar :where(a, button, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+/*
+ * The rail is a painted slab, and the app-wide green ring measures 2.77:1 on it
+ * -- under the 3:1 a focus indicator owes the viewer (WCAG 1.4.11). On the rail
+ * the ring goes white.
+ * The current item is the exception. Its plate is the lightest thing on the
+ * rail, so a white ring would vanish into it; there the ring takes the plate's
+ * own ink, at 8.21:1.
+ *
+ * Only the rail's own controls are listed. .sidebar-brand-toggle is a DOM child
+ * of the rail but is painted outside it, on the canvas, where the green ring is
+ * still the right one.
+ */
+.app-sidebar .sidebar-link:focus-visible,
+.app-sidebar .sidebar-close:focus-visible {
     outline-color: #fff;
+}
+
+.app-sidebar .sidebar-link.active:focus-visible {
+    outline-color: var(--hr-sidebar-active-text);
 }
 
 /* ==========================================================================
@@ -3387,8 +3471,8 @@ body.reduce-motion *::after {
     padding: 10px 16px;
     transform: translateY(-200%);
     border-radius: var(--r-md);
-    color: #fff;
-    background: var(--hr-primary);
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
     box-shadow: var(--hr-shadow);
     font-size: var(--fs-sm);
     font-weight: 620;
@@ -3445,7 +3529,7 @@ body.reduce-motion *::after {
 
 .employee-cell-link:hover,
 .employee-cell-link:focus-visible {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     text-decoration: underline;
 }
 
@@ -3461,7 +3545,7 @@ body.reduce-motion *::after {
     display: inline-flex;
     padding: 4px 12px;
     border-radius: var(--r-pill);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-primary-soft);
     align-items: baseline;
     gap: 5px;
@@ -3538,7 +3622,7 @@ body.reduce-motion *::after {
     height: 32px;
     flex: none;
     border-radius: var(--r-md);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-primary-soft);
     place-items: center;
 }
@@ -3649,7 +3733,7 @@ body.reduce-motion *::after {
     display: flex;
     min-height: 38px;
     padding: 0 13px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     align-items: center;
     gap: 3px;
     font-size: var(--fs-2xs);
@@ -3769,7 +3853,7 @@ body.reduce-motion *::after {
 
 .exception-item:hover strong,
 .exception-item:focus-visible strong {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     text-decoration: underline;
 }
 
@@ -3808,7 +3892,7 @@ body.reduce-motion *::after {
 .exception-more {
     display: inline-flex;
     margin-top: 7px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     align-items: center;
     gap: 3px;
     font-size: var(--fs-2xs);

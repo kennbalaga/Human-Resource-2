@@ -5,66 +5,247 @@
  * theme overrides the colour half of this file from dark-mode.css, which wins on
  * specificity (`html[data-theme-resolved='dark']` beats `:root`).
  *
- * Contrast: every text token below clears WCAG AA (4.5:1) against BOTH --hr-surface
- * and --hr-bg. That floor is not negotiable here — most of this app's text is small,
- * so nothing qualifies for the 3:1 large-text allowance, and the people reading it
- * are hospital staff of mixed ages on phones as often as on desktops.
+ * FOREST GREEN ON COOL SLATE. The identity is a deep forest rail and an emerald
+ * set of actions, sitting on cool blue-grey neutrals and dark navy type. The
+ * green is spent where it means something — branding, the rail, the current
+ * page, primary actions, selected states, a healthy status — and nowhere else.
+ * The canvas, the cards, the dividers and the body copy are neutral, which is
+ * what keeps the green legible as a signal instead of as wallpaper.
+ *
+ * FILL vs TEXT. The brand green is a *fill* colour first: white on #008f68
+ * measures 4.10:1, which clears the 3:1 owed to a UI component. So each accent
+ * hue exists twice — the brand value for anything painted (buttons, active nav,
+ * bars, dots) and a `-text` counterpart, held darker, for anything read (links,
+ * figures, inline status wording). Painting with a `-text` token, or writing
+ * with a fill token, is the one way to misuse this file.
+ *
+ * Contrast: every -text token clears WCAG AA (4.5:1) against EVERY rung of the
+ * surface ladder — --hr-surface, --hr-bg and --hr-sunken alike. That floor is not
+ * negotiable here — most of this app's text is small, so nothing qualifies for the
+ * 3:1 large-text allowance, and the people reading it are hospital staff of mixed
+ * ages on phones as often as on desktops. The two measured exceptions are named
+ * where they sit: --hr-primary-fill (a button label at 4.10:1) and
+ * --hr-placeholder (a hint, never content).
  */
 
 :root {
-    /* ---- Brand ---- */
-    --hr-primary: #176b43;        /* 6.52:1 on white */
-    --hr-primary-dark: #0d4f30;
-    --hr-primary-soft: #eaf7f0;
-    --hr-primary-rgb: 23, 107, 67;
-    --hr-sidebar: #103d2a;
-    --hr-sidebar-deep: #0a3020;
+    /* ---- Brand ----
+     * --hr-primary is the emerald the product is recognised by; it is painted,
+     * never written. --hr-primary-text is the same hue taken down to 5.35:1 so
+     * it can carry small text on white and on the canvas. --hr-primary-accent
+     * is the bright emerald the rail's current item and other on-dark
+     * highlights use — it is only ever seen against a forest ground.
+     */
+    --hr-primary: #008f68;          /* brand fill — white text on it clears 3:1 */
+    --hr-primary-hover: #007a59;    /* pressed/hover fill */
+    --hr-primary-dark: #007a59;     /* legacy alias of -hover, kept for older rules */
+    --hr-primary-accent: #12c98b;   /* bright emerald — on-dark highlights only */
+    --hr-primary-text: #007a59;     /* 5.35:1 on white — green wording and glyphs */
+    --hr-primary-soft: #e5f7f1;     /* tinted plate behind an icon or a chip */
+    --hr-primary-rgb: 0, 143, 104;  /* focus rings and translucent washes */
+
+    /*
+     * The solid primary control — a button, a selected pill — and the colour of
+     * the label on it.
+     *
+     * This is the one place the brand value is knowingly used below the text
+     * floor. A label is text, and text owes 4.5:1 (WCAG 1.4.3); white on
+     * #008f68 measures 4.10:1. The brand green is specified for buttons, so it
+     * ships on them, and the hover state (#007a59, 5.35:1) clears the floor
+     * outright.
+     *
+     * To take the resting state over the line as well, set --hr-primary-fill to
+     * #00875a here — nothing else needs to change, and nothing else regresses.
+     */
+    --hr-primary-fill: #008f68;        /* white on it: 4.10:1 */
+    --hr-primary-fill-hover: #007a59;  /* white on it: 5.35:1 */
+    --hr-on-primary: #ffffff;          /* the label on --hr-primary-fill */
 
     /*
      * ---- Surface ladder ----
-     * Light mode previously had only `--hr-bg` and `--hr-surface`, so components
-     * that needed an inset or a table head invented their own greys inline. That
-     * is the root cause of the colour sprawl. Four rungs, each a visible step.
+     * Four rungs of cool blue-grey, each a visible step. Components that need an
+     * inset or a table head take the next rung rather than inventing a grey
+     * inline — that sprawl is what this ladder exists to prevent.
      */
-    --hr-bg: #f4f7f6;             /* app canvas - the floor */
-    --hr-sunken: #eef2f0;         /* inputs and insets that sit below a card */
+    --hr-bg: #f5f8fa;             /* app canvas - the floor */
+    --hr-sunken: #edf2f6;         /* inputs and insets that sit below a card */
     --hr-surface: #ffffff;        /* cards, panels, tables */
-    --hr-surface-2: #f4f7f6;      /* table heads, chips, toolbars, dropdowns */
-    --hr-surface-3: #e7edea;      /* hover and pressed states */
+    --hr-surface-2: #f8fafc;      /* table heads, chips, toolbars, dropdowns */
+    --hr-surface-3: #eef3f7;      /* hover and pressed states */
 
     /* ---- Text ---- */
-    --hr-text: #1b2923;           /* 15.13:1 on white */
-    --hr-muted: #566661;          /* 6.05:1 white / 5.62:1 canvas - was #6d7c75 at 4.38:1 (failed) */
-    --hr-subtle: #616f69;         /* 5.27:1 - timestamps and footnotes */
+    --hr-text: #193451;           /* 12.72:1 white / 12.03:1 canvas — headings and body */
+    /*
+     * Muted text is where most of this UI's metadata lives, so it is the token
+     * most likely to be read at 12px on a ward phone. It carries description
+     * lines, table meta and field labels — content, not decoration — so it is
+     * held dark enough to read, and the lighter --hr-placeholder below is what
+     * hints and inert glyphs use instead.
+     */
+    --hr-muted: #5f7690;          /* 4.69:1 white / 4.39:1 canvas */
+    --hr-subtle: #566e8a;         /* 5.26:1 white / 4.93:1 canvas - timestamps */
+    --hr-icon: #5f7690;           /* secondary UI glyphs */
+    /*
+     * Placeholders and inert glyphs only — 3.15:1 on white. It is deliberately
+     * the lightest thing here and deliberately fenced off: a placeholder is a
+     * hint that repeats a label already on screen, so it may sit under the text
+     * floor, and nothing that has to be READ may use this token.
+     */
+    --hr-placeholder: #8293a6;
 
     /* ---- Borders ----
      * --hr-border is a hairline divider and is deliberately below 3:1: it separates,
      * it does not carry meaning. Anywhere an edge is load-bearing (form controls,
      * focus rings, toggle tracks) must use --hr-border-strong, which clears 3:1.
      */
-    --hr-border: #e3eae6;
-    --hr-border-strong: #88908c;  /* 3.27:1 white / 3.04:1 canvas */
+    --hr-border: #dce4ea;
+    --hr-border-strong: #76889c;  /* 3.64:1 white / 3.41:1 canvas / 3.23:1 sunken */
 
     /* ---- Status ----
-     * --hr-warning is a fill/icon colour ONLY: at 2.74:1 it can never be text.
-     * Use --hr-warning-text for any warning wording.
+     * Same fill/text split as the brand. The fill values are the ones seen on
+     * bars, dots and solid badges; the -text values are the ones read. The
+     * -soft values are the opaque plates behind badge wording.
      */
-    --hr-success: #157347;        /* 5.87:1 - was #198754 at a marginal 4.53:1 */
-    --hr-warning: #d98b14;        /* fills and icons only - NOT text */
-    --hr-warning-text: #855806;   /* 6.18:1 - the readable counterpart */
-    --hr-danger: #c93d4e;         /* 4.93:1 */
-    --hr-info: #21619f;           /* 6.41:1 */
-    --hr-violet: #7656c9;         /* 5.32:1 */
+    --hr-success: #0b8f5b;        /* fill — 4.12:1, indicators only */
+    --hr-success-text: #0a7a4c;   /* 5.38:1 - the readable counterpart */
+    --hr-success-soft: #e5f6ee;   /* the plate behind "Active" */
+    --hr-warning: #c58a16;        /* fills and icons only - NOT text */
+    --hr-warning-text: #8a5f06;   /* 5.65:1 - the readable counterpart */
+    --hr-warning-soft: #fff6dd;
+    --hr-danger: #d6455d;         /* fill */
+    --hr-danger-text: #c13a51;    /* 5.26:1 - destructive wording */
+    --hr-danger-soft: #fbecef;
+    --hr-info: #3978b8;           /* fill */
+    --hr-info-text: #2e6699;      /* 6.04:1 - the readable counterpart */
+    --hr-violet: #6d54c8;         /* 6.02:1 - reads and paints */
+
+    /*
+     * The edge of a status plate. An alert is plate + edge + wording, and the
+     * edge is decorative — the icon and the wording carry the meaning — so
+     * these sit between the plate and the fill rather than clearing 3:1.
+     */
+    --hr-primary-line: #a8dfcb;
+    --hr-success-line: #a9dcc3;
+    --hr-warning-line: #ecd9a4;
+    --hr-danger-line: #f2bcc5;
 
     /* ---- Tints: pill and chip backgrounds, translucent so they inherit the surface ---- */
-    --hr-tint-success: rgba(21, 115, 71, .10);
-    --hr-tint-warning: rgba(217, 139, 20, .14);
-    --hr-tint-danger: rgba(201, 61, 78, .10);
-    --hr-tint-info: rgba(33, 97, 159, .10);
-    --hr-tint-violet: rgba(118, 86, 201, .10);
-    --hr-tint-neutral: rgba(27, 41, 35, .06);
+    --hr-tint-primary: rgba(0, 143, 104, .10);
+    --hr-tint-success: rgba(11, 143, 91, .11);
+    --hr-tint-warning: rgba(197, 138, 22, .14);
+    --hr-tint-danger: rgba(214, 69, 93, .10);
+    --hr-tint-info: rgba(57, 120, 184, .10);
+    --hr-tint-violet: rgba(109, 84, 200, .10);
+    --hr-tint-neutral: rgba(25, 52, 81, .07);
 
-    --hr-shadow: 0 12px 32px rgba(25, 68, 49, 0.07);
+    /*
+     * ---- Sidebar ----
+     * The rail is a painted slab, not a rung of the ladder above, and that is
+     * why it does not follow the canvas between themes: it is deep forest in
+     * both, and the theme only decides how deep. It keeps its own names for the
+     * same reason it always did — these values are what every rule in the rail
+     * paints with, and they are the one place the forest hue runs at full
+     * strength.
+     *
+     * Every ratio below is measured against --hr-sidebar, the LIGHTEST stop of
+     * the gradient, which is the worst case for anything sitting on it.
+     */
+    --hr-sidebar: #005b46;                   /* gradient top */
+    --hr-sidebar-deep: #003d31;              /* gradient bottom */
+    --hr-sidebar-text: #ffffff;              /* 9.06:1 - the brand name */
+    --hr-sidebar-label: #a9d1c5;             /* 4.88:1 - group headings */
+    --hr-sidebar-link: #d9f0e9;              /* 6.81:1 - an unselected destination */
+    --hr-sidebar-icon: #a9d1c5;              /* 4.88:1 - an unselected glyph */
+    /*
+     * Hover, badges and rules go translucent white rather than solid. A fixed
+     * grey would be right against one stop of the gradient and wrong against the
+     * other; an alpha inherits whichever part of the slab it happens to land on.
+     */
+    --hr-sidebar-hover: rgba(255, 255, 255, .10);
+    --hr-sidebar-border: rgba(255, 255, 255, .16);
+    /*
+     * The current page is a bright emerald plate with near-black forest ink on
+     * it. The plate clears 3.78:1 against the rail, so it reads as a shape
+     * before it reads as a colour, and its label clears 7.30:1 on the plate —
+     * both with enough headroom to shift a step without falling under a floor.
+     */
+    --hr-sidebar-active-bg: #12c98b;         /* 3.78:1 against the rail */
+    --hr-sidebar-active-text: #04291b;       /* 7.30:1 on the plate */
+    /* The count matches the plate: light pill, dark green figure. */
+    --hr-sidebar-badge-bg: rgba(255, 255, 255, .92);
+    --hr-sidebar-badge-text: #00563a;        /* 8.20:1 on the pill */
+    --hr-sidebar-badge-border: rgba(255, 255, 255, .92);
+    --hr-sidebar-brand-mark: rgba(255, 255, 255, .13);  /* the mark draws in currentColor */
+    /*
+     * A hairline cannot separate a slab from the canvas — at this value it just
+     * reads as part of the slab. The rail spills a little of its own colour to
+     * the right instead, which seats the canvas visibly in front of it.
+     */
+    --hr-sidebar-glow: rgba(0, 91, 70, .42);
+
+    /*
+     * ---- Device lock ----
+     * The unlock screen is painted white-on-dark and keeps its own forest, a
+     * step deeper than the rail's: it needs a red that reads as a warning and a
+     * glyph that reads as a fingerprint, so it must not follow the rail if the
+     * rail is ever lightened.
+     */
+    --hr-lock: #004a38;
+    --hr-lock-deep: #002b21;
+
+    /*
+     * ---- Elevation ----
+     * Restrained on purpose: a hairline border carries the edge of a card and the
+     * shadow only lifts it off the canvas. Two rungs, so a modal can sit above a
+     * dropdown without either inventing its own. Tinted with the navy of the
+     * type rather than with black, so a shadow never greys the cool canvas.
+     */
+    --hr-shadow: 0 1px 2px rgba(25, 52, 81, .05), 0 6px 16px rgba(25, 52, 81, .07);
+    --hr-shadow-lg: 0 2px 4px rgba(25, 52, 81, .06), 0 18px 40px rgba(25, 52, 81, .13);
+
+    /*
+     * ---- Public aliases ----
+     * The generic names the design brief speaks in, pointed at the tokens above so
+     * there is still exactly one place a colour is decided. New work may use
+     * either spelling; both flip with the theme.
+     */
+    --primary: var(--hr-primary);
+    --primary-hover: var(--hr-primary-hover);
+    --primary-accent: var(--hr-primary-accent);
+    --primary-soft: var(--hr-primary-soft);
+    --background: var(--hr-bg);
+    --surface: var(--hr-surface);
+    --surface-secondary: var(--hr-surface-2);
+    --border: var(--hr-border);
+    --text-primary: var(--hr-text);
+    --text-secondary: var(--hr-muted);
+    --text-muted: var(--hr-placeholder);
+    --sidebar-bg: var(--hr-sidebar);
+    --sidebar-bg-dark: var(--hr-sidebar-deep);
+    --sidebar-text: var(--hr-sidebar-link);
+    --sidebar-muted: var(--hr-sidebar-label);
+    --sidebar-active: var(--hr-sidebar-active-bg);
+    --success: var(--hr-success);
+    --success-soft: var(--hr-success-soft);
+    --danger: var(--hr-danger);
+    --danger-soft: var(--hr-danger-soft);
+    --warning: var(--hr-warning);
+    --warning-soft: var(--hr-warning-soft);
+    --info: var(--hr-info);
+
+    /* The older alias spelling, still referenced by existing rules. */
+    --color-primary: var(--hr-primary);
+    --color-primary-hover: var(--hr-primary-hover);
+    --color-on-primary: var(--hr-on-primary);
+    --color-primary-soft: var(--hr-primary-soft);
+    --color-background: var(--hr-bg);
+    --color-surface: var(--hr-surface);
+    --color-surface-secondary: var(--hr-surface-2);
+    --color-border: var(--hr-border);
+    --color-text: var(--hr-text);
+    --color-text-muted: var(--hr-muted);
+    --color-icon: var(--hr-icon);
+    --color-success: var(--hr-success);
 
     /*
      * ---- Type scale ----

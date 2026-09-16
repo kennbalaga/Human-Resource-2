@@ -18,7 +18,7 @@
 .bar-column { display:grid; grid-template-rows:1rem 12rem 1.2rem; flex:1 0 1.5rem; min-width:1.2rem; align-items:end; text-align:center; }
 .bar-value,.bar-column small { color:var(--hr-subtle); font-size: var(--fs-2xs); }
 .bar-track { position:relative; width:100%; height:100%; border-radius:.35rem .35rem .15rem .15rem; background:var(--hr-surface-2); overflow:hidden; }
-.bar-track i { position:absolute; right:0; bottom:0; left:0; border-radius:.35rem .35rem .15rem .15rem; background:linear-gradient(180deg,#51a779,#176b43); transition:height .65s ease; }
+.bar-track i { position:absolute; right:0; bottom:0; left:0; border-radius:.35rem .35rem .15rem .15rem; background:linear-gradient(180deg,var(--hr-primary),var(--hr-primary-hover)); transition:height .65s ease; }
 .analytics-list-chart,.status-chart { display:grid; gap:1rem; padding:1rem 1.25rem 1.5rem; }
 .list-chart-row>div:first-child { display:flex; justify-content:space-between; gap:.75rem; margin-bottom:.35rem; color:var(--hr-muted); font-size: var(--fs-xs); }
 .list-chart-row span { display:flex; align-items:center; gap:.4rem; }
@@ -27,7 +27,7 @@
 .horizontal-track i { display:block; height:100%; border-radius:var(--r-pill); background:var(--hr-info); transition:width .65s ease; }
 .status-chart>div { display:grid; grid-template-columns:5rem 1fr 2rem; align-items:center; gap:.65rem; color:var(--hr-muted); font-size: var(--fs-xs); }
 .status-chart strong { color:var(--hr-text); text-align:right; }
-.status-bar-draft{background:var(--hr-muted)!important}.status-bar-submitted{background:var(--hr-warning)!important}.status-bar-approved{background:#23825a!important}.status-bar-rejected{background:var(--hr-danger)!important}
+.status-bar-draft{background:var(--hr-muted)!important}.status-bar-submitted{background:var(--hr-warning)!important}.status-bar-approved{background:var(--hr-success)!important}.status-bar-rejected{background:var(--hr-danger)!important}
 .analytics-table { width:100%; }
 .analytics-table td:first-child { display:grid; }
 .analytics-table td:first-child small { color:var(--hr-subtle); font-size: var(--fs-2xs); }

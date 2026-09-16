@@ -41,21 +41,36 @@
     border-color: var(--hr-border-strong);
     color: var(--hr-text);
     background: var(--hr-primary-soft);
-    box-shadow: 0 4px 14px rgba(23, 107, 67, .08);
+    box-shadow: 0 4px 14px rgba(var(--hr-primary-rgb), .08);
 }
 
-/* Every tab icon is the same green, active included. The active tab is already
-   marked by its border, fill and label colour - having the icon change too made
-   four icons in three different colours across one strip. */
+/*
+ * Two states, not four colours. A resting tab is a neutral plate with a neutral
+ * glyph; the selected one is the brand fill with a white glyph, which is the
+ * single strongest mark in the strip and the thing the eye lands on first. The
+ * border, plate and label of the tab itself still change with it, so the
+ * selection is never carried by the icon alone.
+ */
 .organization-tab-icon {
     display: grid;
     width: 2.15rem;
     height: 2.15rem;
     flex: 0 0 auto;
     border-radius: var(--r-md);
-    color: var(--hr-primary);
+    color: var(--hr-muted);
     background: var(--hr-sunken);
     place-items: center;
+    transition: color .16s ease, background-color .16s ease;
+}
+
+.organization-workspace-tabs a:hover .organization-tab-icon {
+    color: var(--hr-primary-text);
+    background: var(--hr-primary-soft);
+}
+
+.organization-workspace-tabs a.active .organization-tab-icon {
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
 }
 
 .organization-tab-icon svg {
@@ -135,7 +150,7 @@
 .organization-field select:focus,
 .organization-field textarea:focus {
     border-color: var(--hr-primary);
-    box-shadow: 0 0 0 3px rgba(25, 128, 78, .12);
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .12);
 }
 
 .organization-filter-actions {
@@ -175,11 +190,19 @@
     font-size: var(--fs-2xs);
 }
 
+/*
+ * The buttons stay on one line. They used to wrap, and because the group is
+ * right-aligned a wrapped third button landed alone on a second line, hard
+ * against the edge -- it read as a stray control belonging to nothing rather
+ * than as the last of a set. The column is now wide enough to hold all three
+ * (see the colgroup in employees/_table.blade.php); below 900px the table
+ * becomes cards and .table-stack hands wrapping back, where a full-width row
+ * makes it the right behaviour again.
+ */
 .organization-row-actions {
     justify-content: flex-end;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: .4rem;
-    row-gap: .35rem;
 }
 
 /* An archived record shows two badges — its employment status and the shelf it
@@ -195,6 +218,9 @@
 .organization-row-actions .btn {
     padding: .4rem .65rem;
     font-size: var(--fs-2xs);
+    /* A label that breaks across two lines defeats the point of not wrapping
+       the group: the row grows anyway and the buttons stop matching heights. */
+    white-space: nowrap;
 }
 
 .organization-card-grid {
@@ -330,7 +356,7 @@
     float: none;
     width: auto;
     margin: 0;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-2xs);
     letter-spacing: .06em;
     text-transform: uppercase;
@@ -522,7 +548,7 @@
 }
 
 .employee-record-tab.active {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     border-bottom-color: var(--hr-primary);
 }
 
@@ -774,7 +800,7 @@
     width: 1rem;
     height: 1rem;
     flex: none;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .employee-side-list {
@@ -1096,7 +1122,7 @@
 .global-search-empty-state > svg {
     width: 1.8rem;
     height: 1.8rem;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .global-search-empty-state strong {
@@ -1124,12 +1150,12 @@ html[data-theme-resolved='dark'] .organization-workspace-tabs a:hover {
 
 html[data-theme-resolved='dark'] .organization-workspace-tabs a.active {
     border-color: var(--hr-primary);
-    color: #79d9a8;
-    background: #123323;
+    color: var(--hr-primary-text);
+    background: var(--hr-primary-soft);
 }
 
 html[data-theme-resolved='dark'] .organization-tab-icon {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-surface-3);
 }
 
@@ -1140,7 +1166,7 @@ html[data-theme-resolved='dark'] .organization-field select,
 html[data-theme-resolved='dark'] .organization-field textarea {
     border-color: var(--hr-border-strong);
     color: var(--hr-text);
-    background: #0f1b16;
+    background: var(--hr-bg);
 }
 
 html[data-theme-resolved='dark'] .organization-field input[readonly] {
@@ -1157,7 +1183,7 @@ html[data-theme-resolved='dark'] .organization-checkbox strong {
 
 html[data-theme-resolved='dark'] .organization-code {
     color: var(--hr-subtle);
-    background: #123d2c;
+    background: var(--hr-primary-soft);
 }
 
 @media (max-width: 1100px) {

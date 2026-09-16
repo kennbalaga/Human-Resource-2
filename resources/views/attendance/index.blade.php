@@ -42,7 +42,7 @@
                 <p>{{ $view === 'scanner' ? 'Scan employee badges to record their time in and out.' : 'See today’s status and your recent time records.' }}</p>
             </div>
             @if ($view === 'mine')
-                <a class="btn btn-outline-primary dashboard-action" href="{{ route('timesheets.index') }}">
+                <a class="btn btn-primary dashboard-action" href="{{ route('timesheets.index') }}">
                     <x-icon name="timesheet" /> My timesheet
                 </a>
             @endif

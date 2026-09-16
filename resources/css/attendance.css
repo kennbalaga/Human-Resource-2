@@ -2,9 +2,9 @@
     display: inline-flex;
     min-height: var(--tap-min);
     padding: 0 17px;
-    border-color: rgba(23, 107, 67, 0.35);
+    border-color: rgba(var(--hr-primary-rgb), 0.35);
     border-radius: var(--r-md);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-surface);
     align-items: center;
     gap: 8px;
@@ -13,9 +13,9 @@
 }
 
 .btn-outline-primary.dashboard-action:hover {
-    border-color: var(--hr-primary);
-    color: #fff;
-    background: var(--hr-primary);
+    border-color: var(--hr-primary-fill);
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
 }
 
 .attendance-alert {
@@ -95,9 +95,9 @@
 }
 
 .attendance-note textarea:focus {
-    border-color: rgba(23, 107, 67, 0.42);
+    border-color: rgba(var(--hr-primary-rgb), 0.42);
     background: var(--hr-surface);
-    box-shadow: 0 0 0 3px rgba(23, 107, 67, 0.08);
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), 0.08);
 }
 
 .attendance-history-panel {
@@ -177,8 +177,8 @@
 
 .report-filters input:focus,
 .report-filters select:focus {
-    border-color: rgba(23, 107, 67, 0.42);
-    box-shadow: 0 0 0 3px rgba(23, 107, 67, 0.08);
+    border-color: rgba(var(--hr-primary-rgb), 0.42);
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), 0.08);
 }
 
 .report-filters .btn {
@@ -191,9 +191,11 @@
     flex: 0 0 auto;
     margin-left: auto;
     padding: 0 16px;
-    border-color: var(--hr-primary);
+    /* --hr-primary-fill, not --hr-primary: this button carries a white label,
+       and the brand value is a fill colour that leaves wording at 2.91:1. */
+    border-color: var(--hr-primary-fill);
     border-radius: var(--r-md);
-    background: var(--hr-primary);
+    background: var(--hr-primary-fill);
     font-size: var(--fs-2xs);
     font-weight: 600;
     white-space: nowrap;
@@ -220,7 +222,7 @@
     border: 1px solid var(--hr-border);
     border-radius: var(--r-md);
     background: var(--hr-surface);
-    box-shadow: 0 8px 24px rgba(25, 68, 49, 0.045);
+    box-shadow: 0 8px 24px rgba(22, 48, 42, .06);
     align-items: center;
     gap: 10px;
 }
@@ -282,7 +284,7 @@
 
 .report-pagination .page-link {
     border-color: var(--hr-border);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     font-size: var(--fs-2xs);
 }
 
@@ -290,9 +292,9 @@
    text it inherits from the rule above — matching specificity there let the
    link's own colour win on source order, and the number went dark-on-dark. */
 .report-pagination .active > .page-link {
-    border-color: var(--hr-primary);
-    color: #fff;
-    background: var(--hr-primary);
+    border-color: var(--hr-primary-fill);
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
 }
 
 /* The 1280px and 1000px breakpoints used to re-state a fixed column count for
@@ -350,7 +352,7 @@
 
 .report-tab.is-active {
     border-bottom-color: var(--hr-primary);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 /* Numeric report columns. Minutes, days and hours are read down the column and

@@ -14,12 +14,12 @@
  * dark-mode.css beside the ones they match.
  */
 .staff-dashboard {
-    --staff-present: #176b43;
-    --staff-late: #b8760d;
-    --staff-absent: #b02a3c;
-    --staff-leave: #7656c9;
-    --staff-trend-fill: #176b43;
-    --staff-idle: #8d9a94;
+    --staff-present: var(--hr-success);
+    --staff-late: var(--hr-warning);
+    --staff-absent: var(--hr-danger);
+    --staff-leave: var(--hr-violet);
+    --staff-trend-fill: var(--hr-primary);
+    --staff-idle: var(--hr-border-strong);
 }
 
 /* ---------------------------------------------------------------- page frame */
@@ -51,7 +51,7 @@
 }
 
 .staff-flash-success {
-    border-color: rgba(23, 107, 67, .3);
+    border-color: rgba(var(--hr-primary-rgb), .3);
     color: var(--hr-text);
     background: var(--hr-primary-soft);
 }
@@ -329,7 +329,7 @@
 .staff-today-success .staff-state-dot::after {
     position: absolute;
     inset: -5px;
-    border: 2px solid rgba(25, 135, 84, .35);
+    border: 2px solid rgba(var(--hr-primary-rgb), .35);
     border-radius: 50%;
     content: '';
     animation: staff-pulse 2.4s ease-out infinite;
@@ -411,7 +411,7 @@
     width: 34px;
     height: 34px;
     border-radius: var(--r-md);
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     background: var(--hr-primary-soft);
     flex: none;
     place-items: center;
@@ -475,7 +475,7 @@
 .staff-source-list .ui-icon {
     width: 14px;
     height: 14px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .staff-today-actions {
@@ -562,7 +562,7 @@
 .staff-today-closed .ui-icon {
     width: 16px;
     height: 16px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 /* -------------------------------------------------------- 2. my shift today */
@@ -618,7 +618,7 @@
 .staff-shift-department .ui-icon {
     width: 15px;
     height: 15px;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .staff-shift-hours {
@@ -1075,7 +1075,7 @@
 }
 
 .staff-change-after b {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .staff-change-arrow {
@@ -1353,7 +1353,7 @@
 }
 
 .staff-trend-column:focus-visible {
-    outline: 3px solid rgba(23, 107, 67, .22);
+    outline: 3px solid rgba(var(--hr-primary-rgb), .22);
     outline-offset: 2px;
 }
 
@@ -1428,7 +1428,7 @@
     background: var(--hr-surface);
     flex-direction: column;
     gap: 3px;
-    box-shadow: 0 12px 28px rgba(25, 68, 49, .16);
+    box-shadow: 0 12px 28px rgba(22, 48, 42, .17);
     opacity: 0;
     pointer-events: none;
     transform: translateX(-50%);
@@ -1464,7 +1464,7 @@
 }
 
 .staff-trend-table-view summary {
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
     cursor: pointer;
     font-size: var(--fs-2xs);
     font-weight: 620;

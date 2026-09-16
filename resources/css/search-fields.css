@@ -1,15 +1,20 @@
 /*
  * ---- One look for every field you type a query into ----
  *
- * Filled, borderless, and rounded: the field is a shape on the surface rather
- * than an outline drawn on it. The topbar bar sets the pattern and everything
+ * An outlined white field, matching every other form control in the app: same
+ * plate, same edge, same radius. The topbar bar sets the pattern and everything
  * else follows it, so a search field is recognisable as one wherever it turns
  * up rather than being restyled per page.
  *
  * The dropdowns that share a filter row are included deliberately. A row with a
  * filled search beside an outlined Department and Status reads as two different
- * form systems that happened to land next to each other -- the fill has to be a
- * property of the row, not of the one control that prompted it.
+ * form systems that happened to land next to each other -- the treatment has to
+ * be a property of the row, not of the one control that prompted it.
+ *
+ * The edge takes --hr-border-strong rather than the hairline --hr-border. A
+ * white field on a white card is identified BY its boundary, which makes that
+ * boundary a graphical object owed 3:1 (WCAG 1.4.11); the hairline is a
+ * divider and sits below that on purpose.
  *
  * Dark variants live in dark-mode.css with the rest of the dark theme.
  */
@@ -19,37 +24,40 @@
 .bulk-schedule-form input[data-bulk-employee-search],
 .bulk-staff-scope-field select,
 .attendance-form input[type='text'] {
-    border: 1px solid transparent;
+    border: 1px solid var(--hr-border-strong);
     border-radius: var(--r-md);
     outline: 0;
     color: var(--hr-text);
-    background: var(--hr-surface-2);
+    background: var(--hr-surface);
     transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
 }
 
-/*
- * Focus lifts the field to the raised surface and adds the ring.
- *
- * Going lighter rather than darker is what makes the state legible without a
- * border at rest: the field visibly separates from the panel it sits on at the
- * moment it takes the keyboard, which a colour-only change on an already-filled
- * control does not do.
- */
+/* Focus turns the edge green and adds the ring, the same pair every other
+   control in the app uses. */
 .global-search:focus-within,
 .organization-filters input:focus,
 .organization-filters select:focus,
 .bulk-schedule-form input[data-bulk-employee-search]:focus,
 .bulk-staff-scope-field select:focus,
 .attendance-form input[type='text']:focus {
-    border-color: rgba(23, 107, 67, 0.42);
+    border-color: var(--hr-primary);
     background: var(--hr-surface);
-    box-shadow: 0 0 0 3px rgba(23, 107, 67, 0.08);
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .18);
 }
 
 /* The magnifier is a label, not a control, so it stays quieter than the text
    someone has typed. */
 .global-search .ui-icon {
-    color: var(--hr-subtle);
+    color: var(--hr-placeholder);
+}
+
+/* Placeholders across the row take the hint colour, not the one that carries
+   content — see tokens.css. */
+.global-search input::placeholder,
+.organization-filters input::placeholder,
+.attendance-form input[type='text']::placeholder {
+    color: var(--hr-placeholder);
+    opacity: 1;
 }
 
 /*
@@ -59,5 +67,5 @@
  * an obvious form row.
  */
 .global-search:hover:not(:focus-within) {
-    background: var(--hr-surface-3);
+    background: var(--hr-surface-2);
 }

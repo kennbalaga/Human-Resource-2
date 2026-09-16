@@ -3,6 +3,11 @@
 /* Design tokens first: every sheet below references them. */
 @import './tokens.css';
 
+/* Bootstrap's own variables, re-pointed at those tokens. After the vendor sheet
+   so it wins at equal specificity, before the component sheets so they can still
+   override it. */
+@import './bootstrap-theme.css';
+
 @import './dashboard.css';
 @import './staff-dashboard.css';
 @import './attendance.css';

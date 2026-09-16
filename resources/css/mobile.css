@@ -575,7 +575,7 @@
         margin: 0 !important;
         border: 1px solid var(--hr-border);
         border-radius: var(--r-xl);
-        box-shadow: 0 24px 64px rgba(7, 28, 18, 0.42);
+        box-shadow: 0 24px 64px rgba(2, 30, 21, .46);
         animation: hr-dialog-in 200ms cubic-bezier(0.32, 0.72, 0, 1);
     }
 
@@ -635,7 +635,7 @@
         position: fixed;
         inset: 0;
         z-index: 1050; /* Under the menu's 1055, over everything in the page. */
-        background: rgba(7, 28, 18, 0.42);
+        background: rgba(2, 30, 21, .46);
         content: '';
         animation: hr-fade-in 200ms ease;
     }
@@ -776,7 +776,7 @@
 
     .settings-section-nav a[aria-current='true'] {
         border-color: var(--hr-primary);
-        color: var(--hr-primary);
+        color: var(--hr-primary-text);
         background: var(--hr-primary-soft);
     }
 
@@ -1077,7 +1077,7 @@
      * 1101px query, so the translucency here has nothing left to blur.
      *
      * The dark-theme selector is repeated because dark-mode.css sets
-     * `html[data-theme-resolved='dark'] .app-topbar` to rgba(25,35,30,.94) at
+     * `html[data-theme-resolved='dark'] .app-topbar` to var(--hr-surface) at
      * (0,2,1), which quietly outranked the bare `.app-topbar` this rule used
      * to be — so the installed app was still 94% translucent in dark mode,
      * which is the one place the ghosting is most visible.
@@ -1113,12 +1113,12 @@
         right: 0;
         left: 0;
         height: var(--safe-top);
-        background: #176b43;
+        background: var(--hr-primary);
         content: '';
     }
 
     html[data-theme-resolved='dark'] .app-topbar::before {
-        background: #0a1f18;
+        background: var(--hr-surface);
     }
 }
 
@@ -1194,7 +1194,7 @@ body.reduce-motion .profile-dropdown {
     border: 1px solid var(--hr-border);
     border-radius: var(--r-lg);
     background: var(--hr-surface);
-    box-shadow: 0 16px 40px rgba(7, 28, 18, 0.24);
+    box-shadow: 0 16px 40px rgba(2, 30, 21, .28);
     animation: hr-sheet-in 280ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -1220,8 +1220,8 @@ body.reduce-motion .profile-dropdown {
     padding: 0 16px;
     border: 0;
     border-radius: var(--r-md);
-    color: #fff;
-    background: var(--hr-primary);
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
     font-size: var(--fs-xs);
     font-weight: 700;
 }

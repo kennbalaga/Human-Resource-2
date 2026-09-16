@@ -16,7 +16,7 @@
     position: absolute;
     inset: 0 0 auto;
     height: 4px;
-    background: linear-gradient(90deg, var(--hr-primary), #8ee3b5);
+    background: linear-gradient(90deg, var(--hr-primary), var(--hr-primary-hover));
     content: '';
 }
 
@@ -103,7 +103,7 @@
 
 html[data-theme-resolved='dark'] .session-timeout-card {
     border-color: var(--hr-border);
-    background: #15231c;
+    background: var(--hr-surface);
     box-shadow: 0 28px 80px rgba(0, 0, 0, .5);
 }
 

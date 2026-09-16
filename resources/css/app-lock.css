@@ -31,7 +31,7 @@ html[data-app-lock-pending] .app-shell {
 }
 
 html[data-app-lock-pending] body {
-    background: var(--hr-sidebar);
+    background: var(--hr-lock);
 }
 
 /* ------------------------------------------------------------------------
@@ -44,7 +44,7 @@ html[data-app-lock-pending] body {
     display: none;
     padding: calc(var(--safe-top) + 24px) calc(var(--safe-right) + 20px) calc(var(--safe-bottom) + 20px) calc(var(--safe-left) + 20px);
     color: #fff;
-    background: linear-gradient(178deg, var(--hr-sidebar) 0%, var(--hr-sidebar-deep) 100%);
+    background: linear-gradient(178deg, var(--hr-lock) 0%, var(--hr-lock-deep) 100%);
     grid-template-rows: auto 1fr auto;
     justify-items: center;
     overscroll-behavior: contain;
@@ -143,10 +143,17 @@ body.app-locked {
     transform: scale(1.15);
 }
 
-/* A wrong PIN has to be unmistakable without a paragraph of text. */
+/* A wrong PIN has to be unmistakable without a paragraph of text.
+
+   The reds here are written out rather than taken from --hr-danger. This screen
+   is painted with the rail's gradient in BOTH themes, so a token that resolves
+   to the light theme's #d0414f measures 1.74:1 against it — the one moment in
+   the app where the user is being told something went wrong, in a colour they
+   cannot see. These are the lifted values the dark theme uses, which clear the
+   floor on the slab whichever theme is active. */
 .app-lock-dots[data-error='true'] .app-lock-dot {
-    border-color: #ffb4b4;
-    background: #ffb4b4;
+    border-color: #ef8a96;        /* 3.35:1 on the rail - a filled pip */
+    background: #ef8a96;
     animation: app-lock-shake 380ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
@@ -166,7 +173,7 @@ body.app-locked {
 }
 
 .app-lock-message[data-tone='error'] {
-    color: #ffc2c2;
+    color: #ffb3bb;               /* 4.76:1 on the rail - this one is read */
     font-weight: 700;
 }
 
@@ -231,7 +238,11 @@ body.app-locked {
    staff already use, so the thumb finds it without looking. */
 .app-lock-key[data-action='biometric'] svg {
     width: 1.75rem;
-    color: #b9f0d3;
+    /* Same reasoning as the error red above: --hr-primary-text is tuned to be
+       read on white and is far too dark on this slab. --hr-primary-accent is
+       the bright emerald the palette keeps for exactly this — a green that is
+       only ever seen against a forest ground. */
+    color: var(--hr-primary-accent);   /* 4.79:1 on the lock ground */
 }
 
 .app-lock-foot {
@@ -354,7 +365,7 @@ body.reduce-motion .app-lock-dots[data-error='true'] .app-lock-dot {
 .device-lock-intro > svg {
     width: 1.2rem;
     flex: 0 0 auto;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .device-lock-intro strong {
@@ -386,7 +397,7 @@ body.reduce-motion .app-lock-dots[data-error='true'] .app-lock-dot {
 .device-lock-privacy svg {
     width: 1rem;
     flex: 0 0 auto;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .device-lock-privacy p {
@@ -537,7 +548,7 @@ body.reduce-motion .app-lock-dots[data-error='true'] .app-lock-dot {
 .device-lock-nudge > svg {
     width: 1.4rem;
     flex: 0 0 auto;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .device-lock-nudge strong {
@@ -633,7 +644,7 @@ body.reduce-motion .app-lock-dots[data-error='true'] .app-lock-dot {
 
 .device-lock-biometric-badge svg {
     width: 0.9rem;
-    color: var(--hr-primary);
+    color: var(--hr-primary-text);
 }
 
 .device-lock-autolock {

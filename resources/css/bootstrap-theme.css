@@ -1,0 +1,320 @@
+/*
+ * ---- Bootstrap bridge ----
+ *
+ * Bootstrap 5 is themed entirely through its own custom properties, so this is
+ * the whole of the override: one sheet, pointed at the tokens in tokens.css.
+ * Nothing in here holds a literal colour, and no component sheet should restate
+ * a Bootstrap default — tables, forms, dropdowns, modals, alerts, badges and
+ * pagination all read these names.
+ *
+ * It is imported after `bootstrap.min.css`, so at equal specificity these win.
+ * The dark theme re-points the same names from dark-mode.css.
+ */
+
+:root {
+    --bs-body-color: var(--hr-text);
+    --bs-body-bg: var(--hr-bg);
+    --bs-emphasis-color: var(--hr-text);
+    --bs-secondary-color: var(--hr-muted);
+    --bs-tertiary-color: var(--hr-subtle);
+    --bs-secondary-bg: var(--hr-surface-2);
+    --bs-tertiary-bg: var(--hr-sunken);
+    --bs-border-color: var(--hr-border);
+    --bs-border-color-translucent: var(--hr-border);
+    --bs-border-radius: var(--r-md);
+    --bs-border-radius-sm: var(--r-sm);
+    --bs-border-radius-lg: var(--r-lg);
+    --bs-border-radius-xl: var(--r-xl);
+    --bs-border-radius-pill: var(--r-pill);
+
+    --bs-primary: var(--hr-primary);
+    --bs-primary-rgb: var(--hr-primary-rgb);
+    --bs-primary-text-emphasis: var(--hr-primary-text);
+    --bs-primary-bg-subtle: var(--hr-primary-soft);
+    --bs-primary-border-subtle: var(--hr-border);
+    --bs-success: var(--hr-success);
+    --bs-success-text-emphasis: var(--hr-success-text);
+    --bs-danger: var(--hr-danger);
+    --bs-danger-text-emphasis: var(--hr-danger-text);
+    --bs-warning: var(--hr-warning);
+    --bs-warning-text-emphasis: var(--hr-warning-text);
+    --bs-info: var(--hr-info);
+    --bs-info-text-emphasis: var(--hr-info-text);
+    --bs-success-bg-subtle: var(--hr-success-soft);
+    --bs-danger-bg-subtle: var(--hr-danger-soft);
+    --bs-warning-bg-subtle: var(--hr-warning-soft);
+
+    /* Written, not painted — so these take the readable halves of the pairs. */
+    --bs-link-color: var(--hr-primary-text);
+    --bs-link-hover-color: var(--hr-primary-text);
+    --bs-link-color-rgb: var(--hr-primary-rgb);
+
+    --bs-focus-ring-color: rgba(var(--hr-primary-rgb), .25);
+    --bs-focus-ring-width: 3px;
+
+    --bs-heading-color: var(--hr-text);
+    --bs-code-color: var(--hr-primary-text);
+    --bs-highlight-bg: var(--hr-primary-soft);
+}
+
+/*
+ * Bootstrap's own component variables. Each of these has a hard-coded default
+ * in the distributed stylesheet that ignores --bs-body-bg, so a card, a modal
+ * or a dropdown stays white in dark mode unless it is named here.
+ */
+:root {
+    --bs-table-color: var(--hr-text);
+    --bs-table-bg: transparent;
+    --bs-table-border-color: var(--hr-border);
+    --bs-table-striped-bg: var(--hr-surface-2);
+    --bs-table-striped-color: var(--hr-text);
+    --bs-table-hover-bg: var(--hr-surface-3);
+    --bs-table-hover-color: var(--hr-text);
+    --bs-table-accent-bg: transparent;
+
+    --bs-card-bg: var(--hr-surface);
+    --bs-card-color: var(--hr-text);
+    --bs-card-border-color: var(--hr-border);
+    --bs-card-cap-bg: var(--hr-surface-2);
+    --bs-card-border-radius: var(--r-lg);
+
+    --bs-modal-bg: var(--hr-surface);
+    --bs-modal-color: var(--hr-text);
+    --bs-modal-border-color: var(--hr-border);
+    --bs-modal-header-border-color: var(--hr-border);
+    --bs-modal-footer-border-color: var(--hr-border);
+    --bs-modal-border-radius: var(--r-xl);
+
+    --bs-dropdown-bg: var(--hr-surface);
+    --bs-dropdown-color: var(--hr-text);
+    --bs-dropdown-border-color: var(--hr-border);
+    --bs-dropdown-link-color: var(--hr-text);
+    --bs-dropdown-link-hover-color: var(--hr-text);
+    --bs-dropdown-link-hover-bg: var(--hr-surface-3);
+    --bs-dropdown-link-active-color: var(--hr-on-primary);
+    --bs-dropdown-link-active-bg: var(--hr-primary-fill);
+    --bs-dropdown-header-color: var(--hr-muted);
+    --bs-dropdown-border-radius: var(--r-lg);
+
+    --bs-pagination-color: var(--hr-text);
+    --bs-pagination-bg: var(--hr-surface);
+    --bs-pagination-border-color: var(--hr-border);
+    --bs-pagination-hover-color: var(--hr-text);
+    --bs-pagination-hover-bg: var(--hr-surface-3);
+    --bs-pagination-hover-border-color: var(--hr-border);
+    --bs-pagination-focus-color: var(--hr-text);
+    --bs-pagination-focus-bg: var(--hr-surface-3);
+    --bs-pagination-active-color: var(--hr-on-primary);
+    --bs-pagination-active-bg: var(--hr-primary-fill);
+    --bs-pagination-active-border-color: var(--hr-primary-fill);
+    --bs-pagination-disabled-color: var(--hr-muted);
+    --bs-pagination-disabled-bg: var(--hr-surface-2);
+    --bs-pagination-disabled-border-color: var(--hr-border);
+
+    --bs-nav-link-color: var(--hr-muted);
+    --bs-nav-link-hover-color: var(--hr-primary-text);
+    --bs-nav-tabs-link-active-color: var(--hr-primary-text);
+    --bs-nav-tabs-link-active-bg: var(--hr-surface);
+    --bs-nav-tabs-link-active-border-color: var(--hr-border);
+    --bs-nav-tabs-border-color: var(--hr-border);
+    --bs-nav-pills-link-active-bg: var(--hr-primary-fill);
+    --bs-nav-pills-link-active-color: var(--hr-on-primary);
+
+    --bs-breadcrumb-divider-color: var(--hr-muted);
+    --bs-breadcrumb-item-active-color: var(--hr-text);
+
+    --bs-offcanvas-bg: var(--hr-surface);
+    --bs-offcanvas-color: var(--hr-text);
+    --bs-offcanvas-border-color: var(--hr-border);
+
+    --bs-popover-bg: var(--hr-surface);
+    --bs-popover-border-color: var(--hr-border);
+    --bs-popover-header-bg: var(--hr-surface-2);
+    --bs-popover-body-color: var(--hr-text);
+
+    --bs-list-group-bg: var(--hr-surface);
+    --bs-list-group-color: var(--hr-text);
+    --bs-list-group-border-color: var(--hr-border);
+    --bs-list-group-action-hover-bg: var(--hr-surface-3);
+    --bs-list-group-active-bg: var(--hr-primary-fill);
+    --bs-list-group-active-border-color: var(--hr-primary-fill);
+    --bs-list-group-active-color: var(--hr-on-primary);
+
+    --bs-accordion-bg: var(--hr-surface);
+    --bs-accordion-color: var(--hr-text);
+    --bs-accordion-border-color: var(--hr-border);
+    --bs-accordion-btn-color: var(--hr-text);
+    --bs-accordion-active-bg: var(--hr-primary-soft);
+    --bs-accordion-active-color: var(--hr-primary-text);
+
+    --bs-progress-bg: var(--hr-sunken);
+    --bs-progress-bar-bg: var(--hr-primary);   /* a bar carries no text */
+
+    --bs-toast-bg: var(--hr-surface);
+    --bs-toast-color: var(--hr-text);
+    --bs-toast-border-color: var(--hr-border);
+    --bs-toast-header-bg: var(--hr-surface-2);
+    --bs-toast-header-color: var(--hr-text);
+}
+
+/*
+ * Form controls are the one family Bootstrap still paints with literals rather
+ * than variables — `.form-control` hard-codes #fff and #212529 — so they are
+ * restated once here instead of in every sheet that happens to contain a form.
+ * The border takes --hr-border-strong: the edge of a field is load-bearing and
+ * owes the viewer 3:1, unlike the hairline that merely divides two rows.
+ */
+.form-control,
+.form-select,
+.input-group-text {
+    color: var(--hr-text);
+    border-color: var(--hr-border-strong);
+    background-color: var(--hr-surface);
+}
+
+.form-control:focus,
+.form-select:focus {
+    color: var(--hr-text);
+    border-color: var(--hr-primary);
+    background-color: var(--hr-surface);
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .18);
+}
+
+.form-control::placeholder,
+.form-select::placeholder { color: var(--hr-placeholder); opacity: 1; }
+
+.form-control:disabled,
+.form-select:disabled { color: var(--hr-muted); background-color: var(--hr-sunken); }
+
+.input-group-text { background-color: var(--hr-surface-2); }
+.form-label { color: var(--hr-text); }
+.form-text { color: var(--hr-muted); }
+
+.form-check-input { border-color: var(--hr-border-strong); background-color: var(--hr-surface); }
+.form-check-input:checked { border-color: var(--hr-primary); background-color: var(--hr-primary); }
+.form-check-input:focus { border-color: var(--hr-primary); box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .18); }
+
+/*
+ * Contextual alerts. Status is never carried by colour alone (WCAG 1.4.1) — the
+ * markup keeps its icon and its wording — so this only supplies the plate, and
+ * the wording on it takes the readable half of each fill/text pair.
+ */
+.alert { border-radius: var(--r-lg); }
+.alert-primary { color: var(--hr-primary-text); border-color: rgba(var(--hr-primary-rgb), .22); background-color: var(--hr-primary-soft); }
+.alert-success { color: var(--hr-success-text); border-color: rgba(11, 143, 91, .22); background-color: var(--hr-success-soft); }
+.alert-danger { color: var(--hr-danger-text); border-color: rgba(214, 69, 93, .22); background-color: var(--hr-danger-soft); }
+.alert-warning { color: var(--hr-warning-text); border-color: rgba(197, 138, 22, .26); background-color: var(--hr-warning-soft); }
+.alert-info { color: var(--hr-info-text); border-color: rgba(57, 120, 184, .22); background-color: var(--hr-tint-info); }
+
+/* Bootstrap's utilities are literals too, and they are used in the views. */
+.text-muted { color: var(--hr-muted) !important; }
+.text-primary { color: var(--hr-primary-text) !important; }
+.text-success { color: var(--hr-success-text) !important; }
+.text-info { color: var(--hr-info-text) !important; }
+.text-warning { color: var(--hr-warning-text) !important; }
+.text-danger { color: var(--hr-danger-text) !important; }
+.text-body { color: var(--hr-text) !important; }
+.bg-white { background-color: var(--hr-surface) !important; }
+.bg-light { background-color: var(--hr-surface-2) !important; }
+.bg-primary { color: var(--hr-on-primary) !important; background-color: var(--hr-primary-fill) !important; }
+.bg-success { background-color: var(--hr-success) !important; }
+.border { border-color: var(--hr-border) !important; }
+
+/*
+ * A badge's own wording is text, so each solid plate pairs with a foreground
+ * that clears 4.5:1 against it rather than defaulting to white.
+ */
+.badge.bg-primary { color: var(--hr-on-primary) !important; background-color: var(--hr-primary-fill) !important; }
+.badge.bg-success,
+.badge.bg-danger { color: #fff !important; }
+.badge.bg-info { color: #fff !important; background-color: var(--hr-info) !important; }
+.badge.bg-warning { color: #1f1603 !important; background-color: var(--hr-warning) !important; }
+
+.card { border-radius: var(--r-lg); box-shadow: var(--hr-shadow); }
+.modal-content { box-shadow: var(--hr-shadow-lg); }
+.dropdown-menu { box-shadow: var(--hr-shadow-lg); }
+.table > :not(caption) > * > * { background-color: transparent; }
+
+/*
+ * Secondary controls — "View", "Cancel", a filter reset. White plate, a
+ * blue-grey edge that clears 3:1 so the button has a findable boundary, navy
+ * label. The hover is a whisper of the brand tint rather than a grey: it is
+ * what tells the two button ranks apart at a glance, one filled green and one
+ * merely warmed by it.
+ *
+ * Bootstrap paints .btn-light and .btn-secondary with literals (#f8f9fa,
+ * #6c757d), so like the form controls above they are restated once here rather
+ * than in each sheet that happens to contain a toolbar.
+ */
+.btn-light,
+.btn-outline-secondary {
+    --bs-btn-color: var(--hr-text);
+    --bs-btn-bg: var(--hr-surface);
+    --bs-btn-border-color: var(--hr-border-strong);
+    --bs-btn-hover-color: var(--hr-primary-text);
+    --bs-btn-hover-bg: var(--hr-primary-soft);
+    --bs-btn-hover-border-color: var(--hr-primary);
+    --bs-btn-active-color: var(--hr-primary-text);
+    --bs-btn-active-bg: var(--hr-primary-soft);
+    --bs-btn-active-border-color: var(--hr-primary);
+    --bs-btn-disabled-color: var(--hr-placeholder);
+    --bs-btn-disabled-bg: var(--hr-surface-2);
+    --bs-btn-disabled-border-color: var(--hr-border);
+    --bs-btn-focus-shadow-rgb: var(--hr-primary-rgb);
+}
+
+.btn-secondary {
+    --bs-btn-color: var(--hr-text);
+    --bs-btn-bg: var(--hr-surface-2);
+    --bs-btn-border-color: var(--hr-border-strong);
+    --bs-btn-hover-color: var(--hr-primary-text);
+    --bs-btn-hover-bg: var(--hr-primary-soft);
+    --bs-btn-hover-border-color: var(--hr-primary);
+    --bs-btn-active-color: var(--hr-primary-text);
+    --bs-btn-active-bg: var(--hr-primary-soft);
+    --bs-btn-active-border-color: var(--hr-primary);
+    --bs-btn-focus-shadow-rgb: var(--hr-primary-rgb);
+}
+
+/*
+ * Red is reserved for the destructive ones, and it is the only place in the
+ * palette where it appears as a fill. Both ranks pair with white, which clears
+ * the floor on --hr-danger.
+ */
+.btn-danger {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--hr-danger);
+    --bs-btn-border-color: var(--hr-danger);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--hr-danger-text);
+    --bs-btn-hover-border-color: var(--hr-danger-text);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--hr-danger-text);
+    --bs-btn-active-border-color: var(--hr-danger-text);
+}
+
+.btn-outline-danger {
+    --bs-btn-color: var(--hr-danger-text);
+    --bs-btn-border-color: var(--hr-danger);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--hr-danger);
+    --bs-btn-hover-border-color: var(--hr-danger);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--hr-danger);
+    --bs-btn-active-border-color: var(--hr-danger);
+}
+
+/*
+ * One focus ring for the whole application, on the token the brand is decided
+ * in. `:focus-visible` rather than `:focus` so a mouse click does not leave a
+ * ring behind, and an offset so the ring reads as a halo around the control
+ * instead of a second border on it.
+ */
+.btn:focus-visible,
+.page-link:focus-visible,
+.dropdown-item:focus-visible,
+.form-check-input:focus-visible {
+    outline: 3px solid rgba(var(--hr-primary-rgb), .55);
+    outline-offset: 2px;
+    box-shadow: none;
+}

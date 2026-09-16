@@ -20,7 +20,7 @@
 .ai-candidate-heading > div { display: grid; }
 .ai-scheduling-heading p,
 .ai-scheduling-heading h3 { margin: 0; }
-.ai-scheduling-heading p { color: var(--hr-primary); font-size: var(--fs-2xs); font-weight: 800; text-transform: uppercase; }
+.ai-scheduling-heading p { color: var(--hr-primary-text); font-size: var(--fs-2xs); font-weight: 800; text-transform: uppercase; }
 .ai-scheduling-heading h3 { color: var(--hr-text); font-size: var(--fs-base); }
 .ai-scheduling-icon { display: grid; width: 2.2rem; height: 2.2rem; border-radius: var(--r-md); color: var(--hr-info); background: var(--hr-tint-info); place-items: center; }
 .ai-scheduling-icon svg { width: 1.15rem; }
@@ -198,35 +198,35 @@
     bottom: 0;
     z-index: 2;
     padding: .7rem 0 .1rem;
-    background: linear-gradient(to bottom, rgba(247, 250, 255, 0), var(--hr-tint-info) 28%);
+    background: linear-gradient(to bottom, transparent, var(--hr-tint-info) 28%);
 }
 
-html[data-theme-resolved='dark'] .ai-scheduling { border-color: #294c66; background: #101f28; }
-html[data-theme-resolved='dark'] .ai-scheduling-icon { color: #a8c8ec; background: var(--hr-tint-info); }
-html[data-theme-resolved='dark'] .ai-scheduling summary { color: #a9b8c2; }
+html[data-theme-resolved='dark'] .ai-scheduling { border-color: var(--hr-info); background: var(--hr-sunken); }
+html[data-theme-resolved='dark'] .ai-scheduling-icon { color: var(--hr-info); background: var(--hr-tint-info); }
+html[data-theme-resolved='dark'] .ai-scheduling summary { color: var(--hr-muted); }
 html[data-theme-resolved='dark'] .ai-scheduling-heading h3,
 html[data-theme-resolved='dark'] .ai-candidate-heading strong,
 html[data-theme-resolved='dark'] .ai-ineligible-row strong { color: var(--hr-text); }
 html[data-theme-resolved='dark'] .ai-scheduling-notice,
 html[data-theme-resolved='dark'] .ai-candidate ul,
 html[data-theme-resolved='dark'] .ai-result-label,
-html[data-theme-resolved='dark'] .ai-scheduling-explanation { color: #a9b8c2; }
+html[data-theme-resolved='dark'] .ai-scheduling-explanation { color: var(--hr-muted); }
 html[data-theme-resolved='dark'] .ai-scheduling-controls select,
 html[data-theme-resolved='dark'] .ai-candidate,
-html[data-theme-resolved='dark'] .ai-scheduling details { color: var(--hr-text); border-color: #344b58; background: #0d191f; }
+html[data-theme-resolved='dark'] .ai-scheduling details { color: var(--hr-text); border-color: var(--hr-border); background: var(--hr-sunken); }
 html[data-theme-resolved='dark'] .ai-breakdown-row,
-html[data-theme-resolved='dark'] .ai-ineligible-row { border-color: #293d48; color: #a9b8c2; }
-html[data-theme-resolved='dark'] .ai-scheduling-rejection { border-color: #633b42; background: #21171a; }
-html[data-theme-resolved='dark'] .ai-scheduling-rejection label { color: #f0afb9; }
-html[data-theme-resolved='dark'] .ai-scheduling-rejection textarea { border-color: #63444a; color: var(--hr-text); background: #0d191f; }
-html[data-theme-resolved='dark'] .schedule-assignment-workspace { background: #0b1510; }
-html[data-theme-resolved='dark'] .schedule-assignment-manual { border-color: #2c4236; background: #101f17; }
+html[data-theme-resolved='dark'] .ai-ineligible-row { border-color: var(--hr-border); color: var(--hr-muted); }
+html[data-theme-resolved='dark'] .ai-scheduling-rejection { border-color: var(--hr-danger); background: var(--hr-danger-soft); }
+html[data-theme-resolved='dark'] .ai-scheduling-rejection label { color: var(--hr-danger); }
+html[data-theme-resolved='dark'] .ai-scheduling-rejection textarea { border-color: var(--hr-border-strong); color: var(--hr-text); background: var(--hr-sunken); }
+html[data-theme-resolved='dark'] .schedule-assignment-workspace { background: var(--hr-bg); }
+html[data-theme-resolved='dark'] .schedule-assignment-manual { border-color: var(--hr-primary-soft); background: var(--hr-primary-soft); }
 html[data-theme-resolved='dark'] .schedule-assignment-section-heading h3 { color: var(--hr-text); }
-html[data-theme-resolved='dark'] .schedule-assignment-section-heading p { color: #9cd9b8; }
-html[data-theme-resolved='dark'] .schedule-assignment-section-heading > span { color: #a6dcc0; background: var(--hr-tint-success); }
+html[data-theme-resolved='dark'] .schedule-assignment-section-heading p { color: var(--hr-primary-text); }
+html[data-theme-resolved='dark'] .schedule-assignment-section-heading > span { color: var(--hr-primary-text); background: var(--hr-tint-success); }
 html[data-theme-resolved='dark'] .schedule-assignment-section-copy,
-html[data-theme-resolved='dark'] .schedule-save-note { color: #a9b8b0; }
-html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-result-actions { background: linear-gradient(to bottom, rgba(16, 31, 40, 0), #101f28 28%); }
+html[data-theme-resolved='dark'] .schedule-save-note { color: var(--hr-muted); }
+html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-result-actions { background: linear-gradient(to bottom, rgba(16, 31, 40, 0), var(--hr-sunken) 28%); }
 
 @media (max-width: 1100px) {
     .schedule-assignment-dialog {
