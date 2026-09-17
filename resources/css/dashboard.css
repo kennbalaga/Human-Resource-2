@@ -3932,3 +3932,96 @@ body.reduce-motion *::after {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==========================================================================
+   Burnout row
+   --------------------------------------------------------------------------
+   The reader's own "My workload & rest" card in the wide column, and the
+   names nearest the edge in the narrow one. Either can be missing -- a
+   manager with no employee profile has no card, staff never get the list --
+   so the lone survivor takes the full width.
+   ========================================================================== */
+
+.dashboard-burnout-grid.is-single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.dashboard-burnout-grid > .panel > a.panel-footer-link {
+    margin-top: auto;
+}
+
+.burnout-watchlist-counts {
+    display: grid;
+    padding: 12px 19px;
+    border-bottom: 1px solid var(--hr-border);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.burnout-watchlist-count {
+    display: flex;
+    padding: 8px 10px;
+    border-radius: var(--r-md);
+    color: var(--hr-muted);
+    background: var(--hr-tint-neutral);
+    flex-direction: column;
+    text-decoration: none;
+}
+
+.burnout-watchlist-count b {
+    color: var(--hr-text);
+    font-size: var(--fs-lg);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.burnout-watchlist-count span {
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+}
+
+.burnout-watchlist-count.is-high {
+    background: var(--hr-tint-danger);
+}
+
+.burnout-watchlist-count.is-high b {
+    color: var(--hr-danger-text);
+}
+
+.burnout-watchlist-count.is-moderate {
+    background: var(--hr-tint-warning);
+}
+
+.burnout-watchlist-count.is-moderate b {
+    color: var(--hr-warning-text);
+}
+
+.burnout-watchlist-count:hover,
+.burnout-watchlist-count:focus-visible {
+    box-shadow: inset 0 0 0 1px var(--hr-border-strong);
+}
+
+.burnout-watchlist-score {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+}
+
+.burnout-watchlist-score .staff-chip {
+    min-width: 34px;
+    justify-content: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.burnout-watchlist-score small {
+    font-size: 9px;
+}
+
+.burnout-watchlist-score .is-rising {
+    color: var(--hr-danger-text);
+}
+
+.burnout-watchlist-score .is-easing {
+    color: var(--hr-success-text);
+}

@@ -11,6 +11,7 @@ use App\Models\ScheduleDayOff;
 use App\Models\ScheduleLock;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Burnout\BurnoutProtection;
 use App\Services\ScheduleService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -43,6 +44,7 @@ class RosterDraftService
     public function __construct(
         private readonly ScheduleService $scheduleService,
         private readonly StaffingRequirementService $staffingRequirements,
+        private readonly BurnoutProtection $burnoutProtection,
     ) {}
 
     /**
@@ -101,6 +103,12 @@ class RosterDraftService
         $issues = collect();
         $seniorRank = (int) ($rules['senior_rank_threshold'] ?? ScheduleService::DEFAULT_SENIOR_RANK_THRESHOLD);
 
+        // Burnout risk is shown beside every name on the board, and the
+        // high-risk employees are held to their protected limits below.
+        $burnout = $this->burnoutProtection->assessments($employees->keys()->all());
+        $protected = $this->burnoutProtection->protectedAmong($burnout);
+        $burnoutWarnings = collect();
+
         $working = $entries->filter(fn (array $entry) => $entry['shift_id'] !== null);
         $dayOffEntries = $entries->filter(fn (array $entry) => $entry['shift_id'] === null);
 
@@ -153,6 +161,27 @@ class RosterDraftService
                 $issues->push($this->issue($entry, $employee->full_name, $shift->name, self::REASON_ALREADY_ROSTERED));
 
                 continue;
+            }
+
+            // Tier B, like the night streak below: the placement stays on the
+            // board, but going past a high-risk employee's protected limits
+            // needs a reason on record before the roster can be published.
+            if ($protected->has($employee->id)) {
+                $burnoutReason = $this->burnoutProtection->blockReason(
+                    $shift,
+                    $date,
+                    $context['assignments']->get($employee->id, collect())->merge($alreadyPlaced),
+                );
+
+                if ($burnoutReason !== null) {
+                    $burnoutWarnings->push([
+                        'employee_id' => $employee->id,
+                        'employee' => $employee->full_name,
+                        'work_date' => $date->toDateString(),
+                        'shift' => $shift->name,
+                        'reason' => $burnoutReason,
+                    ]);
+                }
             }
 
             $pending = new ScheduleAssignment([
@@ -215,13 +244,13 @@ class RosterDraftService
             }
         }
 
-        $days = $dates->map(function (Carbon $date) use ($working, $dayOffEntries, $employees, $relevantShifts, $requirements, $seniorRank, $blocked, $rostered) {
+        $days = $dates->map(function (Carbon $date) use ($working, $dayOffEntries, $employees, $relevantShifts, $requirements, $seniorRank, $blocked, $rostered, $burnout) {
             $dateString = $date->toDateString();
 
-            $shiftRows = $relevantShifts->map(function (Shift $shift) use ($working, $employees, $requirements, $seniorRank, $blocked, $dateString, $rostered) {
+            $shiftRows = $relevantShifts->map(function (Shift $shift) use ($working, $employees, $requirements, $seniorRank, $blocked, $dateString, $rostered, $burnout) {
                 $assigned = $working
                     ->filter(fn (array $entry) => $entry['work_date'] === $dateString && (int) $entry['shift_id'] === $shift->id)
-                    ->map(function (array $entry) use ($employees, $seniorRank, $blocked) {
+                    ->map(function (array $entry) use ($employees, $seniorRank, $blocked, $burnout) {
                         $employee = $employees->get($entry['employee_id']);
                         $rank = (int) ($employee?->position?->seniority_rank ?? 1);
 
@@ -232,6 +261,7 @@ class RosterDraftService
                             'position' => $employee?->position?->title,
                             'is_senior' => $rank >= $seniorRank,
                             'blocked' => $blocked->has($this->entryKey($entry)),
+                            'burnout_level' => $burnout->get($entry['employee_id'])?->level,
                         ];
                     })
                     ->values();
@@ -298,12 +328,17 @@ class RosterDraftService
             'days' => $days->all(),
             'issues' => $issues->map(fn (array $issue) => collect($issue)->except('key')->all())->values()->all(),
             'night_streak_warnings' => $nightStreakWarnings->values()->all(),
+            'burnout_warnings' => $burnoutWarnings->values()->all(),
             'summary' => [
                 'assignments' => $working->count() - ($issues->count() - $dayOffIssues),
                 'day_offs' => $dayOffEntries->count() - $dayOffIssues,
                 'blocked' => $issues->count(),
                 'shifts_short' => $days->sum(fn (array $day) => collect($day['shifts'])->reject(fn (array $row) => $row['meets_requirement'])->count()),
                 'night_streak_warnings' => $nightStreakWarnings->count(),
+                'burnout_warnings' => $burnoutWarnings->count(),
+                // Everyone on this roster at high burnout risk, whether or not
+                // any placement takes them past their limits.
+                'burnout_protected' => $protected->keys()->intersect($placed->keys())->count(),
                 // The period's own duplicate state, counted from the cover on
                 // record rather than from the issue list above — the rotation
                 // assistant drops already-covered placements before they ever
@@ -402,9 +437,18 @@ class RosterDraftService
                 ]);
             }
 
+            // Tier B, the same shape: an employee at high burnout risk placed
+            // past their protected limits is publishable only with a reason.
+            if (($evaluation['summary']['burnout_warnings'] ?? 0) > 0 && trim((string) ($rules['burnout_justification'] ?? '')) === '') {
+                throw ValidationException::withMessages([
+                    'burnout_justification' => 'This roster schedules one or more employees at high burnout risk beyond their protected limits. Enter a justification before publishing.',
+                ]);
+            }
+
             $auditTrail = collect([
                 ($rules['overtime_allowed'] ?? false) ? 'Overtime justification: '.trim((string) ($rules['overtime_justification'] ?? '')) : null,
                 ($evaluation['summary']['night_streak_warnings'] ?? 0) > 0 ? 'Consecutive night shift justification: '.trim((string) ($rules['night_streak_justification'] ?? '')) : null,
+                ($evaluation['summary']['burnout_warnings'] ?? 0) > 0 ? 'Burnout risk justification: '.trim((string) ($rules['burnout_justification'] ?? '')) : null,
             ])->filter()->implode(' — ');
             $notes = trim(collect([$notes, $auditTrail])->filter()->implode(' | ')) ?: null;
 

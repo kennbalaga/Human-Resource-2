@@ -49,6 +49,13 @@
             <x-staff.my-shift :shift="$dashboard['shift']" />
         </div>
 
+        {{-- After the day itself, before the slower material: how the last few
+             weeks have been treating you. Absent only for a profile the
+             indicator is not kept for. --}}
+        @if ($dashboard['burnout'])
+            <x-staff.burnout-risk :burnout="$dashboard['burnout']" />
+        @endif
+
         <div class="staff-grid staff-grid-split">
             <x-staff.upcoming-schedule :upcoming="$dashboard['upcoming']" />
             <x-staff.timesheet-status :timesheet="$dashboard['timesheet']" />

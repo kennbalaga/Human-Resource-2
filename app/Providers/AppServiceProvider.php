@@ -105,6 +105,15 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('system.manage', fn (User $user) => $user->hasRole('system-administrator'));
 
+        // Other people's burnout risk. Narrower than workforce.view on purpose:
+        // a system administrator runs the platform, not the people in it, so
+        // they see only their own card like any employee. HR sees the whole
+        // hospital and a department head their own unit, which is the reach
+        // User::supervisedDepartmentIds() already gives each of them.
+        Gate::define('burnout.view-workforce', fn (User $user) => $user->hasAnyRole([
+            'hr-manager', 'department-head',
+        ]));
+
         Gate::define('attendance.override', fn (User $user) => $user->hasAnyRole([
             'system-administrator', 'hr-manager', 'department-head',
         ]) && $user->canManageData());

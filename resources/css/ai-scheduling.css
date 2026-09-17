@@ -48,6 +48,9 @@
 .ai-risk-low { color: var(--hr-text); background: var(--hr-primary-soft); }
 .ai-risk-moderate { color: var(--hr-warning-text); background: var(--hr-tint-warning); }
 .ai-risk-high { color: var(--hr-danger); background: var(--hr-tint-danger); }
+.ai-risk-unknown { color: var(--hr-muted); background: var(--hr-surface-2); text-transform: none; }
+.ai-risk-row { display: flex; flex-wrap: wrap; gap: .35rem; }
+.ai-burnout-note { margin: 0; color: var(--hr-danger-text); font-size: var(--fs-2xs); font-weight: 700; }
 .ai-scheduling details { border: 1px solid var(--hr-border); border-radius: var(--r-md); background: var(--hr-surface); }
 .ai-scheduling summary { padding: .65rem .75rem; color: var(--hr-muted); cursor: pointer; font-size: var(--fs-xs); font-weight: 800; }
 .ai-breakdown-row,

@@ -90,6 +90,21 @@
         </div>
     @endif
 
+    {{-- Burnout, both ways round: how the last few weeks have treated the
+         person reading this, and who in their reach is nearest the edge. The
+         card is anyone's with an employee profile; the list is only for the
+         roles that may open the Burnout Risk tab. --}}
+    @if ($myBurnout || $burnoutWatchlist)
+        <div @class(['dashboard-grid', 'dashboard-burnout-grid', 'is-single' => ! ($myBurnout && $burnoutWatchlist)])>
+            @if ($myBurnout)
+                <x-staff.burnout-risk :burnout="$myBurnout" />
+            @endif
+            @if ($burnoutWatchlist)
+                <x-burnout-watchlist :watchlist="$burnoutWatchlist" />
+            @endif
+        </div>
+    @endif
+
     {{-- The attendance panel and the day's roster read together: the chart is the
          trend the rail beside it is one column of. The standalone shift overview
          that used to sit above this is folded into that rail — the same roster

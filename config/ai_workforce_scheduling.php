@@ -11,7 +11,11 @@ return [
     | Hospital HR must review them before enabling this feature in production.
     */
     'weights' => [
-        'eligibility' => 40,
+        // Every eligible candidate earns this in full, so it never reorders
+        // anyone; burnout_risk took 15 of its former 40 points.
+        'eligibility' => 25,
+        // Lower burnout risk scores higher. See config/burnout.php.
+        'burnout_risk' => 15,
         'weekly_workload' => 15,
         'overtime' => 10,
         'recent_assignments' => 10,

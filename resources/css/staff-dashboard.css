@@ -1476,6 +1476,122 @@
     border-radius: var(--r-md);
 }
 
+/* ------------------------------------------------------ workload & rest card */
+
+/* The score and its meter on the left, the reasons and the one suggestion on
+   the right. The meter's fill takes the level's status colour, so the number
+   and the chip above it never disagree about how serious it is. */
+.staff-burnout-body {
+    display: grid;
+    padding: 18px 20px;
+    grid-template-columns: minmax(180px, 0.7fr) minmax(0, 1.6fr);
+    gap: 24px;
+}
+
+.staff-burnout-score {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.staff-burnout-meter {
+    overflow: hidden;
+    height: 10px;
+    border-radius: var(--r-pill);
+    background: var(--hr-sunken);
+}
+
+.staff-burnout-meter i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--hr-success);
+}
+
+.staff-burnout-meter.is-moderate i {
+    background: var(--hr-warning);
+}
+
+.staff-burnout-meter.is-high i {
+    background: var(--hr-danger);
+}
+
+.staff-burnout-trend {
+    display: flex;
+    margin: 0;
+    align-items: center;
+    gap: 6px;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+}
+
+.staff-burnout-trend .ui-icon {
+    width: 14px;
+    height: 14px;
+    flex: none;
+}
+
+.staff-burnout-detail {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.staff-burnout-detail h3 {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 650;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.staff-burnout-drivers {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    flex-direction: column;
+    list-style: none;
+}
+
+.staff-burnout-drivers li {
+    display: flex;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--hr-border);
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+}
+
+.staff-burnout-drivers b {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.staff-burnout-empty,
+.staff-burnout-suggestion {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+}
+
+.staff-burnout-suggestion {
+    padding: 10px 12px;
+    border-radius: var(--r-md);
+    background: var(--hr-surface-2);
+}
+
+.staff-burnout-note {
+    margin: 0;
+    padding: 0 20px 16px;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
 /* ------------------------------------------------------------- responsive */
 
 @media (max-width: 1280px) {
@@ -1544,7 +1660,8 @@
 }
 
 @media (max-width: 700px) {
-    .staff-grid-trio {
+    .staff-grid-trio,
+    .staff-burnout-body {
         grid-template-columns: minmax(0, 1fr);
     }
 }

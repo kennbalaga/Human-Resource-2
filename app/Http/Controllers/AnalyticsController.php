@@ -5,17 +5,20 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Requests\Analytics\AnalyticsRequest;
 use App\Models\AttendanceRecord;
+use App\Models\BurnoutRiskSnapshot;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\ScheduleAssignment;
 use App\Models\Timesheet;
+use App\Services\Burnout\BurnoutRiskService;
 use App\Services\Integrations\GeminiAnalyticsService;
 use App\Support\SpreadsheetExport;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
@@ -27,7 +30,7 @@ class AnalyticsController extends Controller
 
     public function index(AnalyticsRequest $request): View
     {
-        $data = $this->cachedAnalytics($request->validated(), $this->supervisedDepartmentIds($request));
+        $data = $this->burnoutFor($request, $this->cachedAnalytics($request->validated(), $this->supervisedDepartmentIds($request)));
 
         return view('analytics.index', $data + [
             'filters' => $request->validated(),
@@ -42,10 +45,17 @@ class AnalyticsController extends Controller
     {
         $filters = $request->validated();
         $analytics = $this->cachedAnalytics($filters, $this->supervisedDepartmentIds($request));
+        // Burnout counts stay out of what is sent to Gemini. They are only
+        // counts, but a small unit's count can point at one person, and the
+        // external-processing review covered the payload as it was before
+        // they existed.
         $result = $service->generateInsights([
             'period' => ['from' => $filters['date_from'], 'to' => $filters['date_to']],
-            'metrics' => $analytics['metrics'],
-            'departments' => $analytics['departmentMetrics']->values()->all(),
+            'metrics' => collect($analytics['metrics'])->except(['burnout_high_risk', 'burnout_moderate_risk'])->all(),
+            'departments' => $analytics['departmentMetrics']
+                ->map(fn (array $department) => collect($department)->except('burnout_high_risk')->all())
+                ->values()
+                ->all(),
         ]);
 
         if ($result->success) {
@@ -58,9 +68,10 @@ class AnalyticsController extends Controller
     public function export(AnalyticsRequest $request): StreamedResponse
     {
         $filters = $request->validated();
-        $data = $this->cachedAnalytics($filters, $this->supervisedDepartmentIds($request));
+        $data = $this->burnoutFor($request, $this->cachedAnalytics($filters, $this->supervisedDepartmentIds($request)));
+        $withBurnout = array_key_exists('burnout_high_risk', $data['metrics']);
 
-        return response()->streamDownload(function () use ($data, $filters): void {
+        return response()->streamDownload(function () use ($data, $filters, $withBurnout): void {
             $output = fopen('php://output', 'w');
             SpreadsheetExport::writeCsvRow($output, ['Workforce Analytics Report']);
             SpreadsheetExport::writeCsvRow($output, ['Period', $filters['date_from'].' to '.$filters['date_to']]);
@@ -70,9 +81,15 @@ class AnalyticsController extends Controller
                 SpreadsheetExport::writeCsvRow($output, [str($label)->headline()->toString(), $value]);
             }
             SpreadsheetExport::writeCsvRow($output, []);
-            SpreadsheetExport::writeCsvRow($output, ['Department', 'Active Employees', 'Attendance Records', 'Attendance Rate', 'Average Worked Hours', 'Approved Leave Days']);
+            SpreadsheetExport::writeCsvRow($output, array_merge(
+                ['Department', 'Active Employees', 'Attendance Records', 'Attendance Rate', 'Average Worked Hours', 'Approved Leave Days'],
+                $withBurnout ? ['High Burnout Risk (today)'] : [],
+            ));
             foreach ($data['departmentMetrics'] as $department) {
-                SpreadsheetExport::writeCsvRow($output, [$department['name'], $department['employees'], $department['attendance'], $department['attendance_rate'], $department['average_hours'], $department['leave_days']]);
+                SpreadsheetExport::writeCsvRow($output, array_merge(
+                    [$department['name'], $department['employees'], $department['attendance'], $department['attendance_rate'], $department['average_hours'], $department['leave_days']],
+                    $withBurnout ? [$department['burnout_high_risk']] : [],
+                ));
             }
             SpreadsheetExport::writeCsvRow($output, []);
             SpreadsheetExport::writeCsvRow($output, ['Date', 'Attendance Records', 'Late Records', 'Worked Hours']);
@@ -137,7 +154,13 @@ class AnalyticsController extends Controller
         // department -- that loop was one round trip per row of this table.
         $employeeIdsByDepartment = $employees->groupBy('department_id')->map->pluck('id');
 
-        $departmentMetrics = $departments->map(function (Department $department) use ($attendance, $leaves, $workdays, $employeeIdsByDepartment) {
+        // Today's assessment whatever the period, since burnout risk is always
+        // read over the last few weeks. One read for the whole population.
+        $burnoutLevels = app(BurnoutRiskService::class)
+            ->current($employeeIds->all())
+            ->map(fn (BurnoutRiskSnapshot $snapshot) => $snapshot->level);
+
+        $departmentMetrics = $departments->map(function (Department $department) use ($attendance, $leaves, $workdays, $employeeIdsByDepartment, $burnoutLevels) {
             $departmentEmployeeIds = $employeeIdsByDepartment->get($department->id) ?? collect();
             $departmentAttendance = $attendance->whereIn('employee_id', $departmentEmployeeIds);
             $possible = max(1, $departmentEmployeeIds->count() * $workdays);
@@ -150,6 +173,7 @@ class AnalyticsController extends Controller
                 'attendance_rate' => round(min(100, $departmentAttendance->count() / $possible * 100), 1),
                 'average_hours' => $departmentAttendance->count() ? round($departmentAttendance->avg('worked_minutes') / 60, 1) : 0,
                 'leave_days' => round((float) $leaves->whereIn('employee_id', $departmentEmployeeIds)->sum('analytics_days'), 1),
+                'burnout_high_risk' => $burnoutLevels->only($departmentEmployeeIds->all())->filter(fn (string $level) => $level === BurnoutRiskSnapshot::LEVEL_HIGH)->count(),
             ];
         });
         $attendanceByDate = $attendance->groupBy(fn (AttendanceRecord $record) => $record->attendance_date->toDateString());
@@ -186,6 +210,8 @@ class AnalyticsController extends Controller
                 'scheduled_shifts' => $scheduled,
                 'approved_timesheets' => $timesheets->where('status', 'approved')->count(),
                 ...$this->adherenceMetrics($attendance),
+                'burnout_high_risk' => $burnoutLevels->filter(fn (string $level) => $level === BurnoutRiskSnapshot::LEVEL_HIGH)->count(),
+                'burnout_moderate_risk' => $burnoutLevels->filter(fn (string $level) => $level === BurnoutRiskSnapshot::LEVEL_MODERATE)->count(),
             ],
             'departmentMetrics' => $departmentMetrics,
             'attendanceTrend' => $attendanceTrend,
@@ -207,7 +233,8 @@ class AnalyticsController extends Controller
         // first head to load a period would populate a cache entry that the
         // next head -- or a plain HR request for the whole hospital -- would
         // then be served out of.
-        $key = 'analytics.dataset.v3.'.hash('sha256', json_encode([$filters, $departmentIds]));
+        // v4: metrics and department rows gained the burnout counts.
+        $key = 'analytics.dataset.v4.'.hash('sha256', json_encode([$filters, $departmentIds]));
         $resolver = function () use ($filters, $departmentIds): array {
             $data = $this->analytics($filters, $departmentIds);
 
@@ -228,6 +255,28 @@ class AnalyticsController extends Controller
         foreach (['departmentMetrics', 'attendanceTrend', 'leaveMix', 'timesheetStatuses'] as $field) {
             $data[$field] = collect($data[$field]);
         }
+
+        return $data;
+    }
+
+    /**
+     * The cached dataset is shared by everyone with the same reach, and a
+     * system administrator has the same reach as HR. Burnout counts are taken
+     * back out here for anyone outside the burnout.view-workforce gate, rather
+     * than by keeping a second copy of the dataset for them.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function burnoutFor(Request $request, array $data): array
+    {
+        if ($request->user()?->can('burnout.view-workforce')) {
+            return $data;
+        }
+
+        $data['metrics'] = collect($data['metrics'])->except(['burnout_high_risk', 'burnout_moderate_risk'])->all();
+        $data['departmentMetrics'] = $data['departmentMetrics']
+            ->map(fn (array $department) => collect($department)->except('burnout_high_risk')->all());
 
         return $data;
     }

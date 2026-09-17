@@ -86,6 +86,9 @@ class RosterDraftRequest extends FormRequest
             // RosterDraftService checks that, since only it knows whether
             // this roster has one.
             'night_streak_justification' => ['nullable', 'string', 'max:500'],
+            // Required on the same terms, once the evaluation places a
+            // high-burnout-risk employee past their protected limits.
+            'burnout_justification' => ['nullable', 'string', 'max:500'],
             'maximum_staff_per_shift' => ['nullable', 'integer', 'between:1,100'],
             'minimum_senior_per_shift' => ['nullable', 'integer', 'between:0,100'],
             'senior_rank_threshold' => ['nullable', 'integer', 'between:2,'.Position::MAX_SENIORITY_RANK],

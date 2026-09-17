@@ -69,6 +69,9 @@ Gemini AI is disabled by default and is not required for core HR functions.
 
 - [REST API](docs/API.md)
 - [Gemini AI integration](docs/INTEGRATIONS.md)
+- [AI workforce scheduling](docs/AI_WORKFORCE_SCHEDULING.md)
+- [Burnout risk indicator](docs/BURNOUT_RISK.md)
+- [Data privacy](docs/DATA_PRIVACY.md)
 - [Security and operations](docs/SECURITY.md)
 - [Laragon setup on Windows](docs/LARAGON_SETUP.md)
 - [Production deployment](docs/PRODUCTION_DEPLOYMENT.md)

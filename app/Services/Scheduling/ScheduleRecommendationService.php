@@ -38,11 +38,34 @@ class ScheduleRecommendationService
             'alternatives' => array_slice($ranked, 1, 2),
             'eligible' => $ranked,
             'ineligible' => $analysis['ineligible'],
-            'warnings' => array_merge($analysis['warnings'], [
+            'warnings' => array_merge($analysis['warnings'], $this->burnoutWarnings($ranked), [
                 'Workload risk uses initial configurable system references, is non-medical, and requires hospital HR review before production use.',
             ]),
             'notice' => 'This deterministic recommendation uses available scheduling, attendance, and workload records. HR review is required before applying it.',
         ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $ranked
+     * @return array<int, string>
+     */
+    private function burnoutWarnings(array $ranked): array
+    {
+        $candidates = collect($ranked);
+        $protected = $candidates->where('burnout_protected', true)->count();
+        $warnings = [];
+
+        if ($protected > 0 && ($ranked[0]['burnout_protected'] ?? false)) {
+            $warnings[] = 'Every eligible employee is at high burnout risk, so the recommendation is one of them. Consider covering this shift another way.';
+        } elseif ($protected > 0) {
+            $warnings[] = "{$protected} eligible ".str('employee')->plural($protected).' at high burnout risk '.($protected === 1 ? 'was' : 'were').' ranked after everyone else.';
+        }
+
+        if ($candidates->contains(fn (array $candidate) => $candidate['burnout_risk'] === null)) {
+            $warnings[] = 'Burnout risk could not be assessed for some candidates; they were scored as neither low nor high risk.';
+        }
+
+        return $warnings;
     }
 
     /** @param array<int, array<string, mixed>> $ranked @return array<string, float> */

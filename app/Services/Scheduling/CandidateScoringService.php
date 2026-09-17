@@ -6,13 +6,17 @@ use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Models\ScheduleAssignment;
 use App\Models\Shift;
+use App\Services\Burnout\BurnoutRiskService;
 use App\Services\ScheduleService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class CandidateScoringService
 {
-    public function __construct(private readonly ScheduleService $scheduleService) {}
+    public function __construct(
+        private readonly ScheduleService $scheduleService,
+        private readonly BurnoutRiskService $burnoutRisk,
+    ) {}
 
     /**
      * @param  array<int, array<string, mixed>>  $eligibleCandidates
@@ -34,10 +38,16 @@ class CandidateScoringService
             return [$candidate['employee_id'] => $this->metricsFor($employee, $shift, $workDate)];
         });
         $weights = config('ai_workforce_scheduling.weights');
+        // One read for the whole pool rather than one per candidate.
+        $burnout = $this->burnoutRisk->current($metrics->keys()->all());
 
         return collect($eligibleCandidates)
-            ->map(function (array $candidate) use ($metrics, $weights): array {
+            ->map(function (array $candidate) use ($metrics, $weights, $burnout): array {
                 $candidateMetrics = $metrics->get($candidate['employee_id']);
+                $assessment = $burnout->get($candidate['employee_id']);
+                $presented = $assessment !== null ? $this->burnoutRisk->present($assessment) : null;
+                $candidateMetrics['burnout_score'] = $presented['score'] ?? null;
+                $candidateMetrics['burnout_level'] = $presented['level'] ?? null;
                 $breakdown = [
                     'eligibility' => [
                         'label' => 'All available hard constraints passed',
@@ -45,6 +55,7 @@ class CandidateScoringService
                         'points' => (float) $weights['eligibility'],
                         'maximum' => (float) $weights['eligibility'],
                     ],
+                    'burnout_risk' => $this->burnoutBreakdown($presented, (float) ($weights['burnout_risk'] ?? 0)),
                     'weekly_workload' => $this->lowerIsBetterBreakdown('Weekly workload', 'minutes', $candidateMetrics['weekly_workload_minutes'], $metrics->pluck('weekly_workload_minutes'), $weights['weekly_workload']),
                     'overtime' => $this->lowerIsBetterBreakdown('Approved overtime', 'minutes', $candidateMetrics['overtime_minutes'], $metrics->pluck('overtime_minutes'), $weights['overtime']),
                     'recent_assignments' => $this->lowerIsBetterBreakdown('Recent assignments', 'assignments', $candidateMetrics['recent_assignments'], $metrics->pluck('recent_assignments'), $weights['recent_assignments']),
@@ -65,9 +76,21 @@ class CandidateScoringService
                     'score_breakdown' => $breakdown,
                     'metrics' => $candidateMetrics,
                     'recommendation_reasons' => $this->reasons($breakdown),
+                    'burnout_risk' => $presented === null ? null : [
+                        'level' => $presented['level'],
+                        'score' => $presented['score'],
+                        'trend' => $presented['trend'],
+                        'drivers' => collect($presented['drivers'])->pluck('summary')->all(),
+                    ],
+                    'burnout_protected' => (bool) ($presented['protected'] ?? false),
                 ];
             })
+            // Anyone at high burnout risk is ranked after everyone who is not,
+            // whatever their points, so they are only ever the recommendation
+            // when nobody else is eligible. They stay on the list: the manager
+            // can still choose them, with the risk shown beside the name.
             ->sortBy([
+                ['burnout_protected', 'asc'],
                 ['score', 'desc'],
                 ['employee_id', 'asc'],
             ])
@@ -161,6 +184,30 @@ class CandidateScoringService
         }
 
         return round((float) min(72, $gaps->min() ?? 72), 2);
+    }
+
+    /**
+     * Scored against the fixed 0-100 scale rather than against the pool: two
+     * candidates at 4 and 8 are both fine, and a pool-relative scale would
+     * hand one of them nothing for a difference that means nothing.
+     *
+     * No assessment means no evidence either way, so it earns half, never the
+     * full points a known low risk would.
+     *
+     * @param  array<string, mixed>|null  $assessment
+     * @return array<string, mixed>
+     */
+    private function burnoutBreakdown(?array $assessment, float $weight): array
+    {
+        $quality = $assessment === null ? .5 : 1 - min(100, max(0, (float) $assessment['score'])) / 100;
+
+        return [
+            'label' => $assessment === null ? 'Burnout risk (not yet assessed)' : 'Burnout risk ('.$assessment['level'].')',
+            'value' => $assessment['score'] ?? null,
+            'unit' => 'points',
+            'points' => round($quality * $weight, 2),
+            'maximum' => $weight,
+        ];
     }
 
     /** @param Collection<int, int|float> $population @return array<string, mixed> */

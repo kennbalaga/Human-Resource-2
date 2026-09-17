@@ -51,17 +51,21 @@ Hard constraints currently evaluated:
 - no approved leave covering any part of the shift, including an overnight shift's following date;
 - no overlapping scheduled assignment, using the existing `ScheduleService` conflict logic.
 
-Eligible employees are ranked deterministically with a fixed employee-ID tie-breaker. The configured 100-point model uses:
+Eligible employees are ranked deterministically with a fixed employee-ID tie-breaker. The configured 100-point model (`config/ai_workforce_scheduling.php`) uses:
 
-- available hard constraints: 40;
+- available hard constraints: 25;
+- burnout risk: 15;
 - weekly workload: 15;
 - approved overtime: 10;
 - recent assignments: 10;
 - recent overnight assignments: 10;
-- consecutive scheduled duties: 10;
+- consecutive scheduled duties: 5;
+- matches declared shift preference: 5;
 - nearest rest interval: 5.
 
 Weekly workload uses the greater of scheduled minutes and approved worked minutes for the target week. Lower workload, overtime, recent assignments, overnight assignments, and consecutive duties score more favorably relative to the current eligible pool. A longer nearest rest interval scores more favorably.
+
+Burnout risk is scored on its fixed 0–100 scale rather than against the pool. A candidate with no assessment earns half the points. Independently of points, candidates at **high** burnout risk are ranked after every other eligible candidate, so they are only recommended when nobody else is eligible. They stay on the list with a warning. See [BURNOUT_RISK.md](BURNOUT_RISK.md), which also covers how bulk fill, the rotation assistant and the roster board protect high-risk employees.
 
 These weights and reference values are application defaults, not hospital policy, clinical guidance, or a guarantee of safety or adequate staffing.
 
@@ -70,6 +74,8 @@ These weights and reference values are application defaults, not hospital policy
 The low, moderate, or high indicator is operational decision support only. It is not a diagnosis, fitness-for-duty decision, clinical risk score, or substitute for labor rules and hospital policy. HR must validate the moderate/high thresholds and every reference value before production use.
 
 The indicator currently considers weekly workload, approved overtime, recent assignments, consecutive duties, overnight assignments, and nearest rest interval. The exact configuration is in `config/ai_workforce_scheduling.php` and can be changed without altering the manual scheduling workflow.
+
+This prospective indicator asks whether *this shift* would overload the candidate. The separate burnout risk indicator asks how the last four weeks have treated them. Both are shown on each candidate.
 
 ## Deliberately unavailable factors
 
@@ -105,11 +111,11 @@ Apply uses a database lock for the human decision record. It still does not rese
 
 `schedule_recommendation_decisions` separately records the authenticated human actor and the applied, modified, ignored, or rejected decision. Applying the original recommendation is `applied`; choosing a recorded alternative is `modified`. These records do not replace the project's normal schedule write audit.
 
-Persisted AI eligibility payloads use employee IDs and reason codes rather than names, employee numbers, emails, contact details, or leave reasons.
+Persisted AI eligibility payloads use employee IDs and reason codes rather than names, employee numbers, emails, contact details, or leave reasons. Burnout risk is persisted as level and score only. The factors behind it, which can include sick-leave counts, are not kept in the recommendation record.
 
 ## Gemini privacy boundary
 
-When enabled, the explanation request contains only pseudonyms such as `CANDIDATE_1`, numeric scores, score-factor labels and values, workload-risk values, fairness deltas, counts, and generic limitation notices. It excludes database IDs, names, employee numbers, emails, contact details, leave reasons, and protected characteristics.
+When enabled, the explanation request contains only pseudonyms such as `CANDIDATE_1`, numeric scores, score-factor labels and values, workload-risk values, each candidate's burnout risk level (never its factors), fairness deltas, counts, and generic limitation notices. It excludes database IDs, names, employee numbers, emails, contact details, leave reasons, and protected characteristics.
 
 Gemini output is explanation text only. Any timeout, HTTP error, malformed response, missing key, or disabled flag safely falls back to a deterministic Laravel explanation. Attempted Gemini explanation calls are recorded as `scheduling.explain` integration events with status, response code, duration, endpoint host, and candidate count—not prompt PII.
 

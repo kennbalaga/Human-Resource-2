@@ -8,6 +8,7 @@ use App\Http\Controllers\Attendance\AttendanceOverrideController;
 use App\Http\Controllers\Attendance\AttendanceQrScanController;
 use App\Http\Controllers\Attendance\BiometricSimulatorController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\BurnoutRiskController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
@@ -194,6 +195,7 @@ Route::middleware('auth')->group(function () {
         ->whereIn('report', ReportRegistry::keys())->name('reports.export');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+    Route::get('/analytics/burnout-risk', [BurnoutRiskController::class, 'index'])->name('analytics.burnout-risk');
     Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
     Route::post('/analytics/ai-insights', [AnalyticsController::class, 'aiInsights'])->name('analytics.ai-insights');
 

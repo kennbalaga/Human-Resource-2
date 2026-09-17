@@ -28,7 +28,11 @@ class RecommendationExplanationService
             return 'Based on the available records, no employee passed every current eligibility and conflict check. HR may continue scheduling manually.';
         }
 
-        return 'Based on the available records, the highest-ranked eligible employee passed the current hard constraints and had the strongest deterministic workload and fairness score. HR review is required, and this suggestion may be modified or ignored.';
+        if ($result['recommended']['burnout_protected'] ?? false) {
+            return 'Based on the available records, every eligible employee is at high burnout risk, so the recommendation is the strongest of them on workload and fairness. Consider covering this shift another way. HR review is required, and this suggestion may be modified or ignored.';
+        }
+
+        return 'Based on the available records, the highest-ranked eligible employee passed the current hard constraints, is not at high burnout risk, and had the strongest deterministic workload and fairness score. HR review is required, and this suggestion may be modified or ignored.';
     }
 
     /** @param array<string, mixed> $result @return array<string, mixed> */
@@ -48,6 +52,10 @@ class RecommendationExplanationService
                     'level' => $candidate['workload_risk']['level'],
                     'score' => $candidate['workload_risk']['score'],
                 ],
+                // The level alone, so the explanation can say why a candidate
+                // with more points was ranked lower. The factors behind it stay
+                // here: they include leave history.
+                'burnout_risk_level' => $candidate['burnout_risk']['level'] ?? 'not_assessed',
                 'fairness' => $candidate['fairness'],
             ];
         })->all();
@@ -58,6 +66,7 @@ class RecommendationExplanationService
             'limitations' => [
                 'Competency, certification, declared availability, and official rest-day data are unavailable. Declared shift preference is scored as "Matches declared shift preference" above, a soft signal, not a filter.',
                 'The workload risk indicator is operational guidance only and is not a medical or safety diagnosis.',
+                'Candidates at high burnout risk are ranked after all other eligible candidates regardless of score. Burnout risk is a non-medical workload indicator, not a diagnosis.',
             ],
         ];
     }

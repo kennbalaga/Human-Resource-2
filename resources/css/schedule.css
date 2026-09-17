@@ -2995,6 +2995,16 @@
     font-style: normal;
 }
 
+.roster-person em.roster-burnout-high {
+    color: var(--hr-danger-text);
+    background: var(--hr-tint-danger);
+}
+
+.roster-person em.roster-burnout-moderate {
+    color: var(--hr-warning-text);
+    background: var(--hr-tint-warning);
+}
+
 .roster-remove {
     position: absolute;
     top: 0;

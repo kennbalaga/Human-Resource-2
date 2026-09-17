@@ -819,6 +819,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const rosterNightStreakPanel = rosterBoard?.querySelector('[data-roster-night-streak-panel]');
     const rosterNightStreakTitle = rosterNightStreakPanel?.querySelector('[data-roster-night-streak-title]');
     const rosterNightStreakList = rosterNightStreakPanel?.querySelector('[data-roster-night-streak-list]');
+    const rosterBurnoutPanel = rosterBoard?.querySelector('[data-roster-burnout-panel]');
+    const rosterBurnoutTitle = rosterBurnoutPanel?.querySelector('[data-roster-burnout-title]');
+    const rosterBurnoutList = rosterBurnoutPanel?.querySelector('[data-roster-burnout-list]');
     const rosterAlreadyRosteredPanel = rosterBoard?.querySelector('[data-roster-already-rostered-panel]');
     const rosterAlreadyRosteredTitle = rosterAlreadyRosteredPanel?.querySelector('[data-roster-already-rostered-title]');
     const rosterAlreadyRosteredList = rosterAlreadyRosteredPanel?.querySelector('[data-roster-already-rostered-list]');
@@ -922,6 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
         overtime_allowed: bulkForm.elements.overtime_allowed?.checked ?? false,
         overtime_justification: bulkForm.elements.overtime_justification?.value,
         night_streak_justification: bulkForm.elements.night_streak_justification?.value,
+        burnout_justification: bulkForm.elements.burnout_justification?.value,
         maximum_staff_per_shift: bulkForm.elements.maximum_staff_per_shift?.value,
         minimum_senior_per_shift: valueUnlessDisabled(bulkForm.elements.minimum_senior_per_shift),
         senior_rank_threshold: valueUnlessDisabled(bulkForm.elements.senior_rank_threshold),
@@ -1045,6 +1049,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const badge = document.createElement('em');
             badge.textContent = 'senior';
             name.append(' ', badge);
+        }
+        if (person.burnout_level === 'high' || person.burnout_level === 'moderate') {
+            const risk = document.createElement('em');
+            risk.className = `roster-burnout roster-burnout-${person.burnout_level}`;
+            risk.textContent = person.burnout_level === 'high' ? 'burnout risk' : 'strained';
+            risk.title = `Burnout risk: ${person.burnout_level}`;
+            name.append(' ', risk);
         }
         const role = document.createElement('small');
         role.textContent = person.position ?? '';
@@ -1406,6 +1417,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // Tier B, soft, the same shape as the night streak: someone at high
+    // burnout risk placed past their protected limits by hand. Still on the
+    // board; publishing just needs a reason on record.
+    const renderBurnoutWarnings = (evaluation) => {
+        if (!rosterBurnoutPanel) return;
+        const warnings = evaluation.burnout_warnings ?? [];
+
+        rosterBurnoutPanel.hidden = warnings.length === 0;
+        if (!warnings.length) return;
+
+        const people = new Set(warnings.map((warning) => warning.employee_id)).size;
+        rosterBurnoutTitle.textContent = `${warnings.length} placement${warnings.length === 1 ? '' : 's'} take${warnings.length === 1 ? 's' : ''} ${people} employee${people === 1 ? '' : 's'} at high burnout risk past their protected limits. Publishing needs a justification below.`;
+        rosterBurnoutList.replaceChildren();
+        warnings.forEach((warning) => {
+            const item = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = `${formatScheduleDate(warning.work_date)} · ${warning.employee} — ${warning.shift}: ${warning.reason}`;
+            button.addEventListener('click', () => revealRosterShift(warning.work_date, null));
+            item.append(button);
+            rosterBurnoutList.append(item);
+        });
+    };
+
     const renderRoster = (evaluation) => {
         if (!rosterDays) return;
         lastEvaluation = evaluation;
@@ -1419,14 +1454,19 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCoverageGaps(evaluation);
         renderAlreadyRostered(evaluation);
         renderNightStreakWarnings(evaluation);
+        renderBurnoutWarnings(evaluation);
         if (scroller) scroller.scrollTop = previousScroll;
 
         if (rosterSummary) {
-            const { assignments, day_offs: rest, blocked, shifts_short: short, night_streak_warnings: streaks } = evaluation.summary;
+            const {
+                assignments, day_offs: rest, blocked, shifts_short: short, night_streak_warnings: streaks,
+                burnout_warnings: burnout, burnout_protected: atRisk,
+            } = evaluation.summary;
             const parts = [`${assignments} assignment(s)`, `${rest} rest day(s)`];
             if (blocked) parts.push(`${blocked} cannot be scheduled`);
             parts.push(short ? `${short} shift(s) below the required cover` : 'every shift meets its requirement');
             if (streaks) parts.push(`${streaks} beyond the consecutive-night limit`);
+            if (atRisk) parts.push(`${atRisk} employee(s) at high burnout risk${burnout ? `, ${burnout} placement(s) past their limits` : ''}`);
             rosterSummary.textContent = `${parts.join(' · ')}.${evaluation.coverage_standard ? ` ${evaluation.coverage_standard}` : ''}`;
         }
 
@@ -1561,7 +1601,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const applyDraftRules = (rules) => {
         ['days_off_per_week', 'max_hours_per_week', 'night_shift_limit', 'max_consecutive_nights',
             'minimum_rest_hours', 'maximum_staff_per_shift', 'minimum_senior_per_shift',
-            'senior_rank_threshold', 'holiday_dates_csv', 'overtime_justification', 'night_streak_justification']
+            'senior_rank_threshold', 'holiday_dates_csv', 'overtime_justification', 'night_streak_justification',
+            'burnout_justification']
             .forEach((field) => {
                 if (rules[field] !== undefined && rules[field] !== null && bulkForm.elements[field]) {
                     bulkForm.elements[field].value = rules[field];
@@ -1779,6 +1820,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const days = lastEvaluation.days ?? [];
         const issues = lastEvaluation.issues ?? [];
         const streaks = lastEvaluation.night_streak_warnings ?? [];
+        const burnout = lastEvaluation.burnout_warnings ?? [];
         const shiftRows = days.flatMap((day) => day.shifts ?? []);
         const understaffed = shiftRows.filter((row) => row.count < row.required);
         const shortSenior = shiftRows.filter((row) => row.senior_count < row.senior_required);
@@ -1812,6 +1854,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 detail: streaks.length === 0
                     ? 'Nobody exceeds the consecutive-night limit.'
                     : `${streaks.length} employee(s) exceed the limit — Step 5 will ask you to justify this.`,
+            },
+            {
+                label: 'Burnout risk',
+                ok: burnout.length === 0,
+                detail: burnout.length === 0
+                    ? 'Nobody at high burnout risk is placed past their protected limits.'
+                    : `${burnout.length} placement(s) take high-risk staff past their limits — a justification is required.`,
             },
             {
                 label: 'Days covered',
@@ -1881,7 +1930,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const {
             assignments, day_offs: restDays, employees_affected: employees, night_differential_hours: nightHours,
-            shifts_short: short, night_streak_warnings: streaks,
+            shifts_short: short, night_streak_warnings: streaks, burnout_warnings: burnout,
         } = lastEvaluation.summary;
         [
             ['Assignments', assignments],
@@ -1906,10 +1955,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (short) {
                 publishSummaryGap.hidden = false;
                 publishSummaryGap.textContent = `${short} shift(s) are still below required cover — this should not be publishable. Go back and fix the roster.`;
-            } else if (streaks) {
+            } else if (streaks || burnout) {
                 publishSummaryGap.hidden = false;
-                const justification = bulkForm.elements.night_streak_justification?.value.trim() || '—';
-                publishSummaryGap.textContent = `${streaks} night shift(s) beyond the consecutive-night limit. Justification on record: "${justification}"`;
+                const notes = [];
+                if (streaks) {
+                    const justification = bulkForm.elements.night_streak_justification?.value.trim() || '—';
+                    notes.push(`${streaks} night shift(s) beyond the consecutive-night limit. Justification on record: "${justification}"`);
+                }
+                if (burnout) {
+                    const justification = bulkForm.elements.burnout_justification?.value.trim() || '—';
+                    notes.push(`${burnout} placement(s) past a high-burnout-risk employee's limits. Justification on record: "${justification}"`);
+                }
+                publishSummaryGap.textContent = notes.join(' ');
             } else {
                 publishSummaryGap.hidden = true;
             }
@@ -2001,6 +2058,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return `${streaks} night shift(s) exceed the consecutive-night limit. Enter a justification above to publish anyway, or adjust the roster.`;
         }
 
+        const burnout = lastEvaluation?.summary?.burnout_warnings ?? 0;
+        if (burnout > 0 && !bulkForm.elements.burnout_justification?.value.trim()) {
+            return `${burnout} placement(s) take employees at high burnout risk past their protected limits. Enter a justification above to publish anyway, or adjust the roster.`;
+        }
+
         return null;
     };
 
@@ -2069,6 +2131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rosterGapBody) rosterGapBody.hidden = true;
         rosterGapToggle?.setAttribute('aria-expanded', 'false');
         if (rosterNightStreakPanel) rosterNightStreakPanel.hidden = true;
+        if (rosterBurnoutPanel) rosterBurnoutPanel.hidden = true;
         if (rosterAlreadyRosteredPanel) rosterAlreadyRosteredPanel.hidden = true;
         if (rosterAlreadyRosteredBody) rosterAlreadyRosteredBody.hidden = true;
         rosterAlreadyRosteredToggle?.setAttribute('aria-expanded', 'false');

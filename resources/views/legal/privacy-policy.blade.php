@@ -162,6 +162,14 @@
                                 device that made them.
                             </td>
                         </tr>
+                        <tr>
+                            <th scope="row">Workload indicator</th>
+                            <td>
+                                A daily burnout risk score, worked out from the attendance, roster and leave
+                                records above, including how many sick and emergency leave requests you filed
+                                recently. Nothing new is collected to produce it.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -202,6 +210,11 @@
                 <li>
                     <strong>Accountability and security.</strong> Audit logs and session records exist so that
                     a disputed change or a suspected compromise can be reconstructed.
+                </li>
+                <li>
+                    <strong>Preventing overwork.</strong> The workload indicator exists so that rosters give
+                    staff who have been working long hours without a break more rest. It is not used for
+                    disciplinary, performance, or promotion decisions.
                 </li>
             </ul>
             <p>
@@ -250,6 +263,14 @@
                 requires human review before it takes effect.
             </p>
             <p>
+                The workload indicator is computed automatically, inside this application, and is never
+                sent to that service. You can see your own level, and what is driving it, on your
+                dashboard. HR managers can see everyone's and a department head their own unit's; system administrators see only their own. When
+                your level is high, the scheduling tools give you more rest days and fewer long weeks and
+                night shifts. A manager can still schedule you past those limits, but only by recording a
+                reason. The indicator is not a medical assessment.
+            </p>
+            <p>
                 No decision that produces a legal effect on you or similarly significantly affects you is
                 made by automated processing alone.
             </p>
@@ -274,6 +295,13 @@
                     <strong>In the interest of accuracy:</strong> automatic deletion is not yet switched on in
                     this deployment. Until the hospital confirms and enables each retention window, records
                     are kept and are removed only on request or through a reviewed administrative action.
+                </p>
+            @endif
+            @if ((int) config('burnout.retention_days') > 0)
+                <p>
+                    Workload indicator scores are kept for {{ (int) config('burnout.retention_days') }} days
+                    and then removed by a nightly task. They can always be worked out again from the records
+                    above, so nothing the law requires is lost.
                 </p>
             @endif
         </section>

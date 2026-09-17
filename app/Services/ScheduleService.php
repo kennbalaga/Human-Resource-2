@@ -12,6 +12,7 @@ use App\Models\ScheduleLock;
 use App\Models\ScheduleRecommendation;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Burnout\BurnoutProtection;
 use App\Services\Scheduling\RosterWriteContext;
 use App\Services\Scheduling\ScheduleLockService;
 use App\Services\Scheduling\StaffingRequirementService;
@@ -160,6 +161,19 @@ class ScheduleService
             ]);
         }
         $employeeIds = $employees->keys()->all();
+
+        // Resolved here rather than injected: the burnout assessment reads
+        // shift intervals through this service, so a constructor dependency
+        // would be circular.
+        $burnoutProtection = app(BurnoutProtection::class);
+        $protected = $burnoutProtection->enabled()
+            ? $burnoutProtection->protectedAmong($burnoutProtection->assessments($employeeIds))
+            : collect();
+        // Everyone else is placed first, so a staffing ceiling fills up with
+        // them and it is the high-risk employees who are left off.
+        [$unprotected, $atRisk] = $employees->partition(fn (Employee $employee) => ! $protected->has($employee->id));
+        $employees = $unprotected->union($atRisk);
+
         // The week-based margin keeps the existing hours/night-shift/days-off
         // checks correct for dates near the range's edges; the extra streak
         // margin is so the new consecutive-workday check can see a run that
@@ -228,6 +242,10 @@ class ScheduleService
                     $dayOffsByEmployee->get($employee->id, collect()),
                     $data,
                 );
+
+                if ($reason === null && $protected->has($employee->id)) {
+                    $reason = $burnoutProtection->blockReason($shift, $date, $employeeAssignments);
+                }
 
                 if ($reason !== null) {
                     $skipped->push([

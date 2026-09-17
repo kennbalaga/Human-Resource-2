@@ -8,6 +8,8 @@
         @if($canManageData)<a class="btn btn-primary dashboard-action" href="{{ route('analytics.export', request()->query()) }}"><x-icon name="download" /> Download report</a>@endif
     </section>
 
+    @include('analytics._tabs')
+
     @if($errors->any())<div class="attendance-alert attendance-alert-danger"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>@endif
     @if(session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
     @if(session('warning'))<div class="attendance-alert attendance-alert-warning"><x-icon name="ai" /><span>{{ session('warning') }}</span></div>@endif
@@ -32,6 +34,13 @@
         <article class="analytics-metric"><span class="analytics-metric-icon amber"><x-icon name="alert" /></span><div><span>Off-shift rate</span><strong>{{ number_format($metrics['off_shift_rate'], 1) }}%</strong><small>Punches matching no published shift</small></div></article>
         <article class="analytics-metric"><span class="analytics-metric-icon red"><x-icon name="shield" /></span><div><span>Override rate</span><strong>{{ number_format($metrics['override_rate'], 1) }}%</strong><small>Manager-authorised unscheduled punches</small></div></article>
         <article class="analytics-metric"><span class="analytics-metric-icon violet"><x-icon name="trend" /></span><div><span>Plan vs. actual</span><strong>{{ $metrics['plan_vs_actual_variance_hours'] >= 0 ? '+' : '' }}{{ number_format($metrics['plan_vs_actual_variance_hours'], 1) }}h</strong><small>Avg. worked vs. rostered, per shift</small></div></article>
+        {{-- Today's figure, not the selected period's: burnout risk is always
+             assessed over the last few weeks. The names are on the next tab.
+             Absent for a viewer outside the burnout gate (the controller takes
+             the figures out), so the tile goes with them. --}}
+        @isset($metrics['burnout_high_risk'])
+            <a class="analytics-metric analytics-metric-link" href="{{ route('analytics.burnout-risk', array_filter(['department_id' => $filters['department_id'] ?? null, 'level' => 'high'])) }}"><span class="analytics-metric-icon red"><x-icon name="alert" /></span><div><span>High burnout risk</span><strong>{{ number_format($metrics['burnout_high_risk']) }}</strong><small>{{ number_format($metrics['burnout_moderate_risk']) }} moderate · as of today</small></div></a>
+        @endisset
     </section>
 
     <section class="analytics-grid">
@@ -66,8 +75,8 @@
 
         <article class="panel analytics-panel analytics-wide">
             <div class="panel-header"><div><p class="panel-kicker">Department comparison</p><h2>Workforce performance</h2></div></div>
-            <div class="table-responsive"><table class="dashboard-table analytics-table"><thead><tr><th>Department</th><th>Headcount</th><th>Attendance</th><th>Attendance rate</th><th>Avg. worked</th><th>Leave days</th></tr></thead><tbody>
-                @forelse($departmentMetrics as $department)<tr><td><strong>{{ $department['name'] }}</strong><small>{{ $department['code'] }}</small></td><td>{{ $department['employees'] }}</td><td>{{ $department['attendance'] }}</td><td><div class="rate-cell"><div class="horizontal-track"><i style="width:{{ $department['attendance_rate'] }}%"></i></div><strong>{{ $department['attendance_rate'] }}%</strong></div></td><td>{{ $department['average_hours'] }}h</td><td>{{ $department['leave_days'] }}</td></tr>@empty<tr><td colspan="6" class="empty-table-cell">No department data.</td></tr>@endforelse
+            <div class="table-responsive"><table class="dashboard-table analytics-table"><thead><tr><th>Department</th><th>Headcount</th><th>Attendance</th><th>Attendance rate</th><th>Avg. worked</th><th>Leave days</th>@isset($metrics['burnout_high_risk'])<th>High burnout risk</th>@endisset</tr></thead><tbody>
+                @forelse($departmentMetrics as $department)<tr><td><strong>{{ $department['name'] }}</strong><small>{{ $department['code'] }}</small></td><td>{{ $department['employees'] }}</td><td>{{ $department['attendance'] }}</td><td><div class="rate-cell"><div class="horizontal-track"><i style="width:{{ $department['attendance_rate'] }}%"></i></div><strong>{{ $department['attendance_rate'] }}%</strong></div></td><td>{{ $department['average_hours'] }}h</td><td>{{ $department['leave_days'] }}</td>@isset($metrics['burnout_high_risk'])<td>@if($department['burnout_high_risk'] ?? 0)<span class="staff-chip staff-chip-danger">{{ $department['burnout_high_risk'] }}</span>@else 0 @endif</td>@endisset</tr>@empty<tr><td colspan="{{ isset($metrics['burnout_high_risk']) ? 7 : 6 }}" class="empty-table-cell">No department data.</td></tr>@endforelse
             </tbody></table></div>
         </article>
     </section>

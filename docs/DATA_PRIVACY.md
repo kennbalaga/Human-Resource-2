@@ -16,17 +16,19 @@ Confirmed by reading every migration, not assumed:
 | Network/device | request IP, user agent | `audit_logs`, `users` |
 | Attendance credential | per-employee QR-signing secret (already `hidden` on the model — never serialized) | `employees.attendance_qr_secret` |
 | Biometric linkage | vendor-issued `external_user_id`, enrollment/scan event metadata | `biometric_enrollments`, `biometric_scan_events` |
+| Derived workload indicator | daily burnout risk score and level, plus the figures behind it: hours, overtime, nights, rest gaps, days since leave, and a count of sick and emergency leave requests | `burnout_risk_snapshots` |
 
 **What's deliberately *not* in this list because it isn't in the schema**: no government IDs (SSS, PhilHealth, TIN, Pag-IBIG), no emergency-contact fields, and — despite the "biometric" naming — **no raw fingerprint or face template data**. `biometric_enrollments`/`biometric_scan_events` store only a vendor-issued reference id and event metadata; the actual biometric template, if any, lives on the vendor's device/appliance, not in this application's database. This is a meaningfully smaller PII surface than a typical Philippine HR system, and worth knowing plainly rather than assuming the worst.
 
 ## Purpose and lawful basis
 
-Every field above exists to serve one of two purposes this application is actually built for:
+Every field above exists to serve one of three purposes this application is actually built for:
 
 - **Attendance tracking**: geolocation, IP, and device fields exist to verify a punch happened at a real workplace at a real time, and to detect anomalous/fraudulent check-ins (the geofencing and duplicate-scan-window logic elsewhere in the app both depend on this data existing).
 - **Workforce scheduling and payroll input**: names, contact info, and the employment relationship itself are the minimum needed to schedule someone and pay them correctly.
+- **Preventing overwork**: the burnout risk indicator collects nothing new. It is derived from attendance, roster and leave records the first two purposes already hold, and it exists so rosters can give overworked staff more rest. Because it counts sick leave, it is health-adjacent. It is shown to the employee themselves, to HR managers, and to a department head for their own unit only. System administrators see only their own. It is kept out of the Gemini payloads, and it must not be used for disciplinary or performance decisions. See [BURNOUT_RISK.md](BURNOUT_RISK.md).
 
-Nothing is collected for a purpose beyond these two. If a future feature wants to collect something new (emergency contacts, a government ID for payroll remittance, etc.), that's the moment to extend this table, not to add a column quietly.
+Nothing is collected for a purpose beyond these three. If a future feature wants to collect something new (emergency contacts, a government ID for payroll remittance, etc.), that's the moment to extend this table, not to add a column quietly.
 
 ## Proposed retention periods — confirm with your organization before treating as policy
 
@@ -37,8 +39,9 @@ Nothing is collected for a purpose beyond these two. If a future feature wants t
 | Leave requests and attachments | 3 years from the leave end date | Same Labor Code basis; attachments may contain medical information, so access stays restricted regardless of age until deletion |
 | Audit logs (`audit_logs`, `schedule_assignment_audits`) | Longer than the above — proposed 5 years | These exist specifically to reconstruct what happened during a dispute or investigation; deleting them on the same clock as the records they audit defeats the purpose |
 | Biometric enrollment/scan metadata | Tied to employment — proposed: deleted when the enrollment is deactivated, not kept indefinitely after | No ongoing purpose once an employee no longer uses the device |
+| Burnout risk snapshots | 1 year from the assessment date (`BURNOUT_RETENTION_DAYS`), deleted with the employee record | Derived data that can always be recomputed, so no legal retention duty of its own; the trend only needs recent history |
 
-None of these periods are enforced by the application today (see below) — they are a proposal to adopt, not a description of current behavior.
+Only the last of these periods is enforced today. The nightly `burnout:snapshot` command deletes snapshots past their window, because they are derived data and deleting them loses no record the Labor Code asks for. Confirm the one-year figure with your Data Protection Officer. The rest are a proposal to adopt, not a description of current behavior (see below).
 
 ## Data-subject rights — not implemented
 

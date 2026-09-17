@@ -35,3 +35,45 @@
 .rate-cell strong { color:var(--hr-text); font-size: var(--fs-xs); text-align:right; }
 @media(max-width:1000px){.analytics-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.analytics-grid{grid-template-columns:1fr}.analytics-wide{grid-column:auto}.analytics-metric-grid{grid-template-columns:1fr}.analytics-filters .analytics-date-field{max-width:none}.attendance-bar-chart{min-width:42rem}}
+
+/* ---- Overview / Burnout Risk tabs. Same shape as the attendance page's. ---- */
+.analytics-tabs { display:flex; overflow-x:auto; overflow-y:hidden; margin-bottom:1.25rem; box-shadow:inset 0 -1px 0 var(--hr-border); scrollbar-width:none; gap:4px; }
+.analytics-tabs::-webkit-scrollbar { display:none; }
+.analytics-tab { display:inline-flex; min-height:var(--tap-min); padding:0 14px; border-bottom:2px solid transparent; color:var(--hr-muted); align-items:center; gap:8px; font-size:var(--fs-sm); font-weight:600; text-decoration:none; white-space:nowrap; }
+.analytics-tab .ui-icon { width:18px; height:18px; }
+.analytics-tab:hover { color:var(--hr-text); }
+.analytics-tab.is-active { border-bottom-color:var(--hr-primary); color:var(--hr-primary-text); }
+
+/* ---- Burnout Risk ---- */
+/* The score bars take the level's status colour, so a bar and the chip beside
+   it never disagree about how serious a row is. */
+.analytics-panel .horizontal-track i.burnout-track-low { background:var(--hr-success); }
+.analytics-panel .horizontal-track i.burnout-track-moderate { background:var(--hr-warning); }
+.analytics-panel .horizontal-track i.burnout-track-high { background:var(--hr-danger); }
+.burnout-table td:first-child { display:grid; }
+.burnout-table td:first-child small { color:var(--hr-subtle); font-size:var(--fs-2xs); }
+.burnout-trend { display:inline-flex; align-items:center; gap:.3rem; color:var(--hr-muted); font-size:var(--fs-xs); font-weight:650; white-space:nowrap; }
+.burnout-trend .ui-icon { width:.9rem; height:.9rem; }
+.burnout-trend.is-rising { color:var(--hr-danger-text); }
+.burnout-trend.is-easing { color:var(--hr-success-text); }
+.burnout-muted { color:var(--hr-subtle); font-size:var(--fs-xs); }
+.burnout-factors summary { color:var(--hr-text); cursor:pointer; font-size:var(--fs-xs); font-weight:650; }
+.burnout-factors ul { display:grid; margin:.5rem 0 0; padding:0; gap:.3rem; list-style:none; }
+.burnout-factors li { display:flex; justify-content:space-between; gap:.75rem; color:var(--hr-text); font-size:var(--fs-2xs); }
+.burnout-factors li.is-zero { color:var(--hr-subtle); }
+.burnout-factors li b { font-variant-numeric:tabular-nums; white-space:nowrap; }
+.burnout-sparkline { display:block; color:var(--hr-success); }
+.burnout-sparkline.is-moderate { color:var(--hr-warning); }
+.burnout-sparkline.is-high { color:var(--hr-danger); }
+.burnout-policy-body { display:grid; gap:.6rem; padding:0 1.25rem 1.25rem; color:var(--hr-muted); font-size:var(--fs-sm); line-height:1.6; }
+.burnout-policy-body p { margin:0; }
+a.analytics-metric-link { color:inherit; text-decoration:none; transition:border-color .15s ease; }
+a.analytics-metric-link:hover,
+a.analytics-metric-link:focus-visible { border-color:var(--hr-danger-line); }
+/* Stacked on a phone, a table cell is a grid track; keep chips their own size. */
+.analytics-table .staff-chip { width:max-content; justify-self:start; }
+/* Live filters: the results dim while a change is being fetched, and the
+   status line says what was found once it lands. */
+.burnout-results { transition:opacity .15s ease; }
+.burnout-results[aria-busy='true'] { opacity:.55; pointer-events:none; }
+.burnout-filters-status { display:inline-flex; min-height:2.5rem; align-self:flex-end; align-items:center; color:var(--hr-subtle); font-size:var(--fs-xs); }

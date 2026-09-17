@@ -508,6 +508,18 @@
                                         <textarea name="night_streak_justification" rows="2" maxlength="500" placeholder="Explain why publishing with the consecutive-night streak(s) above is necessary." data-night-streak-justification></textarea>
                                     </label>
                                 </div>
+                                {{-- Tier B, like the night streak above. Placements are
+                                     only listed here when a person at high burnout risk
+                                     is taken past their protected limits by hand; the
+                                     fill and rotation assistants never do that. --}}
+                                <div class="roster-warn-panel" data-roster-burnout-panel hidden>
+                                    <div class="roster-gap-heading"><x-icon name="alert" /><strong data-roster-burnout-title></strong></div>
+                                    <ul data-roster-burnout-list></ul>
+                                    <label class="bulk-justification-field">
+                                        <span>Burnout risk justification</span>
+                                        <textarea name="burnout_justification" rows="2" maxlength="500" placeholder="Explain why these employees must work beyond their protected limits." data-burnout-justification></textarea>
+                                    </label>
+                                </div>
                                 <div class="roster-board-days" data-roster-days></div>
                             </section>
                         </div>

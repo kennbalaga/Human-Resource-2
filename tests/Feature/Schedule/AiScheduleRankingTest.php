@@ -57,7 +57,10 @@ class AiScheduleRankingTest extends TestCase
         $recommended = $first->json('data.recommended');
         $this->assertSame($first->json('data.eligible'), $second->json('data.eligible'));
         $this->assertSame((float) $recommended['score'], (float) array_sum(array_column($recommended['score_breakdown'], 'points')));
-        $this->assertSame(40.0, (float) $recommended['score_breakdown']['eligibility']['points']);
+        $this->assertSame((float) config('ai_workforce_scheduling.weights.eligibility'), (float) $recommended['score_breakdown']['eligibility']['points']);
+        $this->assertSame(100.0, (float) array_sum(config('ai_workforce_scheduling.weights')));
+        $this->assertArrayHasKey('burnout_risk', $recommended['score_breakdown']);
+        $this->assertArrayHasKey('level', $recommended['burnout_risk']);
         $this->assertArrayHasKey('weekly_workload_minutes', $recommended['metrics']);
         $this->assertArrayHasKey('rest_hours', $recommended['metrics']);
         $this->assertArrayHasKey('level', $recommended['workload_risk']);

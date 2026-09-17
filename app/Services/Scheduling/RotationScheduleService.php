@@ -9,6 +9,7 @@ use App\Models\PreferredDayOff;
 use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\Shift;
+use App\Services\Burnout\BurnoutProtection;
 use App\Services\ScheduleService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -18,9 +19,18 @@ use Illuminate\Validation\ValidationException;
 
 class RotationScheduleService
 {
+    /**
+     * What a night shift costs a high-burnout-risk employee in the rotation's
+     * ordering. Well below a shift's shortfall (1000 a head), so a night that
+     * still needs people is covered before anyone is spared it, but enough to
+     * send them to a day shift whenever the nights are already staffed.
+     */
+    private const PROTECTED_NIGHT_PENALTY = 400;
+
     public function __construct(
         private readonly ScheduleService $scheduleService,
         private readonly StaffingRequirementService $staffingRequirements,
+        private readonly BurnoutProtection $burnoutProtection,
     ) {}
 
     /**
@@ -141,6 +151,11 @@ class RotationScheduleService
         $scheduleMethod = $data['schedule_method'] ?? 'rotation';
         $seniorRankThreshold = (int) ($data['senior_rank_threshold'] ?? ScheduleService::DEFAULT_SENIOR_RANK_THRESHOLD);
         $minimumRestMinutes = max(0, (int) ($data['minimum_rest_hours'] ?? config('schedule.minimum_rest_hours'))) * 60;
+        // Employees at high burnout risk: more rest days, no night shift that
+        // somebody else can take, and never past the protected weekly limits.
+        $protected = $this->burnoutProtection->enabled()
+            ? $this->burnoutProtection->protectedAmong($this->burnoutProtection->assessments($employeeIds))
+            : collect();
         $rotationMatrix = $this->rotationMatrix(
             $employees,
             $weeks,
@@ -149,6 +164,7 @@ class RotationScheduleService
             $scheduleMethod,
             $requirements,
             $seniorRankThreshold,
+            $protected,
         );
         $readyAssignments = collect();
         $readyDayOffs = collect();
@@ -194,8 +210,12 @@ class RotationScheduleService
                 $forcedRestDates = $restSpacing > 1
                     ? $weekDates->reject(fn (Carbon $date) => ((int) $start->diffInDays($date)) % $restSpacing === $employeeIndex % $restSpacing)
                     : collect();
+                $requestedDaysOff = (int) ($data['days_off_per_week'] ?? 1);
+                if ($protected->has($employee->id)) {
+                    $requestedDaysOff = max($requestedDaysOff, $this->burnoutProtection->daysOffPerWeek());
+                }
                 $requiredDaysOff = max(
-                    min((int) ($data['days_off_per_week'] ?? 1), max(0, $weekDates->count() - 1)),
+                    min($requestedDaysOff, max(0, $weekDates->count() - 1)),
                     $forcedRestDates->count(),
                 );
 
@@ -263,7 +283,9 @@ class RotationScheduleService
                             $employeeDayOffs,
                             $employeeLeaves,
                             $data,
-                        ),
+                        ) ?? ($protected->has($employee->id)
+                            ? $this->burnoutProtection->blockReason($shift, $date, $employeeAssignments)
+                            : null),
                     };
                     if ($reason !== null) {
                         $skipped->push([
@@ -462,7 +484,12 @@ class RotationScheduleService
      * not receive three and three. Seniors are steered towards shifts that still
      * have nobody able to take charge.
      *
+     * Employees at high burnout risk are placed after everyone else, so the
+     * shortfalls are met by the rest of the team first, and are steered off
+     * night shifts that are already covered.
+     *
      * @param  Collection<int, array{staff: int, senior: int, source: string}>  $requirements
+     * @param  Collection<int, mixed>  $protected  Keyed by employee id
      * @return array<int, array<int, Shift>>
      */
     private function rotationMatrix(
@@ -473,6 +500,7 @@ class RotationScheduleService
         string $scheduleMethod,
         Collection $requirements,
         int $seniorRankThreshold,
+        Collection $protected = new Collection,
     ): array {
         $matrix = [];
         $lastShiftIds = $previousShiftIds;
@@ -497,9 +525,13 @@ class RotationScheduleService
             $continuityLeft = $weekIndex > 0 ? $continuityBudget : 0;
 
             // Seniors are placed first so the charge cover lands where it is needed
-            // before the remaining places are filled.
+            // before the remaining places are filled. High burnout risk goes to
+            // the back of the queue, ahead of rank.
             $ordered = $employees->values()
-                ->sortByDesc(fn (Employee $employee) => (int) ($employee->position?->seniority_rank ?? 1))
+                ->sortBy([
+                    fn (Employee $a, Employee $b) => $protected->has($a->id) <=> $protected->has($b->id),
+                    fn (Employee $a, Employee $b) => (int) ($b->position?->seniority_rank ?? 1) <=> (int) ($a->position?->seniority_rank ?? 1),
+                ])
                 ->values();
 
             foreach ($ordered as $employee) {
@@ -519,8 +551,10 @@ class RotationScheduleService
                     && $lastShiftId !== null
                     && $continuityUsed->get($lastShiftId, 0) < max(1, (int) ($requirements->get($lastShiftId)['staff'] ?? 1)) + 1;
 
+                $isProtected = $protected->has($employee->id);
+
                 $shift = $shifts->sortBy(function (Shift $candidate, int $index) use (
-                    $counts, $seniorCounts, $requirements, $lastShiftId, $preferredIndex, $shifts, $scheduleMethod, $isSenior, $keepsShift
+                    $counts, $seniorCounts, $requirements, $lastShiftId, $preferredIndex, $shifts, $scheduleMethod, $isSenior, $keepsShift, $isProtected
                 ) {
                     $requirement = $requirements->get($candidate->id, ['staff' => 1, 'senior' => 0]);
 
@@ -541,8 +575,9 @@ class RotationScheduleService
                         default => 25,
                     };
                     $preferenceDistance = ($index - $preferredIndex + $shifts->count()) % $shifts->count();
+                    $burnoutPenalty = $isProtected && $candidate->is_night_shift ? self::PROTECTED_NIGHT_PENALTY : 0;
 
-                    return $seniorPenalty + $needPenalty + $repeatPenalty + $preferenceDistance;
+                    return $seniorPenalty + $needPenalty + $repeatPenalty + $preferenceDistance + $burnoutPenalty;
                 })->first();
 
                 $matrix[$weekIndex][$employee->id] = $shift;

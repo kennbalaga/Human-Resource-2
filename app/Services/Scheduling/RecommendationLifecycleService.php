@@ -177,8 +177,15 @@ class RecommendationLifecycleService
     {
         return [
             'eligible' => collect($result['eligible'])->map(fn (array $candidate) => collect($candidate)->only([
-                'employee_id', 'eligible', 'score', 'score_breakdown', 'metrics', 'recommendation_reasons', 'workload_risk', 'fairness',
-            ])->all())->all(),
+                'employee_id', 'eligible', 'score', 'score_breakdown', 'metrics', 'recommendation_reasons', 'workload_risk', 'burnout_protected', 'fairness',
+            ])->put(
+                // Level and score only. The drivers can name sick leave, which
+                // has no place in a record kept for auditing the assistant.
+                'burnout_risk',
+                isset($candidate['burnout_risk'])
+                    ? collect($candidate['burnout_risk'])->only(['level', 'score'])->all()
+                    : null,
+            )->all())->all(),
             'ineligible' => collect($result['ineligible'])->map(fn (array $candidate) => [
                 'employee_id' => $candidate['employee_id'],
                 'reason_codes' => collect($candidate['reasons'])->pluck('code')->all(),

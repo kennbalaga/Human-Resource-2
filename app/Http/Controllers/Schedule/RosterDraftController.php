@@ -230,6 +230,7 @@ class RosterDraftController extends Controller
                 ])->all(),
                 'overtime_justification' => $data['overtime_justification'] ?? null,
                 'night_streak_justification' => $data['night_streak_justification'] ?? null,
+                'burnout_justification' => $data['burnout_justification'] ?? null,
             ],
         ]);
 

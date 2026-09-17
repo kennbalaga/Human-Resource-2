@@ -12,6 +12,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\ShiftSwapRequest;
 use App\Models\Timesheet;
+use App\Services\Burnout\BurnoutRiskService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
@@ -69,7 +70,10 @@ class StaffDashboardService
     /** The three balances the leave widget is specified to show, in order. */
     private const LEAVE_CODES = ['VAC', 'SICK', 'EMER'];
 
-    public function __construct(private readonly AttendanceCaptureSettings $captureSettings) {}
+    public function __construct(
+        private readonly AttendanceCaptureSettings $captureSettings,
+        private readonly BurnoutRiskService $burnoutRisk,
+    ) {}
 
     /**
      * @return array{
@@ -108,6 +112,8 @@ class StaffDashboardService
 
         $summary = $this->monthSummary($ledger, $today->copy()->startOfMonth(), $today, $today);
 
+        $leave = $this->leave($employee, $today);
+
         return [
             'employee' => [
                 'name' => $employee->full_name,
@@ -121,10 +127,16 @@ class StaffDashboardService
             'upcoming' => $this->upcoming($employee, $today),
             'attendance_summary' => $summary,
             'timesheet' => $this->timesheet($employee, $today),
-            'leave' => $this->leave($employee, $today),
+            'leave' => $leave,
             'schedule_changes' => $this->scheduleChanges($employee, $today),
             'overtime' => $this->overtime($ledger, $today->copy()->startOfMonth(), $today),
             'analytics' => $this->analytics($ledger, $today, $summary),
+            // The vacation balance is already on the leave widget, so the card
+            // is handed it rather than reading it again.
+            'burnout' => $this->burnoutRisk->card(
+                $employee,
+                (float) (collect($leave['balances'])->firstWhere('code', config('burnout.vacation_leave_code'))['available'] ?? 0),
+            ),
         ];
     }
 

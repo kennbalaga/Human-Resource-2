@@ -58,7 +58,17 @@ document.addEventListener('DOMContentLoaded', () => {
         heading.append(identity, score);
         card.append(heading);
         const risk = element('span', `ai-risk ai-risk-${candidate.workload_risk.level}`, `${candidate.workload_risk.label}: ${candidate.workload_risk.level}`);
-        card.append(risk);
+        const burnout = candidate.burnout_risk;
+        const burnoutChip = burnout
+            ? element('span', `ai-risk ai-risk-${burnout.level}`, `Burnout risk: ${burnout.level}`)
+            : element('span', 'ai-risk ai-risk-unknown', 'Burnout risk: not assessed');
+        if (burnout?.drivers?.length) burnoutChip.title = burnout.drivers.join('\n');
+        const chips = element('div', 'ai-risk-row');
+        chips.append(risk, burnoutChip);
+        card.append(chips);
+        if (candidate.burnout_protected) {
+            card.append(element('p', 'ai-burnout-note', 'High burnout risk: ranked after the other eligible staff. Choose only if nobody else can cover.'));
+        }
         const reasons = element('ul');
         candidate.recommendation_reasons.forEach((reason) => reasons.append(element('li', null, reason)));
         card.append(reasons);

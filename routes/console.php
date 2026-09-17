@@ -36,6 +36,16 @@ Schedule::command('employees:archive-terminated')
     ->dailyAt('01:15')
     ->timezone(config('workforce.timezone'));
 
+/*
+ * The day's burnout risk assessment, made before anyone signs in so the first
+ * dashboard of the morning does not have to make it. Every screen makes a
+ * missing one on demand, so a night this does not run costs a slower first
+ * page load and nothing else.
+ */
+Schedule::command('burnout:snapshot')
+    ->dailyAt('01:30')
+    ->timezone(config('workforce.timezone'));
+
 Artisan::command('attendance:remind {type}', function (string $type) {
     $sent = app(AttendanceReminderService::class)->send($type);
     $this->info("Attendance reminders sent: {$sent}");

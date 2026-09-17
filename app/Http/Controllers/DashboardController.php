@@ -8,6 +8,8 @@ use App\Models\Position;
 use App\Models\User;
 use App\Services\ApprovalQueueService;
 use App\Services\AttendanceOverviewService;
+use App\Services\Burnout\BurnoutRiskService;
+use App\Services\Burnout\BurnoutWatchlistService;
 use App\Services\DailyExceptionsService;
 use App\Services\RecentActivityService;
 use App\Services\ReferenceDataCache;
@@ -32,6 +34,8 @@ class DashboardController extends Controller
         ScheduleCalendarService $scheduleCalendar,
         RecentActivityService $recentActivity,
         ReferenceDataCache $reference,
+        BurnoutRiskService $burnoutRisk,
+        BurnoutWatchlistService $burnoutWatchlist,
     ): View {
         $canManageWorkforce = $request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager', 'department-head'])->isNotEmpty();
 
@@ -124,6 +128,15 @@ class DashboardController extends Controller
             // to clear it is noise, and the exceptions panel names individuals.
             'approvals' => $canManageWorkforce ? $approvalQueue->forUser($request->user()) : null,
             'exceptions' => $canManageWorkforce ? $dailyExceptions->forToday($request->user()) : null,
+            // Managers and administrators get the same "My workload & rest"
+            // card staff do: they can burn out too, and this dashboard is the
+            // only one they land on.
+            'myBurnout' => $employee !== null ? $burnoutRisk->card($employee) : null,
+            // Names people, so only for HR and department heads -- not a
+            // system administrator, who sees only their own card above.
+            'burnoutWatchlist' => $request->user()->can('burnout.view-workforce')
+                ? $burnoutWatchlist->forUser($request->user())
+                : null,
             // The analytics module is closed to everyone outside these roles, so the
             // preview is neither built nor rendered for a viewer who cannot open it.
             'analyticsPreview' => $canManageWorkforce ? $analyticsPreview->forCurrentMonth() : null,

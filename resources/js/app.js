@@ -8,6 +8,7 @@ import './schedule';
 import './schedule-preferences';
 import './workforce';
 import './audit-logs';
+import './burnout-risk';
 import './organization';
 import './ai-scheduling';
 import './integration-settings';

@@ -36,7 +36,7 @@ return [
     |
     */
     'policy' => [
-        'updated_at' => '2026-08-26',
+        'updated_at' => '2026-09-17',
         'dpo_name' => env('PRIVACY_DPO_NAME'),
         'dpo_email' => env('PRIVACY_DPO_EMAIL'),
         'dpo_phone' => env('PRIVACY_DPO_PHONE'),
