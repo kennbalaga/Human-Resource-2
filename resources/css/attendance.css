@@ -297,6 +297,173 @@
     background: var(--hr-primary-fill);
 }
 
+/* The shared pager (resources/views/vendor/pagination/bootstrap-5.blade.php):
+   the count on the left; First/Prev, five pages, Next/Last and "Go to page"
+   on the right. */
+.hr-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+}
+
+.hr-pager-summary {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+}
+
+.hr-pager-summary b {
+    color: var(--hr-text);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Everything you click sits together on the right, and stays there when the
+   row wraps under the count. */
+.hr-pager-controls {
+    display: flex;
+    margin-left: auto;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px 12px;
+}
+
+.hr-pager .pagination {
+    margin: 0;
+    flex-wrap: wrap;
+}
+
+.hr-pager .page-link {
+    min-width: 2.25rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* "Page [ n ] of N  Go ->" as one pill, the same height and border as the
+   page buttons beside it. The number box is the only light-filled part, so it
+   reads as the thing to type into. */
+.hr-pager-jump {
+    display: inline-flex;
+    height: 32px;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-sm);
+    background: var(--hr-surface-2);
+    align-items: stretch;
+}
+
+.hr-pager-jump:focus-within {
+    border-color: var(--hr-primary);
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .18);
+}
+
+.hr-pager-jump-label,
+.hr-pager-jump-of {
+    display: inline-flex;
+    margin: 0;
+    padding: 0 8px;
+    align-items: center;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.hr-pager-jump-label {
+    padding-right: 6px;
+}
+
+.hr-pager-jump-of {
+    padding-left: 6px;
+    font-variant-numeric: tabular-nums;
+}
+
+.hr-pager-jump-input {
+    width: 3.25rem;
+    padding: 0 6px;
+    border: 0;
+    border-inline: 1px solid var(--hr-border);
+    color: var(--hr-text);
+    background: var(--hr-surface);
+    font-size: var(--fs-2xs);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.hr-pager-jump-input::-webkit-outer-spin-button,
+.hr-pager-jump-input::-webkit-inner-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+}
+
+.hr-pager-jump-input:focus {
+    outline: none;
+}
+
+.hr-pager-jump-input:invalid {
+    color: var(--hr-danger-text);
+}
+
+.hr-pager-jump-go {
+    display: inline-flex;
+    padding: 0 12px;
+    border: 0;
+    border-left: 1px solid var(--hr-border);
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
+    align-items: center;
+    gap: 4px;
+    font-size: var(--fs-2xs);
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.hr-pager-jump-go:hover,
+.hr-pager-jump-go:focus-visible {
+    background: var(--hr-primary-fill-hover);
+}
+
+/* On a phone: three pages instead of five, arrows without their words, and
+   the count on a line of its own. */
+@media (max-width: 700px) {
+    .hr-pager {
+        justify-content: center;
+    }
+
+    .hr-pager-summary {
+        width: 100%;
+        text-align: center;
+    }
+
+    .hr-pager-controls {
+        margin-left: 0;
+        justify-content: center;
+    }
+
+    .hr-pager-word,
+    .hr-pager-far {
+        display: none;
+    }
+
+    /* With the page box there, it does First and Last's job, and dropping
+       them keeps the buttons on one line at 360px. */
+    .hr-pager-controls:has(.hr-pager-jump) .hr-pager-edge {
+        display: none;
+    }
+
+    /* Same height as the enlarged tap targets mobile.css gives the buttons. */
+    .hr-pager-jump {
+        height: var(--tap-min);
+    }
+}
+
 /* The 1280px and 1000px breakpoints used to re-state a fixed column count for
    these two grids. Both now auto-fit, which reflows at whatever width the
    content actually runs out of room at rather than at two widths picked by

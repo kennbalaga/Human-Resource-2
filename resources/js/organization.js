@@ -150,6 +150,18 @@ const initializeLiveEmployeeDirectory = () => {
         syncFormToUrl(link.href);
     });
 
+    // The pager's "Page [ n ] of N" box refreshes in place like its links do.
+    results.addEventListener('submit', (event) => {
+        const jump = event.target.closest('[data-page-jump]');
+        if (!jump) return;
+        event.preventDefault();
+        const url = new URL(jump.action, window.location.origin);
+        url.hash = '';
+        url.search = new URLSearchParams(new FormData(jump)).toString();
+        load(url.toString());
+        syncFormToUrl(url.toString());
+    });
+
     window.addEventListener('popstate', () => {
         load(window.location.href, { pushHistory: false });
         syncFormToUrl(window.location.href);
