@@ -662,7 +662,7 @@ body.reduce-motion .app-lock-dots[data-error='true'] .app-lock-dot {
     width: 100%;
     min-height: var(--tap-min);
     padding: 0.6rem 0.75rem;
-    border: 1px solid var(--hr-border-strong);
+    border: 1px solid var(--hr-field-border);
     border-radius: var(--r-md);
     color: var(--hr-text);
     background: var(--hr-surface);

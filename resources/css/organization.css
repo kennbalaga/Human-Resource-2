@@ -38,7 +38,7 @@
 }
 
 .organization-workspace-tabs a.active {
-    border-color: var(--hr-border-strong);
+    border-color: var(--hr-primary-line);
     color: var(--hr-text);
     background: var(--hr-primary-soft);
     box-shadow: 0 4px 14px rgba(var(--hr-primary-rgb), .08);
@@ -125,7 +125,7 @@
     width: 100%;
     min-height: 2.65rem;
     padding: .58rem .72rem;
-    border: 1px solid var(--hr-border);
+    border: 1px solid var(--hr-field-border);
     border-radius: var(--r-md);
     outline: 0;
     color: var(--hr-text);
@@ -150,7 +150,7 @@
 .organization-field select:focus,
 .organization-field textarea:focus {
     border-color: var(--hr-primary);
-    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .12);
+    box-shadow: none;
 }
 
 .organization-filter-actions {
@@ -544,7 +544,7 @@
 
 .employee-record-tab:hover {
     color: var(--hr-text);
-    border-bottom-color: var(--hr-border-strong);
+    border-bottom-color: var(--hr-primary-line);
 }
 
 .employee-record-tab.active {
@@ -1164,7 +1164,7 @@ html[data-theme-resolved='dark'] .organization-filters select,
 html[data-theme-resolved='dark'] .organization-field input,
 html[data-theme-resolved='dark'] .organization-field select,
 html[data-theme-resolved='dark'] .organization-field textarea {
-    border-color: var(--hr-border-strong);
+    border-color: var(--hr-field-border);
     color: var(--hr-text);
     background: var(--hr-bg);
 }

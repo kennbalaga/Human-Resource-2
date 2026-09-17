@@ -56,7 +56,7 @@
 .workforce-filters label { display:grid; flex:1 1 10rem; min-width:0; max-width:18rem; gap:.35rem; }
 .workforce-filters select { min-width:0; max-width:100%; }
 .workforce-filters label span { color:var(--hr-muted); font-size: var(--fs-xs); font-weight:800; }
-.workforce-filters input,.workforce-filters select,.inline-review-form input,.attendance-reject-form input { min-height:2.5rem; padding:.55rem .7rem; border:1px solid var(--hr-border); border-radius:var(--r-md); color:var(--hr-text); background:var(--hr-surface); font-size: var(--fs-sm); }
+.workforce-filters input,.workforce-filters select,.inline-review-form input,.attendance-reject-form input { min-height:2.5rem; padding:.55rem .7rem; border:1px solid var(--hr-field-border); border-radius:var(--r-md); color:var(--hr-text); background:var(--hr-surface); font-size: var(--fs-sm); }
 .workforce-table-panel>.table-responsive { padding:0 1.25rem 1.25rem; }
 .workforce-table th { white-space:nowrap; }
 .workforce-table td { vertical-align:middle; }

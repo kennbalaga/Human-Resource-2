@@ -24,9 +24,9 @@
 .profile-settings-form { display:grid; padding:0 1.25rem 1.25rem; gap:.9rem; }
 .profile-settings-form label:not(.settings-toggle) { display:grid; gap:.35rem; }
 .profile-settings-form label>span { color:var(--hr-muted); font-size: var(--fs-xs); font-weight:800; }
-.profile-settings-form input,.profile-settings-form textarea,.profile-settings-form select { width:100%; min-height:2.65rem; padding:.6rem .75rem; border:1px solid var(--hr-border-strong); border-radius:var(--r-md); outline:0; color:var(--hr-text); background:var(--hr-surface); font-size: var(--fs-sm); }
+.profile-settings-form input,.profile-settings-form textarea,.profile-settings-form select { width:100%; min-height:2.65rem; padding:.6rem .75rem; border:1px solid var(--hr-field-border); border-radius:var(--r-md); outline:0; color:var(--hr-text); background:var(--hr-surface); font-size: var(--fs-sm); }
 .profile-settings-form textarea { resize:vertical; }
-.profile-settings-form input:focus,.profile-settings-form textarea:focus,.profile-settings-form select:focus { border-color:rgba(var(--hr-primary-rgb), .48); box-shadow:0 0 0 3px rgba(var(--hr-primary-rgb), .08); }
+.profile-settings-form input:focus,.profile-settings-form textarea:focus,.profile-settings-form select:focus { border-color:var(--hr-primary); box-shadow: none; }
 .profile-settings-form label small { color:var(--hr-subtle); font-size: var(--fs-2xs); line-height:1.45; }
 .profile-settings-form>.btn { display:inline-flex; width:max-content; align-items:center; gap:.4rem; font-size: var(--fs-sm); }
 .profile-settings-form>.btn svg { width:1rem; }
@@ -141,7 +141,7 @@
 .two-factor-cancel-form { display:flex; align-items:end; margin:0 1.25rem 1.25rem; gap:.65rem; }
 .two-factor-cancel-form label { display:grid; min-width:min(100%,20rem); gap:.35rem; }
 .two-factor-cancel-form label span { color:var(--hr-muted); font-size: var(--fs-2xs); font-weight:800; }
-.two-factor-cancel-form input { min-height:2.55rem; padding:.55rem .7rem; border:1px solid var(--hr-border-strong); border-radius:var(--r-md); }
+.two-factor-cancel-form input { min-height:2.55rem; padding:.55rem .7rem; border:1px solid var(--hr-field-border); border-radius:var(--r-md); }
 .two-factor-actions { display:grid; margin:0 1.25rem 1.25rem; border:1px solid var(--hr-border); border-radius:var(--r-md); overflow:hidden; }
 .two-factor-actions details { border-bottom:1px solid var(--hr-border); }
 .two-factor-actions details:last-child { border-bottom:0; }

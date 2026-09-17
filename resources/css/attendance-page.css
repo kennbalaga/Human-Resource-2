@@ -282,7 +282,7 @@
 .attendance-today-note input {
     min-height: var(--tap-min);
     padding: 0 12px;
-    border: 1px solid var(--hr-border-strong);
+    border: 1px solid var(--hr-field-border);
     border-radius: var(--r-md);
     outline: 0;
     color: var(--hr-text);
@@ -292,7 +292,7 @@
 
 .attendance-today-note input:focus {
     border-color: var(--hr-primary);
-    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), 0.15);
+    box-shadow: none;
 }
 
 .attendance-today-action {

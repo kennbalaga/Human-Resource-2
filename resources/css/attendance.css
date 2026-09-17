@@ -85,7 +85,7 @@
     width: 100%;
     padding: 10px 11px;
     resize: vertical;
-    border: 1px solid var(--hr-border);
+    border: 1px solid var(--hr-field-border);
     border-radius: var(--r-md);
     outline: 0;
     color: var(--hr-text);
@@ -95,9 +95,9 @@
 }
 
 .attendance-note textarea:focus {
-    border-color: rgba(var(--hr-primary-rgb), 0.42);
+    border-color: var(--hr-primary);
     background: var(--hr-surface);
-    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), 0.08);
+    box-shadow: none;
 }
 
 .attendance-history-panel {
@@ -167,7 +167,7 @@
     width: 100%;
     min-height: var(--tap-min);
     padding: 7px 9px;
-    border: 1px solid var(--hr-border);
+    border: 1px solid var(--hr-field-border);
     border-radius: var(--r-md);
     outline: 0;
     color: var(--hr-text);
@@ -177,8 +177,8 @@
 
 .report-filters input:focus,
 .report-filters select:focus {
-    border-color: rgba(var(--hr-primary-rgb), 0.42);
-    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), 0.08);
+    border-color: var(--hr-primary);
+    box-shadow: none;
 }
 
 .report-filters .btn {

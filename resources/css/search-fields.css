@@ -1,4 +1,13 @@
 /*
+ * A floor for any field no component sheet has claimed yet, so it never falls
+ * back to the browser's dark-grey edge. :where() keeps this at zero
+ * specificity: every page rule, and every rule below, still wins.
+ */
+:where(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='button'], [type='submit'], [type='reset'], [type='hidden'], [type='image']), select, textarea) {
+    border-color: var(--hr-field-border);
+}
+
+/*
  * ---- One look for every field you type a query into ----
  *
  * An outlined white field, matching every other form control in the app: same
@@ -11,10 +20,8 @@
  * form systems that happened to land next to each other -- the treatment has to
  * be a property of the row, not of the one control that prompted it.
  *
- * The edge takes --hr-border-strong rather than the hairline --hr-border. A
- * white field on a white card is identified BY its boundary, which makes that
- * boundary a graphical object owed 3:1 (WCAG 1.4.11); the hairline is a
- * divider and sits below that on purpose.
+ * The edge takes --hr-field-border, the same light hairline the sign-in form
+ * uses, so a field looks the same on the login page and inside the app.
  *
  * Dark variants live in dark-mode.css with the rest of the dark theme.
  */
@@ -24,7 +31,7 @@
 .bulk-schedule-form input[data-bulk-employee-search],
 .bulk-staff-scope-field select,
 .attendance-form input[type='text'] {
-    border: 1px solid var(--hr-border-strong);
+    border: 1px solid var(--hr-field-border);
     border-radius: var(--r-md);
     outline: 0;
     color: var(--hr-text);
@@ -32,8 +39,7 @@
     transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
 }
 
-/* Focus turns the edge green and adds the ring, the same pair every other
-   control in the app uses. */
+/* Focus turns the edge solid green with no ring, as on the sign-in form. */
 .global-search:focus-within,
 .organization-filters input:focus,
 .organization-filters select:focus,
@@ -42,7 +48,7 @@
 .attendance-form input[type='text']:focus {
     border-color: var(--hr-primary);
     background: var(--hr-surface);
-    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .18);
+    box-shadow: none;
 }
 
 /* The magnifier is a label, not a control, so it stays quieter than the text

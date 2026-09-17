@@ -332,7 +332,7 @@
     width: 100%;
     min-height: var(--tap-min);
     padding: 7px 9px;
-    border: 1px solid var(--hr-border);
+    border: 1px solid var(--hr-field-border);
     border-radius: var(--r-md);
     outline: 0;
     color: var(--hr-text);
@@ -358,7 +358,7 @@
     width: 100%;
     min-height: var(--tap-min);
     padding: 7px 9px;
-    border: 1px solid var(--hr-border);
+    border: 1px solid var(--hr-field-border);
     border-radius: var(--r-md);
     outline: 0;
     color: var(--hr-text);
@@ -367,8 +367,8 @@
 }
 
 .audit-combobox-input:focus {
-    border-color: rgba(var(--hr-primary-rgb), .42);
-    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .08);
+    border-color: var(--hr-primary);
+    box-shadow: none;
 }
 
 .audit-combobox-list {
@@ -417,8 +417,8 @@
 
 .audit-filters input:focus,
 .audit-filters select:focus {
-    border-color: rgba(var(--hr-primary-rgb), .42);
-    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .08);
+    border-color: var(--hr-primary);
+    box-shadow: none;
 }
 
 /*

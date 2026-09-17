@@ -161,14 +161,14 @@
  * Form controls are the one family Bootstrap still paints with literals rather
  * than variables — `.form-control` hard-codes #fff and #212529 — so they are
  * restated once here instead of in every sheet that happens to contain a form.
- * The border takes --hr-border-strong: the edge of a field is load-bearing and
- * owes the viewer 3:1, unlike the hairline that merely divides two rows.
+ * The border takes --hr-field-border, the light hairline the sign-in form
+ * uses, and focus turns it solid green.
  */
 .form-control,
 .form-select,
 .input-group-text {
     color: var(--hr-text);
-    border-color: var(--hr-border-strong);
+    border-color: var(--hr-field-border);
     background-color: var(--hr-surface);
 }
 
@@ -177,7 +177,7 @@
     color: var(--hr-text);
     border-color: var(--hr-primary);
     background-color: var(--hr-surface);
-    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .18);
+    box-shadow: none;
 }
 
 .form-control::placeholder,
