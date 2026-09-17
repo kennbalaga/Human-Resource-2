@@ -22,6 +22,8 @@
  * host page down for the duration. No frame, no navigation, no change to the
  * security posture.
  */
+import { confirmDownload } from './download-confirm';
+
 const ROOT_ID = 'report-print-root';
 const PRINTING_CLASS = 'is-printing-report';
 
@@ -62,6 +64,15 @@ const nextPaint = () => new Promise((resolve) => {
 
 const printReport = async (url) => {
     tearDown();
+
+    // The printable page is a download by another route -- the reader saves it
+    // from the print dialog -- so it asks for the password like the rest. Done
+    // here rather than by intercepting the click: there is no link to replay,
+    // and following the server's redirect would inject the password page into
+    // the report.
+    if (!await confirmDownload()) {
+        return;
+    }
 
     let response;
 

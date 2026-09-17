@@ -11,6 +11,7 @@ use App\Support\Qr\QrEncoder;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Tests\Concerns\ConfirmsDownloadPassword;
 use Tests\TestCase;
 
 /**
@@ -19,7 +20,7 @@ use Tests\TestCase;
  */
 class AttendanceQrTest extends TestCase
 {
-    use RefreshDatabase;
+    use ConfirmsDownloadPassword, RefreshDatabase;
 
     private AttendanceQrService $codes;
 

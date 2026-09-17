@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Tests\Concerns\ConfirmsDownloadPassword;
 use Tests\TestCase;
 
 /**
@@ -18,7 +19,7 @@ use Tests\TestCase;
  */
 class SpreadsheetExportInjectionTest extends TestCase
 {
-    use RefreshDatabase;
+    use ConfirmsDownloadPassword, RefreshDatabase;
 
     private const PAYLOAD = '=cmd|\'/c calc\'!A1';
 

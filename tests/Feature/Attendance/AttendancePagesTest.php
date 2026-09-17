@@ -5,11 +5,12 @@ namespace Tests\Feature\Attendance;
 use App\Models\OfficeLocation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ConfirmsDownloadPassword;
 use Tests\TestCase;
 
 class AttendancePagesTest extends TestCase
 {
-    use RefreshDatabase;
+    use ConfirmsDownloadPassword, RefreshDatabase;
 
     protected function setUp(): void
     {

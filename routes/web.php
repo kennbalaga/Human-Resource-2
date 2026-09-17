@@ -41,6 +41,14 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => redirect()->route('login'));
 
 /*
+ * Every route that hands out a file: password re-entry first, then a per-user
+ * rate limit. `$auditedDownload` adds the audit row for the downloads that do
+ * not already write their own (reports and payslips do).
+ */
+$download = ['download.confirm', 'throttle:downloads'];
+$auditedDownload = [...$download, 'download.audit'];
+
+/*
  * Public on purpose: the privacy notice is linked from the login footer, and
  * the people who most need to read it are the ones deciding whether to sign in
  * at all. Guarding it behind `auth` would make it unreadable to exactly them.
@@ -51,7 +59,7 @@ Route::get('/dashboard', DashboardController::class)
     ->middleware('auth')
     ->name('dashboard');
 
-Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(function () {
+Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(function () use ($download) {
     Route::get('/', [AttendanceController::class, 'index'])->name('index');
     Route::get('/state', [AttendanceController::class, 'state'])->name('state');
     Route::post('/qr-scan', [AttendanceQrScanController::class, 'store'])->name('qr-scan.store');
@@ -67,11 +75,11 @@ Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(func
     Route::get('/reports', [ReportController::class, 'show'])
         ->defaults('report', 'attendance')->name('reports.index');
     Route::get('/reports/export', [ReportController::class, 'export'])
-        ->defaults('report', 'attendance')->defaults('format', 'csv')->name('reports.export');
+        ->defaults('report', 'attendance')->defaults('format', 'csv')->middleware($download)->name('reports.export');
     Route::get('/reports/export-pdf', [ReportController::class, 'export'])
-        ->defaults('report', 'attendance')->defaults('format', 'pdf')->name('reports.export-pdf');
+        ->defaults('report', 'attendance')->defaults('format', 'pdf')->middleware($download)->name('reports.export-pdf');
     Route::get('/reports/export-excel', [ReportController::class, 'export'])
-        ->defaults('report', 'attendance')->defaults('format', 'xlsx')->name('reports.export-excel');
+        ->defaults('report', 'attendance')->defaults('format', 'xlsx')->middleware($download)->name('reports.export-excel');
     Route::post('/records/{attendanceRecord}/approve', [AttendanceApprovalController::class, 'approve'])->name('records.approve');
     Route::post('/records/{attendanceRecord}/reject', [AttendanceApprovalController::class, 'reject'])->name('records.reject');
     Route::get('/override', [AttendanceOverrideController::class, 'index'])->name('override.index');
@@ -79,7 +87,7 @@ Route::middleware('auth')->prefix('attendance')->name('attendance.')->group(func
     Route::post('/override/check-out', [AttendanceOverrideController::class, 'checkOut'])->name('override.check-out');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::get('/organization', [EmployeeController::class, 'index'])->name('organization.index');
     Route::resource('employees', EmployeeController::class)->except('destroy');
@@ -93,7 +101,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::get('/profile/attendance-qr/download', [ProfileController::class, 'downloadAttendanceQr'])->name('profile.attendance-qr.download');
+    Route::get('/profile/attendance-qr/download', [ProfileController::class, 'downloadAttendanceQr'])->middleware($auditedDownload)->name('profile.attendance-qr.download');
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::patch('/settings/account', [SettingsController::class, 'updateAccount'])->name('settings.account.update');
     Route::patch('/settings/preferences', [SettingsController::class, 'updatePreferences'])->name('settings.preferences.update');
@@ -161,7 +169,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/schedule-preferences/day-off/{preferredDayOff}/cancel', [SchedulePreferenceController::class, 'cancelDayOff'])->name('schedule-preferences.cancel-day-off');
 
     Route::get('/timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');
-    Route::get('/timesheets/export', [TimesheetController::class, 'export'])->name('timesheets.export');
+    Route::get('/timesheets/export', [TimesheetController::class, 'export'])->middleware($auditedDownload)->name('timesheets.export');
     Route::post('/timesheets/{timesheet}/submit', [TimesheetController::class, 'submit'])->name('timesheets.submit');
     Route::post('/timesheets/{timesheet}/approve', [TimesheetController::class, 'approve'])->name('timesheets.approve');
     Route::post('/timesheets/{timesheet}/reject', [TimesheetController::class, 'reject'])->name('timesheets.reject');
@@ -170,7 +178,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/payslips/{employee}/{period}', [PayslipController::class, 'show'])
         ->where('period', '\d{4}-\d{2}-[12]')->name('payslips.show');
     Route::get('/payslips/{employee}/{period}/pdf', [PayslipController::class, 'download'])
-        ->where('period', '\d{4}-\d{2}-[12]')->name('payslips.download');
+        ->where('period', '\d{4}-\d{2}-[12]')->middleware($download)->name('payslips.download');
 
     Route::get('/leaves', [LeaveController::class, 'index'])->name('leaves.index');
     Route::post('/leaves', [LeaveController::class, 'store'])->name('leaves.store');
@@ -178,7 +186,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/leaves/{leaveRequest}/approve', [LeaveController::class, 'approve'])->name('leaves.approve');
     Route::post('/leaves/{leaveRequest}/reject', [LeaveController::class, 'reject'])->name('leaves.reject');
     Route::post('/leaves/{leaveRequest}/cancel', [LeaveController::class, 'cancel'])->name('leaves.cancel');
-    Route::get('/leave-attachments/{leaveAttachment}', [LeaveAttachmentController::class, 'download'])->name('leave-attachments.download');
+    Route::get('/leave-attachments/{leaveAttachment}', [LeaveAttachmentController::class, 'download'])->middleware($auditedDownload)->name('leave-attachments.download');
 
     /*
      * /reports opens the attendance report rather than a landing page listing
@@ -190,13 +198,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/{report}', [ReportController::class, 'show'])
         ->whereIn('report', ReportRegistry::keys())->name('reports.show');
     Route::get('/reports/{report}/print', [ReportController::class, 'print'])
-        ->whereIn('report', ReportRegistry::keys())->name('reports.print');
+        ->whereIn('report', ReportRegistry::keys())->middleware('download.confirm')->name('reports.print');
     Route::get('/reports/{report}/export', [ReportController::class, 'export'])
-        ->whereIn('report', ReportRegistry::keys())->name('reports.export');
+        ->whereIn('report', ReportRegistry::keys())->middleware($download)->name('reports.export');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
     Route::get('/analytics/burnout-risk', [BurnoutRiskController::class, 'index'])->name('analytics.burnout-risk');
-    Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
+    Route::get('/analytics/export', [AnalyticsController::class, 'export'])->middleware($auditedDownload)->name('analytics.export');
     Route::post('/analytics/ai-insights', [AnalyticsController::class, 'aiInsights'])->name('analytics.ai-insights');
 
     Route::get('/integrations', [IntegrationController::class, 'index'])->name('integrations.index');
@@ -204,7 +212,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/integrations/gemini/test', [IntegrationController::class, 'testGemini'])->middleware('throttle:5,1')->name('integrations.gemini.test');
 
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
-    Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->name('audit-logs.export');
+    Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->middleware($auditedDownload)->name('audit-logs.export');
 });
 
 require __DIR__.'/auth.php';

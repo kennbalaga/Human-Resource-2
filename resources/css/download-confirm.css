@@ -1,0 +1,145 @@
+/* The password check in front of a download. Deliberately the same card as the
+   session-timeout warning: both interrupt the page to ask about the account,
+   and a second visual language for that would read as a different system. */
+.download-confirm-modal .modal-dialog {
+    max-width: 440px;
+}
+
+.download-confirm-card {
+    position: relative;
+    overflow: hidden;
+    padding-top: 1.25rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-xl);
+    background: var(--hr-surface);
+    box-shadow: 0 28px 80px rgba(17, 50, 34, .24);
+}
+
+.download-confirm-card::before {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 4px;
+    background: linear-gradient(90deg, var(--hr-primary), var(--hr-primary-hover));
+    content: '';
+}
+
+.download-confirm-icon {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    margin: .75rem auto .25rem;
+    color: var(--hr-primary-dark);
+    border: 1px solid color-mix(in srgb, var(--hr-primary) 28%, transparent);
+    border-radius: var(--r-lg);
+    background: var(--hr-primary-soft);
+    place-items: center;
+}
+
+.download-confirm-icon .ui-icon {
+    width: 25px;
+    height: 25px;
+}
+
+.download-confirm-card .modal-body {
+    padding: 1rem 2rem 1.5rem;
+    text-align: center;
+}
+
+.download-confirm-kicker {
+    margin: 0 0 .4rem;
+    color: var(--hr-primary-dark);
+    font-size: var(--fs-xs);
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.download-confirm-card .modal-title {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-2xl);
+    font-weight: 750;
+}
+
+.download-confirm-card #downloadConfirmMessage {
+    max-width: 340px;
+    margin: .7rem auto 1.1rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-base);
+    line-height: 1.6;
+}
+
+/* Left-aligned inside a centred card: the label belongs to the field under it,
+   and centred labels drift away from the box they name. */
+.download-confirm-card label {
+    text-align: left;
+}
+
+.download-confirm-error {
+    margin: 0 0 .9rem;
+    padding: .7rem .85rem;
+    color: var(--hr-danger-text);
+    border: 1px solid var(--hr-danger-line);
+    border-radius: var(--r-md);
+    background: var(--hr-danger-soft);
+    font-size: var(--fs-sm);
+    text-align: left;
+}
+
+.download-confirm-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    margin: 1rem 0 0;
+    padding: .7rem .85rem;
+    color: var(--hr-muted);
+    border-radius: var(--r-md);
+    background: color-mix(in srgb, var(--hr-primary-soft) 65%, transparent);
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    text-align: left;
+}
+
+.download-confirm-hint .ui-icon {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    color: var(--hr-primary-dark);
+}
+
+.download-confirm-actions {
+    justify-content: center;
+    gap: .65rem;
+    padding: 1rem 1.5rem 1.4rem;
+    border-color: var(--hr-border);
+}
+
+.download-confirm-actions .btn {
+    min-width: 140px;
+    border-radius: var(--r-md);
+    font-weight: 700;
+}
+
+html[data-theme-resolved='dark'] .download-confirm-card {
+    border-color: var(--hr-border);
+    background: var(--hr-surface);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, .5);
+}
+
+@media (max-width: 600px) {
+    .download-confirm-modal .modal-dialog {
+        margin: 1rem;
+    }
+
+    .download-confirm-card .modal-body {
+        padding-inline: 1.25rem;
+    }
+
+    .download-confirm-actions {
+        flex-direction: column-reverse;
+    }
+
+    .download-confirm-actions .btn {
+        width: 100%;
+    }
+}

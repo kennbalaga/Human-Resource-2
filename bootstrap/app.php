@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Middleware\AuditDownload;
 use App\Http\Middleware\AuditWriteRequests;
+use App\Http\Middleware\ConfirmPasswordForDownload;
 use App\Http\Middleware\EnforceProductionSecurity;
 use App\Http\Middleware\EnforceReadOnlyRole;
 use App\Http\Middleware\EnsureAccountIsStillOpen;
@@ -61,6 +63,10 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureSingleActiveSession::class,
             EnsureRequiredTwoFactorAuthentication::class,
             EnforceReadOnlyRole::class,
+        ]);
+        $middleware->alias([
+            'download.confirm' => ConfirmPasswordForDownload::class,
+            'download.audit' => AuditDownload::class,
         ]);
         $middleware->api(append: [SecurityHeaders::class, AuditWriteRequests::class, EnforceReadOnlyRole::class]);
     })

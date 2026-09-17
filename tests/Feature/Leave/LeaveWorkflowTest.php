@@ -11,11 +11,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
+use Tests\Concerns\ConfirmsDownloadPassword;
 use Tests\TestCase;
 
 class LeaveWorkflowTest extends TestCase
 {
-    use RefreshDatabase;
+    use ConfirmsDownloadPassword, RefreshDatabase;
 
     protected function setUp(): void
     {

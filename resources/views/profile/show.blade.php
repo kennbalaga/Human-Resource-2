@@ -62,7 +62,7 @@
                         </dl>
                         <p class="profile-qr-warning"><x-icon name="shield" /> <span>Treat this like your ID. Anyone holding a copy can have it scanned in your name — tell HR at once if you lose it, so they can retire it and issue you a new one.</span></p>
                         <div class="profile-qr-actions">
-                            <a class="btn btn-primary" href="{{ route('profile.attendance-qr.download') }}"><x-icon name="download" /> Download</a>
+                            <a class="btn btn-primary" data-download href="{{ route('profile.attendance-qr.download') }}"><x-icon name="download" /> Download</a>
                         </div>
                     </div>
                 </div>

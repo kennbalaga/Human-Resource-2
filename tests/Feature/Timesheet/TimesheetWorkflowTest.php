@@ -9,11 +9,12 @@ use App\Models\User;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Concerns\ConfirmsDownloadPassword;
 use Tests\TestCase;
 
 class TimesheetWorkflowTest extends TestCase
 {
-    use RefreshDatabase;
+    use ConfirmsDownloadPassword, RefreshDatabase;
 
     protected function setUp(): void
     {

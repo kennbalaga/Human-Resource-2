@@ -97,6 +97,18 @@ return [
         'heartbeat_seconds' => (int) env('SESSION_HEARTBEAT_SECONDS', 5),
     ],
 
+    'downloads' => [
+        // How long a password re-entry keeps file downloads open before the
+        // next one asks again. Kept short and separate from
+        // auth.password_timeout: the check exists for the browser that was
+        // left signed in, and an unattended one gives nobody three hours.
+        'password_timeout_seconds' => (int) env('DOWNLOAD_PASSWORD_TIMEOUT', 900),
+
+        // Files one account may take per minute. Generous for somebody saving
+        // a handful of payslips, tight for a script emptying the system.
+        'per_minute' => (int) env('DOWNLOAD_RATE_LIMIT', 20),
+    ],
+
     'two_factor' => [
         'required_roles' => array_values(array_filter(array_map(
             'trim',

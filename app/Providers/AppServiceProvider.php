@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\ConfirmPasswordForDownload;
 use App\Models\Employee;
 use App\Models\User;
 use App\Services\Security\AttachmentMalwareScanner;
@@ -42,6 +43,14 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api-login', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('password-reset', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('csp-report', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
+        // Keyed to the account, not the IP: the point is to slow an account
+        // being emptied, and a ward shares one address across many staff.
+        RateLimiter::for('downloads', fn (Request $request) => Limit::perMinute(
+            (int) config('security.downloads.per_minute', 20),
+        )->by('downloads|'.($request->user()?->id ?: $request->ip())));
+        RateLimiter::for('password-confirm', fn (Request $request) => Limit::perMinute(5)->by(
+            'password-confirm|'.($request->user()?->id ?: $request->ip()),
+        ));
         RateLimiter::for('two-factor', fn (Request $request) => Limit::perMinute(5)->by(
             ($request->session()->get('login.id') ?: $request->ip()).'|'.$request->ip(),
         ));
@@ -50,6 +59,15 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app['events']->listen(ValidTwoFactorAuthenticationCodeProvided::class, function ($event): void {
             $event->user->forceFill(['last_login_at' => now()])->save();
+        });
+
+        // The modal needs to know whether the password is already in, so a
+        // click inside the window downloads without being interrupted.
+        View::composer('partials.download-confirm', function ($view): void {
+            $view->with([
+                'downloadConfirmedUntil' => ConfirmPasswordForDownload::confirmedUntil(request()),
+                'downloadPasswordTimeout' => (int) config('security.downloads.password_timeout_seconds', 900),
+            ]);
         });
 
         View::composer('partials.topbar', function ($view): void {

@@ -5,11 +5,12 @@ namespace Tests\Feature\Security;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ConfirmsDownloadPassword;
 use Tests\TestCase;
 
 class AuditLogPageTest extends TestCase
 {
-    use RefreshDatabase;
+    use ConfirmsDownloadPassword, RefreshDatabase;
 
     public function test_staff_without_a_compliance_role_cannot_read_the_trail(): void
     {

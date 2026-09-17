@@ -138,7 +138,8 @@ final class AuditActivity
         $path = strtolower((string) $log->path);
         $key = match (true) {
             self::module($log)['key'] === 'authentication' => 'authentication',
-            str_contains($path, 'export') || str_contains($action, 'export') => 'export',
+            // Downloads are exports under another name: a file left the system.
+            str_contains($path, 'export') || str_contains($action, 'export') || str_contains($action, 'download') => 'export',
             self::mentionsApproval($action) => 'approval',
             $log->method === 'DELETE' => 'delete',
             in_array($log->method, ['PUT', 'PATCH'], true) => 'update',
@@ -228,7 +229,9 @@ final class AuditActivity
         match ($activity) {
             'authentication' => self::scopeModule($query, 'authentication'),
             'export' => $query->where(function (Builder $inner): void {
-                $inner->where('path', 'like', '%export%')->orWhere('action', 'like', '%export%');
+                $inner->where('path', 'like', '%export%')
+                    ->orWhere('action', 'like', '%export%')
+                    ->orWhere('action', 'like', '%download%');
             }),
             'approval' => $query->where(function (Builder $inner): void {
                 foreach (self::APPROVAL_WORDS as $word) {

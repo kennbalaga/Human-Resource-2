@@ -17,11 +17,12 @@ use App\Services\TimesheetService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Tests\Concerns\ConfirmsDownloadPassword;
 use Tests\TestCase;
 
 class PayslipTest extends TestCase
 {
-    use RefreshDatabase;
+    use ConfirmsDownloadPassword, RefreshDatabase;
 
     /** The first half of May 2027: ten weekdays, and no holiday on any of them. */
     private const PERIOD = '2027-05-1';

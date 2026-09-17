@@ -7,7 +7,7 @@
 
     <section class="page-heading workforce-heading">
         <div><p class="eyebrow">Workforce Management</p><h1>Timesheet Management</h1><p>Weekly work records generated from completed and approved attendance.</p></div>
-        @if(auth()->user()->canManageData())<a class="btn btn-primary dashboard-action" href="{{ route('timesheets.export', request()->query()) }}"><x-icon name="download" /> Export CSV</a>@endif
+        @if(auth()->user()->canManageData())<a class="btn btn-primary dashboard-action" data-download href="{{ route('timesheets.export', request()->query()) }}"><x-icon name="download" /> Export CSV</a>@endif
     </section>
 
     @if (session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif

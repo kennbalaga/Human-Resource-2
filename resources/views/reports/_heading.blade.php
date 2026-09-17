@@ -21,7 +21,7 @@
                      before saving one, so they download on the spot. --}}
                 @foreach (['csv' => 'CSV', 'xlsx' => 'Excel'] as $format => $label)
                     <li>
-                        <a class="dropdown-item" href="{{ route('reports.export', array_merge(['report' => $report->key()], request()->query(), ['format' => $format])) }}">
+                        <a class="dropdown-item" data-download href="{{ route('reports.export', array_merge(['report' => $report->key()], request()->query(), ['format' => $format])) }}">
                             <x-icon name="report" /> <span>Export as {{ $label }}</span>
                         </a>
                     </li>

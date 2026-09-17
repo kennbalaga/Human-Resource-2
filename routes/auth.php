@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\ConfirmPasswordController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
@@ -37,6 +38,13 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('session/keep-alive', [AuthenticatedSessionController::class, 'keepAlive'])
         ->name('session.keep-alive');
+
+    Route::get('confirm-password', [ConfirmPasswordController::class, 'create'])
+        ->name('password.confirm');
+
+    Route::post('confirm-password', [ConfirmPasswordController::class, 'store'])
+        ->middleware('throttle:password-confirm')
+        ->name('password.confirm.store');
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');

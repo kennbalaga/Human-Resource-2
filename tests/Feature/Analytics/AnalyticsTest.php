@@ -6,11 +6,12 @@ use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ConfirmsDownloadPassword;
 use Tests\TestCase;
 
 class AnalyticsTest extends TestCase
 {
-    use RefreshDatabase;
+    use ConfirmsDownloadPassword, RefreshDatabase;
 
     protected function setUp(): void
     {

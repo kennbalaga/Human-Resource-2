@@ -118,10 +118,28 @@
          unless this is a touch device with a small screen. --}}
     @include('partials.app-lock')
 
+    {{-- The password check in front of every download link on the page. --}}
+    @include('partials.download-confirm')
+
     @include('partials.session-timeout', [
         'sessionTimeoutSeconds' => $sessionTimeoutSeconds,
         'sessionWarningSeconds' => $sessionWarningSeconds,
     ])
+
+    {{-- The fallback path: set by the full confirmation page on its way back
+         here, naming the file that was asked for before being stopped. Reached
+         only when the modal did not handle it -- a download URL opened
+         directly, or a browser without the bundle. Assigning a download URL
+         fetches the file without navigating away. Only this app's own URLs are
+         ever stored there (ConfirmPasswordForDownload). --}}
+    @if (session('download.start'))
+        <script @if(isset($cspNonce)) nonce="{{ $cspNonce }}" @endif>
+            window.addEventListener('load', () => {
+                window.markIntentionalNavigation?.();
+                window.location.assign(@json(session('download.start')));
+            });
+        </script>
+    @endif
 
     @stack('scripts')
 </body>

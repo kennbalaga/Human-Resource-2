@@ -16,7 +16,7 @@
             <h1>Payslip · {{ $period->label() }}</h1>
             <p>{{ $employee->full_name }} · {{ $payslip['number'] }}</p>
         </div>
-        <a class="btn btn-primary dashboard-action" href="{{ route('payslips.download', [$employee, $period->key()]) }}"><x-icon name="download" /> Download PDF</a>
+        <a class="btn btn-primary dashboard-action" data-download href="{{ route('payslips.download', [$employee, $period->key()]) }}"><x-icon name="download" /> Download PDF</a>
     </section>
 
     <article class="panel payslip-sheet">

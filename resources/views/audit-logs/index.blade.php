@@ -48,6 +48,7 @@
                         <a
                             class="dropdown-item"
                             data-audit-export
+                            data-download
                             href="{{ route('audit-logs.export', $appliedFilters + ['scope' => 'filtered']) }}"
                         >
                             <x-icon name="report" />
@@ -61,6 +62,7 @@
                         <a
                             class="dropdown-item"
                             data-audit-export
+                            data-download
                             href="{{ route('audit-logs.export', ['scope' => 'all']) }}"
                         >
                             <x-icon name="shield" />

@@ -5,7 +5,7 @@
 @section('content')
     <section class="page-heading workforce-heading">
         <div><p class="eyebrow">Workforce Intelligence</p><h1>Workforce Analytics</h1><p>Attendance, labor hours, leave utilization, schedule coverage, and timesheet performance.</p></div>
-        @if($canManageData)<a class="btn btn-primary dashboard-action" href="{{ route('analytics.export', request()->query()) }}"><x-icon name="download" /> Download report</a>@endif
+        @if($canManageData)<a class="btn btn-primary dashboard-action" data-download href="{{ route('analytics.export', request()->query()) }}"><x-icon name="download" /> Download report</a>@endif
     </section>
 
     @include('analytics._tabs')

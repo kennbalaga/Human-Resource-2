@@ -59,7 +59,7 @@
                             <td>
                                 <div class="row-action-group">
                                     <a class="btn btn-sm btn-primary" href="{{ route('payslips.show', [$payslip->employee, $payslip->period->key()]) }}">View</a>
-                                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('payslips.download', [$payslip->employee, $payslip->period->key()]) }}"><x-icon name="download" /> PDF</a>
+                                    <a class="btn btn-sm btn-outline-secondary" data-download href="{{ route('payslips.download', [$payslip->employee, $payslip->period->key()]) }}"><x-icon name="download" /> PDF</a>
                                 </div>
                             </td>
                         </tr>

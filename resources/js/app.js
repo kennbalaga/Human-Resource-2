@@ -14,6 +14,7 @@ import './ai-scheduling';
 import './integration-settings';
 import './theme';
 import './session-timeout';
+import './download-confirm';
 import './global-search';
 import './confirm-actions';
 import './report-print';
