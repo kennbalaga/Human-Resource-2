@@ -87,105 +87,46 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect('/login');
     }
 
-    public function test_remember_me_saves_identity_without_creating_persistent_authentication(): void
+    public function test_login_form_has_no_remember_me_and_never_prefills_an_identifier(): void
     {
-        $response = $this->post('/login', [
-            'employee_id' => 'HR-MGR-2026-0001',
-            'password' => 'ChangeMe123!',
-            'remember' => '1',
-        ]);
-
-        $recallerName = Auth::guard('web')->getRecallerName();
-        $response
-            ->assertCookie('hrms_remembered_employee', 'HR-MGR-2026-0001')
-            ->assertCookieExpired($recallerName);
-        $rememberedEmployee = $response->getCookie('hrms_remembered_employee')?->getValue();
-        $this->flushSession();
-        Auth::forgetGuards();
-
-        $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
-            ->get('/dashboard')
-            ->assertRedirect('/login');
-
-        $this->assertGuest();
-
-        $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
+        $this->withCookie('hrms_remembered_employee', 'HR-MGR-2026-0001')
             ->get('/login')
             ->assertOk()
-            ->assertSee('value="HR-MGR-2026-0001"', false)
-            ->assertDontSee('value="ChangeMe123!"', false);
+            ->assertDontSee('name="remember"', false)
+            ->assertDontSee('value="HR-MGR-2026-0001"', false);
     }
 
-    public function test_logout_keeps_only_the_opted_in_employee_id_for_the_unchanged_login_form(): void
+    public function test_signing_in_clears_a_saved_identifier_and_issues_no_persistent_login(): void
     {
-        $login = $this->post('/login', [
-            'employee_id' => 'HR-MGR-2026-0001',
-            'password' => 'ChangeMe123!',
-            'remember' => '1',
-        ]);
-
-        $login->assertCookie('hrms_remembered_employee', 'HR-MGR-2026-0001');
-        $rememberedEmployee = $login->getCookie('hrms_remembered_employee')?->getValue();
-
-        $this->post('/logout')
-            ->assertRedirect('/login')
-            ->assertCookie('hrms_remembered_employee', 'HR-MGR-2026-0001');
-
-        Auth::forgetGuards();
-
-        $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
-            ->get('/login')
-            ->assertOk()
-            ->assertSee('value="HR-MGR-2026-0001"', false)
-            ->assertSee('id="remember" name="remember" value="1" checked', false)
-            ->assertDontSee('value="ChangeMe123!"', false);
-    }
-
-    public function test_remember_me_offers_back_the_work_email_when_that_is_what_was_typed(): void
-    {
-        $login = $this->post('/login', [
-            'employee_id' => 'HR.Manager@HRMS.local',
-            'password' => 'ChangeMe123!',
-            'remember' => '1',
-        ]);
-
-        $login->assertCookie('hrms_remembered_employee', 'hr.manager@hrms.local');
-        $remembered = $login->getCookie('hrms_remembered_employee')?->getValue();
-
-        $this->post('/logout')->assertRedirect('/login');
-        Auth::forgetGuards();
-
-        $this->withCookie('hrms_remembered_employee', (string) $remembered)
-            ->get('/login')
-            ->assertOk()
-            ->assertSee('value="hr.manager@hrms.local"', false)
-            ->assertDontSee('value="HR-MGR-2026-0001"', false)
-            ->assertDontSee('value="ChangeMe123!"', false);
-    }
-
-    public function test_remember_me_replaces_the_saved_identifier_with_the_one_typed_last(): void
-    {
-        $this->withCookie('hrms_remembered_employee', 'hr.manager@hrms.local')
+        $response = $this->withCookie('hrms_remembered_employee', 'HR-MGR-2026-0001')
             ->post('/login', [
                 'employee_id' => 'HR-MGR-2026-0001',
                 'password' => 'ChangeMe123!',
                 'remember' => '1',
-            ])
-            ->assertCookie('hrms_remembered_employee', 'HR-MGR-2026-0001');
+            ]);
+
+        $response
+            ->assertRedirect('/dashboard')
+            ->assertCookieExpired('hrms_remembered_employee')
+            ->assertCookieExpired(Auth::guard('web')->getRecallerName());
     }
 
-    public function test_signing_in_without_remember_me_removes_a_previously_saved_employee_id(): void
+    public function test_logout_does_not_leave_an_identifier_behind(): void
     {
-        $this->withCookie('hrms_remembered_employee', 'HR-MGR-2026-0001')
-            ->post('/login', [
-                'employee_id' => 'HR-MGR-2026-0001',
-                'password' => 'ChangeMe123!',
-                'remember' => '0',
-            ])
-            ->assertCookieExpired('hrms_remembered_employee');
+        $this->post('/login', [
+            'employee_id' => 'HR-MGR-2026-0001',
+            'password' => 'ChangeMe123!',
+        ]);
+
+        $cookie = $this->post('/logout')
+            ->assertRedirect('/login')
+            ->getCookie('hrms_remembered_employee', false);
+
+        // Only ever the removal queued at sign-in, never a saved identifier.
+        $this->assertTrue($cookie === null || $cookie->isCleared());
     }
 
-    public function test_legacy_persistent_auth_cookie_is_rejected_and_migrated_to_identity_only(): void
+    public function test_legacy_persistent_auth_cookie_is_rejected(): void
     {
         $user = $this->userForEmployee('HR-MGR-2026-0001');
         $token = Str::random(60);
@@ -205,7 +146,7 @@ class AuthenticationTest extends TestCase
             ->get('/dashboard')
             ->assertRedirect('/login')
             ->assertCookieExpired($recallerName)
-            ->assertCookie('hrms_remembered_employee', 'HR-MGR-2026-0001');
+            ->assertCookieMissing('hrms_remembered_employee');
 
         $this->assertGuest();
     }

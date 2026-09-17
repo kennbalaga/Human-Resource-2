@@ -397,7 +397,6 @@
             </p>
             <ul>
                 <li>A session cookie that keeps you signed in, and a CSRF token that protects forms from forgery.</li>
-                <li>A "Remember Me" cookie, only if you tick that box on the login form.</li>
                 <li>Local preferences kept in your browser and never sent to the hospital — your theme choice, whether the sidebar is collapsed, and whether you dismissed the install prompt.</li>
                 <li>If you set up the app lock, a scrambled form of your PIN that stays on that device and is never transmitted.</li>
             </ul>

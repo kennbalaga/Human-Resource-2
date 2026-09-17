@@ -81,52 +81,39 @@ class TwoFactorAuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_saved_two_factor_identity_still_requires_password_and_totp_after_session_loss(): void
+    public function test_lost_two_factor_session_requires_password_and_totp_again(): void
     {
         $user = $this->enableTwoFactor($this->userForEmployee('HR-OFFICER-2026-0001'));
 
         $this->post('/login', [
             'employee_id' => 'HR-OFFICER-2026-0001',
             'password' => 'ChangeMe123!',
-            'remember' => '1',
         ])->assertRedirect(route('two-factor.login'));
 
         $login = $this->post(route('two-factor.login.store'), [
             'recovery_code' => $user->recoveryCodes()[0],
         ])->assertRedirect('/dashboard');
 
-        $recallerName = Auth::guard('web')->getRecallerName();
-        $rememberedEmployee = $login->getCookie('hrms_remembered_employee')?->getValue();
         $login
-            ->assertCookie('hrms_remembered_employee', 'HR-OFFICER-2026-0001')
-            ->assertCookieExpired($recallerName);
+            ->assertCookieExpired('hrms_remembered_employee')
+            ->assertCookieExpired(Auth::guard('web')->getRecallerName());
         $this->flushSession();
         Auth::forgetGuards();
 
         // A session lost rather than signed out leaves the account's one
         // device slot behind it, and coming back to a slot still held turns
         // the first sign-in away. That is its own rule, exercised in
-        // SingleActiveSessionTest; what is being read here is what a saved
-        // identity does and does not get you, so the slot is freed by hand.
+        // SingleActiveSessionTest; what is being read here is that nothing
+        // survives the lost session, so the slot is freed by hand.
         $user->fresh()->forceFill(['active_session_token' => null])->save();
 
-        $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
-            ->get(route('settings.edit'))
-            ->assertRedirect(route('login'));
-
+        $this->get(route('settings.edit'))->assertRedirect(route('login'));
         $this->assertGuest();
 
-        $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
-            ->get(route('login'))
-            ->assertOk()
-            ->assertSee('value="HR-OFFICER-2026-0001"', false);
-
-        $this->withCookie('hrms_remembered_employee', (string) $rememberedEmployee)
-            ->post(route('login'), [
-                'employee_id' => 'HR-OFFICER-2026-0001',
-                'password' => 'ChangeMe123!',
-                'remember' => '1',
-            ])->assertRedirect(route('two-factor.login'))
+        $this->post(route('login'), [
+            'employee_id' => 'HR-OFFICER-2026-0001',
+            'password' => 'ChangeMe123!',
+        ])->assertRedirect(route('two-factor.login'))
             ->assertSessionHas('login.id', $user->id);
 
         $this->assertGuest();

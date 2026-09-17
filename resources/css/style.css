@@ -327,17 +327,10 @@ body {
 
 .form-actions {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     margin-bottom: 1.5rem;
     font-size: var(--fs-base);
-}
-
-.remember-me {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--text-gray);
 }
 
 .forgot-password {
@@ -681,25 +674,13 @@ body {
         touch-action: manipulation;
     }
 
-    /* "Remember me" and "Forgot password" sit on one line as separate tap
-       targets. At their natural line height they are ~20px tall and about
-       8px apart, which is a coin-flip for a thumb. */
-    .form-actions {
-        gap: 0.75rem;
-    }
-
-    .remember-me,
+    /* At their natural line height these links are ~20px tall, which is a
+       coin-flip for a thumb. */
     .forgot-password,
     .footer-links a {
         display: inline-flex;
         min-height: 44px;
         align-items: center;
-    }
-
-    /* The checkbox is the target here, not just its label. */
-    .remember-me input[type="checkbox"] {
-        width: 20px;
-        height: 20px;
     }
 }
 

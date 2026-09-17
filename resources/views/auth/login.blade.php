@@ -55,7 +55,7 @@
                             type="text"
                             id="employee_id"
                             name="employee_id"
-                            value="{{ old('employee_id', $rememberedIdentifier) }}"
+                            value="{{ old('employee_id') }}"
                             autocomplete="username"
                             placeholder="name@example.com"
                             required
@@ -72,11 +72,6 @@
                     </div>
 
                     <div class="form-actions">
-                        <div class="remember-me">
-                            <input type="hidden" name="remember" value="0">
-                            <input type="checkbox" id="remember" name="remember" value="1" @checked((bool) old('remember', $rememberedIdentifierSelected))>
-                            <label for="remember">Remember Me</label>
-                        </div>
                         <a href="{{ route('password.request') }}" class="forgot-password">Forgot Your Password?</a>
                     </div>
 
