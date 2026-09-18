@@ -133,7 +133,7 @@
 .two-factor-setup-grid { display:grid; grid-template-columns:minmax(15rem,.8fr) minmax(18rem,1.2fr); margin:0 1.25rem 1rem; border:1px solid var(--hr-border); border-radius:var(--r-lg); overflow:hidden; }
 .two-factor-qr { display:grid; justify-items:center; align-content:start; padding:1.1rem; border-right:1px solid var(--hr-border); background:var(--hr-surface-2); gap:.7rem; }
 .two-factor-qr>span { color:var(--hr-text); font-size: var(--fs-xs); font-weight:800; }
-.two-factor-qr>div { display:grid; padding:.7rem; border:1px solid var(--hr-border); border-radius:var(--r-md); background:var(--hr-surface); place-items:center; }
+.two-factor-qr>div { display:grid; padding:.7rem; border:1px solid var(--hr-border); border-radius:var(--r-md); background:var(--hr-qr-paper); place-items:center; }
 .two-factor-qr svg { width:11rem; height:11rem; }
 .two-factor-qr small { max-width:16rem; color:var(--hr-subtle); font-size: var(--fs-2xs); line-height:1.5; text-align:center; }
 .two-factor-confirm-form { align-content:start; padding:1.1rem; }

@@ -72,6 +72,12 @@
     --hr-surface: #ffffff;        /* cards, panels, tables */
     --hr-surface-2: #f8fafc;      /* table heads, chips, toolbars, dropdowns */
     --hr-surface-3: #eef3f7;      /* hover and pressed states */
+    /*
+     * The frame behind a QR code. A camera finds the code by the light margin
+     * around it, and Fortify draws the code with no margin of its own, so this
+     * stays white in the dark theme too — dark-mode.css must not override it.
+     */
+    --hr-qr-paper: #ffffff;
 
     /* ---- Text ---- */
     --hr-text: #193451;           /* 12.72:1 white / 12.03:1 canvas — headings and body */
