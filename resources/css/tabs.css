@@ -1,0 +1,220 @@
+/*
+ * Card tabs -- the app's one control for moving between sibling pages
+ * (Organization, Reports), filtering one list (Notifications) or switching the
+ * sections of one record (an employee, Preferences and Swaps). This is the
+ * Organization strip's card, made the house style: a neutral plate per tab, an
+ * icon tile, the title and a one-line description, with the selected tab on a
+ * green plate and its tile filled in brand green -- the single strongest mark
+ * in the strip and the thing the eye lands on first. The plate, border and
+ * label change with it too, so the selection is never carried by the icon
+ * alone.
+ *
+ * Markup: .page-tabs on the strip, .page-tab on each link or button, and
+ * <x-page-tab-label> inside it for the body: tile, title, description.
+ *
+ * Every tab gets an equal column, however many a strip has, and each tab
+ * measures its own width (it is a size container) to decide how much it can
+ * show -- see "Narrow cards" below. Nothing is set per page.
+ *
+ * The page's own class stays on each strip as a hook; only the look is here.
+ * The dark theme's handful of overrides live in dark-mode.css with the rest.
+ */
+.page-tabs {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: .45rem;
+    margin-bottom: 1rem;
+    padding: .45rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-surface);
+    box-shadow: var(--hr-shadow);
+}
+
+/* The tab is the size container, so it holds the plate, border and states;
+   padding and height live on the body inside it, because a container cannot
+   restyle its own box from its own query. */
+.page-tab {
+    display: flex;
+    min-width: 0;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--r-md);
+    color: var(--hr-muted);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    container-type: inline-size;
+    transition: color .16s ease, border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+
+.page-tab:hover,
+.page-tab:focus-visible {
+    color: var(--hr-text);
+    background: var(--hr-primary-soft);
+}
+
+/* Links mark the current page with aria-current, Bootstrap's tab plugin moves
+   .active, and two older views say .is-active -- all three are the same state. */
+.page-tab.active,
+.page-tab.is-active,
+.page-tab[aria-current="page"] {
+    border-color: var(--hr-primary-line);
+    color: var(--hr-text);
+    background: var(--hr-primary-soft);
+    box-shadow: 0 4px 14px rgba(var(--hr-primary-rgb), .08);
+}
+
+.page-tab-body {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 4.2rem;
+    padding: .7rem .8rem;
+    align-items: center;
+    gap: .65rem;
+}
+
+.page-tab-icon {
+    display: grid;
+    width: 2.15rem;
+    height: 2.15rem;
+    flex: 0 0 auto;
+    border-radius: var(--r-md);
+    color: var(--hr-muted);
+    background: var(--hr-sunken);
+    place-items: center;
+    transition: color .16s ease, background-color .16s ease;
+}
+
+.page-tab-icon .ui-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.page-tab:hover .page-tab-icon {
+    color: var(--hr-primary-text);
+    background: var(--hr-primary-soft);
+}
+
+.page-tab.active .page-tab-icon,
+.page-tab.is-active .page-tab-icon,
+.page-tab[aria-current="page"] .page-tab-icon {
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
+}
+
+.page-tab-text {
+    display: grid;
+    min-width: 0;
+}
+
+.page-tab-text strong {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    min-width: 0;
+    font-size: var(--fs-sm);
+}
+
+.page-tab-text strong > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.page-tab-text small {
+    margin-top: .12rem;
+    overflow: hidden;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/*
+ * Narrow cards. Below 11rem a card has no room for the tile and a description
+ * beside the title -- five sections in the employee profile drawer come out
+ * at about 8.5rem each -- so the tile's plate goes, the glyph stays beside the
+ * title on one short row, and the description drops. The selected card keeps
+ * its green plate and border, and its glyph turns green.
+ *
+ * Anything that rode beside the title (a notification count) moves to the
+ * card's corner as a badge, so the title gets the full width.
+ */
+@container (max-width: 11rem) {
+    .page-tab-body {
+        min-height: 2.9rem;
+        padding: .5rem .55rem;
+        justify-content: center;
+        gap: .45rem;
+    }
+
+    .page-tab .page-tab-icon,
+    .page-tab:hover .page-tab-icon {
+        width: auto;
+        height: auto;
+        background: none;
+    }
+
+    .page-tab.active .page-tab-icon,
+    .page-tab.is-active .page-tab-icon,
+    .page-tab[aria-current="page"] .page-tab-icon {
+        color: var(--hr-primary-text);
+        background: none;
+    }
+
+    .page-tab-text small {
+        display: none;
+    }
+
+    /* Solid, and ringed in the surface colour, because it overhangs the card's
+       edge. The extra .page-tab is specificity: it has to outrank the count's
+       own translucent chip, dark theme included. */
+    .page-tab .page-tab-text strong > :not(:first-child) {
+        position: absolute;
+        top: -.45rem;
+        right: -.45rem;
+        z-index: 1;
+        border: 2px solid var(--hr-surface);
+        color: var(--hr-surface);
+        background: var(--hr-text);
+    }
+}
+
+/* The last resort, for a card too narrow even for glyph and title side by
+   side: the glyph goes above the title. In practice that is Notifications
+   with all seven categories on a small laptop, and nowhere else. */
+@container (max-width: 7.5rem) {
+    .page-tab-body {
+        flex-direction: column;
+        gap: .25rem;
+        text-align: center;
+    }
+}
+
+/* One row on a phone, swiped sideways with every card at a readable width.
+   The bar is hidden because swiping works there; overflow-y is pinned so the
+   strip can never grow a vertical scrollbar. */
+@media (max-width: 700px) {
+    .page-tabs {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+    }
+
+    .page-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* A size container takes no width from its content, so every card here
+       is given its width outright. */
+    .page-tab {
+        flex: none;
+        width: 14rem;
+    }
+}

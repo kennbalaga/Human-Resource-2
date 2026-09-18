@@ -1,48 +1,5 @@
 .workforce-heading { align-items: flex-end; gap: 1rem; }
 
-/* Segmented pill switcher for pages that fold two related sections (Shift
-   Swaps, Preferences) behind one URL. Deliberately not the underline style
-   .employee-record-tab uses — that strip reads as a position along one
-   continuous rule, which fits five record sections; two unrelated features
-   sharing a page read better as a toggle between two distinct destinations. */
-.pref-swap-tabs {
-    display: inline-flex;
-    gap: .25rem;
-    margin-bottom: 1.5rem;
-    padding: .3rem;
-    border-radius: var(--r-pill);
-    background: var(--hr-surface-2);
-}
-
-.pref-swap-tab {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.35rem;
-    padding: .5rem 1rem;
-    border: 0;
-    border-radius: var(--r-pill);
-    gap: .45rem;
-    color: var(--hr-muted);
-    background: transparent;
-    font-size: var(--fs-sm);
-    font-weight: 700;
-    transition: background-color .16s ease, color .16s ease;
-}
-
-.pref-swap-tab svg {
-    width: 1rem;
-    height: 1rem;
-}
-
-.pref-swap-tab:hover {
-    color: var(--hr-text);
-}
-
-.pref-swap-tab.active {
-    color: var(--hr-text);
-    background: var(--hr-surface);
-    box-shadow: var(--hr-shadow);
-}
 .workforce-stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1rem; margin-bottom:1.25rem; }
 .workforce-filter-panel,.workforce-table-panel,.leave-calendar-panel { margin-bottom:1.25rem; overflow:hidden; }
 .workforce-filters { display:flex; align-items:end; flex-wrap:wrap; gap:.75rem; padding:1rem 1.25rem; }

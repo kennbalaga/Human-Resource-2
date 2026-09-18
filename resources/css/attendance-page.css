@@ -16,57 +16,6 @@
 .attendance-page > .attendance-alert {
     margin-bottom: 0;
 }
-/* ---- View tabs --------------------------------------------------------- */
-
-/*
- * The bar scrolls sideways on a narrow phone, but never vertically. Setting
- * overflow-x alone makes overflow-y compute to auto as well, and the tabs used
- * to hang 1px below the bar to cover its border -- that 1px was enough for
- * Windows to draw a full vertical scrollbar, arrows and all, beside the tabs.
- * The divider is now an inset shadow the tab underline paints over, so nothing
- * leaves the box, and the sideways scrollbar stays hidden since swiping works.
- */
-.attendance-tabs {
-    display: flex;
-    overflow-x: auto;
-    overflow-y: hidden;
-    box-shadow: inset 0 -1px 0 var(--hr-border);
-    scrollbar-width: none;
-    gap: 4px;
-}
-
-.attendance-tabs::-webkit-scrollbar {
-    display: none;
-}
-
-.attendance-tab {
-    display: inline-flex;
-    min-height: var(--tap-min);
-    padding: 0 14px;
-    border-bottom: 2px solid transparent;
-    color: var(--hr-muted);
-    align-items: center;
-    gap: 8px;
-    font-size: var(--fs-sm);
-    font-weight: 600;
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.attendance-tab .ui-icon {
-    width: 18px;
-    height: 18px;
-}
-
-.attendance-tab:hover {
-    color: var(--hr-text);
-}
-
-.attendance-tab.is-active {
-    border-bottom-color: var(--hr-primary);
-    color: var(--hr-primary-text);
-}
-
 /* ---- Today ------------------------------------------------------------- */
 
 .attendance-today {

@@ -24,9 +24,9 @@
     @if($errors->any())<div class="attendance-alert attendance-alert-danger"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>@endif
 
     @if($canSeeSwaps)
-        <nav class="pref-swap-tabs" role="tablist" data-preference-tabs>
-            <button class="pref-swap-tab" id="tab-shift-swaps" data-tab-key="shift-swaps" data-bs-toggle="tab" data-bs-target="#pane-shift-swaps" type="button" role="tab" aria-controls="pane-shift-swaps" aria-selected="false"><x-icon name="repeat" /> Shift Swaps</button>
-            <button class="pref-swap-tab active" id="tab-preferences" data-tab-key="preferences" data-bs-toggle="tab" data-bs-target="#pane-preferences" type="button" role="tab" aria-controls="pane-preferences" aria-selected="true"><x-icon name="clock" /> Preferences</button>
+        <nav class="page-tabs pref-swap-tabs" role="tablist" data-preference-tabs>
+            <button class="page-tab pref-swap-tab" id="tab-shift-swaps" data-tab-key="shift-swaps" data-bs-toggle="tab" data-bs-target="#pane-shift-swaps" type="button" role="tab" aria-controls="pane-shift-swaps" aria-selected="false"><x-page-tab-label icon="repeat" title="Shift Swaps" description="Trade shifts with colleagues, pending manager approval" /></button>
+            <button class="page-tab pref-swap-tab active" id="tab-preferences" data-tab-key="preferences" data-bs-toggle="tab" data-bs-target="#pane-preferences" type="button" role="tab" aria-controls="pane-preferences" aria-selected="true"><x-page-tab-label icon="clock" title="Preferences" description="The days, shifts and hours you would rather work" /></button>
         </nav>
     @endif
 

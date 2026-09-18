@@ -1,14 +1,11 @@
-<nav class="organization-workspace-tabs" aria-label="Organization workspace">
-    <a href="{{ route('employees.index') }}" @class(['active' => request()->routeIs('organization.index', 'employees.*')]) @if(request()->routeIs('organization.index', 'employees.*')) aria-current="page" @endif>
-        <span class="organization-tab-icon"><x-icon name="users" /></span>
-        <span><strong>Employees</strong><small>People, accounts, and reporting lines</small></span>
+<nav class="page-tabs organization-workspace-tabs" aria-label="Organization workspace">
+    <a href="{{ route('employees.index') }}" @class(['page-tab', 'active' => request()->routeIs('organization.index', 'employees.*')]) @if(request()->routeIs('organization.index', 'employees.*')) aria-current="page" @endif>
+        <x-page-tab-label icon="users" title="Employees" description="People, accounts, and reporting lines" />
     </a>
-    <a href="{{ route('departments.index') }}" @class(['active' => request()->routeIs('departments.*')]) @if(request()->routeIs('departments.*')) aria-current="page" @endif>
-        <span class="organization-tab-icon"><x-icon name="building" /></span>
-        <span><strong>Departments</strong><small>Hospital units and workforce capacity</small></span>
+    <a href="{{ route('departments.index') }}" @class(['page-tab', 'active' => request()->routeIs('departments.*')]) @if(request()->routeIs('departments.*')) aria-current="page" @endif>
+        <x-page-tab-label icon="building" title="Departments" description="Hospital units and workforce capacity" />
     </a>
-    <a href="{{ route('positions.index') }}" @class(['active' => request()->routeIs('positions.*')]) @if(request()->routeIs('positions.*')) aria-current="page" @endif>
-        <span class="organization-tab-icon"><x-icon name="briefcase" /></span>
-        <span><strong>Positions</strong><small>Approved roles and department alignment</small></span>
+    <a href="{{ route('positions.index') }}" @class(['page-tab', 'active' => request()->routeIs('positions.*')]) @if(request()->routeIs('positions.*')) aria-current="page" @endif>
+        <x-page-tab-label icon="briefcase" title="Positions" description="Approved roles and department alignment" />
     </a>
 </nav>

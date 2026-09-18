@@ -9,6 +9,9 @@
 @import './bootstrap-theme.css';
 
 @import './dashboard.css';
+/* The one tab style. After dashboard.css, before the feature sheets, so a
+   page's own class can still set its strip's layout. */
+@import './tabs.css';
 @import './staff-dashboard.css';
 @import './attendance.css';
 @import './attendance-page.css';

@@ -32,12 +32,12 @@
     // Tabs are built from what this viewer is actually allowed to act on, so the
     // strip never shows a section that would render empty.
     $tabs = [
-        ['id' => 'employment', 'label' => 'Employment', 'icon' => 'briefcase'],
-        ['id' => 'reporting', 'label' => 'Reporting', 'icon' => 'users'],
+        ['id' => 'employment', 'label' => 'Employment', 'icon' => 'briefcase', 'description' => 'Role, department, status and dates'],
+        ['id' => 'reporting', 'label' => 'Reporting', 'icon' => 'users', 'description' => 'Manager and direct reports'],
     ];
     if ($canViewPrivate) {
-        $tabs[] = ['id' => 'time-off', 'label' => 'Time off', 'icon' => 'leave'];
-        $tabs[] = ['id' => 'attendance', 'label' => 'Attendance', 'icon' => 'clock'];
+        $tabs[] = ['id' => 'time-off', 'label' => 'Time off', 'icon' => 'leave', 'description' => 'Balances and leave history'];
+        $tabs[] = ['id' => 'attendance', 'label' => 'Attendance', 'icon' => 'clock', 'description' => 'Recent punches and flags'];
     }
 
     // The strip only has room for a single row, and the administrative sections
@@ -175,10 +175,10 @@
             </aside>
 
             <div class="employee-record-main">
-                <nav class="employee-record-tabs" role="tablist" aria-label="Employee record sections">
+                <nav class="page-tabs employee-record-tabs" role="tablist" aria-label="Employee record sections">
                     @foreach($tabs as $tab)
                         <button
-                            class="employee-record-tab @if($loop->first) active @endif"
+                            class="page-tab employee-record-tab @if($loop->first) active @endif"
                             id="employee-tab-{{ $tab['id'] }}"
                             type="button"
                             role="tab"
@@ -186,7 +186,7 @@
                             data-bs-target="#employee-pane-{{ $tab['id'] }}"
                             aria-controls="employee-pane-{{ $tab['id'] }}"
                             aria-selected="{{ $loop->first ? 'true' : 'false' }}"
-                        ><x-icon :name="$tab['icon']" /> <span>{{ $tab['label'] }}</span></button>
+                        ><x-page-tab-label :icon="$tab['icon']" :title="$tab['label']" :description="$tab['description']" /></button>
                     @endforeach
 
                     @if($menuTabs)
@@ -197,14 +197,14 @@
                              being counted as one. --}}
                         <div class="nav-item dropdown dashboard-action-menu employee-record-tab-menu">
                             <button
-                                class="employee-record-tab dropdown-toggle"
+                                class="page-tab employee-record-tab dropdown-toggle"
                                 type="button"
                                 data-bs-toggle="dropdown"
                                 data-bs-auto-close="true"
                                 data-dashboard-action-menu
                                 aria-expanded="false"
                                 aria-label="More sections"
-                            ><x-icon name="more" /></button>
+                            ><x-page-tab-label icon="more" title="More" :description="collect($menuTabs)->pluck('label')->implode(', ')" /></button>
                             <div class="dropdown-menu dropdown-menu-end">
                                 @foreach($menuTabs as $tab)
                                     <button

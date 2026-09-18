@@ -1113,8 +1113,22 @@ html[data-theme-resolved='dark'] .week-day-column.is-today>header strong { color
 /* Focusing the attendance note flipped its field back to white. */
 html[data-theme-resolved='dark'] .attendance-note textarea:focus { background:var(--hr-sunken); }
 
-html[data-theme-resolved='dark'] .organization-workspace-tabs small,
 html[data-theme-resolved='dark'] .organization-category-heading>span { color:var(--hr-muted); }
+
+/* Card tabs (tabs.css). The resting label lifts to --hr-subtle, the selected
+   card takes a full-strength border and green wording, and the resting tile
+   sits on the hover rung with a green glyph -- the Organization strip's dark
+   treatment, now every strip's. */
+html[data-theme-resolved='dark'] .page-tab { color:var(--hr-subtle); }
+html[data-theme-resolved='dark'] .page-tab:hover,
+html[data-theme-resolved='dark'] .page-tab:focus-visible { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .page-tab.active,
+html[data-theme-resolved='dark'] .page-tab.is-active,
+html[data-theme-resolved='dark'] .page-tab[aria-current="page"] { border-color:var(--hr-primary); color:var(--hr-primary-text); }
+html[data-theme-resolved='dark'] .page-tab-icon { color:var(--hr-primary-text); background:var(--hr-surface-3); }
+html[data-theme-resolved='dark'] .page-tab-text small { color:var(--hr-muted); }
+/* Narrow cards keep the glyph but not the tile's plate -- see tabs.css. */
+@container (max-width: 11rem) { html[data-theme-resolved='dark'] .page-tab-icon { background:none; } }
 html[data-theme-resolved='dark'] .organization-error { color:var(--hr-danger-text)!important; }
 
 html[data-theme-resolved='dark'] .leave-balance-heading h2 { color:var(--hr-text); }
@@ -1240,10 +1254,6 @@ html[data-theme-resolved='dark'] .exception-count { color:var(--hr-muted); backg
 html[data-theme-resolved='dark'] .exception-count.is-alert { color:var(--hr-warning-text); background:var(--hr-tint-warning); }
 
 /* Report tab strip. Same treatment the other muted navigation text already gets. */
-html[data-theme-resolved='dark'] .report-tabs { border-color:var(--hr-border); }
-html[data-theme-resolved='dark'] .report-tab { color:var(--hr-muted); }
-html[data-theme-resolved='dark'] .report-tab:hover { color:var(--hr-text); }
-html[data-theme-resolved='dark'] .report-tab.is-active { border-bottom-color:var(--hr-primary-text); color:var(--hr-primary-text); }
 
 
 /*

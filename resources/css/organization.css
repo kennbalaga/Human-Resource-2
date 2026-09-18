@@ -6,95 +6,6 @@
     gap: .65rem;
 }
 
-.organization-workspace-tabs {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: .45rem;
-    padding: .45rem;
-    margin: -.15rem 0 1rem;
-    border: 1px solid var(--hr-border);
-    border-radius: var(--r-lg);
-    background: var(--hr-surface);
-    box-shadow: var(--hr-shadow);
-}
-
-.organization-workspace-tabs a {
-    display: flex;
-    min-width: 0;
-    min-height: 4.2rem;
-    padding: .7rem .8rem;
-    border: 1px solid transparent;
-    border-radius: var(--r-md);
-    align-items: center;
-    gap: .65rem;
-    color: var(--hr-muted);
-    text-decoration: none;
-    transition: color .16s ease, border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
-}
-
-.organization-workspace-tabs a:hover {
-    color: var(--hr-text);
-    background: var(--hr-primary-soft);
-}
-
-.organization-workspace-tabs a.active {
-    border-color: var(--hr-primary-line);
-    color: var(--hr-text);
-    background: var(--hr-primary-soft);
-    box-shadow: 0 4px 14px rgba(var(--hr-primary-rgb), .08);
-}
-
-/*
- * Two states, not four colours. A resting tab is a neutral plate with a neutral
- * glyph; the selected one is the brand fill with a white glyph, which is the
- * single strongest mark in the strip and the thing the eye lands on first. The
- * border, plate and label of the tab itself still change with it, so the
- * selection is never carried by the icon alone.
- */
-.organization-tab-icon {
-    display: grid;
-    width: 2.15rem;
-    height: 2.15rem;
-    flex: 0 0 auto;
-    border-radius: var(--r-md);
-    color: var(--hr-muted);
-    background: var(--hr-sunken);
-    place-items: center;
-    transition: color .16s ease, background-color .16s ease;
-}
-
-.organization-workspace-tabs a:hover .organization-tab-icon {
-    color: var(--hr-primary-text);
-    background: var(--hr-primary-soft);
-}
-
-.organization-workspace-tabs a.active .organization-tab-icon {
-    color: var(--hr-on-primary);
-    background: var(--hr-primary-fill);
-}
-
-.organization-tab-icon svg {
-    width: 1rem;
-}
-
-.organization-workspace-tabs a > span:last-child {
-    display: grid;
-    min-width: 0;
-}
-
-.organization-workspace-tabs strong {
-    font-size: var(--fs-sm);
-}
-
-.organization-workspace-tabs small {
-    margin-top: .12rem;
-    overflow: hidden;
-    color: var(--hr-subtle);
-    font-size: var(--fs-2xs);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .organization-filters {
     display: grid;
     grid-template-columns: minmax(14rem, 2fr) repeat(2, minmax(10rem, 1fr)) auto;
@@ -501,59 +412,8 @@
     padding: 1.25rem 1.4rem 1.5rem;
 }
 
-/* Underline tabs. The strip carries the hairline the tabs sit on, so the
-   selection reads as a position along one continuous rule rather than as four
-   separate objects competing with the cards below them. */
-.employee-record-tabs {
-    display: flex;
-    /* One row, always. What will not fit is in the menu at the end of it, so
-       there is nothing left to wrap onto a second line. */
-    flex-wrap: nowrap;
-    margin-bottom: 1.1rem;
-    border-bottom: 1px solid var(--hr-border);
-    gap: .25rem;
-}
-
-.employee-record-tab {
-    display: inline-flex;
-    min-height: 2.5rem;
-    /* Trimmed from .75rem: five items have to share one row at the width the
-       panel opens to, and the gutters are where the room comes from. */
-    padding: .45rem .65rem;
-    border: 0;
-    /* Kept on every tab and only coloured on the active one: adding the border
-       on selection instead would shift each label two pixels as it is picked. */
-    border-bottom: 2px solid transparent;
-    /* Pulls the tab's own line onto the strip's hairline rather than leaving it
-       stranded a pixel below. */
-    margin-bottom: -1px;
-    border-radius: 0;
-    align-items: center;
-    gap: .45rem;
-    color: var(--hr-muted);
-    background: transparent;
-    font-size: var(--fs-sm);
-    font-weight: 600;
-    transition: color .16s ease, border-color .16s ease;
-}
-
-.employee-record-tab svg {
-    width: 1rem;
-    height: 1rem;
-}
-
-.employee-record-tab:hover {
-    color: var(--hr-text);
-    border-bottom-color: var(--hr-primary-line);
-}
-
-.employee-record-tab.active {
-    color: var(--hr-primary-text);
-    border-bottom-color: var(--hr-primary);
-}
-
 /* The overflow menu sits at the end of the strip and reads as one more tab —
-   including the underline, which Bootstrap moves onto this button whenever the
+   including the selected state, which Bootstrap moves onto this button whenever the
    section showing is one of the ones folded inside it. */
 .employee-record-tab-menu {
     display: flex;
@@ -561,17 +421,15 @@
     align-items: stretch;
 }
 
+/* The toggle fills its column like the tabs beside it. */
+.employee-record-tab-menu > .page-tab {
+    flex: 1;
+}
+
 /* The plugin needs .dropdown-toggle on the button to tell it apart from the
    tabs; the caret that class also brings is redundant next to the menu icon. */
 .employee-record-tab.dropdown-toggle::after {
     display: none;
-}
-
-/* Icon only — the button names itself to a screen reader through aria-label,
-   and the row is worth more to the tabs than to a word for the leftovers. */
-.employee-record-tab.dropdown-toggle {
-    padding-right: .55rem;
-    padding-left: .55rem;
 }
 
 .employee-record-tab-menu .dropdown-item {
@@ -1008,7 +866,6 @@
     to { transform: rotate(360deg); }
 }
 
-
 @media (max-width: 1000px) {
     /* Stacked, the rail keeps its place at the top: it is the summary of the
        record, and the tabs it used to sit beside follow it down the page. */
@@ -1023,8 +880,6 @@
 @media (max-width: 700px) {
     .employee-record-header { flex-direction: column; align-items: stretch; }
     .employee-record-actions { justify-content: flex-end; }
-    .employee-record-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
-    .employee-record-tab { flex: none; }
     .employee-card-foot { flex-direction: column; align-items: flex-start; }
     .employee-card-action { width: 100%; }
 }
@@ -1139,26 +994,6 @@ html[data-theme-resolved='dark'] .organization-secondary {
     color: var(--hr-subtle);
 }
 
-html[data-theme-resolved='dark'] .organization-workspace-tabs a {
-    color: var(--hr-subtle);
-}
-
-html[data-theme-resolved='dark'] .organization-workspace-tabs a:hover {
-    color: var(--hr-text);
-    background: var(--hr-primary-soft);
-}
-
-html[data-theme-resolved='dark'] .organization-workspace-tabs a.active {
-    border-color: var(--hr-primary);
-    color: var(--hr-primary-text);
-    background: var(--hr-primary-soft);
-}
-
-html[data-theme-resolved='dark'] .organization-tab-icon {
-    color: var(--hr-primary-text);
-    background: var(--hr-surface-3);
-}
-
 html[data-theme-resolved='dark'] .organization-filters input,
 html[data-theme-resolved='dark'] .organization-filters select,
 html[data-theme-resolved='dark'] .organization-field input,
@@ -1203,8 +1038,6 @@ html[data-theme-resolved='dark'] .organization-code {
     .organization-fieldset { grid-template-columns: 1fr; }
     .organization-field-full,
     .organization-fieldset legend { grid-column: auto; }
-    .organization-workspace-tabs { display:flex; overflow-x:auto; scrollbar-width:thin; }
-    .organization-workspace-tabs a { min-width:14rem; }
 }
 
 /* Reuses the badge layout from My Profile; only the panel wrapper differs. */

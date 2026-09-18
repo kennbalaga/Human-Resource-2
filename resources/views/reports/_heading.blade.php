@@ -51,15 +51,14 @@
     @endif
 </section>
 
-<nav class="report-tabs" aria-label="Report types">
+<nav class="page-tabs report-tabs" aria-label="Report types">
     @foreach ($reports as $available)
         <a
-            class="report-tab {{ $available->key() === $report->key() ? 'is-active' : '' }}"
+            class="page-tab report-tab {{ $available->key() === $report->key() ? 'is-active' : '' }}"
             href="{{ route('reports.show', ['report' => $available->key()]) }}"
             @if($available->key() === $report->key()) aria-current="page" @endif
         >
-            <x-icon :name="$available->icon()" />
-            <span>{{ $available->label() }}</span>
+            <x-page-tab-label :icon="$available->icon()" :title="$available->label()" :description="$available->description()" />
         </a>
     @endforeach
 </nav>

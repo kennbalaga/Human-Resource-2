@@ -66,20 +66,20 @@
              their own record to reach the camera, and staff who cannot scan never
              see a scanner they might mistake for self check-in. --}}
         @if ($canScanQr)
-            <nav class="attendance-tabs" aria-label="Attendance views">
+            <nav class="page-tabs attendance-tabs" aria-label="Attendance views">
                 <a
                     href="{{ route('attendance.index') }}"
-                    @class(['attendance-tab', 'is-active' => $view === 'mine'])
+                    @class(['page-tab', 'attendance-tab', 'is-active' => $view === 'mine'])
                     @if ($view === 'mine') aria-current="page" @endif
                 >
-                    <x-icon name="clock" /> My attendance
+                    <x-page-tab-label icon="clock" title="My attendance" description="Today's punches and your recent record" />
                 </a>
                 <a
                     href="{{ route('attendance.index', ['view' => 'scanner']) }}"
-                    @class(['attendance-tab', 'is-active' => $view === 'scanner'])
+                    @class(['page-tab', 'attendance-tab', 'is-active' => $view === 'scanner'])
                     @if ($view === 'scanner') aria-current="page" @endif
                 >
-                    <x-icon name="scan" /> Badge scanner
+                    <x-page-tab-label icon="scan" title="Badge scanner" description="Scan a colleague's badge to clock them in or out" />
                 </a>
             </nav>
         @endif

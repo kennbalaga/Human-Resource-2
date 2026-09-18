@@ -23,24 +23,24 @@
 
     @php
         $categoryMeta = [
-            'attendance' => ['label' => 'Attendance', 'tone' => 'warning'],
-            'schedule' => ['label' => 'Schedule', 'tone' => 'primary'],
-            'leave' => ['label' => 'Leave', 'tone' => 'success'],
-            'payroll' => ['label' => 'Payroll', 'tone' => 'primary'],
-            'security' => ['label' => 'Security', 'tone' => 'danger'],
-            'general' => ['label' => 'General', 'tone' => 'secondary'],
+            'attendance' => ['label' => 'Attendance', 'tone' => 'warning', 'icon' => 'clock', 'description' => 'Punches, lateness and corrections'],
+            'schedule' => ['label' => 'Schedule', 'tone' => 'primary', 'icon' => 'calendar', 'description' => 'Published rosters and changes'],
+            'leave' => ['label' => 'Leave', 'tone' => 'success', 'icon' => 'leave', 'description' => 'Requests and decisions'],
+            'payroll' => ['label' => 'Payroll', 'tone' => 'primary', 'icon' => 'receipt', 'description' => 'Payslips ready to view'],
+            'security' => ['label' => 'Security', 'tone' => 'danger', 'icon' => 'shield', 'description' => 'Sign-ins and account changes'],
+            'general' => ['label' => 'General', 'tone' => 'secondary', 'icon' => 'bell', 'description' => 'Announcements and the rest'],
         ];
         $totalCount = array_sum($categoryCounts);
     @endphp
 
-    <nav class="notification-filter-tabs" aria-label="Filter notifications by category">
-        <a class="notification-filter-tab {{ $activeCategory === null ? 'is-active' : '' }}" href="{{ route('notifications.index') }}">
-            All <span class="notification-filter-count">{{ $totalCount }}</span>
+    <nav class="page-tabs notification-filter-tabs" aria-label="Filter notifications by category">
+        <a class="page-tab notification-filter-tab {{ $activeCategory === null ? 'is-active' : '' }}" href="{{ route('notifications.index') }}">
+            <x-page-tab-label icon="inbox" title="All" description="Everything, newest first"><span class="notification-filter-count">{{ $totalCount }}</span></x-page-tab-label>
         </a>
         @foreach($categoryMeta as $key => $meta)
             @continue($key === 'general' && $categoryCounts[$key] === 0 && $activeCategory !== $key)
-            <a class="notification-filter-tab {{ $activeCategory === $key ? 'is-active' : '' }}" href="{{ route('notifications.index', ['category' => $key]) }}">
-                {{ $meta['label'] }} <span class="notification-filter-count">{{ $categoryCounts[$key] }}</span>
+            <a class="page-tab notification-filter-tab {{ $activeCategory === $key ? 'is-active' : '' }}" href="{{ route('notifications.index', ['category' => $key]) }}">
+                <x-page-tab-label :icon="$meta['icon']" :title="$meta['label']" :description="$meta['description']"><span class="notification-filter-count">{{ $categoryCounts[$key] }}</span></x-page-tab-label>
             </a>
         @endforeach
     </nav>

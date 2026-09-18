@@ -1131,44 +1131,6 @@ input {
     background: var(--hr-primary-soft);
 }
 
-/* Underline tabs, matching the employee record's strip. See the note there for
-   why the border sits on every tab rather than only the active one. */
-.notification-filter-tabs {
-    display: flex;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-    border-bottom: 1px solid var(--hr-border);
-    gap: 4px;
-}
-
-.notification-filter-tab {
-    display: inline-flex;
-    padding: 8px 12px;
-    border: 0;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    border-radius: 0;
-    color: var(--hr-muted);
-    background: transparent;
-    align-items: center;
-    gap: 6px;
-    text-decoration: none;
-    font-size: var(--fs-xs);
-    font-weight: 600;
-    transition: color 150ms ease, border-color 150ms ease;
-}
-
-.notification-filter-tab:hover,
-.notification-filter-tab:focus-visible {
-    color: var(--hr-text);
-    border-bottom-color: var(--hr-border-strong);
-}
-
-.notification-filter-tab.is-active {
-    color: var(--hr-primary-text);
-    border-bottom-color: var(--hr-primary);
-}
-
 .notification-filter-count {
     padding: 1px 6px;
     border-radius: var(--r-pill);
