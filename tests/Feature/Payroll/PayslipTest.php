@@ -46,7 +46,7 @@ class PayslipTest extends TestCase
         $this->assertNull(PayslipPeriod::fromKey('2027-13-1'));
     }
 
-    public function test_an_employee_sees_their_own_payslip_with_its_number_and_confidential_mark(): void
+    public function test_an_employee_sees_their_own_payslip_with_its_number_and_confidential_notice(): void
     {
         $employee = $this->user('employee@hrms.local');
         $this->timesheetFor($employee->employee, ['2027-05-03', '2027-05-04']);
@@ -55,7 +55,10 @@ class PayslipTest extends TestCase
             ->assertOk()
             ->assertSee(sprintf('PS-202705A-%05d', $employee->employee->id))
             ->assertSee('Confidential')
-            ->assertSee('Days worked')
+            // The attendance basis. Was 'Days worked', which the summary band
+            // carried until that band was taken out; this is the row label the
+            // Days table has always had a figure against.
+            ->assertSee('Scheduled')
             ->assertSee('Computed by Payroll');
     }
 
@@ -225,6 +228,82 @@ class PayslipTest extends TestCase
             ->assertHeader('content-type', 'application/pdf');
 
         $this->assertDatabaseHas('audit_logs', ['user_id' => $employee->id, 'action' => 'payslips.download', 'subject_id' => $employee->employee->id]);
+    }
+
+    /**
+     * A whole period, every weekday worked, has to come out on one sheet. It is
+     * pinned because the near miss is expensive and invisible: at looser
+     * spacing the footnote alone spilled over, which is a second sheet of paper
+     * per payslip for one paragraph of small print.
+     */
+    public function test_a_full_periods_pdf_fits_a_single_sheet(): void
+    {
+        $employee = $this->user('employee@hrms.local');
+        $this->timesheetFor($employee->employee, ['2027-05-03', '2027-05-04', '2027-05-05', '2027-05-06', '2027-05-07']);
+        $this->timesheetFor($employee->employee, ['2027-05-10', '2027-05-11', '2027-05-12', '2027-05-13', '2027-05-14']);
+
+        $content = $this->actingAs($employee)
+            ->get(route('payslips.download', [$employee->employee, self::PERIOD]))
+            ->assertOk()
+            ->getContent();
+
+        // Page dictionaries stay plain text even though the content streams are
+        // deflated, so they can be counted. /Pages is excluded -- the catalog
+        // holds one of those whatever the page count is.
+        $this->assertSame(1, preg_match_all('#/Type\s*/Page(?![a-zA-Z])#', $content));
+    }
+
+    /**
+     * The running footer is drawn onto the canvas rather than written in the
+     * template, because dompdf has no page counter. The failure mode is silent:
+     * page_text() called before render() walks an empty page list and draws
+     * nothing at all, so this asserts the text that actually came out.
+     */
+    public function test_the_pdf_footer_carries_the_number_and_the_page_count(): void
+    {
+        $employee = $this->user('employee@hrms.local');
+        $this->timesheetFor($employee->employee, ['2027-05-03']);
+
+        $drawn = $this->drawnText($this->actingAs($employee)
+            ->get(route('payslips.download', [$employee->employee, self::PERIOD]))
+            ->assertOk()
+            ->getContent());
+
+        $this->assertStringContainsString(sprintf('PS-202705A-%05d', $employee->employee->id), $drawn);
+        $this->assertMatchesRegularExpression('/Page \d+ of \d+/', $drawn);
+    }
+
+    /**
+     * The text dompdf drew, as far as a test can read it: inflate every stream,
+     * take the parenthesised string operands, and keep the low byte of each
+     * two-byte code the embedded subset font is addressed with.
+     */
+    private function drawnText(string $pdf): string
+    {
+        $inflated = '';
+        preg_match_all('#stream\r?\n(.*?)\r?\nendstream#s', $pdf, $streams);
+
+        foreach ($streams[1] as $stream) {
+            $plain = @gzuncompress($stream) ?: @gzinflate($stream);
+
+            if (is_string($plain)) {
+                $inflated .= $plain;
+            }
+        }
+
+        preg_match_all('#\(((?:[^()\\\\]|\\\\.)*)\)#', $inflated, $strings);
+
+        return collect($strings[1])
+            ->map(function (string $glyphs): string {
+                $text = '';
+
+                for ($i = 1; $i < strlen($glyphs); $i += 2) {
+                    $text .= $glyphs[$i];
+                }
+
+                return $text;
+            })
+            ->implode(' ');
     }
 
     public function test_approving_a_timesheet_tells_the_employee_their_payslip_is_ready(): void

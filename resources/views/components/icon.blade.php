@@ -79,6 +79,12 @@
         @case('arrow-down')
             <path d="m6 9 6 6 6-6" />
             @break
+        {{-- A shafted arrow, unlike the carets above: those two are sort
+             indicators, and a link that leaves a page needs to read as travel
+             rather than as a direction. --}}
+        @case('arrow-left')
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+            @break
         @case('inbox')
             <path d="M3 12h5l1.5 3h5L16 12h5" />
             <path d="M5.5 5h13l2.5 7v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z" />

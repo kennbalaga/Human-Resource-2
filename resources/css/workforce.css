@@ -128,33 +128,78 @@
 .ai-system-control-actions svg { width:1rem; }
 .ai-system-control-form .settings-security-note { margin:0; }
 .workforce-table code { color:var(--hr-muted); font-size: var(--fs-2xs); }
-/* Payslip: one document, laid out the way a printed payslip reads. */
-.payslip-sheet { display:grid; gap:1.25rem; max-width:60rem; padding:1.5rem; margin-bottom:1.25rem; }
-.payslip-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; padding-bottom:1rem; border-bottom:2px solid var(--hr-primary); }
+/* Payslip: one document, laid out the way a printed payslip reads.
+ *
+ * Every value here resolves through a token, which is the whole reason this
+ * block needs no counterpart in dark-mode.css: the theme re-points the tokens
+ * and the document follows. A literal hex or an rgba() added below is what
+ * would break that, so anything that cannot be said in tokens owes a matching
+ * html[data-theme-resolved='dark'] rule.
+ */
+/* The heading and the sheet share one column, which is what puts the Download
+   button flush with the sheet's right edge rather than a hand's width beyond it.
+   The column fills the content area on a laptop and only caps on a large
+   monitor, where the remainder is split evenly rather than left piled on the
+   right: a payslip is a document, and stretching its label/value rows across a
+   1600px desk reads worse than a little symmetric air. */
+.payslip-page { max-width:90rem; margin-inline:auto; }
+/* Both heading controls in one group so they stay together on the right.
+   The icon is matched to the primary button's 17px here rather than in the
+   shared rule, which still leaves the outline variant at the base 20px
+   everywhere else it is used. */
+.payslip-heading-actions { display:flex; align-items:center; flex-shrink:0; gap:.65rem; }
+.payslip-heading-actions .ui-icon { width:17px; height:17px; }
+.payslip-sheet { display:grid; gap:var(--sp-5); padding:var(--sp-6); margin-bottom:var(--sp-5); }
+.payslip-header { display:flex; align-items:flex-start; justify-content:space-between; gap:var(--sp-4); padding-bottom:var(--sp-4); border-bottom:2px solid var(--hr-primary); }
 .payslip-brand { display:flex; align-items:center; gap:.85rem; }
 .payslip-logo { display:inline-flex; flex:0 0 auto; color:var(--hr-primary-text); }
-.payslip-flags { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.5rem; }
-.payslip-confidential { padding:.2rem .55rem; border:1px solid currentColor; border-radius:var(--r-md); color:var(--hr-danger-text); font-size: var(--fs-2xs); font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
-.payslip-stack { display:grid; align-content:start; gap:1.25rem; }
+.payslip-flags { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:var(--sp-2); }
 .payslip-partial { margin:0; }
-.payslip-header h2 { margin:0; color:var(--hr-text); font-size: var(--fs-xl, 1.5rem); }
-.payslip-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.85rem 1.25rem; margin:0; }
+/* The masthead names the employee; the page's h1 is the only place the word
+   "Payslip" is a heading, so this is a subject line and sized as one. */
+.payslip-header h2 { margin:0; color:var(--hr-text); font-size: var(--fs-lg); letter-spacing:-.01em; }
+.payslip-subject-meta { margin:.2rem 0 0; }
+/* Six cells, so three columns divide evenly instead of stranding one label
+   alone on a third row. */
+.payslip-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--sp-3) var(--sp-5); margin:0; padding:var(--sp-4) 0; border-block:1px solid var(--hr-border); }
 .payslip-meta dt { color:var(--hr-muted); font-size: var(--fs-2xs); font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
-.payslip-meta dd { margin:.15rem 0 0; color:var(--hr-text); font-size: var(--fs-sm); }
-.payslip-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.25rem; }
+.payslip-meta dd { margin:.15rem 0 0; color:var(--hr-text); font-size: var(--fs-sm); line-height: var(--lh-snug); }
+.payslip-meta dd small { display:block; color:var(--hr-subtle); font-size: var(--fs-2xs); }
+.payslip-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--sp-5) var(--sp-6); }
 .payslip-section h3 { margin:0 0 .5rem; padding-bottom:.35rem; border-bottom:1px solid var(--hr-border); color:var(--hr-muted); font-size: var(--fs-xs); font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
 .payslip-table { width:100%; border-collapse:collapse; font-size: var(--fs-sm); }
-.payslip-table th,.payslip-table td { padding:.45rem 0; border-bottom:1px solid var(--hr-border); color:var(--hr-text); text-align:left; }
-.payslip-table tbody th { font-weight:600; }
+.payslip-table th,.payslip-table td { padding:var(--sp-2) 0; border-bottom:1px solid var(--hr-border); color:var(--hr-text); }
+.payslip-table tbody th { font-weight:600; text-align:left; }
 .payslip-table tbody td { text-align:right; }
 .payslip-table th small { display:block; color:var(--hr-subtle); font-size: var(--fs-2xs); font-weight:400; }
-.payslip-daily thead th { color:var(--hr-muted); font-size: var(--fs-2xs); text-transform:uppercase; }
-.payslip-daily th,.payslip-daily td,.payslip-daily tbody td { padding-inline:.5rem; text-align:left; }
-.payslip-pending { color:var(--hr-muted); font-style:italic; }
+/* Figures line up on the digits rather than on the glyph widths. */
+.payslip-numeric { font-variant-numeric:tabular-nums; }
+.payslip-numeric thead th:not(:first-child),.payslip-numeric tbody td:not(:first-child) { text-align:right; }
+/* A table head is load-bearing, not a divider, so it takes the edge that
+   clears 3:1 rather than the hairline. */
+.payslip-daily thead th { border-bottom-color:var(--hr-border-strong); color:var(--hr-muted); font-size: var(--fs-2xs); font-weight:800; text-align:left; text-transform:uppercase; }
+.payslip-daily th,.payslip-daily td { padding-inline:var(--sp-2); }
+.payslip-daily tbody th { white-space:nowrap; }
+/* The daily record is NOT wrapped in .table-responsive: that is overflow-x,
+   and a visible other axis computes to auto beside it, so the wrapper scrolls
+   vertically too and puts a scrollbar down a table that fits its container
+   perfectly well. Here the scroller only exists at the width that needs one,
+   and .table-stack is deliberately not used -- see payslips/show.blade.php. */
+.payslip-daily-scroll { min-width:0; }
+/* An em dash standing in for an absent figure is an inert glyph, which is what
+   --hr-placeholder is licensed for; the note beside it carries the content, so
+   neither of them is italic any more. */
+.payslip-placeholder { color:var(--hr-placeholder); }
+.payslip-amounts { display:grid; gap:var(--sp-3); }
+.payslip-note { margin:0; color:var(--hr-subtle); font-size: var(--fs-2xs); line-height: var(--lh-snug); }
 .payslip-empty { margin:0; color:var(--hr-muted); font-size: var(--fs-sm); }
-.payslip-net { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.85rem 1rem; border-radius:var(--r-md); background:var(--hr-surface-2); color:var(--hr-text); font-weight:800; }
-.payslip-footnote { margin:0; color:var(--hr-subtle); font-size: var(--fs-2xs); }
-@media(max-width:700px){.payslip-sheet{padding:1rem}.payslip-meta{grid-template-columns:repeat(2,minmax(0,1fr))}.payslip-columns{grid-template-columns:1fr}}
+.payslip-net { display:flex; align-items:center; justify-content:space-between; gap:var(--sp-4); padding:var(--sp-3) var(--sp-4); border:1px solid var(--hr-primary-line); border-radius:var(--r-md); background:var(--hr-primary-soft); color:var(--hr-text); font-size: var(--fs-md); font-weight:800; }
+.payslip-net strong { font-variant-numeric:tabular-nums; }
+.payslip-footnote { margin:0; padding-top:var(--sp-3); border-top:1px solid var(--hr-border); color:var(--hr-subtle); font-size: var(--fs-2xs); line-height: var(--lh-snug); }
+/* Below this the five figure columns would be crushed, so here -- and only
+   here -- the daily record gets a horizontal scroller. */
+@media(max-width:700px){.payslip-sheet{padding:var(--sp-4)}.payslip-meta{grid-template-columns:repeat(2,minmax(0,1fr))}.payslip-columns{grid-template-columns:1fr}.payslip-header{flex-direction:column}.payslip-flags{justify-content:flex-start}.payslip-daily-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}.payslip-daily{min-width:30rem}.payslip-heading-actions{width:100%}.payslip-heading-actions .btn{flex:1;justify-content:center}}
+@media(max-width:600px){.payslip-meta{grid-template-columns:1fr}}
 @media(max-width:1100px){.workforce-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.timesheet-entry-grid{grid-template-columns:repeat(4,minmax(7rem,1fr))}}
 @media(max-width:900px){.leave-balance-grid{grid-template-columns:1fr}.leave-calendar{min-width:48rem}.leave-calendar-panel{overflow-x:auto}.workforce-heading{align-items:stretch}.workforce-table-panel>.table-responsive{padding:0 .75rem .75rem}.integration-card-grid,.ai-system-control-layout{grid-template-columns:1fr}}
 @media(max-width:600px){.workforce-stats-grid{grid-template-columns:1fr}.workforce-filters{align-items:stretch;flex-direction:column}.workforce-filters label{width:100%;max-width:none;flex:auto}.workforce-filters .btn{width:100%}.timesheet-entry-grid{grid-template-columns:repeat(2,minmax(7rem,1fr))}}

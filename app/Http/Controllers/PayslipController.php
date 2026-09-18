@@ -107,9 +107,43 @@ class PayslipController extends Controller
         // a failed render is exactly the download worth having on record.
         $this->recordAccess($request, $employee, $payslip['period'], 'payslips.download');
 
-        return Pdf::loadView('payslips.pdf', ['payslip' => $payslip])
-            ->setPaper('a4', 'portrait')
-            ->download('payslip-'.$payslip['number'].'.pdf');
+        $pdf = Pdf::loadView('payslips.pdf', ['payslip' => $payslip])->setPaper('a4', 'portrait');
+
+        // The footer is drawn on the canvas rather than written in the template.
+        // dompdf 3 has no CSS page counter, and the alternative -- a
+        // <script type="text/php"> block -- needs enable_php, which turns on
+        // eval() of template scripts for every PDF this app renders. That is
+        // not a trade worth making for a footer.
+        //
+        // page_text() walks the pages that already exist, so it has to run
+        // after render(); download() sees the rendered flag and will not
+        // render a second time.
+        $pdf->render();
+        $dompdf = $pdf->getDomPDF();
+        $canvas = $dompdf->getCanvas();
+        $metrics = $dompdf->getFontMetrics();
+        $font = $metrics->getFont('DejaVu Sans', 'normal');
+        $ink = [0.37, 0.46, 0.56];  // --hr-muted, #5f7690, as 0-1 floats
+
+        // The template's @page margin is in px; the canvas works in points, so
+        // the footer is inset by the same 36px converted rather than by a second
+        // hand-picked number that would drift away from it.
+        $margin = 36 * 0.75;
+        $baseline = $canvas->get_height() - 30;
+        $pages = 'Page {PAGE_NUM} of {PAGE_COUNT}';
+
+        // page_text() has no alignment, so the right-hand string is placed by
+        // its own width. The placeholders are wider than the digits that replace
+        // them, so a same-shape literal is what gets measured.
+        $pagesWidth = $metrics->getTextWidth('Page 9 of 9', $font, 8);
+
+        // The number goes on every page as well as the count: a loose page of a
+        // payslip is otherwise unidentifiable, which is the point of a running
+        // footer on a document like this one.
+        $canvas->page_text($margin, $baseline, $payslip['number'], $font, 8, $ink);
+        $canvas->page_text($canvas->get_width() - $margin - $pagesWidth, $baseline, $pages, $font, 8, $ink);
+
+        return $pdf->download('payslip-'.$payslip['number'].'.pdf');
     }
 
     /**
