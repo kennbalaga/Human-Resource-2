@@ -255,15 +255,6 @@
 
 /* --------------------------------------------------- 1. today's attendance */
 
-/* The critical card. It carries an accent rail so it reads as the page's anchor
-   even in a screenshot -- but only while the employee is actually on the clock,
-   which is the one state worth marking from across the room. The idle and closed
-   states keep the plain card outline: a grey rail marks nothing, and a heavy
-   grey line under the page heading only reads as grime. */
-.staff-today-success {
-    border-top: 3px solid var(--hr-primary);
-}
-
 .staff-today-date {
     color: var(--hr-muted);
     font-size: var(--fs-2xs);

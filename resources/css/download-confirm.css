@@ -6,21 +6,11 @@
 }
 
 .download-confirm-card {
-    position: relative;
-    overflow: hidden;
     padding-top: 1.25rem;
     border: 1px solid var(--hr-border);
     border-radius: var(--r-xl);
     background: var(--hr-surface);
     box-shadow: 0 28px 80px rgba(17, 50, 34, .24);
-}
-
-.download-confirm-card::before {
-    position: absolute;
-    inset: 0 0 auto;
-    height: 4px;
-    background: linear-gradient(90deg, var(--hr-primary), var(--hr-primary-hover));
-    content: '';
 }
 
 .download-confirm-icon {

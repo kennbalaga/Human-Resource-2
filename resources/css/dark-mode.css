@@ -823,7 +823,6 @@ html[data-theme-resolved='dark'] .status-bar-draft { background:var(--hr-muted)!
 html[data-theme-resolved='dark'] .status-bar-submitted { background:var(--hr-warning)!important; }
 html[data-theme-resolved='dark'] .status-bar-approved { background:var(--hr-primary)!important; }
 html[data-theme-resolved='dark'] .status-bar-rejected { background:var(--hr-danger-text)!important; }
-html[data-theme-resolved='dark'] .ai-insight-panel { border-top-color:var(--hr-violet); }
 
 /*
  * Attendance overview fills. The theme's pastel accents are tuned for text and

@@ -8,7 +8,6 @@
 .analytics-metric span:not(.analytics-metric-icon),.analytics-metric small { color:var(--hr-subtle); font-size: var(--fs-2xs); }
 .analytics-metric strong { color:var(--hr-text); font-size: var(--fs-xl); line-height:1.25; }
 .analytics-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.25rem; }
-.ai-insight-panel { border-top:3px solid var(--hr-violet); }
 .ai-insight-panel .btn { display:inline-flex; align-items:center; gap:.4rem; }
 .ai-insight-panel .btn svg { width:1rem; }
 .ai-insight-copy { padding:0 1.25rem 1.25rem; color:var(--hr-muted); font-size: var(--fs-base); line-height:1.7; white-space:normal; }
