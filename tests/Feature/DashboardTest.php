@@ -44,14 +44,12 @@ class DashboardTest extends TestCase
             ->assertSee('sidebar-brand-toggle', false)
             ->assertSee(config('branding.organization'))
             ->assertDontSee('sidebar-section-label')
-            // Integrations and audit logs are no longer buried in Account
-            // settings; they sit in their own sidebar group, gated to the roles
-            // that administer them (IntegrationController::authorizeIntegrationAdmin()
-            // and AuditLogController::authorizeAuditAccess()). An HR manager
-            // holds that gate, so the group belongs on this page — the staff
-            // case below is what proves the gate still closes.
-            ->assertSee('>Integrations<', false)
-            ->assertSee('>Audit logs<', false)
+            // Integrations and audit logs are System Administrator tools reached
+            // from Settings, never from the rail, and an HR manager does not get
+            // the audit trail's dashboard window either.
+            ->assertDontSee('>Integrations<', false)
+            ->assertDontSee('>Audit logs<', false)
+            ->assertDontSee('recent-activity-title', false)
             ->assertDontSee('sidebar-user', false)
             ->assertSee('data-topbar-clock', false)
             ->assertSee('data-timezone="Asia/Manila"', false)
@@ -123,8 +121,22 @@ class DashboardTest extends TestCase
             ->assertDontSee('Recently added employees')
             ->assertDontSee('Workforce by department')
             ->assertDontSee('data-dashboard-action-menu', false)
-            // The administration group is role-gated, so a standard employee
-            // gets neither entry in the sidebar.
+            ->assertDontSee('>Integrations<', false)
+            ->assertDontSee('>Audit logs<', false);
+    }
+
+    public function test_only_the_system_administrator_sees_the_audit_trail_on_the_dashboard(): void
+    {
+        $this->seed();
+
+        $administrator = User::query()->where('email', 'admin@hrms.local')->firstOrFail();
+
+        $this->actingAs($administrator)->get('/dashboard')
+            ->assertOk()
+            ->assertSee('recent-activity-title', false)
+            ->assertSee(route('audit-logs.index'), false)
+            // Even for the administrator the rail stays free of them; Settings
+            // is where both tools live.
             ->assertDontSee('>Integrations<', false)
             ->assertDontSee('>Audit logs<', false);
     }

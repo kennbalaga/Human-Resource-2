@@ -86,12 +86,9 @@ class AiSchedulingSettingsTest extends TestCase
         ])->assertNotFound();
     }
 
-    public function test_hr_manager_can_view_but_cannot_change_the_global_setting(): void
+    public function test_hr_manager_can_neither_open_nor_change_the_global_setting(): void
     {
-        $this->actingAs($this->manager)->get(route('integrations.index'))
-            ->assertOk()
-            ->assertSee('Only a System Administrator can change this global setting.')
-            ->assertDontSee('Save AI settings');
+        $this->actingAs($this->manager)->get(route('integrations.index'))->assertForbidden();
 
         $this->actingAs($this->manager)->patch(route('integrations.ai-scheduling.update'), [
             'assistant_enabled' => '1',

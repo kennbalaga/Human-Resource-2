@@ -67,9 +67,7 @@ class SettingsController extends Controller
             'canManageNotificationEmails' => $user->hasRole('system-administrator'),
             'notificationEmailsEnabled' => $notificationEmailSettings->enabled(),
             'notificationEmailsUpdatedBy' => $notificationEmailSettings->updatedBy()?->name,
-            'canAccessSystemAdministration' => $user->roles->contains(
-                fn ($role) => in_array($role->slug, ['system-administrator', 'hr-manager'], true),
-            ),
+            'canAccessSystemAdministration' => $user->hasRole('system-administrator'),
             'employeeNumberAutoGenerate' => $employeeNumberSettings->autoGenerateEnabled(),
             'employeeNumberSettingSource' => $employeeNumberSettings->source(),
             'employeeNumberSettingUpdatedBy' => $employeeNumberSettings->updatedBy()?->name,

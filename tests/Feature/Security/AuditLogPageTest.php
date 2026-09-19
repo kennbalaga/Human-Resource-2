@@ -21,6 +21,15 @@ class AuditLogPageTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_the_trail_is_closed_to_hr_managers_too(): void
+    {
+        $this->seed();
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+
+        $this->actingAs($manager)->get('/audit-logs')->assertForbidden();
+        $this->actingAs($manager)->get('/audit-logs/export')->assertForbidden();
+    }
+
     public function test_the_page_classifies_events_by_module_activity_and_outcome(): void
     {
         $this->seed();
