@@ -1,74 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="referrer" content="no-referrer">
-    <title>Forgot Password - {{ config('branding.organization') }}</title>
-    @include('partials.favicon')
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    @vite(['resources/css/style.css', 'resources/js/script.js'])
-</head>
-<body>
-    <div class="split-screen">
-        <div class="left-pane">
-            <header class="logo">
-                <x-brand-mark :size="56" class="logo-seal" /> {{ config('branding.organization') }} <br> {{ config('branding.tagline') }}
-            </header>
+<x-auth-shell
+    :title="'Forgot Password - '.config('branding.organization')"
+    lede="Reset access through your verified work email, without the form ever revealing whether an account exists."
+    :no-referrer="true"
+>
 
-            <main class="login-container">
-                <div class="login-header">
-                    <h1>Reset Your Password</h1>
-                    <p>Enter your employee ID and registered work email. We will send a secure reset link if they match an active account.</p>
-                </div>
+    <p class="auth-card-kicker">Account recovery</p>
+    <h1 class="auth-card-title">Reset Your Password</h1>
+    <p class="auth-card-sub">Enter your employee ID and registered work email. We will send a secure reset link if they match an active account.</p>
 
-                <form method="POST" action="{{ route('password.email') }}">
-                    @csrf
+    <form method="POST" action="{{ route('password.email') }}">
+        @csrf
 
-                    @if (session('status'))
-                        <p role="status" class="auth-alert auth-alert-success">{{ session('status') }}</p>
-                    @endif
+        @if (session('status'))
+            <p role="status" class="auth-alert auth-alert-success">{{ session('status') }}</p>
+        @endif
 
-                    @if ($errors->any())
-                        <p role="alert" class="auth-alert auth-alert-error">{{ $errors->first() }}</p>
-                    @endif
+        @if ($errors->any())
+            <p role="alert" class="auth-alert auth-alert-error">{{ $errors->first() }}</p>
+        @endif
 
-                    <div class="input-group">
-                        <label for="employee_id">Employee ID</label>
-                        <input type="text" id="employee_id" name="employee_id" value="{{ old('employee_id') }}" autocomplete="username" required autofocus>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="email">Registered work email</label>
-                        <input type="email" id="email" name="email" value="{{ old('email') }}" autocomplete="email" required>
-                    </div>
-
-                    <div class="security-note">
-                        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-                        <span>The link expires in 30 minutes and can only be used once.</span>
-                    </div>
-
-                    <button type="submit" class="btn-primary">Send Reset Link</button>
-                    <a href="{{ route('login') }}" class="back-to-login"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to login</a>
-                </form>
-            </main>
-
-            <footer class="footer-links">
-                <span class="copyright">&copy; {{ now()->year }} {{ config('branding.organization') }}. All rights reserved.</span>
-                <a href="{{ route('privacy-policy') }}" class="privacy">Privacy Policy</a>
-            </footer>
+        <div class="input-group">
+            <label for="employee_id">Employee ID</label>
+            <input type="text" id="employee_id" name="employee_id" value="{{ old('employee_id') }}" autocomplete="username" required autofocus>
         </div>
 
-        <div class="right-pane">
-            <div class="hero-content">
-                <h2>Secure account recovery for your workforce.</h2>
-                <p>Reset access through your verified work email without exposing whether an account exists.</p>
-                <img src="{{ URL('images/doctors.png') }}" alt="Hospital workforce illustration" class="hero-image">
-            </div>
-            <div class="bg-shape shape-1"></div>
-            <div class="bg-shape shape-2"></div>
+        <div class="input-group">
+            <label for="email">Registered work email</label>
+            <input type="email" id="email" name="email" value="{{ old('email') }}" autocomplete="email" required>
         </div>
-    </div>
-</body>
-</html>
+
+        <div class="security-note">
+            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+            <span>The link expires in 30 minutes and can only be used once.</span>
+        </div>
+
+        <button type="submit" class="btn-primary">
+            <x-icon name="mail" /> Send Reset Link
+        </button>
+
+        <a href="{{ route('login') }}" class="back-to-login">
+            <x-icon name="arrow-left" /> Back to login
+        </a>
+    </form>
+
+</x-auth-shell>

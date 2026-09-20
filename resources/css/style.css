@@ -43,62 +43,6 @@ body {
     line-height: var(--lh-base);
 }
 
-.split-screen {
-    display: flex;
-    height: 100vh;
-    width: 100%;
-}
-
-/* --- Left Pane: Form Styling --- */
-.left-pane {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 2rem 4rem;
-    position: relative;
-    max-width: 50%;
-}
-
-.logo {
-    font-size: var(--fs-base);
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 1.3rem;
-    color: var(--text-gray);
-}
-
-.icon-logo {
-    color: var(--primary-blue-text);
-    font-size: var(--fs-2xl);
-}
-
-.login-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    max-width: 400px;
-    margin: 0 auto;
-    width: 100%;
-}
-
-.login-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.login-header h1 {
-    font-size: var(--fs-3xl);
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-}
-
-.login-header p {
-    color: var(--text-light);
-    font-size: var(--fs-base);
-}
-
 .input-group {
     margin-bottom: 1.25rem;
 }
@@ -312,11 +256,6 @@ body {
     margin-right: 0.35rem;
 }
 
-.two-factor-challenge { max-width: 430px; }
-.two-factor-challenge-icon { display:grid; width:3.25rem; height:3.25rem; margin:0 auto 1rem; border-radius:var(--r-lg); color:var(--hr-text); background:var(--hr-primary-soft); font-size: var(--fs-lg); place-items:center; }
-.two-factor-challenge .login-header { margin-bottom:1.35rem; }
-.two-factor-challenge .login-header p { max-width:25rem; margin:0 auto; line-height:1.55; }
-.two-factor-challenge .one-time-code { letter-spacing:.28rem; text-align:center; font-size: var(--fs-md)!important; font-weight:700; }
 .recovery-login { margin-top:1rem; border:1px solid var(--border-color); border-radius:var(--r-md); }
 .recovery-login summary { padding:.8rem; color:var(--primary-blue-text); font-size: var(--fs-sm); font-weight:700; text-align:center; cursor:pointer; }
 .recovery-login[open] summary { border-bottom:1px solid var(--border-color); }
@@ -324,14 +263,6 @@ body {
 .two-factor-help { display:flex; align-items:flex-start; gap:.5rem; margin-top:1rem; padding:.75rem; border-radius:var(--r-md); color:var(--hr-text); background:var(--hr-primary-soft); font-size: var(--fs-xs); line-height:1.5; }
 .two-factor-help i { margin-top:.15rem; }
 
-
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    font-size: var(--fs-base);
-}
 
 .forgot-password {
     color: var(--primary-blue-text);
@@ -354,235 +285,6 @@ body {
 
 .btn-primary:hover {
     background-color: var(--primary-hover);
-}
-
-.divider {
-    display: flex;
-    align-items: center;
-    text-align: center;
-    margin: 1.5rem 0;
-    color: var(--text-light);
-    font-size: var(--fs-base);
-}
-
-.divider::before,
-.divider::after {
-    content: '';
-    flex: 1;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.divider span {
-    padding: 0 10px;
-}
-
-.social-login {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.btn-social {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    background-color: var(--bg-light);
-    border: 1px solid var(--border-color);
-    border-radius: var(--r-md);
-    font-size: var(--fs-base);
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.btn-social:hover {
-    background-color: var(--bg-gray);
-}
-
-.btn-social img {
-    width: 18px;
-    height: 18px;
-}
-
-.btn-social i {
-    font-size: var(--fs-lg);
-}
-
-.register-text {
-    text-align: center;
-    font-size: var(--fs-base);
-    color: var(--text-gray);
-}
-
-.register-text a {
-    color: var(--primary-blue-text);
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.footer-links {
-    display: flex;
-    justify-content: space-between;
-    font-size: var(--fs-sm);
-    color: var(--text-light);
-    margin-top: auto;
-}
-
-.footer-links a {
-    color: var(--text-light);
-    text-decoration: none;
-}
-
-/* Two children, both of which want the same line. The copyright is the one
-   allowed to wrap; breaking "Privacy / Policy" across lines makes the only
-   link on the page look like two. */
-.footer-links {
-    gap: 1rem;
-}
-
-.footer-links .privacy {
-    flex: 0 0 auto;
-    white-space: nowrap;
-}
-
-/* --- Right Pane: Hero Section --- */
-.right-pane {
-    flex: 1;
-    background-color: var(--primary-blue);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.hero-content {
-    position: relative;
-    z-index: 2;
-    padding: 2rem;
-    color: white;
-    max-width: 600px;
-}
-
-.hero-content h2 {
-    font-size: var(--fs-4xl);
-    font-weight: 600;
-    line-height: 1.2;
-    margin-bottom: 1rem;
-}
-
-.hero-content p {
-    font-size: var(--fs-md);
-    opacity: 0.9;
-    margin-bottom: 1rem;
-}
-
-/* Abstract Mockup Elements to represent the image */
-.dashboard-mockup {
-    position: relative;
-    width: 100%;
-    height: 300px;
-}
-
-.mockup-card {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: var(--r-md);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    position: absolute;
-}
-
-.main-card {
-    width: 100%;
-    height: 250px;
-    bottom: 0;
-    left: 0;
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-}
-
-.mockup-header {
-    height: 40px;
-    background: var(--hr-surface-2);
-    border-radius: var(--r-sm);
-    margin-bottom: 1rem;
-}
-
-.mockup-body {
-    flex: 1;
-    background: var(--hr-surface-2);
-    border-radius: var(--r-sm);
-}
-
-.floating-card {
-    width: 180px;
-    height: 180px;
-    right: -20px;
-    top: -20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.mockup-circle {
-    width: 120px;
-    height: 120px;
-    border: 15px solid var(--hr-violet);
-    border-top-color: transparent;
-    border-radius: 50%;
-    transform: rotate(45deg);
-}
-
-.hero-image {
-    width: 100%;
-    max-width: 400px;
-    height: auto;
-    border-radius: var(--r-md);
-    display: block;
-    margin: 0 auto;
-    position: relative;
-    z-index: 2;
-}
-
-/* Decorative Background Shapes */
-.bg-shape {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 50%;
-}
-
-.shape-1 {
-    width: 600px;
-    height: 600px;
-    top: -100px;
-    right: -200px;
-}
-
-.shape-2 {
-    width: 400px;
-    height: 400px;
-    bottom: -150px;
-    left: -100px;
-}
-
-/* --- Responsive Design --- */
-@media (max-width: 1000px) {
-    .split-screen {
-        flex-direction: column;
-    }
-    
-    .left-pane {
-        max-width: 100%;
-        min-height: 100vh;
-        padding: 2rem;
-    }
-
-    .right-pane {
-        display: none;
-    }
 }
 
 /* The auth pages clear the outline on their inputs; give keyboard users a ring
@@ -617,28 +319,6 @@ body {
         overflow: auto;
         overscroll-behavior-y: contain;
         -webkit-text-size-adjust: 100%;
-    }
-
-    .split-screen {
-        height: auto;
-        min-height: 100vh;
-        min-height: 100dvh;
-    }
-
-    .left-pane {
-        min-height: 100dvh;
-        padding:
-            calc(1.5rem + env(safe-area-inset-top, 0px))
-            calc(1.5rem + env(safe-area-inset-right, 0px))
-            calc(1.5rem + env(safe-area-inset-bottom, 0px))
-            calc(1.5rem + env(safe-area-inset-left, 0px));
-    }
-
-    .login-container {
-        /* Centring inside a pane taller than the screen pushes the form below
-           the fold on a short handset. Top-aligned with breathing room instead. */
-        justify-content: flex-start;
-        padding-top: 2rem;
     }
 }
 
@@ -676,40 +356,10 @@ body {
 
     /* At their natural line height these links are ~20px tall, which is a
        coin-flip for a thumb. */
-    .forgot-password,
-    .footer-links a {
+    .forgot-password {
         display: inline-flex;
         min-height: 44px;
         align-items: center;
-    }
-}
-
-@media (max-width: 420px) {
-    .left-pane {
-        padding-right: calc(1.15rem + env(safe-area-inset-right, 0px));
-        padding-left: calc(1.15rem + env(safe-area-inset-left, 0px));
-    }
-
-    .login-header h1 {
-        font-size: var(--fs-2xl);
-    }
-
-    /* The full organisation name beside a 60px mark wraps to four lines on a
-       360px screen and eats a third of the fold. */
-    .logo {
-        gap: 0.75rem;
-        font-size: var(--fs-sm);
-    }
-
-    .logo img,
-    .logo svg {
-        width: 44px;
-    }
-
-    .footer-links {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.25rem;
     }
 }
 
@@ -731,6 +381,401 @@ body {
     .logo-seal {
         width: 42px;
         height: 42px;
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * The sign-in screen
+ *
+ * The shell all five auth pages are drawn in, via <x-auth-shell>: brand column
+ * on white, form card on the sunken ground, one footer beneath the column. It
+ * replaced a .split-screen / .left-pane / .right-pane layout whose rules are
+ * gone from this file — along with the hero pane, its illustration and the
+ * decorative shapes — because nothing renders them any more.
+ *
+ * The pieces above are shared rather than redeclared: .input-group,
+ * .auth-alert*, .btn-primary, .toggle-password, .security-note, .password-hint,
+ * .back-to-login, .recovery-login, .two-factor-help and .auth-dialog*. Only the
+ * card's tighter measure is restated, scoped under .auth-card.
+ *
+ * Grid rather than two flex panes, because the footer is ONE element: column 1
+ * row 2 on a wide screen, the last row of a single column on a phone. Rendering
+ * it twice and hiding a copy per breakpoint is how it ends up on screen twice.
+ * --------------------------------------------------------------------- */
+.auth-split {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    grid-template-rows: 1fr auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+.brand-pane {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    justify-content: center;
+    min-height: 0;
+    padding: 3rem 2.5rem 0;
+}
+
+/* One column for the brand block and the footer below it, so the hairline rule
+   closes the text it belongs to instead of running the full width of the pane.
+   Centred in the column rather than pinned left, so it stays in conversation
+   with the card on a wide monitor. */
+.brand-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: min(32rem, 100%);
+}
+
+.brand-tile {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--hr-primary);
+    /* The mark paints in currentColor, so this is what makes it white. */
+    color: var(--hr-on-primary);
+}
+
+.brand-kicker {
+    margin-top: 2.5rem;
+    color: var(--hr-subtle);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.brand-title {
+    margin-top: 0.625rem;
+    font-size: var(--fs-3xl);
+    font-weight: 700;
+    line-height: 1.14;
+    letter-spacing: -0.018em;
+    text-wrap: balance;
+}
+
+.brand-lede {
+    max-width: 40ch;
+    margin-top: 0.875rem;
+    color: var(--text-gray);
+    font-size: var(--fs-sm);
+}
+
+.brand-features {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 2.25rem;
+    list-style: none;
+}
+
+.brand-features li {
+    display: flex;
+    align-items: center;
+    gap: 0.6875rem;
+    color: var(--text-light);
+    font-size: var(--fs-sm);
+}
+
+/* <x-icon> ships no dimensions of its own, and this page does not load the
+   dashboard sheet that sizes .ui-icon everywhere else. */
+.brand-features .ui-icon {
+    flex: 0 0 auto;
+    width: 17px;
+    height: 17px;
+    color: var(--primary-blue);
+}
+
+.form-pane {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: flex;
+    min-height: 0;
+    /* The card is centred by its own auto margins rather than align-items,
+       which clips the top of an overflowing child instead of scrolling it. */
+    overflow-y: auto;
+    background: var(--bg-gray);
+    padding: 3rem 2rem;
+}
+
+.auth-card {
+    width: min(410px, 100%);
+    margin: auto;
+    padding: 2.25rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-lg);
+    background: var(--bg-light);
+    box-shadow: 0 1px 2px rgba(25, 52, 81, 0.04), 0 20px 48px rgba(25, 52, 81, 0.09);
+}
+
+.auth-card-kicker {
+    color: var(--primary-blue-text);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.auth-card-title {
+    margin-top: 0.5rem;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.auth-card-sub {
+    margin: 0.375rem 0 1.75rem;
+    color: var(--text-gray);
+    font-size: var(--fs-sm);
+}
+
+/* Tighter than the metrics the other auth pages want, and scoped so they keep
+   theirs. */
+.auth-card .input-group label {
+    font-size: var(--fs-xs);
+}
+
+.auth-card .input-group input[type="text"],
+.auth-card .input-group input[type="email"],
+.auth-card .input-group input[type="password"] {
+    min-height: 44px;
+    padding: 0.75rem 0.875rem;
+    font-size: var(--fs-sm);
+}
+
+.auth-card .input-group input:focus {
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), 0.12);
+}
+
+.auth-card .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 46px;
+    margin-top: 1.5rem;
+    padding: 0.75rem;
+    font-size: var(--fs-sm);
+}
+
+.auth-card .btn-primary .ui-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* Centred under the button: the recovery link is where someone looks after the
+   button has failed them, not before they have tried it. */
+.auth-card .forgot-password {
+    display: block;
+    margin-top: 1rem;
+    font-size: var(--fs-xs);
+    text-align: center;
+}
+
+.auth-foot {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+    justify-content: center;
+    padding: 0 2.5rem 3rem;
+}
+
+.auth-foot-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    width: min(32rem, 100%);
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-light);
+    font-size: var(--fs-2xs);
+}
+
+.auth-foot-row a {
+    flex: 0 0 auto;
+    color: var(--text-light);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.auth-foot-row a:hover {
+    color: var(--primary-blue-text);
+    text-decoration: underline;
+}
+
+/* The plate above the heading on the pages that interrupt something rather
+   than start it — two-factor, and the confirm step before a download. */
+.auth-card-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 1.25rem;
+    border-radius: var(--r-md);
+    color: var(--primary-blue-text);
+    background: var(--hr-primary-soft);
+    font-size: var(--fs-md);
+}
+
+/* The pieces the other auth pages bring with them. The rules above the sign-in
+   block already style each of these; these only retune them to the card's
+   tighter measure, and stay scoped so the originals are left alone. */
+.auth-card .security-note {
+    margin: 0 0 1.25rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--border-color);
+    font-size: var(--fs-2xs);
+}
+
+.auth-card .two-factor-help {
+    margin-top: 1rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--border-color);
+    font-size: var(--fs-2xs);
+}
+
+.auth-card .password-hint {
+    margin-top: 0.4375rem;
+    font-size: var(--fs-2xs);
+}
+
+.auth-card .back-to-login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-top: 1rem;
+    font-size: var(--fs-xs);
+}
+
+.auth-card .back-to-login .ui-icon {
+    width: 15px;
+    height: 15px;
+}
+
+/* Readonly because the token decided it, not the person: say so rather than
+   offering a field that looks editable and refuses. */
+.auth-card .input-group input[readonly] {
+    color: var(--text-gray);
+    background: var(--hr-surface-2);
+    cursor: default;
+}
+
+.auth-card .input-group input[readonly]:focus {
+    border-color: var(--border-color);
+    box-shadow: none;
+}
+
+.auth-card .one-time-code {
+    letter-spacing: 0.28rem;
+    text-align: center;
+    font-size: var(--fs-md) !important;
+    font-weight: 700;
+}
+
+.auth-card .recovery-login {
+    margin-top: 1rem;
+}
+
+.auth-card .recovery-login summary {
+    padding: 0.75rem;
+    font-size: var(--fs-xs);
+}
+
+.auth-card .recovery-login form {
+    padding: 0.875rem;
+}
+
+.auth-card .recovery-login .btn-primary {
+    margin-top: 1rem;
+}
+
+/* Stacked at the width this sheet already reflows at, so the sign-in screen
+   changes shape together with every other auth page. */
+@media (max-width: 1000px) {
+    .auth-split {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+    }
+
+    .brand-pane {
+        grid-column: 1;
+        grid-row: 1;
+        justify-content: flex-start;
+        padding:
+            calc(2rem + env(safe-area-inset-top, 0px))
+            calc(1.5rem + env(safe-area-inset-right, 0px))
+            0
+            calc(1.5rem + env(safe-area-inset-left, 0px));
+    }
+
+    .brand-col { width: 100%; }
+    .brand-kicker { margin-top: 1.5rem; }
+    .brand-title { font-size: var(--fs-2xl); }
+    .brand-lede { max-width: none; }
+    .brand-features { margin-top: 1.5rem; }
+
+    .form-pane {
+        grid-column: 1;
+        grid-row: 2;
+        overflow: visible;
+        background: transparent;
+        padding:
+            2rem
+            calc(1.5rem + env(safe-area-inset-right, 0px))
+            0
+            calc(1.5rem + env(safe-area-inset-left, 0px));
+    }
+
+    .auth-card { width: 100%; margin: 0; }
+
+    .auth-foot {
+        grid-column: 1;
+        grid-row: 3;
+        justify-content: flex-start;
+        padding:
+            0
+            calc(1.5rem + env(safe-area-inset-right, 0px))
+            calc(2rem + env(safe-area-inset-bottom, 0px))
+            calc(1.5rem + env(safe-area-inset-left, 0px));
+    }
+
+    .auth-foot-row { width: 100%; margin-top: 2rem; }
+}
+
+@media (max-width: 1000px) and (pointer: coarse) {
+    .auth-card .input-group input[type="text"],
+    .auth-card .input-group input[type="email"],
+    .auth-card .input-group input[type="password"] {
+        /* Safari zooms a focused field under 16px and never zooms back out. */
+        font-size: 16px;
+        min-height: 48px;
+    }
+
+    .auth-card .btn-primary { min-height: 48px; }
+
+    .auth-card .forgot-password,
+    .auth-foot-row a {
+        display: inline-flex;
+        min-height: var(--tap-min);
+        align-items: center;
+    }
+}
+
+@media (max-width: 420px) {
+    .auth-card { padding: 1.5rem 1.25rem; }
+    .brand-title { font-size: var(--fs-2xl); }
+
+    .auth-foot-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
     }
 }
 
