@@ -451,9 +451,32 @@
     background: color-mix(in srgb, var(--event-color) 9%, white);
 }
 
+/*
+ * A grid item's automatic minimum size is its min-content size, and for a run
+ * of text that is its longest word. A week column is minmax(0, 1fr), so it
+ * cannot grow to take the chip -- the chip overflowed it instead. Seven
+ * columns leave each day about 95px of text at any screen size, and
+ * "Administrative" wants 105px, so this was never only a phone problem: on a
+ * laptop the name ran out past the chip's own tint, and on a phone, where
+ * .week-calendar is pinned to 48rem, it put the name and the time on top of
+ * the next day's "No shifts". A shift read as falling on the wrong day is the
+ * worst way for this to fail.
+ *
+ * One line, clipped, as the month chip beside it already does: a name too long
+ * for a day column is a fact of a seven-column board, and the two calendars
+ * should not answer it differently. The full name is a tap away in the event
+ * detail, and the list view -- the phone's real answer here -- spells it out.
+ */
+.week-schedule-event > * {
+    min-width: 0;
+}
+
 .week-schedule-event strong {
+    overflow: hidden;
     color: var(--hr-text);
     font-size: var(--fs-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .week-schedule-event small,

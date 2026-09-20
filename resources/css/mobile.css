@@ -365,9 +365,15 @@
         min-width: 0;
     }
 
+    /* .employee-cell-link is here because the name is a link in the employee
+       directory's own table and bare text in the dashboard's, and only the
+       second spelling was listed — so on a 360px card the directory still cut
+       "Josephine Aranda" down to "Josephine Aran...", which is the one value
+       in the row that says which row it is. */
     .table-stack .employee-cell > div,
     .table-stack .employee-cell strong,
-    .table-stack .employee-cell span {
+    .table-stack .employee-cell span,
+    .table-stack .employee-cell .employee-cell-link {
         overflow: visible;
         text-overflow: clip;
         white-space: normal;
@@ -968,6 +974,61 @@
     .profile-hero-avatar {
         width: 3.6rem;
         height: 3.6rem;
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * 8c. One-line text that has no line to sit on
+ *
+ * Several lists pin a label to a single row with `white-space: nowrap` and an
+ * ellipsis. That is the right call on a desktop, where the row is 600px wide
+ * and clipping is rare. On a 390px phone the same rows had nothing left to
+ * clip back to: a search result read "Department of Obstetrics a...", a
+ * watchlist row "Days since last leave - Department of Derma...". The name of
+ * the thing being listed is the one part of the row that cannot be guessed
+ * from the rest, so on a phone these wrap instead. Vertical space is the
+ * cheapest thing a phone has.
+ * --------------------------------------------------------------------- */
+@media (max-width: 700px) {
+    /* Global search, both surfaces: the results page and the topbar dropdown.
+       `overflow-wrap: anywhere` is what actually breaks an employee number --
+       "NUR-STAFF-DERM-2026-0006" offers a layout engine no break opportunity
+       of its own, so without it the line just runs on and is clipped again. */
+    .global-search-result strong,
+    .global-search-result small {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    /* The dashboard's department list and the burnout/exception watchlists.
+       Their leading <strong> is a person's name or a short heading and stays
+       on one line; it is the qualifier underneath that needed the room. */
+    .department-row-top strong,
+    .exception-item-meta {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+    }
+}
+
+/*
+ * A page tab is an icon tile, a title and a one-line description. The strip
+ * becomes a horizontal scroller on a phone with every card at 14rem, which
+ * leaves the description about 152px -- enough for "Regular, overtime, late
+ * and undertime mi...", which is not a description of anything. tabs.css
+ * already drops it below its own 11rem container query for exactly this
+ * reason; a phone is the same situation arrived at from the other direction.
+ * The card loses the height the second line was holding with it.
+ */
+@media (max-width: 700px) {
+    .page-tab-text small {
+        display: none;
+    }
+
+    .page-tab-body {
+        min-height: 3.2rem;
     }
 }
 
