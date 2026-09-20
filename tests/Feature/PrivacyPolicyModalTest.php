@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -182,7 +183,7 @@ class PrivacyPolicyModalTest extends TestCase
      */
     public function test_a_signed_in_reader_gets_the_document_itself(): void
     {
-        $this->actingAs(\App\Models\User::factory()->create());
+        $this->actingAs(User::factory()->create());
 
         $this->get(route('privacy-policy'))
             ->assertOk()
