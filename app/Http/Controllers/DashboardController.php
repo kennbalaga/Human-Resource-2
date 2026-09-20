@@ -120,8 +120,8 @@ class DashboardController extends Controller
             'shiftOverview' => $shiftOverview->forToday(),
             'scheduleCalendar' => $scheduleCalendar->forCurrentWeek(),
             // The audit trail names who did what to whose record, so it is shown
-            // only to the roles that are already allowed to open Audit Logs.
-            'activity' => $canManageWorkforce ? $recentActivity->latest() : null,
+            // only to the role allowed to open Audit Logs, where its link leads.
+            'activity' => $request->user()->hasRole('system-administrator') ? $recentActivity->latest() : null,
             // The two action panels lead the page, and both are closed to a viewer
             // who cannot approve or investigate anything. Neither is built for
             // them: an empty approvals queue shown to somebody with no authority

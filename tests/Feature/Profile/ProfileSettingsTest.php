@@ -99,6 +99,28 @@ class ProfileSettingsTest extends TestCase
             ->assertDontSee(route('audit-logs.index'), false);
     }
 
+    public function test_hr_managers_do_not_see_the_operational_tools_in_settings(): void
+    {
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+
+        $this->actingAs($manager)->get(route('settings.edit'))
+            ->assertOk()
+            ->assertDontSee('Operational tools')
+            ->assertDontSee(route('integrations.index'), false)
+            ->assertDontSee(route('audit-logs.index'), false);
+    }
+
+    public function test_the_system_administrator_reaches_both_tools_from_settings(): void
+    {
+        $administrator = User::query()->where('email', 'admin@hrms.local')->firstOrFail();
+
+        $this->actingAs($administrator)->get(route('settings.edit'))
+            ->assertOk()
+            ->assertSee('Operational tools')
+            ->assertSee(route('integrations.index'), false)
+            ->assertSee(route('audit-logs.index'), false);
+    }
+
     public function test_employee_can_update_only_personal_contact_information(): void
     {
         $user = $this->employeeUser();

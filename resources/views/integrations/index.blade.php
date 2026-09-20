@@ -31,18 +31,14 @@
                 <div class="settings-toggle-list">
                     <label class="settings-toggle">
                         <span><strong>Enable AI Scheduling Assistant</strong><small>Shows the advisory assistant in the Assign shift workspace and enables recommendation endpoints.</small></span>
-                        <input type="checkbox" name="assistant_enabled" value="1" data-ai-assistant-toggle @checked(old('assistant_enabled', $aiScheduling['assistant_enabled'])) @disabled(! $canManageAiScheduling)><i aria-hidden="true"></i>
+                        <input type="checkbox" name="assistant_enabled" value="1" data-ai-assistant-toggle @checked(old('assistant_enabled', $aiScheduling['assistant_enabled']))><i aria-hidden="true"></i>
                     </label>
                     <label class="settings-toggle" data-gemini-setting>
                         <span><strong>Use Gemini explanations</strong><small>{{ $aiScheduling['gemini_available'] ? 'Adds a privacy-filtered explanation without changing Laravel ranking.' : 'Requires GEMINI_ENABLED and a configured API key in the deployment environment.' }}</small></span>
-                        <input type="checkbox" name="gemini_explanations_enabled" value="1" data-ai-gemini-toggle @checked(old('gemini_explanations_enabled', $aiScheduling['gemini_explanations_enabled'])) @disabled(! $canManageAiScheduling || ! $aiScheduling['gemini_available'])><i aria-hidden="true"></i>
+                        <input type="checkbox" name="gemini_explanations_enabled" value="1" data-ai-gemini-toggle @checked(old('gemini_explanations_enabled', $aiScheduling['gemini_explanations_enabled'])) @disabled(! $aiScheduling['gemini_available'])><i aria-hidden="true"></i>
                     </label>
                 </div>
-                @if($canManageAiScheduling)
-                    <div class="ai-system-control-actions"><span data-ai-settings-note>Changes apply immediately to all authorized scheduling users.</span><button class="btn btn-primary" type="submit"><x-icon name="check-circle" /> Save AI settings</button></div>
-                @else
-                    <div class="settings-security-note"><x-icon name="shield" /><p>Only a System Administrator can change this global setting. HR Managers can view its current status.</p></div>
-                @endif
+                <div class="ai-system-control-actions"><span data-ai-settings-note>Changes apply immediately to all authorized scheduling users.</span><button class="btn btn-primary" type="submit"><x-icon name="check-circle" /> Save AI settings</button></div>
             </form>
         </div>
     </section>
@@ -65,13 +61,11 @@
                         @endif
                     </span>
                 </div>
-                @if($canManageAiScheduling)
-                    <form method="POST" action="{{ route('integrations.gemini.test') }}" class="integration-test-form">
-                        @csrf
-                        <button class="btn btn-outline-primary" type="submit" @disabled(! $providers['gemini']['enabled'] || ! $providers['gemini']['configured'])><x-icon name="refresh" /> Test Gemini connection</button>
-                        <small>Validates the API key and configured model without sending employee data.</small>
-                    </form>
-                @endif
+                <form method="POST" action="{{ route('integrations.gemini.test') }}" class="integration-test-form">
+                    @csrf
+                    <button class="btn btn-outline-primary" type="submit" @disabled(! $providers['gemini']['enabled'] || ! $providers['gemini']['configured'])><x-icon name="refresh" /> Test Gemini connection</button>
+                    <small>Validates the API key and configured model without sending employee data.</small>
+                </form>
             </div>
         </article>
     </section>

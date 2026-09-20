@@ -194,6 +194,6 @@ class AuditLogController extends Controller
 
     private function authorizeAuditAccess(Request $request): void
     {
-        abort_unless($request->user()->roles->pluck('slug')->intersect(['system-administrator', 'hr-manager'])->isNotEmpty(), 403);
+        abort_unless($request->user()->hasRole('system-administrator'), 403);
     }
 }
