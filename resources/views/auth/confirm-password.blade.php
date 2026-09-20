@@ -7,7 +7,7 @@
     </div>
 
     <p class="auth-card-kicker">Security check</p>
-    <h1 class="auth-card-title">Confirm it&rsquo;s you</h1>
+    <h1 class="auth-card-title">Confirm it’s you</h1>
     <p class="auth-card-sub">You are about to download a file containing personal records. Enter the password for <strong>{{ auth()->user()->name }}</strong> to continue.</p>
 
     @if ($errors->any())

@@ -9,7 +9,7 @@
     </div>
 
     <p class="auth-card-kicker">Two-factor verification</p>
-    <h1 class="auth-card-title">Verify it&rsquo;s you</h1>
+    <h1 class="auth-card-title">Verify it’s you</h1>
     <p class="auth-card-sub">Your password was accepted. Enter the current code from your authenticator app to finish signing in.</p>
 
     @if ($errors->any())
