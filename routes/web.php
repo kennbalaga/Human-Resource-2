@@ -36,6 +36,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\TwoFactorSettingsController;
 use App\Reports\ReportRegistry;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
@@ -52,8 +53,21 @@ $auditedDownload = [...$download, 'download.audit'];
  * Public on purpose: the privacy notice is linked from the login footer, and
  * the people who most need to read it are the ones deciding whether to sign in
  * at all. Guarding it behind `auth` would make it unreadable to exactly them.
+ *
+ * A guest is sent to the sign-in form with the notice already open over it,
+ * because that is where they were and what they were in the middle of. Two
+ * readers get the document itself instead: anyone who asks for it plainly —
+ * which is what the modal's "Open the full page" link, and every print,
+ * bookmark and forwarded link, does — and anyone already signed in, who has no
+ * sign-in form left to read it over.
  */
-Route::view('/privacy-policy', 'legal.privacy-policy')->name('privacy-policy');
+Route::get('/privacy-policy', function (Request $request) {
+    if ($request->boolean('plain') || $request->user()) {
+        return response()->view('legal.privacy-policy');
+    }
+
+    return redirect()->route('login', ['privacy' => 1]);
+})->name('privacy-policy');
 
 Route::get('/dashboard', DashboardController::class)
     ->middleware('auth')

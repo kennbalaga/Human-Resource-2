@@ -18,6 +18,10 @@ export default defineConfig({
                 // in the app down with it instead of one panel.
                 'resources/js/attendance-qr.js',
                 'resources/js/pwa.js',
+                // The privacy notice modal. Separate from script.js because the
+                // two-factor page opts out of that bundle but still carries the
+                // footer link that opens this.
+                'resources/js/privacy-modal.js',
             ],
             refresh: true,
             fonts: [

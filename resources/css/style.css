@@ -2,6 +2,11 @@
    directly rather than through app.css. */
 @import './tokens.css';
 
+/* The privacy notice as a modal over these pages. It leans on the .legal-*
+   rules further down this file, so it is a sheet of its own rather than a
+   second copy of them. */
+@import './privacy-modal.css';
+
 :root {
     /* These aliases are what the rest of this file already references. They now
        resolve to the shared tokens instead of a second, slightly-different

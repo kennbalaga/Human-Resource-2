@@ -1,0 +1,426 @@
+/*
+ * THE PRIVACY NOTICE AS A MODAL
+ *
+ * The same notice /privacy-policy draws, opened over the auth pages so nobody
+ * has to abandon a half-typed password to read it.
+ *
+ * It re-uses the .legal-doc typography in style.css wholesale — the headings,
+ * tables, rights list and contact card are styled once, for both — and changes
+ * only what a scroll pane inside a box needs differently from a page. Every
+ * rule that re-points one of those is written as a descendant of
+ * .privacy-modal, so it outweighs the page's copy on specificity and does not
+ * depend on where style.css imports this.
+ *
+ * Three rows: a header that does not move, the notice, and a footer that keeps
+ * the way out on screen. The middle row is the only thing that scrolls.
+ */
+
+/* showModal() blocks interaction with the page behind but not, in every
+   browser, the wheel. */
+html.privacy-modal-open,
+html.privacy-modal-open body {
+    overflow: hidden;
+}
+
+.privacy-modal {
+    /* The `*` reset at the top of style.css zeroes the `margin: auto` a modal
+       dialog is centred by, which leaves one pinned to the top-left corner.
+       Centre it back by hand, exactly as .auth-dialog has to. */
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(1060px, calc(100vw - 3rem));
+    height: min(780px, calc(100vh - 3rem));
+    max-width: none;
+    max-height: none;
+    padding: 0;
+    /* The notice scrolls, never the dialog: a header that slides away takes
+       the close button with it. */
+    overflow: hidden;
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-xl);
+    background-color: var(--bg-light);
+    box-shadow: 0 30px 80px rgba(8, 30, 24, 0.3);
+
+    /* display and overlay have to be in the transition list, with
+       allow-discrete, or the dialog is pulled out of the top layer before the
+       fade has finished and the exit is never seen. */
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+    transition-property: opacity, transform, display, overlay;
+    transition-duration: 0.22s;
+    transition-timing-function: ease-out;
+    transition-behavior: allow-discrete;
+}
+
+.privacy-modal[open] {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    opacity: 1;
+    transform: none;
+
+    @starting-style {
+        opacity: 0;
+        transform: translateY(10px) scale(0.985);
+    }
+}
+
+.privacy-modal::backdrop {
+    background-color: rgba(9, 28, 22, 0);
+    transition:
+        background-color 0.22s ease-out,
+        display 0.22s allow-discrete,
+        overlay 0.22s allow-discrete;
+}
+
+.privacy-modal[open]::backdrop {
+    background-color: rgba(9, 28, 22, 0.55);
+    backdrop-filter: blur(3px);
+
+    @starting-style {
+        background-color: rgba(9, 28, 22, 0);
+    }
+}
+
+/* ---- header ---------------------------------------------------------- */
+
+.privacy-modal-head {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: start;
+    padding: 1.4rem 1.5rem 1.15rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.privacy-modal-title {
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text-dark);
+}
+
+/* The three facts a reader checks before deciding whether to trust the rest —
+   the same three the page prints in its .legal-meta panel, as chips, because
+   here they share a row with the close button. */
+.privacy-modal-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.85rem;
+    padding: 0;
+    list-style: none;
+}
+
+.privacy-modal-meta li {
+    padding: 0.25rem 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-pill);
+    background-color: var(--hr-surface-2);
+    font-size: var(--fs-2xs);
+    color: var(--text-light);
+}
+
+.privacy-modal-meta b {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.privacy-modal-close {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-md);
+    background-color: var(--hr-surface-2);
+    color: var(--text-gray);
+    font-size: var(--fs-md);
+    cursor: pointer;
+}
+
+.privacy-modal-close:hover {
+    background-color: var(--hr-surface-3);
+    color: var(--text-dark);
+}
+
+.privacy-modal-close:focus-visible {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: 2px;
+}
+
+/* Thirteen sections in a box, with no page scrollbar to read the depth off.
+   Sits on the header's own bottom border so it reads as that edge filling up
+   rather than as a fourth element in the header. */
+.privacy-modal-progress {
+    position: absolute;
+    inset: auto 0 -1px 0;
+    height: 2px;
+}
+
+.privacy-modal-progress i {
+    display: block;
+    height: 100%;
+    width: calc(var(--read, 0) * 100%);
+    background-color: var(--primary-blue);
+    transition: width 0.1s linear;
+}
+
+/* ---- contents rail --------------------------------------------------- */
+
+.privacy-modal-body {
+    display: grid;
+    grid-template-columns: 252px minmax(0, 1fr);
+    min-height: 0;
+}
+
+.privacy-modal-toc {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1.1rem 0.85rem 1.5rem;
+    border-right: 1px solid var(--border-color);
+    background-color: var(--hr-surface-2);
+}
+
+.privacy-modal-toc-title {
+    padding: 0 0.6rem;
+    margin-bottom: 0.6rem;
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+.privacy-modal-toc ol {
+    display: grid;
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: privacy-toc;
+}
+
+.privacy-modal-toc li {
+    counter-increment: privacy-toc;
+}
+
+.privacy-modal-toc a {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+    gap: 0.35rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-xs);
+    line-height: 1.45;
+    color: var(--text-gray);
+    text-decoration: none;
+}
+
+.privacy-modal-toc a::before {
+    content: counter(privacy-toc) ".";
+    color: var(--hr-placeholder);
+    font-variant-numeric: tabular-nums;
+}
+
+.privacy-modal-toc a:hover {
+    background-color: var(--hr-surface-3);
+    color: var(--text-dark);
+}
+
+/* Moved by privacy-modal.js as the reader scrolls, so the rail answers "how
+   much of this is left" without anyone having to work it out. */
+.privacy-modal-toc a[aria-current="true"] {
+    background-color: var(--hr-primary-soft);
+    color: var(--primary-blue-text);
+    font-weight: 600;
+}
+
+.privacy-modal-toc a[aria-current="true"]::before {
+    color: var(--primary-blue-text);
+}
+
+.privacy-modal-toc a:focus-visible {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: -2px;
+}
+
+/* ---- the notice ------------------------------------------------------ */
+
+/* It keeps every .legal-doc rule in style.css. This is the container, which
+   is a scroll pane here rather than a page. */
+.privacy-modal .legal-doc {
+    min-height: 0;
+    max-width: none;
+    margin: 0;
+    overflow-y: auto;
+    /* Without this the wheel carries on into the page behind once the notice
+       has bottomed out. */
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+    padding: 1.6rem 2.1rem 2.5rem;
+}
+
+.privacy-modal .legal-doc:focus-visible {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: -3px;
+}
+
+/* The page reserves room for its sticky topbar. In here the pane's own top
+   edge is the only thing a heading can land under. */
+.privacy-modal .legal-doc section {
+    scroll-margin-top: 0.5rem;
+}
+
+/* The page caps its measure with the width of its column. Once that column is
+   as wide as the dialog, the cap has to be stated. */
+.privacy-modal .legal-lead,
+.privacy-modal .legal-doc section,
+.privacy-modal .legal-closing {
+    max-width: 68ch;
+}
+
+/* ---- footer ---------------------------------------------------------- */
+
+.privacy-modal-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 0.85rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--hr-surface-2);
+}
+
+.privacy-modal-stamp {
+    font-size: var(--fs-2xs);
+    color: var(--text-gray);
+}
+
+.privacy-modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto;
+}
+
+.privacy-modal-full {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--primary-blue-text);
+    text-decoration: none;
+}
+
+.privacy-modal-full:hover {
+    text-decoration: underline;
+}
+
+.privacy-modal-foot .btn-primary {
+    width: auto;
+    padding: 0.6rem 1.4rem;
+    font-size: var(--fs-sm);
+}
+
+.privacy-modal-foot .btn-primary:focus-visible {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: 3px;
+}
+
+/* A thirteen-section legal notice in a floating box on a 390px screen is not
+   readable. On a phone it takes the screen, as a sheet off the bottom edge. */
+@media (max-width: 760px) {
+    .privacy-modal {
+        inset: auto 0 0 0;
+        width: 100%;
+        height: 94dvh;
+        margin: 0;
+        border-width: 1px 0 0;
+        border-radius: var(--r-xl) var(--r-xl) 0 0;
+        transform: translateY(24px);
+    }
+
+    .privacy-modal[open] {
+        transform: none;
+
+        @starting-style {
+            transform: translateY(24px);
+        }
+    }
+
+    .privacy-modal-head {
+        padding: 1.1rem 1.15rem 1rem;
+    }
+
+    .privacy-modal-body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    /* The rail becomes a strip: still there to jump from, no longer eating a
+       third of the width there is left. */
+    .privacy-modal-toc {
+        overflow-x: auto;
+        padding: 0.6rem 1.15rem;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .privacy-modal-toc-title {
+        display: none;
+    }
+
+    .privacy-modal-toc ol {
+        grid-auto-flow: column;
+        grid-auto-columns: max-content;
+        gap: 0.4rem;
+    }
+
+    .privacy-modal-toc a {
+        grid-template-columns: auto auto;
+        white-space: nowrap;
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-light);
+    }
+
+    .privacy-modal .legal-doc {
+        padding: 1.25rem 1.15rem 2rem;
+    }
+
+    .privacy-modal-foot {
+        padding: 0.75rem 1.15rem;
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .privacy-modal-stamp {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .privacy-modal,
+    .privacy-modal[open] {
+        transform: none;
+        transition-duration: 0.01s;
+    }
+
+    .privacy-modal[open] {
+        @starting-style {
+            transform: none;
+        }
+    }
+
+    .privacy-modal .legal-doc {
+        scroll-behavior: auto;
+    }
+
+    .privacy-modal-progress i {
+        transition: none;
+    }
+}

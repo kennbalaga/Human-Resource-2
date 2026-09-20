@@ -41,7 +41,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    @vite($script ? ['resources/css/style.css', 'resources/js/script.js'] : ['resources/css/style.css'])
+    {{-- privacy-modal.js is unconditional: the footer link below is on all five
+         of these pages, and the two-factor page opting out of script.js should
+         not be the reason one of them sends the reader away instead. --}}
+    @vite(array_filter([
+        'resources/css/style.css',
+        'resources/js/privacy-modal.js',
+        $script ? 'resources/js/script.js' : null,
+    ]))
 </head>
 <body>
 
@@ -76,12 +83,21 @@
         <footer class="auth-foot">
             <div class="auth-foot-row">
                 <span class="copyright">&copy; {{ now()->year }} {{ config('branding.organization') }}. All rights reserved.</span>
-                <a href="{{ route('privacy-policy') }}" class="privacy">Privacy Policy</a>
+                {{-- A real link to a real page, which privacy-modal.js upgrades
+                     into the modal below on a plain left click. Ctrl-click, the
+                     middle button and a browser with no JavaScript all still get
+                     the page itself. --}}
+                <a href="{{ route('privacy-policy') }}" class="privacy" data-privacy-open>Privacy Policy</a>
             </div>
         </footer>
     </div>
 
     {{ $after ?? '' }}
+
+    {{-- Last in the body, outside .auth-split: a modal dialog is drawn in the
+         top layer wherever it sits, and keeping it out of the grid means it
+         cannot inherit a column from it. --}}
+    <x-privacy-modal :auto-open="request()->boolean('privacy')" />
 
 </body>
 </html>
