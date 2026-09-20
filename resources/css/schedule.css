@@ -973,6 +973,14 @@
 }
 
 .shift-template-table-wrap {
+    /* Positioned so that `overflow-x` actually contains what it scrolls.
+       Bootstrap's .visually-hidden is `position: absolute`, and the Actions
+       header uses one; with no positioned ancestor it anchored to the initial
+       containing block instead of this box, so its static position out at the
+       far edge of a table wider than the phone became scrollable overflow of
+       the PAGE. The table scrolled sideways inside here as intended and the
+       whole document scrolled 200px sideways with it. */
+    position: relative;
     overflow-x: auto;
     padding: 0 1.25rem 1.25rem;
 }

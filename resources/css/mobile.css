@@ -891,6 +891,21 @@
     }
 
     /*
+     * A stacked table card gives its label column 8.5rem. On a 360px screen
+     * the card is about 300px wide, so the labels were taking 45% of it to say
+     * "SUPERVISOR" and leaving a department name 160px to wrap into three
+     * lines. 7rem holds every one-word label and the common two-word ones
+     * ("WORKING HOURS", "EMPLOYEE ID") on a single line, and hands the ~28px
+     * it gives up back to the value beside it. A longer label than that wraps,
+     * which is the right thing to spend the space on: the label is the one
+     * part of the row the reader already knows.
+     */
+    .table-stack tbody td {
+        grid-template-columns: minmax(0, 7rem) minmax(0, 1fr);
+        gap: var(--sp-2);
+    }
+
+    /*
      * A panel header is a title on the left and a badge, count or button on the
      * right. At 360px the two fight for the same 330px and the title wins by
      * truncating the thing that carries the number. Stacked, both get a full

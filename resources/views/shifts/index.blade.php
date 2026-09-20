@@ -38,7 +38,7 @@
         <p class="shift-template-hint">Every template can be edited or deactivated. Templates already used in a schedule can't be deleted &mdash; deactivate them instead to hide them from future assignments while keeping existing schedule history intact. System templates are always editable but can never be deleted.</p>
 
         <div class="shift-template-table-wrap">
-            <table class="shift-template-table">
+            <table class="shift-template-table table-stack">
                 <thead><tr><th>Shift</th><th>Working hours</th><th>Paid duration</th><th>Usage</th><th>Status</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
                 <tbody>
                     @forelse ($shifts as $shift)
@@ -46,7 +46,7 @@
                             $shiftPayload = ['id' => $shift->id, 'code' => $shift->code, 'name' => $shift->name, 'start_time' => substr($shift->start_time, 0, 5), 'end_time' => substr($shift->end_time, 0, 5), 'break_minutes' => $shift->break_minutes, 'color' => $shift->color, 'is_active' => $shift->is_active, 'is_rotating' => $shift->is_rotating];
                         @endphp
                         <tr>
-                            <td>
+                            <td data-label="Shift">
                                 <div class="shift-identity">
                                     <span class="shift-color" style="background: {{ $shift->color }}"></span>
                                     <div class="shift-identity-body">
@@ -60,10 +60,10 @@
                                     </div>
                                 </div>
                             </td>
-                            <td><div class="shift-hours"><strong>{{ $shift->formatted_time }}</strong><small>{{ $shift->break_minutes }}-minute break @if($shift->crosses_midnight) · Overnight @endif</small></div></td>
-                            <td>{{ number_format($shift->duration_minutes / 60, 1) }} hours</td>
-                            <td>{{ number_format($shift->assignments_count) }} assignments</td>
-                            <td>
+                            <td data-label="Working hours"><div class="shift-hours"><strong>{{ $shift->formatted_time }}</strong><small>{{ $shift->break_minutes }}-minute break @if($shift->crosses_midnight) · Overnight @endif</small></div></td>
+                            <td data-label="Paid duration">{{ number_format($shift->duration_minutes / 60, 1) }} hours</td>
+                            <td data-label="Usage">{{ number_format($shift->assignments_count) }} assignments</td>
+                            <td data-label="Status">
                                 <span @class(['shift-status', 'active' => $shift->is_active, 'inactive' => ! $shift->is_active])>
                                     <x-icon :name="$shift->is_active ? 'check-circle' : 'circle'" />
                                     {{ $shift->is_active ? 'Active' : 'Inactive' }}

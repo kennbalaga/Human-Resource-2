@@ -3294,7 +3294,19 @@ body.reduce-motion *::after {
  * scrolling it replaced.
  */
 @media (max-width: 900px) {
-    .table-stack {
+    /*
+     * `table.table-stack`, not `.table-stack`: every table that opts in also
+     * carries a per-page class that sets the min-width it needs while it is
+     * still a table — .attendance-table is 760px, .report-table 930px,
+     * .organization-table 980px, .audit-table 1000px. Those sheets are all
+     * imported after this one and matched at the same specificity, so at
+     * equal weight they won on order and the card list inherited a 1000px
+     * floor: the stack rendered correctly and then sat inside a horizontal
+     * scroller three screen-widths wide, which is the scrolling this whole
+     * block exists to remove. One element in the selector outranks them
+     * wherever they sit in the cascade.
+     */
+    table.table-stack {
         min-width: 0;
         display: block;
     }
@@ -3366,7 +3378,8 @@ body.reduce-motion *::after {
 
     /* Row actions get room to breathe once they are on their own line. */
     .table-stack .organization-row-actions,
-    .table-stack .report-row-actions {
+    .table-stack .report-row-actions,
+    .table-stack .shift-row-actions {
         flex-wrap: wrap;
         gap: var(--sp-2);
     }
