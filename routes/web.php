@@ -20,8 +20,11 @@ use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Reports\ReportController;
+use App\Http\Controllers\RoomController;
 use App\Http\Controllers\Schedule\AiScheduleRecommendationController;
 use App\Http\Controllers\Schedule\RecurringScheduleController;
+use App\Http\Controllers\Schedule\RoomBoardController;
+use App\Http\Controllers\Schedule\RoomBookingController;
 use App\Http\Controllers\Schedule\RosterDraftController;
 use App\Http\Controllers\Schedule\ScheduleAssignmentController;
 use App\Http\Controllers\Schedule\ScheduleCalendarController;
@@ -112,6 +115,8 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     Route::resource('departments', DepartmentController::class)->except(['show', 'destroy']);
     Route::put('/departments/{department}/shift-coverage', [DepartmentController::class, 'updateShiftRequirements'])->name('departments.shift-coverage.update');
     Route::resource('positions', PositionController::class)->except(['show', 'destroy']);
+    Route::resource('rooms', RoomController::class)->except(['show', 'destroy']);
+    Route::put('/rooms/{room}/shift-coverage', [RoomController::class, 'updateShiftRequirements'])->name('rooms.shift-coverage.update');
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -141,6 +146,13 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     Route::get('/schedules', [ScheduleCalendarController::class, 'index'])->name('schedules.index');
     Route::get('/schedules/events', [ScheduleCalendarController::class, 'events'])->name('schedules.events');
     Route::get('/schedules/day-roster', [ScheduleCalendarController::class, 'dayRoster'])->name('schedules.day-roster');
+    Route::get('/schedules/rooms', [RoomBoardController::class, 'index'])->name('schedules.rooms.index');
+    Route::get('/schedules/rooms/{room}/{shift}/candidates', [RoomBoardController::class, 'candidates'])->name('schedules.rooms.candidates');
+    Route::post('/schedules/rooms/assign', [RoomBoardController::class, 'store'])->name('schedules.rooms.store');
+    Route::delete('/schedules/rooms/{scheduleAssignment}', [RoomBoardController::class, 'destroy'])->name('schedules.rooms.destroy');
+    Route::post('/schedules/rooms/{room}/bookings', [RoomBookingController::class, 'store'])->name('schedules.room-bookings.store');
+    Route::post('/schedules/room-bookings/{roomBooking}/staff', [RoomBookingController::class, 'attach'])->name('schedules.room-bookings.attach');
+    Route::delete('/schedules/room-bookings/{roomBooking}', [RoomBookingController::class, 'destroy'])->name('schedules.room-bookings.destroy');
     Route::post('/schedules/conflicts', [ScheduleCalendarController::class, 'conflicts'])->name('schedules.conflicts');
     Route::post('/schedules/roster/evaluate', [RosterDraftController::class, 'evaluate'])->name('schedules.roster.evaluate');
     Route::post('/schedules/roster/fill', [RosterDraftController::class, 'fill'])->name('schedules.roster.fill');

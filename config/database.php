@@ -66,6 +66,21 @@ return [
                 // query, which doubles latency against a remote database. Emulating
                 // them sends each query in one trip; PDO still binds parameters.
                 PDO::ATTR_EMULATE_PREPARES => env('DB_EMULATE_PREPARES', true),
+                // How long to wait for the database to answer the handshake.
+                //
+                // Without this, PDO waits on the operating system's own TCP
+                // timeout, which outlives PHP's 30-second execution limit: a
+                // database that has stopped answering produces a blank 500 half
+                // a minute later, with the real cause — a connection that never
+                // opened — nowhere on the page. A managed database behind a TCP
+                // proxy makes that worse, because the proxy accepts the socket
+                // whether or not anything is listening behind it, so the failure
+                // looks like a hang rather than a refusal.
+                //
+                // Ten seconds is generous against a remote host (a round trip to
+                // the Singapore database is ~60ms) and well inside the execution
+                // limit, so the request fails while Laravel can still say why.
+                PDO::ATTR_TIMEOUT => (int) env('DB_CONNECT_TIMEOUT', 10),
             ]) : [],
         ],
 

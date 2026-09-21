@@ -22,6 +22,10 @@ export default defineConfig({
                 // two-factor page opts out of that bundle but still carries the
                 // footer link that opens this.
                 'resources/js/privacy-modal.js',
+                // Only the room board loads it, and only to fill one
+                // picker; the board itself is server-drawn and every
+                // change is a plain form post.
+                'resources/js/room-board.js',
             ],
             refresh: true,
             fonts: [

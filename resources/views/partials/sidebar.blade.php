@@ -4,6 +4,12 @@
     $sidebarRoles = $sidebarUser->roles->pluck('slug');
     $sidebarCanManageShifts = $sidebarRoles->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
 
+    /* The room board answers "who is in which theatre tonight", which is a
+       supervisor's question -- the same set the workforce.view gate admits. */
+    $sidebarCanSeeRoomBoard = $sidebarRoles
+        ->intersect(['system-administrator', 'hr-manager', 'department-head'])
+        ->isNotEmpty();
+
     /* Staff have no reason to browse the workforce directory, so the Organization
        entry is limited to the roles that administer it. */
     $sidebarCanSeeOrganization = $sidebarRoles
@@ -70,9 +76,16 @@
         <div class="sidebar-nav-group" role="group" aria-labelledby="sidebar-group-scheduling">
             <h2 class="sidebar-nav-heading" id="sidebar-group-scheduling">Scheduling</h2>
 
-            <x-sidebar-link :href="route('schedules.index')" icon="calendar" :active="request()->routeIs('schedules.*')">
+            {{-- Narrowed away from schedules.* so the room board, which shares
+                 that prefix, lights its own entry instead of this one. --}}
+            <x-sidebar-link :href="route('schedules.index')" icon="calendar" :active="request()->routeIs('schedules.*') && ! request()->routeIs('schedules.rooms.*')">
                 Schedules
             </x-sidebar-link>
+            @if ($sidebarCanSeeRoomBoard)
+                <x-sidebar-link :href="route('schedules.rooms.index')" icon="hospital" :active="request()->routeIs('schedules.rooms.*')">
+                    Room board
+                </x-sidebar-link>
+            @endif
             <x-sidebar-link :href="route('schedule-preferences.index')" icon="swap" :active="request()->routeIs('schedule-preferences.*', 'shift-swaps.*')">
                 Preferences and Swaps
             </x-sidebar-link>

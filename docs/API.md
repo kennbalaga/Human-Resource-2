@@ -67,6 +67,32 @@ Role checks are enforced in addition to token abilities. Regular employees canno
 
 All paths above are relative to `/api/v1`.
 
+### Rooms on a schedule
+
+A schedule assignment carries the room its shift is worked in:
+
+```json
+{
+  "id": 4821,
+  "work_date": "2026-09-22",
+  "shift": { "id": 1, "code": "MORNING-0600", "name": "Morning Shift" },
+  "room": { "id": 12, "code": "OR-1", "name": "Operating Room 1", "type": "operating", "department_id": 7 },
+  "borrowed_from_another_unit": false,
+  "status": "scheduled"
+}
+```
+
+`room` is `null` for any shift worked nowhere in particular — administrative
+duty, on-call cover, a float nurse. That is the common case, not an omission, so
+consumers must handle it rather than treating it as an error.
+
+`borrowed_from_another_unit` is true when the employee's own department differs
+from the room's. Borrowing is permitted; the flag exists so it is auditable.
+
+Rooms are read-only over the API. They are set on the room board
+(`/schedules/rooms`), which is the only surface that enforces room capacity,
+charge cover and closed-room rules.
+
 ## Filtering and pagination
 
 List endpoints return Laravel pagination metadata. Use `per_page` from 1 to 100. Supported filters are discoverable in the included Postman requests and include status, employee, department, and date filters where applicable.

@@ -11,6 +11,7 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Position;
 use App\Models\RecurringSchedule;
+use App\Models\Room;
 use App\Models\ScheduleAssignment;
 use App\Models\ScheduleComplianceReview;
 use App\Models\ScheduleDayOff;
@@ -282,6 +283,10 @@ class ScheduleCalendarController extends Controller
             ->tap(fn (Builder $query) => Employee::constrainRelatedQuery($query, $request->user()))
             ->get();
 
+        // Filled from the reference cache rather than eager loaded: rooms are a
+        // handful of rows and this page already makes several round trips.
+        app(ReferenceDataCache::class)->attach($assignments, 'room', 'room_id', Room::class);
+
         $rows = $assignments->map(function (ScheduleAssignment $assignment) use ($isEditable) {
             $hour = (int) Carbon::parse($assignment->shift->start_time)->format('G');
             $shiftType = match (true) {
@@ -304,6 +309,9 @@ class ScheduleCalendarController extends Controller
                 'shift_type' => $shiftType,
                 'time' => $assignment->shift->formatted_time,
                 'notes' => $assignment->notes,
+                'room' => $assignment->room?->code,
+                'room_name' => $assignment->room?->name,
+                'borrowed' => (bool) $assignment->cross_unit,
                 'recurring' => $assignment->recurring_schedule_id !== null,
                 'editable' => $isEditable,
             ];
@@ -318,10 +326,25 @@ class ScheduleCalendarController extends Controller
             ->sortBy('name')
             ->values();
 
+        // The same duty seen by place rather than by unit. A charge nurse asks
+        // "who is in the theatre tonight", which the department grouping above
+        // cannot answer. Anyone with no room is gathered last rather than
+        // dropped -- they are on duty either way.
+        $rooms = $rows
+            ->groupBy(fn (array $row) => $row['room'] ?? '')
+            ->map(fn ($group, $code) => [
+                'code' => $code === '' ? null : $code,
+                'name' => $code === '' ? 'No room assigned' : ($group->first()['room_name'] ?? $code),
+                'rows' => $group->sortBy('employee')->values(),
+            ])
+            ->sortBy(fn (array $room) => ($room['code'] === null ? '1' : '0').$room['name'])
+            ->values();
+
         return response()->json([
             'date' => $validated['date'],
             'formatted_date' => Carbon::parse($validated['date'], config('schedule.timezone'))->format('l, F j, Y'),
             'departments' => $departments,
+            'rooms' => $rooms,
             'summary' => [
                 'total_staff' => $rows->count(),
                 'departments_active' => $departments->count(),

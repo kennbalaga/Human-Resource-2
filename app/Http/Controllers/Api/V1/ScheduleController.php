@@ -29,7 +29,7 @@ class ScheduleController extends Controller
             'per_page' => ['nullable', 'integer', 'between:1,100'],
         ]);
         $manager = $this->canManage($request->user());
-        $records = ScheduleAssignment::query()->with(['employee.user', 'employee.department', 'employee.position', 'shift'])
+        $records = ScheduleAssignment::query()->with(['employee.user', 'employee.department', 'employee.position', 'shift', 'room'])
             ->when($manager, fn (Builder $query) => $this->constrainToSupervised($query, $request->user()))
             ->when(! $manager, fn (Builder $query) => $query->where('employee_id', $request->user()->employee?->id))
             ->when($manager && ! empty($validated['employee_id']), fn (Builder $query) => $query->where('employee_id', $validated['employee_id']))
@@ -45,7 +45,7 @@ class ScheduleController extends Controller
         $this->requireManager($request->user());
         $assignment = $service->createAssignment($request->validated(), $request->user());
 
-        return (new ScheduleAssignmentResource($assignment->load(['employee.user', 'employee.department', 'employee.position', 'shift'])))
+        return (new ScheduleAssignmentResource($assignment->load(['employee.user', 'employee.department', 'employee.position', 'shift', 'room'])))
             ->response()
             ->setStatusCode(201);
     }
@@ -59,7 +59,7 @@ class ScheduleController extends Controller
         $this->requireManagerFor($request->user(), $scheduleAssignment->loadMissing('employee')->employee);
         $assignment = $service->updateAssignment($scheduleAssignment, $request->validated(), $request->user());
 
-        return new ScheduleAssignmentResource($assignment->load(['employee.user', 'employee.department', 'employee.position', 'shift']));
+        return new ScheduleAssignmentResource($assignment->load(['employee.user', 'employee.department', 'employee.position', 'shift', 'room']));
     }
 
     public function destroy(Request $request, ScheduleAssignment $scheduleAssignment, ScheduleService $service): Response

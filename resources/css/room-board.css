@@ -1,0 +1,405 @@
+/*
+ * The room board: one unit's rooms down the side, the day's shifts across the
+ * top, and a cell where they meet.
+ *
+ * Everything here paints from the tokens in tokens.css, so the dark theme's
+ * re-point in dark-mode.css carries this screen with it and no rule below needs
+ * a dark branch of its own.
+ *
+ * The one idea worth stating: a cell's edge carries its state. A charge nurse
+ * scans this board for what is wrong, not for what is there, so shortfall and
+ * blocker are readable from across the room and the correctly staffed cells stay
+ * quiet.
+ */
+
+.room-board-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    align-items: flex-end;
+    justify-content: space-between;
+}
+
+.room-board-toolbar label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: .8125rem;
+    color: var(--hr-muted);
+    font-weight: 600;
+}
+
+.room-board-date-nav {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.room-board-summary {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--hr-border);
+    border: 1px solid var(--hr-border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 18px;
+}
+
+.room-board-summary div {
+    background: var(--hr-surface);
+    padding: 12px 16px;
+}
+
+.room-board-summary dt {
+    font-size: .6875rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--hr-muted);
+    font-weight: 700;
+    margin: 0;
+}
+
+.room-board-summary dd {
+    margin: 2px 0 0;
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--hr-text);
+}
+
+.room-board-summary .room-board-stat-blocker dd { color: var(--hr-danger-text); }
+.room-board-summary .room-board-stat-warning dd { color: var(--hr-warning-text); }
+.room-board-summary .room-board-stat-clear dd { color: var(--hr-success-text); }
+
+.room-board-body { padding: 18px 20px; }
+
+.room-board-scroller { overflow-x: auto; }
+
+.room-board-grid { min-width: 760px; }
+
+.room-board-head,
+.room-board-row {
+    display: grid;
+    grid-template-columns: 210px repeat(var(--room-board-shifts, 3), minmax(0, 1fr));
+    gap: 8px;
+}
+
+.room-board-head { margin-bottom: 8px; }
+.room-board-row { margin-bottom: 8px; align-items: stretch; }
+
+.room-board-shift-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--hr-surface-2);
+    border: 1px solid var(--hr-border);
+    border-radius: 8px;
+}
+
+.room-board-shift-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex: 0 0 auto;
+}
+
+.room-board-shift-head strong { font-size: .8125rem; }
+.room-board-shift-head span { font-size: .75rem; color: var(--hr-muted); margin-left: auto; }
+
+.room-board-unit-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 20px 0 8px;
+}
+
+.room-board-room {
+    padding: 10px 12px;
+    background: var(--hr-surface-2);
+    border: 1px solid var(--hr-border);
+    border-radius: 8px;
+}
+
+.room-board-room.is-out-of-service {
+    background: var(--hr-danger-soft);
+    border-color: var(--hr-danger-line);
+}
+
+.room-board-room-code { font-size: .8125rem; font-weight: 700; }
+.room-board-room-name { font-size: .75rem; color: var(--hr-muted); }
+
+.room-board-room-standard {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin-top: 6px;
+    font-size: .6875rem;
+    color: var(--hr-subtle);
+}
+
+.room-board-chip-type {
+    display: inline-block;
+    font-size: .625rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--hr-sunken);
+    color: var(--hr-subtle);
+}
+
+.room-board-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 78px;
+    padding: 8px;
+    background: var(--hr-surface);
+    border: 1px solid var(--hr-border);
+    border-radius: 8px;
+}
+
+.room-board-cell.is-ok { border-color: var(--hr-success-line); background: var(--hr-success-soft); }
+.room-board-cell.is-short { border-color: var(--hr-warning-line); background: var(--hr-warning-soft); }
+.room-board-cell.is-blocked { border-color: var(--hr-danger-line); background: var(--hr-danger-soft); }
+
+.room-board-cell.is-dark {
+    border-style: dashed;
+    border-color: var(--hr-border-strong);
+    background: var(--hr-sunken);
+    align-items: center;
+    justify-content: center;
+}
+
+.room-board-cell.is-dark span { font-size: .75rem; color: var(--hr-placeholder); }
+
+.room-board-occupants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.room-board-person {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    padding: 2px 4px 2px 7px;
+    font-size: .75rem;
+    background: var(--hr-surface);
+    border: 1px solid var(--hr-border);
+    border-radius: 999px;
+}
+
+.room-board-person-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.room-board-rank {
+    flex: 0 0 auto;
+    padding: 1px 4px;
+    font-size: .625rem;
+    font-weight: 700;
+    color: var(--hr-on-primary);
+    background: var(--hr-muted);
+    border-radius: 3px;
+}
+
+.room-board-person.is-charge .room-board-rank { background: var(--hr-primary-fill); }
+.room-board-person.is-cross-unit { border-color: var(--hr-warning-line); background: var(--hr-warning-soft); }
+.room-board-person.is-on-leave { border-color: var(--hr-danger-line); background: var(--hr-danger-soft); }
+
+.room-board-remove {
+    border: 0;
+    background: transparent;
+    color: var(--hr-muted);
+    font-size: .875rem;
+    line-height: 1;
+    padding: 0 3px;
+    border-radius: 50%;
+}
+
+.room-board-remove:hover { color: var(--hr-danger-text); }
+
+.room-board-cell-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.room-board-count {
+    font-size: .6875rem;
+    color: var(--hr-subtle);
+    font-variant-numeric: tabular-nums;
+}
+
+.room-board-add {
+    margin-left: auto;
+    padding: 3px 10px;
+    font-size: .6875rem;
+    font-weight: 600;
+    color: var(--hr-primary-text);
+    background: transparent;
+    border: 1px dashed var(--hr-border-strong);
+    border-radius: 6px;
+}
+
+.room-board-add:hover {
+    background: var(--hr-primary-soft);
+    border-style: solid;
+    border-color: var(--hr-primary);
+}
+
+.room-board-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--hr-border);
+    font-size: .75rem;
+    color: var(--hr-muted);
+}
+
+.room-board-legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+.room-board-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid;
+}
+
+.room-board-swatch.is-ok { background: var(--hr-success-soft); border-color: var(--hr-success-line); }
+.room-board-swatch.is-short { background: var(--hr-warning-soft); border-color: var(--hr-warning-line); }
+.room-board-swatch.is-blocked { background: var(--hr-danger-soft); border-color: var(--hr-danger-line); }
+.room-board-swatch.is-dark { background: var(--hr-sunken); border-color: var(--hr-border-strong); border-style: dashed; }
+
+.room-board-booking-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    align-items: flex-end;
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--hr-surface-2);
+    border: 1px dashed var(--hr-border-strong);
+    border-radius: 8px;
+}
+
+.room-board-booking-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: .6875rem;
+    font-weight: 600;
+    color: var(--hr-muted);
+}
+
+.room-board-booking-purpose { flex: 1 1 200px; }
+
+.room-board-findings {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.room-board-finding {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 9px 12px;
+    background: var(--hr-surface-2);
+    border: 1px solid var(--hr-border);
+    border-left-width: 3px;
+    border-radius: 8px;
+}
+
+.room-board-finding.is-blocker { border-left-color: var(--hr-danger); }
+.room-board-finding.is-warning { border-left-color: var(--hr-warning); }
+
+.room-board-finding-level {
+    padding: 2px 6px;
+    margin-top: 1px;
+    font-size: .625rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-radius: 4px;
+}
+
+.room-board-finding.is-blocker .room-board-finding-level { background: var(--hr-danger-soft); color: var(--hr-danger-text); }
+.room-board-finding.is-warning .room-board-finding-level { background: var(--hr-warning-soft); color: var(--hr-warning-text); }
+
+.room-board-finding-message { font-size: .8125rem; color: var(--hr-text); }
+.room-board-finding-detail { display: block; font-size: .75rem; color: var(--hr-muted); margin-top: 2px; }
+.room-board-finding-code { display: block; font-size: .6875rem; color: var(--hr-placeholder); margin-top: 3px; }
+
+.room-board-clear {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 14px;
+    font-size: .8125rem;
+    color: var(--hr-success-text);
+    background: var(--hr-success-soft);
+    border: 1px solid var(--hr-success-line);
+    border-radius: 8px;
+}
+
+.room-board-unplaced {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.room-board-unplaced-group { margin-bottom: 14px; }
+
+.room-board-unplaced-group h3 {
+    font-size: .6875rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--hr-muted);
+    font-weight: 700;
+    margin-bottom: 7px;
+}
+
+.room-board-candidate {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    padding: 9px 11px;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+}
+
+.room-board-candidate:hover:not(:disabled) {
+    background: var(--hr-primary-soft);
+    border-color: var(--hr-primary-line);
+}
+
+.room-board-candidate:disabled { opacity: .6; cursor: not-allowed; }
+.room-board-candidate-name { font-size: .8125rem; font-weight: 600; }
+.room-board-candidate-role { font-size: .75rem; color: var(--hr-muted); }
+.room-board-candidate-state { font-size: .6875rem; font-weight: 600; white-space: nowrap; }
+.room-board-candidate-state.is-blocked { color: var(--hr-danger-text); }
+.room-board-candidate-state.is-cross-unit { color: var(--hr-warning-text); }
+.room-board-candidate-state.is-charge { color: var(--hr-primary-text); }
+
+@media (max-width: 767.98px) {
+    .room-board-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .room-board-toolbar { align-items: stretch; }
+}

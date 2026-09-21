@@ -56,6 +56,13 @@ const initializeLiveOrganizationFilters = () => {
             select.addEventListener('change', submit);
         });
 
+        /* A date filter behaves like a select, not like a search box: picking a
+           day is a finished choice, so it submits at once rather than waiting
+           out the debounce below. */
+        form.querySelectorAll('input[type="date"]').forEach((field) => {
+            field.addEventListener('change', submit);
+        });
+
         const search = form.querySelector('input[type="search"]');
         if (!search) return;
 
