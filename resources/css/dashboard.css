@@ -133,7 +133,7 @@ input {
     width: 40px;
     height: 40px;
     border-radius: var(--r-lg);
-    color: #fff;
+    color: var(--hr-sidebar-brand-ink);
     background: var(--hr-sidebar-brand-mark);
     flex: none;
     place-items: center;
@@ -142,8 +142,8 @@ input {
 
 .brand-mark svg {
     display: block;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     /* A replacement mark may not be square; `contain` keeps it in proportion
        rather than stretching it to the box. */
     object-fit: contain;
@@ -223,10 +223,32 @@ input {
  */
 .brand-copy strong {
     color: var(--hr-sidebar-text);
-    font-size: var(--fs-md);
-    font-weight: 650;
-    letter-spacing: 0.01em;
-    line-height: 1.2;
+    font-size: 1.1875rem;
+    line-height: 1.15;
+}
+
+/* The rail sets its own logo colours (--hr-sidebar-brand-*): the light-
+   background version on the white rail, the on-dark version in dark mode. */
+.brand-copy .brand-wordmark {
+    color: var(--hr-sidebar-brand-ink);
+}
+
+.brand-copy .brand-wordmark-force {
+    color: var(--hr-sidebar-brand-accent);
+}
+
+/* One line under the wordmark. At this size the organisation name fits the
+   rail; the ellipsis only guards a longer name set through BRAND_ORGANIZATION,
+   and the title attribute carries it in full. */
+.brand-copy small {
+    margin-top: 2px;
+    overflow: hidden;
+    color: var(--hr-sidebar-label);
+    font-size: 0.65rem;
+    font-weight: 500;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sidebar-close {
@@ -3412,7 +3434,8 @@ body.reduce-motion *::after {
 /*
  * The rail is a painted slab, and the app-wide green ring measures 2.77:1 on it
  * -- under the 3:1 a focus indicator owes the viewer (WCAG 1.4.11). On the rail
- * the ring goes white.
+ * the ring takes --hr-sidebar-focus: emerald on the white rail, white on the
+ * dark one.
  * The current item is the exception. Its plate is the lightest thing on the
  * rail, so a white ring would vanish into it; there the ring takes the plate's
  * own ink, at 8.21:1.
@@ -3423,7 +3446,7 @@ body.reduce-motion *::after {
  */
 .app-sidebar .sidebar-link:focus-visible,
 .app-sidebar .sidebar-close:focus-visible {
-    outline-color: #fff;
+    outline-color: var(--hr-sidebar-focus);
 }
 
 .app-sidebar .sidebar-link.active:focus-visible {

@@ -30,18 +30,18 @@
 <aside class="app-sidebar" id="appSidebar" aria-label="Primary navigation">
     <div class="sidebar-brand">
         <span class="brand-mark">
-            {{-- A neutral placeholder mark until we are cleared to carry the
-                 hospital's own seal. It is decorative: the brand copy beside
-                 it already names the system, and a screen reader would
-                 otherwise read the name twice. --}}
+            {{-- The WorkForce mark. It is decorative: the wordmark beside it
+                 already names the system, and a screen reader would otherwise
+                 read the name twice. --}}
             <x-brand-mark :size="42" />
         </span>
-        {{-- The name only. The rail leaves ~188px beside the mark, which the
-             name fills over two lines; the tagline that runs under it on the
-             auth pages would take a third line and drop the divider below the
-             topbar's bottom border. --}}
+        {{-- The product wordmark over the organisation it serves. The rail
+             leaves ~188px beside the mark; the wordmark takes one line and the
+             organisation name a small second one, so the row stays no taller
+             than the mark and the divider still meets the topbar's border. --}}
         <span class="brand-copy">
-            <strong>{{ config('branding.organization') }}</strong>
+            <strong><x-brand-wordmark /></strong>
+            <small title="{{ config('branding.organization') }}">{{ config('branding.organization') }}</small>
         </span>
         <button
             class="sidebar-brand-toggle"

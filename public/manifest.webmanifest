@@ -1,7 +1,7 @@
 {
     "id": "./dashboard",
-    "name": "Memorial Hospital & Sanitarium",
-    "short_name": "HRMS",
+    "name": "WorkForce · Memorial Hospital & Sanitarium",
+    "short_name": "WorkForce",
     "description": "Attendance, scheduling, leave, and workforce management for hospital personnel.",
     "start_url": "./dashboard",
     "scope": "./",

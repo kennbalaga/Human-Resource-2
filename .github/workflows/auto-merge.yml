@@ -1,0 +1,37 @@
+name: Auto-merge
+
+# Adding the "automerge" label queues the PR to squash-merge as soon as every
+# required check passes and the review rules are met; removing the label takes
+# it back out of the queue. Needs "Allow auto-merge" turned on in the repository
+# settings and a branch protection rule on main with required status checks.
+#
+# pull_request_target runs with a token that can merge, which is safe here
+# because this job never checks out or runs the PR's code.
+on:
+  pull_request_target:
+    types: [labeled, unlabeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Toggle auto-merge
+    if: github.event.label.name == 'automerge' && github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Enable auto-merge
+        if: github.event.action == 'labeled'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge "$PR_URL" --auto --squash --delete-branch
+
+      - name: Disable auto-merge
+        if: github.event.action == 'unlabeled'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge "$PR_URL" --disable-auto

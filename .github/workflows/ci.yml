@@ -161,3 +161,24 @@ jobs:
 
       - name: Build frontend assets
         run: npm run build
+
+  # One status for branch protection to require, so adding or renaming a job
+  # above never means editing the protection rule. always() makes it report a
+  # failure instead of being skipped when a job it needs fails.
+  ci-passed:
+    name: CI passed
+    if: always()
+    needs: [php-tests, php-tests-mysql, frontend-build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check every CI job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              echo "::error::A CI job finished with '$result'."
+              exit 1
+            fi
+          done

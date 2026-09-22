@@ -58,11 +58,14 @@
     <div class="auth-split">
         <div class="brand-pane">
             <div class="brand-col">
-                <div class="brand-tile">
-                    <x-brand-mark :size="28" />
+                <div class="brand-lockup">
+                    <x-brand-mark :size="48" class="brand-lockup-mark" />
+                    <span class="brand-lockup-copy">
+                        <x-brand-wordmark class="brand-lockup-name" />
+                        <span class="brand-lockup-tagline">{{ config('branding.tagline') }}</span>
+                    </span>
                 </div>
 
-                <p class="brand-kicker">{{ config('branding.tagline') }}</p>
                 <p class="brand-title">{{ config('branding.organization') }}</p>
                 <p class="brand-lede">{{ $lede }}</p>
 

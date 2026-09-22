@@ -1,0 +1,18 @@
+/*
+ * The WorkForce wordmark, wherever it is placed. Shared by the app shell and
+ * the auth pages, which load separate sheets, so it lives in its own file
+ * rather than in either of them.
+ *
+ * Colours come from --hr-brand-ink and --hr-brand-accent (tokens.css): navy and
+ * teal on a light page, re-pointed by the dark theme and by the sidebar.
+ */
+.brand-wordmark {
+    color: var(--hr-brand-ink);
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+.brand-wordmark-force {
+    color: var(--hr-brand-accent);
+}

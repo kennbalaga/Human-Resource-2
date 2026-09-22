@@ -1,12 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="HRMS">
-    <defs>
-        <linearGradient id="tile" x1="0" y1="0" x2="0" y2="64" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#22935d"/>
-            <stop offset="1" stop-color="#0f5537"/>
-        </linearGradient>
-    </defs>
-    <rect width="64" height="64" rx="14" fill="url(#tile)"/>
-    <g transform="translate(32 32) scale(0.84) translate(-32 -32)">
-        <path fill="#fff" fill-rule="evenodd" d="M21 15a5 5 0 0 1 5-5h12a5 5 0 0 1 5 5v38H21zM6 33a4 4 0 0 1 4-4h11v24H6zM58 33a4 4 0 0 0-4-4H43v24h15zM29.5 17h5v5h5v5h-5v5h-5v-5h-5v-5h5zM28 53v-8a4 4 0 0 1 8 0v8z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="WorkForce">
+    <rect width="64" height="64" rx="14" fill="#17304f"/>
+    <g fill="#fff" transform="translate(32 32) scale(0.8) translate(-32 -32)">
+        <g><circle cx="32" cy="6.5" r="4.5"/><path d="M24 19.5a8 6.5 0 0 1 16 0z"/></g>
+        <g transform="rotate(90 32 32)"><circle cx="32" cy="6.5" r="4.5"/><path d="M24 19.5a8 6.5 0 0 1 16 0z"/></g>
+        <g transform="rotate(180 32 32)"><circle cx="32" cy="6.5" r="4.5"/><path d="M24 19.5a8 6.5 0 0 1 16 0z"/></g>
+        <g transform="rotate(270 32 32)"><circle cx="32" cy="6.5" r="4.5"/><path d="M24 19.5a8 6.5 0 0 1 16 0z"/></g>
+        <circle cx="32" cy="32" r="5" fill="#e8743b"/>
     </g>
 </svg>

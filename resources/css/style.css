@@ -1,6 +1,7 @@
 /* The auth pages are served outside the app shell, so they import the tokens
    directly rather than through app.css. */
 @import './tokens.css';
+@import './brand.css';
 
 /* The privacy notice as a modal over these pages. It leans on the .legal-*
    rules further down this file, so it is a sheet of its own rather than a
@@ -370,12 +371,12 @@ body {
 
 /* The brand mark in the auth-page header. Sized explicitly, and given a floor
    so the two-line organisation name beside it cannot squeeze it. The mark
-   paints in currentColor, so this is also where it is told to be brand green
+   paints in currentColor, so this is also where it is told to be brand navy
    rather than inheriting the muted grey the header text uses. */
 .logo-seal {
     width: 52px;
     height: 52px;
-    color: var(--hr-primary-text);
+    color: var(--hr-brand-ink);
     flex: 0 0 auto;
     /* A replacement mark may not be square; `contain` keeps it in proportion
        rather than stretching it to the box. */
@@ -387,6 +388,9 @@ body {
         width: 42px;
         height: 42px;
     }
+
+    .brand-lockup-name { font-size: 1.625rem; }
+    .brand-lockup-mark { width: 40px; height: 40px; }
 }
 
 /* ------------------------------------------------------------------------
@@ -435,28 +439,42 @@ body {
     width: min(32rem, 100%);
 }
 
-.brand-tile {
-    display: grid;
-    place-items: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: var(--hr-primary);
-    /* The mark paints in currentColor, so this is what makes it white. */
-    color: var(--hr-on-primary);
+/* The WorkForce lockup: mark, wordmark, and the tagline set small and spaced
+   beneath it, as in the logo artwork. The mark paints in currentColor, so this
+   is where it is told to be navy. */
+.brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
 }
 
-.brand-kicker {
-    margin-top: 2.5rem;
+.brand-lockup-mark {
+    flex: 0 0 auto;
+    color: var(--hr-brand-ink);
+}
+
+.brand-lockup-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.brand-lockup-name {
+    font-size: 2rem;
+    line-height: 1.05;
+}
+
+.brand-lockup-tagline {
+    margin-top: 0.35rem;
     color: var(--hr-subtle);
     font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.11em;
+    font-weight: 600;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
 }
 
 .brand-title {
-    margin-top: 0.625rem;
+    margin-top: 2.5rem;
     font-size: var(--fs-3xl);
     font-weight: 700;
     line-height: 1.14;
@@ -721,8 +739,7 @@ body {
     }
 
     .brand-col { width: 100%; }
-    .brand-kicker { margin-top: 1.5rem; }
-    .brand-title { font-size: var(--fs-2xl); }
+    .brand-title { margin-top: 1.5rem; font-size: var(--fs-2xl); }
     .brand-lede { max-width: none; }
     .brand-features { margin-top: 1.5rem; }
 

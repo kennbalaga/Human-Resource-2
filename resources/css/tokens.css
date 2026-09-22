@@ -45,6 +45,17 @@
     --hr-primary-rgb: 0, 143, 104;  /* focus rings and translucent washes */
 
     /*
+     * The WorkForce identity: the Staff Cross mark and its wordmark. Kept apart
+     * from --hr-primary on purpose — the product's interface stays emerald, and
+     * these paint only the logo. Navy ink (12.9:1 on white), teal accent
+     * (6.0:1 on white, so "Force" reads at any size) and the orange centre dot,
+     * which is a shape rather than text and only needs to be seen.
+     */
+    --hr-brand-ink: #17304f;
+    --hr-brand-accent: #0e6e72;
+    --hr-brand-dot: #e8743b;
+
+    /*
      * The solid primary control — a button, a selected pill — and the colour of
      * the label on it.
      *
@@ -150,48 +161,48 @@
 
     /*
      * ---- Sidebar ----
-     * The rail is a painted slab, not a rung of the ladder above, and that is
-     * why it does not follow the canvas between themes: it is deep forest in
-     * both, and the theme only decides how deep. It keeps its own names for the
-     * same reason it always did — these values are what every rule in the rail
-     * paints with, and they are the one place the forest hue runs at full
-     * strength.
+     * The light theme's rail is white, like the card surfaces, so the WorkForce
+     * logo sits on it in its own light-background colours — navy figures and
+     * "Work", teal "Force", the orange centre dot — with no plate behind the
+     * mark, exactly as the logo artwork is drawn. The dark theme keeps a deep
+     * forest rail and the logo's on-dark version (dark-mode.css).
      *
-     * Every ratio below is measured against --hr-sidebar, the LIGHTEST stop of
-     * the gradient, which is the worst case for anything sitting on it.
+     * Every value the rail paints with is here, so re-colouring the rail is a
+     * change to this block alone. Ratios are against white.
      */
-    --hr-sidebar: #005b46;                   /* gradient top */
-    --hr-sidebar-deep: #003d31;              /* gradient bottom */
-    --hr-sidebar-text: #ffffff;              /* 9.06:1 - the brand name */
-    --hr-sidebar-label: #a9d1c5;             /* 4.88:1 - group headings */
-    --hr-sidebar-link: #d9f0e9;              /* 6.81:1 - an unselected destination */
-    --hr-sidebar-icon: #a9d1c5;              /* 4.88:1 - an unselected glyph */
+    --hr-sidebar: #ffffff;                   /* gradient top */
+    --hr-sidebar-deep: #ffffff;              /* gradient bottom - flat on white */
+    --hr-sidebar-text: #193451;              /* 12.72:1 - hovered links */
+    --hr-sidebar-label: #566e8a;             /* 5.26:1 - group headings, the organisation name */
+    --hr-sidebar-link: #2f4863;              /* 9.4:1 - an unselected destination */
+    --hr-sidebar-icon: #5f7690;              /* 4.69:1 - an unselected glyph */
+    /* Hover and rules are a navy wash rather than a solid grey, so they stay
+       in the logo's family. */
+    --hr-sidebar-hover: rgba(25, 52, 81, .06);
+    --hr-sidebar-border: rgba(25, 52, 81, .10);
     /*
-     * Hover, badges and rules go translucent white rather than solid. A fixed
-     * grey would be right against one stop of the gradient and wrong against the
-     * other; an alpha inherits whichever part of the slab it happens to land on.
+     * The current page is a pale emerald plate with deep green ink. On white
+     * the plate is a tint, not a shape, so the label's colour and weight carry
+     * the state; it clears 6.5:1 on the plate.
      */
-    --hr-sidebar-hover: rgba(255, 255, 255, .10);
-    --hr-sidebar-border: rgba(255, 255, 255, .16);
-    /*
-     * The current page is a bright emerald plate with near-black forest ink on
-     * it. The plate clears 3.78:1 against the rail, so it reads as a shape
-     * before it reads as a colour, and its label clears 7.30:1 on the plate —
-     * both with enough headroom to shift a step without falling under a floor.
-     */
-    --hr-sidebar-active-bg: #12c98b;         /* 3.78:1 against the rail */
-    --hr-sidebar-active-text: #04291b;       /* 7.30:1 on the plate */
-    /* The count matches the plate: light pill, dark green figure. */
-    --hr-sidebar-badge-bg: rgba(255, 255, 255, .92);
+    --hr-sidebar-active-bg: #e5f7f1;
+    --hr-sidebar-active-text: #00664a;       /* 6.5:1 on the plate */
+    /* The count is an outlined pill so it still shows on the active plate. */
+    --hr-sidebar-badge-bg: #ffffff;
     --hr-sidebar-badge-text: #00563a;        /* 8.20:1 on the pill */
-    --hr-sidebar-badge-border: rgba(255, 255, 255, .92);
-    --hr-sidebar-brand-mark: rgba(255, 255, 255, .13);  /* the mark draws in currentColor */
+    --hr-sidebar-badge-border: #a8dfcb;
+    /* A focus ring on the rail's own links: emerald, 3.8:1 against white. */
+    --hr-sidebar-focus: #008f68;
+    /* The logo in the rail: navy mark and "Work" (12.9:1), teal "Force"
+       (6.0:1), and no plate — the mark stands on the white as drawn. */
+    --hr-sidebar-brand-mark: transparent;
+    --hr-sidebar-brand-ink: #17304f;
+    --hr-sidebar-brand-accent: #0e6e72;
     /*
-     * A hairline cannot separate a slab from the canvas — at this value it just
-     * reads as part of the slab. The rail spills a little of its own colour to
-     * the right instead, which seats the canvas visibly in front of it.
+     * White rail on a near-white canvas: a hairline and a soft navy shadow to
+     * the right mark the edge.
      */
-    --hr-sidebar-glow: rgba(0, 91, 70, .42);
+    --hr-sidebar-glow: rgba(25, 52, 81, .10);
 
     /*
      * ---- Device lock ----

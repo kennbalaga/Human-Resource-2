@@ -125,7 +125,17 @@ html[data-theme-resolved='dark'] {
     --hr-sidebar-badge-bg: rgba(232, 244, 240, .92);
     --hr-sidebar-badge-text: #00563a;        /* 7.6:1 on the pill */
     --hr-sidebar-badge-border: rgba(232, 244, 240, .92);
+    --hr-sidebar-focus: #ffffff;
+    /* The logo's on-dark version in the rail: white figures and "Work" on a
+       faint plate, peach "Force" (4.4:1 on the rail). */
     --hr-sidebar-brand-mark: rgba(255, 255, 255, .11);
+    --hr-sidebar-brand-ink: #ffffff;
+    --hr-sidebar-brand-accent: #f6ad7b;
+
+    /* The logo's "on dark" version: light ink, peach accent, a brighter dot. */
+    --hr-brand-ink: #eef2f7;
+    --hr-brand-accent: #f6ad7b;
+    --hr-brand-dot: #f08a4b;
     /* Deeper than the light theme's spill: on a dark canvas the rail needs to
        separate itself, not announce itself. */
     --hr-sidebar-glow: rgba(0, 42, 34, .55);

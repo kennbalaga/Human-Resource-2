@@ -109,7 +109,7 @@
 .payslip-sheet { display:grid; gap:var(--sp-5); padding:var(--sp-6); margin-bottom:var(--sp-5); }
 .payslip-header { display:flex; align-items:flex-start; justify-content:space-between; gap:var(--sp-4); padding-bottom:var(--sp-4); border-bottom:2px solid var(--hr-primary); }
 .payslip-brand { display:flex; align-items:center; gap:.85rem; }
-.payslip-logo { display:inline-flex; flex:0 0 auto; color:var(--hr-primary-text); }
+.payslip-logo { display:inline-flex; flex:0 0 auto; color:var(--hr-brand-ink); }
 .payslip-flags { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:var(--sp-2); }
 .payslip-partial { margin:0; }
 /* The masthead names the employee; the page's h1 is the only place the word

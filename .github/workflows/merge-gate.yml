@@ -1,0 +1,75 @@
+name: Merge gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: merge-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pr-title:
+    name: PR title
+    runs-on: ubuntu-latest
+
+    # PRs are squash-merged, so the title becomes the commit on main. Holding it
+    # to the same type(scope): subject shape the history already uses keeps the
+    # log readable. The title goes through env, never straight into the script,
+    # so a crafted title cannot inject shell.
+    steps:
+      - name: "Check title follows type(scope): subject"
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|chore|style|docs|refactor|perf|test|build|ci|revert)(\([a-z0-9._/-]+\))?!?: .+'
+          if [[ ! "$TITLE" =~ $pattern ]]; then
+            echo "::error::PR title \"$TITLE\" must look like 'feat(scope): subject' (types: feat, fix, chore, style, docs, refactor, perf, test, build, ci, revert)."
+            exit 1
+          fi
+
+  mergeable:
+    name: Merges cleanly into main
+    runs-on: ubuntu-latest
+
+    # The default pull_request checkout is the refs/pull/N/merge ref, which
+    # GitHub only creates when the branch merges cleanly, so check out the head
+    # and do the merge here to report exactly which files conflict.
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Try merging main into the branch
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git config user.name "merge-gate"
+          git config user.email "merge-gate@users.noreply.github.com"
+          if ! git merge --no-commit --no-ff "origin/$BASE_REF" > /dev/null; then
+            echo "::error::This branch conflicts with $BASE_REF. Merge or rebase $BASE_REF locally and push again."
+            git diff --name-only --diff-filter=U | sed 's/.*/::error file=&::Merge conflict in &/'
+            exit 1
+          fi
+          git merge --abort || true
+
+      - name: Reject leftover conflict markers
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          # Only lines this PR adds, so an old marker-like string elsewhere in
+          # the tree cannot fail an unrelated PR. "=======" alone is skipped
+          # because Markdown uses it for headings.
+          markers=$(git diff "$BASE_SHA"...HEAD --unified=0 --no-color \
+            | grep -nE '^\+(<<<<<<<( |$)|>>>>>>>( |$)|\|\|\|\|\|\|\|( |$))' || true)
+          if [ -n "$markers" ]; then
+            echo "::error::The PR adds unresolved merge conflict markers:"
+            echo "$markers"
+            exit 1
+          fi

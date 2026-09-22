@@ -4,10 +4,10 @@
      * one of the most aggressively cached resources a browser holds — without a
      * new stamp, staff would keep seeing the old glyph for days after a deploy.
      */
-    $iconVersion = '20260909d';
+    $iconVersion = '20260921a';
 @endphp
 
-{{-- The placeholder mark, at the three sizes browsers actually request.
+{{-- The WorkForce mark, at the three sizes browsers actually request.
      These are transparent PNGs: the tab strip is near-white in the light theme
      and near-black in the dark one, and the mark is a filled tile that reads
      correctly on both without a plate behind it. --}}

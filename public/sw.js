@@ -25,7 +25,7 @@
  * deletes every cache whose name is not the current one, so a bump is what
  * evicts the previous build's assets rather than leaving them to accumulate.
  */
-const VERSION = 'hrms-v5';
+const VERSION = 'hrms-v6';
 const ASSET_CACHE = `${VERSION}-assets`;
 
 // Resolved against the worker's own scope so this works both at a document
