@@ -22,9 +22,9 @@
 // A 512px icon at 8x is a 4096px canvas: ~64 MB before GD's own overhead.
 ini_set('memory_limit', '512M');
 
-const NAVY = [0x17, 0x30, 0x4f];
-const WHITE = [0xff, 0xff, 0xff];
-const ORANGE = [0xe8, 0x74, 0x3b];
+const NAVY = [0x17, 0x30, 0x4F];
+const WHITE = [0xFF, 0xFF, 0xFF];
+const ORANGE = [0xE8, 0x74, 0x3B];
 const SS = 8;
 
 $out = dirname(__DIR__).'/public/images/icons';
