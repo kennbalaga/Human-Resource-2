@@ -269,6 +269,14 @@ body {
 .two-factor-help { display:flex; align-items:flex-start; gap:.5rem; margin-top:1rem; padding:.75rem; border-radius:var(--r-md); color:var(--hr-text); background:var(--hr-primary-soft); font-size: var(--fs-xs); line-height:1.5; }
 .two-factor-help i { margin-top:.15rem; }
 
+/* The block on /mobile-unavailable. Two paragraphs of reassurance rather than
+   .two-factor-help's one line, so it gets the room to read as prose: somebody
+   standing in a corridor with a handset that will not let them in is deciding
+   whether their password is broken, and a cramped hint is what sends them to
+   reset it. */
+.auth-note { margin: 1rem 0 1.25rem; padding: 1rem; border-radius: var(--r-md); color: var(--hr-text); background: var(--hr-primary-soft); font-size: var(--fs-sm); line-height: 1.6; }
+.auth-note p + p { margin-top: .75rem; }
+
 
 .forgot-password {
     color: var(--primary-blue-text);

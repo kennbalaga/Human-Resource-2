@@ -10,6 +10,7 @@ use App\Http\Middleware\EnsureRequiredTwoFactorAuthentication;
 use App\Http\Middleware\EnsureSingleActiveSession;
 use App\Http\Middleware\PreventAuthenticatedPageCaching;
 use App\Http\Middleware\PreventRememberedAuthentication;
+use App\Http\Middleware\RestrictMobileAccessByRole;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -61,6 +62,10 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureAccountIsStillOpen::class,
             PreventRememberedAuthentication::class,
             EnsureSingleActiveSession::class,
+            // Ahead of the two-factor requirement: an HR manager on a phone must
+            // be turned away rather than first sent to enroll on a device the
+            // account may not use at all.
+            RestrictMobileAccessByRole::class,
             EnsureRequiredTwoFactorAuthentication::class,
             EnforceReadOnlyRole::class,
         ]);

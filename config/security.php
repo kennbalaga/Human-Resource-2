@@ -115,4 +115,35 @@ return [
             explode(',', (string) env('TWO_FACTOR_REQUIRED_ROLES', 'system-administrator,hr-manager,department-head')),
         ))),
     ],
+
+    'mobile' => [
+        /*
+         * Roles that may not use this app on a phone or a tablet at all.
+         *
+         * The reasoning is about what these roles can see rather than about
+         * screen size. An HR manager's session reaches every employee record in
+         * the hospital; a system administrator's reaches the audit log. A phone
+         * is carried, lent, left on a desk and shoulder-read on a jeepney, and
+         * the app lock that mitigates exactly that is a device-local PIN — good
+         * enough for one employee's own payslip, not for the whole workforce.
+         * So the org-wide roles are desk-bound and the phone belongs to the
+         * staff who only ever see themselves.
+         *
+         * Setting MOBILE_RESTRICTED_ROLES to an empty value lifts the
+         * restriction entirely, which is how a phone is tested against an
+         * administrator account without editing code.
+         */
+        'restricted_roles' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('MOBILE_RESTRICTED_ROLES', 'system-administrator,hr-manager,department-head')),
+        ))),
+
+        /*
+         * How long a phone stays trusted to skip the authenticator code after
+         * its app lock was set up. The trust is dropped the moment the lock is
+         * removed, so this is only the backstop for a device that quietly stops
+         * being used -- an employee's old handset in a drawer.
+         */
+        'trust_days' => (int) env('MOBILE_TRUST_DAYS', 180),
+    ],
 ];

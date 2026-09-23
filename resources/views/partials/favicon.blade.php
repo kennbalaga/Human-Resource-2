@@ -5,6 +5,23 @@
      * new stamp, staff would keep seeing the old glyph for days after a deploy.
      */
     $iconVersion = '20260921a';
+
+    /*
+     * Whether this page advertises an installable app at all.
+     *
+     * Withholding the manifest is the only thing that actually stops an install.
+     * Suppressing our own banner leaves Chromium's address-bar install button and
+     * its three-dot menu entry sitting there, and both read the manifest directly;
+     * with no manifest, neither appears, and iOS without the apple-mobile-web-app
+     * tags adds a Safari bookmark rather than a standalone app.
+     *
+     * A guest page carries none of it either. Nobody is identified yet at the
+     * sign-in form, so offering the install there would be offering it to the HR
+     * manager about to type their password — and an employee installing the app
+     * one screen later, from inside, is the flow that was wanted anyway.
+     */
+    $installable = auth()->check()
+        && app(App\Services\Security\MobileAccessPolicy::class)->allowsInstall(auth()->user());
 @endphp
 
 {{-- The WorkForce mark, at the three sizes browsers actually request.
@@ -28,28 +45,30 @@
     service worker's scope follows its own URL, so getting this wrong would
     scope the worker above the app.
 --}}
-{{-- The version query is load-bearing, not decoration. The manifest is what
-     tells the browser the installed app's name and icon, and it is served with
-     no cache headers, so a browser is free to hold the old one for days — which
-     is exactly why the launcher kept showing the previous icon after it was
-     replaced. Changing the URL forces a refetch.
+@if ($installable)
+    {{-- The version query is load-bearing, not decoration. The manifest is what
+         tells the browser the installed app's name and icon, and it is served with
+         no cache headers, so a browser is free to hold the old one for days — which
+         is exactly why the launcher kept showing the previous icon after it was
+         replaced. Changing the URL forces a refetch.
 
-     Safe to change because the app's identity comes from the manifest's own
-     `id` field ("./dashboard"), not from this URL. Without that `id`, a new
-     manifest URL would register as a SECOND installed app. --}}
-<link rel="manifest" href="{{ asset('manifest.webmanifest') }}?v={{ $iconVersion }}">
-<meta name="sw-url" content="{{ asset('sw.js') }}">
+         Safe to change because the app's identity comes from the manifest's own
+         `id` field ("./dashboard"), not from this URL. Without that `id`, a new
+         manifest URL would register as a SECOND installed app. --}}
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}?v={{ $iconVersion }}">
+    <meta name="sw-url" content="{{ asset('sw.js') }}">
 
-{{-- iOS ignores the manifest entirely: the home-screen icon, the title under
-     it, and whether the app opens in its own window all come from these tags.
-     `apple-mobile-web-app-capable` is what makes it a standalone app rather
-     than a Safari bookmark. The touch icon is opaque because iOS composites
-     a transparent icon onto black. --}}
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="{{ config('branding.short_name') }}">
-<link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/icons/apple-touch-icon.png') }}?v={{ $iconVersion }}">
+    {{-- iOS ignores the manifest entirely: the home-screen icon, the title under
+         it, and whether the app opens in its own window all come from these tags.
+         `apple-mobile-web-app-capable` is what makes it a standalone app rather
+         than a Safari bookmark. The touch icon is opaque because iOS composites
+         a transparent icon onto black. --}}
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{ config('branding.short_name') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/icons/apple-touch-icon.png') }}?v={{ $iconVersion }}">
+@endif
 
 {{-- Phone-number autolinking turns every employee ID and every time like
      "07:00-15:00" into a blue tappable link on iOS. --}}

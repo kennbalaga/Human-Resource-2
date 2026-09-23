@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\ActiveDeviceSessionService;
 use App\Services\RememberedLoginService;
+use App\Services\Security\TrustedMobileDeviceService;
 use App\Services\TwoFactorSecurityService;
 use App\Support\SessionNotice;
 use Illuminate\Http\JsonResponse;
@@ -33,10 +34,25 @@ class AuthenticatedSessionController extends Controller
         RememberedLoginService $rememberedLogin,
         TwoFactorSecurityService $twoFactor,
         ActiveDeviceSessionService $activeSession,
+        TrustedMobileDeviceService $trustedDevices,
     ): RedirectResponse {
         $user = $request->authenticate();
 
-        if ($twoFactor->challengeRequiredFor($user)) {
+        /*
+         * The authenticator code is skipped on one kind of device only: a phone
+         * whose app lock this account set up, proving itself with both the
+         * year-long device cookie and the token that lock left in its storage.
+         *
+         * On that handset the code was the first factor asked twice — the PIN or
+         * fingerprint stands between the person and the app on every launch, and
+         * the authenticator they would read the code out of is on the same locked
+         * device. Everywhere else, including the same account on a computer, the
+         * challenge is untouched.
+         */
+        $challenge = $twoFactor->challengeRequiredFor($user)
+            && ! $trustedDevices->trusts($user, $request, $request->mobileTrustTokens());
+
+        if ($challenge) {
             $request->session()->put([
                 'login.id' => $user->getKey(),
             ]);

@@ -42,8 +42,19 @@ const reloadOnWorkerUpdate = () => {
  * gesture of our own; iOS fires nothing at all and requires the user to go
  * through the Share sheet, so there is nothing to show there and nothing is
  * shown. Once dismissed it stays dismissed on this device.
+ *
+ * Whose page carries a manifest is decided in Blade, by role: the roles that see
+ * the whole hospital's records are not offered a phone app and cannot use one.
+ * `beforeinstallprompt` would not fire for them anyway with no manifest to
+ * install, so the guard below is belt and braces — but it is the cheap kind, and
+ * without it this file would be one browser quirk away from offering an install
+ * that the next sign-in refuses.
  */
 const offerInstall = () => {
+    if (!document.querySelector('link[rel="manifest"]')) {
+        return;
+    }
+
     let deferredPrompt = null;
 
     window.addEventListener('beforeinstallprompt', (event) => {
@@ -95,7 +106,10 @@ const offerInstall = () => {
         banner.setAttribute('aria-label', 'Install this app');
 
         const copy = document.createElement('p');
-        copy.innerHTML = '<strong>Install the HRMS app</strong><span>Faster to open, works from your home screen, and supports PIN unlock.</span>';
+        // The PIN is the part worth naming: it is what the installed app gets that
+        // the browser tab does not, and it is what replaces the authenticator
+        // code on every sign-in afterwards.
+        copy.innerHTML = '<strong>Install the app</strong><span>Opens from your home screen, and a PIN or fingerprint unlock replaces the sign-in code.</span>';
 
         const install = document.createElement('button');
         install.type = 'button';

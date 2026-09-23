@@ -23,5 +23,9 @@ import './settings-nav';
 // Both no-op immediately on a desktop pointer.
 import './app-mobile';
 import './app-lock';
+// Keeps the desk-bound roles off phones and keeps the server's view of this
+// handset's app lock in step with the handset. Also imported by script.js, which
+// is what the sign-in page loads.
+import './mobile-access';
 
 window.bootstrap = bootstrap;

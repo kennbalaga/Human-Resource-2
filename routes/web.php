@@ -15,6 +15,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\LeaveAttachmentController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\MobileUnavailableController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PositionController;
@@ -37,6 +38,7 @@ use App\Http\Controllers\SchedulePreferenceController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TimesheetController;
+use App\Http\Controllers\TrustedMobileDeviceController;
 use App\Http\Controllers\TwoFactorSettingsController;
 use App\Reports\ReportRegistry;
 use Illuminate\Http\Request;
@@ -51,6 +53,13 @@ Route::get('/', fn () => redirect()->route('login'));
  */
 $download = ['download.confirm', 'throttle:downloads'];
 $auditedDownload = [...$download, 'download.audit'];
+
+/*
+ * Why an org-wide account cannot be used on a phone. Outside `auth` because the
+ * refusal signs the session out before landing here, and a page that explains a
+ * sign-out cannot itself require being signed in.
+ */
+Route::get('/mobile-unavailable', [MobileUnavailableController::class, 'show'])->name('mobile.unavailable');
 
 /*
  * Public on purpose: the privacy notice is linked from the login footer, and
@@ -137,6 +146,19 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     Route::post('/settings/two-factor/recovery-codes/show', [TwoFactorSettingsController::class, 'recoveryCodes'])->name('two-factor.settings.recovery-codes.show');
     Route::post('/settings/two-factor/recovery-codes', [TwoFactorSettingsController::class, 'regenerateRecoveryCodes'])->name('two-factor.settings.recovery-codes.regenerate');
     Route::delete('/settings/two-factor', [TwoFactorSettingsController::class, 'disable'])->name('two-factor.settings.disable');
+
+    /*
+     * The phone whose app lock stands in for the authenticator code. Named
+     * "trusted-mobile" rather than anything with "lock" or "pin" in it because
+     * that is what it is: the app lock itself has no server endpoint and must
+     * never acquire one (tests/Feature/Pwa/DeviceLockTest.php).
+     */
+    Route::post('/settings/trusted-mobile', [TrustedMobileDeviceController::class, 'store'])->name('trusted-mobile.store');
+    Route::delete('/settings/trusted-mobile', [TrustedMobileDeviceController::class, 'destroy'])->name('trusted-mobile.destroy');
+
+    // Posted by the browser-side half of the mobile restriction, which can see
+    // an iPad that the user agent presents as a desktop.
+    Route::post('/mobile-unavailable', [MobileUnavailableController::class, 'store'])->name('mobile.unavailable.store');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');

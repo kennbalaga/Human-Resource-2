@@ -33,22 +33,35 @@
             <p>
                 A 6-digit PIN is asked for when the app is reopened or left in the background, so a
                 phone handed to a colleague or left on a ward desk does not expose your roster,
-                payroll figures, or your team's records. It sits on top of your normal sign-in and
-                does not change it.
+                payroll figures, or your team's records.
+            </p>
+            <p>
+                It also takes over from your authenticator code on this phone. Once the PIN is set,
+                signing in here asks for your password and then this PIN or your fingerprint instead
+                of a 6-digit code from an app — the lock is already asking the same question. Signing
+                in on a computer is unchanged, and removing the lock brings the code back.
             </p>
         </div>
     </div>
 
     <div class="device-lock-privacy">
         <x-icon name="shield" />
-        <p>
-            <strong>Nothing is sent to the hospital's servers.</strong>
-            Your PIN is stored on this phone as a salted PBKDF2 hash, and the fingerprint option
-            uses your phone's own sensor — the app receives a yes/no answer and a key handle, never
-            your fingerprint. Removing the app lock, clearing this browser's data, or uninstalling
-            the app erases both permanently. HR and system administrators cannot view, recover, or
-            reset them.
-        </p>
+        <div>
+            <p>
+                <strong>Your PIN and fingerprint never leave this phone.</strong>
+                The PIN is stored here as a salted PBKDF2 hash, and the fingerprint option uses your
+                phone's own sensor — the app receives a yes/no answer and a key handle, never your
+                fingerprint. Removing the app lock, clearing this browser's data, or uninstalling the
+                app erases both permanently. HR and system administrators cannot view, recover, or
+                reset them.
+            </p>
+            <p>
+                The one thing that is recorded is that a lock exists on this phone, so that sign-in
+                knows to ask for it instead of an authenticator code. That record holds no PIN, no
+                fingerprint and nothing that could be used to guess either, and it is deleted the
+                moment you remove the lock.
+            </p>
+        </div>
     </div>
 
     <div class="device-lock-body">
@@ -170,7 +183,7 @@
                 <div class="device-lock-summary-row">
                     <span>
                         <strong>6-digit PIN</strong>
-                        <small data-device-lock-pin-summary>Active on this device.</small>
+                        <small data-device-lock-pin-summary>Active on this device, and used in place of your authenticator code when you sign in here.</small>
                     </span>
                     <button class="btn btn-light" type="button" data-device-lock-action="change-pin">Change PIN</button>
                 </div>

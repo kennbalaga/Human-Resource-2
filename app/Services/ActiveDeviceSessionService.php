@@ -9,7 +9,6 @@ use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -38,13 +37,9 @@ class ActiveDeviceSessionService
 {
     public const SESSION_KEY = 'auth.active_session_token';
 
-    /**
-     * What the browser calls itself, kept far longer than any one session so
-     * that it is still there to be recognised by after the session is not.
-     */
-    private const DEVICE_COOKIE = 'hrms_device';
-
-    private const DEVICE_COOKIE_MINUTES = 60 * 24 * 365;
+    public function __construct(
+        private readonly DeviceIdentityService $deviceIdentity,
+    ) {}
 
     /**
      * How often a device working away re-states that it is still holding the
@@ -265,49 +260,12 @@ class ActiveDeviceSessionService
     }
 
     /**
-     * The device is recorded by hash, never in the clear: holding the value in
-     * the cookie is the whole of what makes a browser this browser.
+     * Delegated rather than computed here: the trusted-mobile-device rule reads
+     * the same cookie, and two implementations of "which browser is this" would
+     * eventually disagree about one.
      */
     private function deviceHash(Request $request): string
     {
-        return hash('sha256', $this->deviceId($request));
-    }
-
-    /**
-     * What this browser calls itself, minting the name if it has none yet.
-     *
-     * Answered once per request from the cookie already queued, so that the
-     * device a sign-in is weighed against is the same device it is then
-     * recorded on.
-     */
-    private function deviceId(Request $request): string
-    {
-        $existing = $request->cookie(self::DEVICE_COOKIE);
-
-        if (is_string($existing) && $existing !== '') {
-            return $existing;
-        }
-
-        $queued = Cookie::queued(self::DEVICE_COOKIE);
-
-        if ($queued !== null && $queued->getValue() !== '') {
-            return (string) $queued->getValue();
-        }
-
-        $id = Str::random(64);
-
-        Cookie::queue(
-            self::DEVICE_COOKIE,
-            $id,
-            self::DEVICE_COOKIE_MINUTES,
-            config('session.path', '/'),
-            config('session.domain'),
-            (bool) config('session.secure', false),
-            true,
-            false,
-            config('session.same_site', 'lax'),
-        );
-
-        return $id;
+        return $this->deviceIdentity->hash($request);
     }
 }

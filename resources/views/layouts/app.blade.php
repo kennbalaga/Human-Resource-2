@@ -14,6 +14,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') · {{ config('branding.organization') }}</title>
+
+    {{-- The mobile rules, and the two endpoints mobile-access.js reaches them by.
+         URLs come from the server rather than being written into the bundle
+         because this app is served from a subdirectory in local development and a
+         document root in production.
+
+         `mobile-restricted` is rendered only for the roles that may not use a
+         phone at all. They are already refused at sign-in and turned out by
+         middleware, both from the user agent — this is present for the one device
+         the user agent cannot describe: an iPad, which since iPadOS 13 sends a
+         Mac's string byte for byte. --}}
+    @if (app(App\Services\Security\MobileAccessPolicy::class)->restricts(auth()->user()))
+        <meta name="mobile-restricted" content="1">
+    @endif
+    <meta name="mobile-unavailable-url" content="{{ route('mobile.unavailable.store') }}">
+    <meta name="trusted-mobile-url" content="{{ route('trusted-mobile.store') }}">
     @include('partials.favicon')
 
     <script @if(isset($cspNonce)) nonce="{{ $cspNonce }}" @endif>

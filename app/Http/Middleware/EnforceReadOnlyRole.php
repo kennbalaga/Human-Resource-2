@@ -35,6 +35,19 @@ class EnforceReadOnlyRole
         'logout',
         'session.keep-alive',
 
+        /*
+         * The two mobile endpoints. Neither touches a record: one ends this
+         * session because the browser reported a device this account may not use,
+         * and the other decides whether this handset types an authenticator code.
+         *
+         * The sign-out one matters most for a read-only role specifically. It is
+         * exempt from RestrictMobileAccessByRole — that is how somebody leaves —
+         * so without an entry here it fell through to this middleware and an
+         * administrator on an iPad was answered 403 instead of being signed out.
+         */
+        'mobile.unavailable.store',
+        'trusted-mobile.*',
+
         // Account and platform administration, not workforce records. Both are
         // gated to system administrators alone, so blocking them here would
         // leave nobody able to unlock a user or toggle the assistant.

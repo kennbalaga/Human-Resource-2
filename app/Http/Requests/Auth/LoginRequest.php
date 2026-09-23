@@ -4,6 +4,7 @@ namespace App\Http\Requests\Auth;
 
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\Security\MobileAccessPolicy;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -90,11 +91,70 @@ class LoginRequest extends FormRequest
 
         RateLimiter::clear($this->throttleKey());
 
+        $this->ensureAccountMayUseThisDevice($user);
+
         if (Hash::needsRehash($user->password)) {
             $user->forceFill(['password' => (string) $this->input('password')])->save();
         }
 
         return $user;
+    }
+
+    /**
+     * Turn away a role that may not use this app on a phone at all.
+     *
+     * Asked after the password rather than before it, and deliberately so. Before
+     * the password, the answer would depend only on the employee ID typed in, and
+     * a phone would become a way to ask "is this ID an HR manager's?" without
+     * knowing anything else about it. After the password, it is only ever told to
+     * somebody who already holds the account.
+     *
+     * The message names the account, not the device's capabilities, because the
+     * next thing a refused person does otherwise is doubt their password.
+     */
+    private function ensureAccountMayUseThisDevice(User $user): void
+    {
+        $policy = app(MobileAccessPolicy::class);
+
+        if (! $policy->denies($this, $user)) {
+            return;
+        }
+
+        $this->recordSecurityEvent('mobile_access.sign_in_refused');
+
+        throw ValidationException::withMessages([
+            'employee_id' => [$policy->refusalMessage()],
+        ]);
+    }
+
+    /**
+     * The trust tokens this browser is offering, if any.
+     *
+     * A handset that has set up its app lock keeps a token in its own storage and
+     * mobile-access.js writes it into the form. A list because the form does not
+     * know which account is about to be named — a shared ward handset may hold one
+     * token per member of staff who set a PIN on it, and only the one belonging to
+     * the account being signed in can match.
+     *
+     * Everything about the value is untrusted: it arrives from a form field, so it
+     * is capped, filtered to strings and never used for anything but a hash
+     * comparison against a row that must already exist.
+     *
+     * @return array<int, string>
+     */
+    public function mobileTrustTokens(): array
+    {
+        $decoded = json_decode((string) $this->input('mobile_trust_tokens'), true);
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return array_slice(
+            array_values(array_filter($decoded, fn ($token): bool => is_string($token) && $token !== '')),
+            0,
+            5,
+        );
     }
 
     /**

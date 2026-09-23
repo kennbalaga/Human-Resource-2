@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\User;
 use App\Services\Security\SecurityAlertService;
+use App\Services\Security\TrustedMobileDeviceService;
 use App\Services\TwoFactorSecurityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,10 @@ use Laravel\Fortify\Actions\DisableTwoFactorAuthentication;
 
 class AdminTwoFactorController extends Controller
 {
-    public function __construct(private readonly SecurityAlertService $alerts) {}
+    public function __construct(
+        private readonly SecurityAlertService $alerts,
+        private readonly TrustedMobileDeviceService $trustedDevices,
+    ) {}
 
     public function reset(
         Request $request,
@@ -37,6 +41,15 @@ class AdminTwoFactorController extends Controller
         $disable($target);
         $target->tokens()->delete();
 
+        /*
+         * This reset is the action taken when a phone is lost, and a phone that
+         * was trusted to skip the authenticator code is exactly the device being
+         * reset away from. Leaving its trust standing would mean the handset that
+         * prompted the reset was the one device still able to sign in without a
+         * code.
+         */
+        $this->trustedDevices->revokeAll($target);
+
         if (config('session.driver') === 'database' && Schema::hasTable(config('session.table', 'sessions'))) {
             DB::table(config('session.table', 'sessions'))->where('user_id', $target->id)->delete();
         }
@@ -44,7 +57,7 @@ class AdminTwoFactorController extends Controller
         $target->forceFill(['remember_token' => Str::random(60)])->save();
         $this->notifyTarget($target);
 
-        return back()->with('success', 'Two-factor authentication reset after identity verification. Existing sessions and API tokens were revoked.');
+        return back()->with('success', 'Two-factor authentication reset after identity verification. Existing sessions, API tokens and trusted mobile devices were revoked.');
     }
 
     private function notifyTarget(User $user): void

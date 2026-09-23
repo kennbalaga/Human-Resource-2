@@ -34,6 +34,24 @@ html[data-app-lock-pending] body {
     background: var(--hr-lock);
 }
 
+/*
+ * The same hide, under a flag app-lock.js does not own.
+ *
+ * mobile-access.js raises this while it posts the sign-out for a role that may
+ * not be on a phone, and the two POSTs cannot share a flag: app-lock.js clears
+ * data-app-lock-pending on every path it can take, including one that runs after
+ * an await — so it would clear it mid-request and paint the dashboard for exactly
+ * the account that must not see it, and for exactly as long as the OS needs to
+ * take an app-switcher thumbnail of it.
+ */
+html[data-mobile-blocked] .app-shell {
+    visibility: hidden;
+}
+
+html[data-mobile-blocked] body {
+    background: var(--hr-lock);
+}
+
 /* ------------------------------------------------------------------------
  * The unlock overlay
  * --------------------------------------------------------------------- */
@@ -398,6 +416,14 @@ body.reduce-motion .app-lock-dots[data-error='true'] .app-lock-dot {
     width: 1rem;
     flex: 0 0 auto;
     color: var(--hr-primary-text);
+}
+
+/* The claim is two paragraphs now — what never leaves the phone, and the one
+   derived fact that does — so the copy is a stacked column beside the icon
+   rather than a second flex item next to it. */
+.device-lock-privacy > div {
+    display: grid;
+    gap: 0.5rem;
 }
 
 .device-lock-privacy p {

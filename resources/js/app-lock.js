@@ -41,6 +41,10 @@
  * lock cannot be used as a way to reach an unlocked app.
  */
 
+// "Mobile devices only" is shared with the trusted-device sync and the role
+// restriction, which must draw the same line this does.
+import { isMobileDevice } from './mobile-device';
+
 const STORAGE_KEY = 'hrms.device-lock.v1';
 const SESSION_KEY = 'hrms.device-lock.session.v1';
 const PIN_LENGTH = 6;
@@ -123,25 +127,6 @@ const writeVault = (vault) => {
 /* ------------------------------------------------------------------ *
  * Device capability
  * ------------------------------------------------------------------ */
-
-/**
- * "Mobile devices only" is a decision about the device, not the window. A
- * desktop browser dragged narrow is still a desktop and must not be offered
- * this; a touchscreen laptop reports coarse touch points but its *primary*
- * pointer is a mouse, so `(pointer: coarse)` excludes it correctly.
- *
- * The screen check uses the smaller of the two screen dimensions so the answer
- * does not change when the phone is rotated.
- */
-const isMobileDevice = () => {
-    if (!window.matchMedia('(pointer: coarse)').matches) {
-        return false;
-    }
-
-    const shortestEdge = Math.min(window.screen?.width ?? 0, window.screen?.height ?? 0);
-
-    return shortestEdge > 0 && shortestEdge <= 1100;
-};
 
 /** WebCrypto's subtle API is only exposed in a secure context, so this is both checks at once. */
 const hasCryptoSupport = () => window.isSecureContext && typeof crypto?.subtle?.deriveBits === 'function';
@@ -918,7 +903,7 @@ class LockSettings {
             return;
         }
 
-        this.render('PIN saved. This device will ask for it when the app is reopened.');
+        this.render('PIN saved. This device will ask for it when the app is reopened, and in place of your authenticator code when you sign in.');
     }
 
     async enroll() {
@@ -973,7 +958,7 @@ class LockSettings {
 
     remove() {
         // eslint-disable-next-line no-alert
-        if (!window.confirm('Remove the app lock from this device? The PIN and any fingerprint saved here are deleted. Your account and password are not affected.')) {
+        if (!window.confirm('Remove the app lock from this device? The PIN and any fingerprint saved here are deleted, and signing in on this device will ask for your authenticator code again. Your account and password are not affected.')) {
             return;
         }
 

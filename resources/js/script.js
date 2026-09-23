@@ -1,3 +1,8 @@
+// The sign-in half of the mobile rules: a handset that has set up its app lock
+// offers the token that lets it skip the authenticator code. Inert on every other
+// page this bundle is loaded on.
+import './mobile-access';
+
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-toggle-password], #togglePassword').forEach(function (toggle) {
         toggle.addEventListener('click', function () {

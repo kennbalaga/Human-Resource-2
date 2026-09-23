@@ -7,6 +7,14 @@
     <form id="loginForm" method="POST" action="{{ route('login') }}">
         @csrf
 
+        {{-- Filled by mobile-access.js from this device's own storage when its app
+             lock has been set up, and left empty everywhere else. A handset that
+             offers a live token skips the authenticator code, because the PIN or
+             fingerprint in front of the app has already asked the same question
+             the code would. Nothing about the PIN itself is in here: the value is
+             an opaque token the server issued and can match to this browser. --}}
+        <input type="hidden" name="mobile_trust_tokens" value="" data-mobile-trust-field>
+
         @if (session('status'))
             <p role="status" class="auth-alert auth-alert-success">
                 {{ session('status') }}
