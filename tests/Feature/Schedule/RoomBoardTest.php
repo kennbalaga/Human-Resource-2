@@ -35,6 +35,8 @@ class RoomBoardTest extends TestCase
 
     private Shift $night;
 
+    private Shift $office;
+
     private User $manager;
 
     private string $date;
@@ -70,6 +72,7 @@ class RoomBoardTest extends TestCase
 
         $this->morning = Shift::query()->where('code', 'MORNING-0600')->firstOrFail();
         $this->night = Shift::query()->where('code', 'NIGHT-2200')->firstOrFail();
+        $this->office = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
         $this->manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
         $this->date = '2027-05-10';
     }
@@ -297,6 +300,77 @@ class RoomBoardTest extends TestCase
             ->assertOk()
             ->assertJsonPath('candidates.0.employee_id', $nurse->id)
             ->assertJsonPath('candidates.0.reason', null);
+    }
+
+    /**
+     * A room is a clinical place, so the office day is not one of its columns.
+     *
+     * Carried as a column it was a permanently empty one: the people who work
+     * that shift sit in administrative units, which have no rooms, so every
+     * theatre and every ward was graded unstaffed on it once a day.
+     */
+    public function test_the_board_has_no_column_for_the_office_day(): void
+    {
+        $this->room('BT-OFFICE', ['min_seniority_rank' => 1]);
+
+        $board = app(RoomRosterService::class)->board($this->unit, $this->date);
+
+        $this->assertNotContains(
+            $this->office->id,
+            collect($board['shifts'])->pluck('id')->all(),
+            'The Administrative Shift should not be a column on the room board.',
+        );
+
+        $this->assertTrue(
+            $this->findings()->where('shift_id', $this->office->id)->isEmpty(),
+            'No room should be graded against a shift it is never staffed on.',
+        );
+    }
+
+    /**
+     * Somebody on the office day is not waiting for a room, so they do not
+     * belong on the board's list of people still to place.
+     */
+    public function test_the_office_day_is_left_out_of_the_still_to_place_list(): void
+    {
+        $this->room('BT-WAITING', ['min_seniority_rank' => 1]);
+        $this->roster($this->employee('BT-0020', $this->juniorNurse), $this->office, null);
+
+        $board = app(RoomRosterService::class)->board($this->unit, $this->date);
+
+        $this->assertSame(0, $board['summary']['unplaced']);
+        $this->assertArrayNotHasKey($this->office->id, $board['unplaced']);
+    }
+
+    public function test_the_board_refuses_to_place_anybody_on_the_office_day(): void
+    {
+        $room = $this->room('BT-DESK', ['min_seniority_rank' => 1]);
+        $nurse = $this->employee('BT-0021', $this->chargeNurse);
+        $assignment = $this->roster($nurse, $this->office, null);
+
+        $this->actingAs($this->manager)
+            ->post(route('schedules.rooms.store'), [
+                'room_id' => $room->id,
+                'shift_id' => $this->office->id,
+                'employee_id' => $nurse->id,
+                'date' => $this->date,
+            ])
+            ->assertSessionHasErrors('shift_id');
+
+        $this->assertNull($assignment->fresh()->room_id);
+    }
+
+    public function test_the_candidate_endpoint_does_not_answer_for_the_office_day(): void
+    {
+        $room = $this->room('BT-NOPICK', ['min_seniority_rank' => 1]);
+
+        $this->actingAs($this->manager)
+            ->getJson(route('schedules.rooms.candidates', [
+                'room' => $room->id,
+                'shift' => $this->office->id,
+                'date' => $this->date,
+            ]))
+            ->assertNotFound();
     }
 
     /** @return Collection<int, array<string, mixed>> */

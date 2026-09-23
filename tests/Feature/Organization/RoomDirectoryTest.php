@@ -198,4 +198,40 @@ class RoomDirectoryTest extends TestCase
             'minimum_staff' => 2,
         ]);
     }
+
+    /**
+     * A room is a clinical place. The standalone office day is worked at a desk
+     * in an administrative unit, which has no rooms to roster anybody into, so
+     * the coverage standard has no row for it.
+     */
+    public function test_the_coverage_standard_only_offers_the_shifts_a_room_is_staffed_on(): void
+    {
+        $room = Room::query()->where('code', 'OR-1')->firstOrFail();
+
+        $this->actingAs($this->manager)
+            ->get(route('rooms.edit', $room))
+            ->assertOk()
+            ->assertSee('Morning Shift')
+            ->assertSee('Night Shift')
+            ->assertDontSee('Administrative Shift');
+    }
+
+    public function test_a_coverage_standard_cannot_be_recorded_for_the_office_day(): void
+    {
+        $room = Room::query()->where('code', 'OR-1')->firstOrFail();
+        $office = Shift::query()->where('code', 'ADMIN-0800')->firstOrFail();
+
+        $this->actingAs($this->manager)
+            ->put(route('rooms.shift-coverage.update', $room), [
+                'requirements' => [
+                    $office->id => ['operates' => '1', 'minimum_staff' => 2, 'minimum_senior' => 1],
+                ],
+            ])
+            ->assertSessionHasErrors('requirements');
+
+        $this->assertDatabaseMissing('room_shift_requirements', [
+            'room_id' => $room->id,
+            'shift_id' => $office->id,
+        ]);
+    }
 }

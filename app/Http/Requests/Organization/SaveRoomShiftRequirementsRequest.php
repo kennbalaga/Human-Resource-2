@@ -27,13 +27,15 @@ class SaveRoomShiftRequirementsRequest extends FormRequest
     {
         $validator->after(function (Validator $validator): void {
             // Keyed by shift ID from the form, so confirmed against the shifts
-            // table before any of it is written.
+            // table before any of it is written -- and against the shifts a
+            // room can be staffed on at all, so a posted ID cannot write a
+            // standard for the office day the form no longer offers.
             $shiftIds = array_keys((array) $this->input('requirements', []));
             $numericIds = array_filter($shiftIds, 'is_numeric');
 
             if (count($numericIds) !== count($shiftIds)
-                || Shift::query()->whereKey($numericIds)->count() !== count($shiftIds)) {
-                $validator->errors()->add('requirements', 'The room coverage form referenced an unknown shift.');
+                || Shift::query()->staffsRooms()->whereKey($numericIds)->count() !== count($shiftIds)) {
+                $validator->errors()->add('requirements', 'The room coverage form referenced a shift no room is staffed on.');
             }
         });
     }

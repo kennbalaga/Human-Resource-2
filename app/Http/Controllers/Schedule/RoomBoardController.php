@@ -70,6 +70,10 @@ class RoomBoardController extends Controller
         $this->requireBoardAccess($request);
         $this->requireManager($request);
 
+        // The board only has columns for the rotation's legs, so a request for
+        // the office day did not come from it.
+        abort_unless($shift->staffsRooms(), 404);
+
         $validated = $request->validate(['date' => ['required', 'date']]);
 
         $candidates = $this->assignments->candidates($room, $shift, $validated['date'])

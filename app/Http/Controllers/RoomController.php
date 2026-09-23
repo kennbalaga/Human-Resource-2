@@ -65,7 +65,10 @@ class RoomController extends Controller
     {
         $this->requireManager($request);
 
-        $shifts = Shift::query()->where('is_active', true)->orderBy('start_time')->get();
+        // The rotation's legs only. A room is never staffed on the office day,
+        // so offering it a coverage standard invited a figure that could not
+        // be met.
+        $shifts = Shift::query()->where('is_active', true)->staffsRooms()->orderBy('start_time')->get();
 
         return view('rooms.edit', $this->formData($request, $room) + [
             'room' => $room,

@@ -69,7 +69,9 @@ class HospitalRoomSeeder extends Seeder
             ->get()
             ->keyBy('code');
 
-        $shifts = Shift::query()->get()->keyBy('code');
+        // Only the shifts a room is staffed on. The office day never had a
+        // standard worth recording here.
+        $shifts = Shift::query()->staffsRooms()->get()->keyBy('code');
 
         foreach (self::ROOMS as $departmentCode => $rooms) {
             $department = $departments->get($departmentCode);

@@ -262,6 +262,17 @@ class RoomAssignmentService
      */
     private function assertRoomOpen(Room $room, Shift $shift): void
     {
+        // The office day is worked at a desk, not in a theatre or on a ward, so
+        // it is no column on the board -- and the route behind the board
+        // refuses it too, rather than trusting the screen to be the only way
+        // in. Asked first because it is the more categorical refusal: no room
+        // of any state is staffed on it.
+        if (! $shift->staffsRooms()) {
+            throw ValidationException::withMessages([
+                'shift_id' => "The {$shift->name} is not worked in a room.",
+            ]);
+        }
+
         if (! $room->isUsable()) {
             throw ValidationException::withMessages([
                 'room_id' => "{$room->code} is {$room->status_label}. Nobody can be rostered into it until it reopens.",

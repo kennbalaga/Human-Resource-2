@@ -62,7 +62,7 @@ class RoomRosterService
         // better part of a tenth of a second, so a per-cell lookup would cost
         // more than the page.
         $requirements = $this->requirementsFor($rooms, $shifts);
-        $assignments = $this->assignmentsFor($department, $rooms, $date);
+        $assignments = $this->assignmentsFor($department, $rooms, $shifts, $date);
         $onLeave = $this->employeesOnLeave($assignments->pluck('employee_id')->filter()->unique()->all(), $date);
 
         $placed = $assignments->whereNotNull('room_id')->groupBy(fn (ScheduleAssignment $row) => $row->room_id.'|'.$row->shift_id);
@@ -380,16 +380,22 @@ class RoomRosterService
      * borrowed into one of its rooms, since the board has to show a borrowed
      * nurse standing in the theatre she was lent to.
      *
+     * Narrowed to the board's own shifts, so the office day stays out of the
+     * "still to place" list as well as out of the grid. Somebody at a desk is
+     * not waiting for a room.
+     *
      * @param  Collection<int, Room>  $rooms
+     * @param  Collection<int, Shift>  $shifts
      * @return Collection<int, ScheduleAssignment>
      */
-    private function assignmentsFor(Department $department, Collection $rooms, Carbon $date): Collection
+    private function assignmentsFor(Department $department, Collection $rooms, Collection $shifts, Carbon $date): Collection
     {
         $roomIds = $rooms->pluck('id')->all();
 
         $assignments = ScheduleAssignment::query()
             ->with('employee')
             ->whereDate('work_date', $date->toDateString())
+            ->whereIn('shift_id', $shifts->pluck('id')->all())
             ->where('status', 'scheduled')
             ->where(function (Builder $query) use ($department, $roomIds): void {
                 $query->whereHas('employee', fn (Builder $employee) => $employee->where('department_id', $department->id));
@@ -428,11 +434,21 @@ class RoomRosterService
             ->all();
     }
 
-    /** @return Collection<int, Shift> */
+    /**
+     * The columns of the board: the rotation's legs, and nothing else.
+     *
+     * The office day is skipped because a room is a clinical place and the
+     * staff who work that shift sit in administrative units, which have no
+     * rooms. Carried as a column it was a permanently empty one, graded as
+     * unstaffed every day against a standard no room was ever going to meet.
+     *
+     * @return Collection<int, Shift>
+     */
     private function shifts(): Collection
     {
         return $this->reference->shifts()
             ->where('is_active', true)
+            ->filter(fn (Shift $shift) => $shift->staffsRooms())
             ->sortBy('start_time')
             ->values();
     }
