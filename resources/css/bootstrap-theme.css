@@ -97,6 +97,7 @@
     --bs-dropdown-border-radius: var(--r-lg);
 
     --bs-pagination-color: var(--hr-text);
+
     --bs-pagination-bg: var(--hr-surface);
     --bs-pagination-border-color: var(--hr-border);
     --bs-pagination-hover-color: var(--hr-text);
@@ -155,6 +156,20 @@
     --bs-toast-border-color: var(--hr-border);
     --bs-toast-header-bg: var(--hr-surface-2);
     --bs-toast-header-color: var(--hr-text);
+}
+
+/*
+ * Bootstrap re-declares a handful of --bs-dropdown-* variables directly on
+ * .dropdown-menu with literal fallbacks (#0d6efd for the active item, #fff
+ * for its text) instead of routing them through --bs-primary. That local
+ * declaration sits closer to .dropdown-item than our :root block above, so
+ * it wins the cascade and every dropdown showed Bootstrap's stock blue on
+ * tap/select regardless of the tokens set above. Restated at the same
+ * selector so it wins on source order instead.
+ */
+.dropdown-menu {
+    --bs-dropdown-link-active-color: var(--hr-on-primary);
+    --bs-dropdown-link-active-bg: var(--hr-primary-fill);
 }
 
 /*
