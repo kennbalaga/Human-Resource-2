@@ -1054,6 +1054,261 @@
 }
 
 /* ------------------------------------------------------------------------
+ * 8d. The schedule calendar on a phone
+ *
+ * schedule.css pins .month-calendar and .week-calendar to `min-width: 48rem`
+ * below 900px and lets .schedule-calendar-panel scroll sideways. On a tablet
+ * that is a reasonable trade: 768px of board is only a little wider than the
+ * screen. On a 360px phone it is a board four hundred pixels wider than the
+ * viewport, so the week ended at Wednesday, Thursday was a sliver at the edge,
+ * and the only way to reach the weekend was a sideways swipe inside a page
+ * that also scrolls down. Every cell read as clipped, colliding text.
+ *
+ * A seven-column board cannot be made to fit by shrinking it — seven columns
+ * of a 332px panel is 47px, which holds no name, no shift and no time. So the
+ * two calendars stop pretending to be the same thing they are on a desktop:
+ *
+ *   - Month becomes a real month: the date grid, at the width of the screen,
+ *     with each shift reduced to its colour as a dot. It answers "which days
+ *     are busy, and roughly with what" — which is what a month view is for —
+ *     and a tap on the day opens the full roster for it, the same modal a
+ *     chip opens on a desktop.
+ *   - Week stops being seven 47px columns and becomes seven full-width rows,
+ *     date on a rail down the left. That is where the names and times live on
+ *     a phone, at the width to actually print them.
+ *
+ * Nothing is hidden that is not reachable one tap away, and the List view is
+ * untouched.
+ * --------------------------------------------------------------------- */
+@media (max-width: 700px) {
+    /* The board fits the panel now, so the panel has nothing left to scroll
+       and the toolbar has nothing left to stay pinned to. */
+    .month-calendar,
+    .week-calendar {
+        min-width: 0;
+    }
+
+    .schedule-toolbar {
+        position: static;
+        min-width: 0;
+    }
+
+    /*
+     * The period title carries a `min-width: 12rem` so "Sep 21 – Sep 27, 2026"
+     * never reflows the arrows beside it as you page through the weeks. Twelve
+     * rems plus two 44px arrows, "Today" and the toolbar's own padding is 400px
+     * of a row that does not wrap — wider than the phone, and it was the
+     * toolbar, not the board, that made the panel a sideways scroller even
+     * after the board itself fitted. The title takes the line above instead,
+     * which is where a heading belongs.
+     */
+    .calendar-navigation {
+        flex-wrap: wrap;
+        row-gap: .5rem;
+    }
+
+    .calendar-navigation h2 {
+        order: -1;
+        flex: 1 0 100%;
+        min-width: 0;
+        margin: 0;
+    }
+
+    /* ---- Month: the date grid ---- */
+
+    /* .7rem of side padding on a 47px column left "MON" 23px to sit in. The
+       three letters are the content here; the padding is not. */
+    .month-weekdays span {
+        padding: .5rem .1rem;
+        font-size: var(--fs-2xs);
+        letter-spacing: .01em;
+    }
+
+    /* 3.6rem clears the 44px touch floor with room for the dots underneath,
+       and holds six rows of month in about 350px. */
+    .calendar-day {
+        min-height: 3.6rem;
+        padding: .3rem .15rem;
+    }
+
+    .calendar-day-header {
+        justify-content: center;
+        margin-bottom: .25rem;
+        font-size: var(--fs-2xs);
+    }
+
+    /* The word "Today" and the padlock are captions on a cell with no room for
+       one. The tint already says which day is today and the filled number says
+       it again; the lock is on every past day, which is most of the month, so
+       as a per-cell icon it is noise rather than information. Both are still
+       spelled out in the day roster the cell opens. */
+    .calendar-day-header small,
+    .calendar-day-lock {
+        display: none;
+    }
+
+    /* :first-child, because the padlock is a span of this header too — without
+       it the lock was the element getting the filled circle, and a rule that
+       specific also outranked the `display: none` above meant to remove it. */
+    .calendar-day.is-today .calendar-day-header > span:first-child {
+        display: grid;
+        place-items: center;
+        width: 1.45rem;
+        height: 1.45rem;
+        border-radius: 50%;
+        color: #fff;
+        background: var(--hr-info);
+    }
+
+    .calendar-day-events {
+        display: flex;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        justify-content: center;
+        gap: .22rem;
+    }
+
+    /*
+     * Every chip in the cell — shift, day off, leave — collapses to its own
+     * colour. The selectors carry .month-days so they outrank dark-mode.css's
+     * `html[data-theme-resolved='dark'] .schedule-event`, which sets the tinted
+     * chip background a dot must not inherit. Source order alone would not do
+     * it: that sheet is more specific, not later.
+     */
+    .month-days .calendar-day-events > * {
+        width: .45rem;
+        height: .45rem;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+    }
+
+    /* The colour bar is the dot now, the repeat icon has nowhere to be drawn,
+       and the day-off remove button is not a control at 7px — it is one in the
+       List view and in the day roster, which is where a phone should be
+       removing a day off from anyway. These three go. */
+    .month-days .calendar-day-events .event-color,
+    .month-days .calendar-day-events > * > svg,
+    .month-days .calendar-day-events form {
+        display: none;
+    }
+
+    /*
+     * The words do not. `display: none` would take them out of the
+     * accessibility tree as well, leaving a row of buttons with no accessible
+     * name at all — a screen reader would read seven days of "button". They
+     * are clipped instead, so the dot still announces "Night Shift, Luz Cruz".
+     *
+     * `.calendar-day` is `position: relative`, so the clip is anchored inside
+     * the cell. That is the part that matters: an absolutely-positioned box
+     * with no positioned ancestor lands on the initial containing block, and
+     * this app has already had one of those turn a phone page into a 200px
+     * sideways scroller.
+     */
+    .month-days .calendar-day-events .event-copy,
+    .month-days .calendar-day-events .schedule-day-off-event > span,
+    .month-days .calendar-day-events .schedule-leave-event > span,
+    .month-days .more-events > span {
+        position: absolute;
+        overflow: hidden;
+        width: 1px;
+        height: 1px;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .month-days .calendar-day-events .schedule-event {
+        background: var(--event-color);
+    }
+
+    .month-days .calendar-day-events .schedule-leave-event {
+        background: var(--leave-color);
+    }
+
+    .month-days .calendar-day-events .schedule-day-off-event {
+        background: var(--hr-border-strong);
+    }
+
+    /*
+     * "+7 more" is 44px of text in a 47px cell. The count is the part that
+     * carries the meaning, so the blade wraps the word in its own span and it
+     * is clipped with the rest above, leaving "+7" on a line of its own under
+     * the dots and the full phrase still read out.
+     */
+    .month-days .more-events {
+        flex: 1 0 100%;
+        width: auto;
+        height: auto;
+        padding: 0;
+        text-align: center;
+        line-height: 1.1;
+    }
+
+    /*
+     * A 7px dot is not a tap target, and the day is what you want to open
+     * anyway. The first chip in the cell is already a <button> that opens this
+     * date's roster, so it is given a transparent overlay the size of the cell
+     * — the target becomes the whole day, and it is still a real focusable
+     * control rather than a click handler bolted onto an <article>.
+     */
+    .month-days .calendar-day-events .schedule-event:first-child::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+    }
+
+    .month-days .calendar-day-events .schedule-event:first-child:focus-visible {
+        outline: 0;
+    }
+
+    .month-days .calendar-day-events .schedule-event:first-child:focus-visible::after {
+        outline: 2px solid var(--hr-info);
+        outline-offset: -2px;
+    }
+
+    /* ---- Week: seven rows, not seven columns ---- */
+
+    .week-calendar {
+        grid-template-columns: minmax(0, 1fr);
+        min-height: 0;
+    }
+
+    .week-day-column {
+        display: grid;
+        grid-template-columns: 3.25rem minmax(0, 1fr);
+        border-right: 0;
+        border-bottom: 1px solid var(--hr-border);
+    }
+
+    .week-day-column:last-child {
+        border-bottom: 0;
+    }
+
+    .week-day-column > header {
+        align-content: center;
+        padding: .6rem .3rem;
+        border-right: 1px solid var(--hr-border);
+        border-bottom: 0;
+    }
+
+    .week-day-events {
+        padding: .55rem .65rem;
+    }
+
+    /*
+     * The clamp added for the 95px column in a seven-column board: a full-width
+     * row has the whole phone to print a name into, so it wraps here instead of
+     * being cut to "Administrat...". Same reasoning as 8c above.
+     */
+    .week-schedule-event strong {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+    }
+}
+
+/* ------------------------------------------------------------------------
  * 8b. Small phones (<=380px)
  *
  * A 360px handset is not a rare edge case here — it is the low-end Android the
@@ -1116,6 +1371,21 @@
     .device-lock-privacy {
         margin-right: 0.7rem;
         margin-left: 0.7rem;
+    }
+
+    /* A month column is 42px here (8d above). The dots stay the size they are
+       — they are the content — so the gaps around them and the week view's
+       date rail are what give way. */
+    .calendar-day {
+        padding: .25rem .1rem;
+    }
+
+    .month-days .calendar-day-events {
+        gap: .18rem;
+    }
+
+    .week-day-column {
+        grid-template-columns: 2.85rem minmax(0, 1fr);
     }
 }
 

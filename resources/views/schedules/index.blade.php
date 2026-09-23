@@ -167,7 +167,7 @@
                                     </button>
                                 @endforeach
                                 @if ($day['assignments']->count() > 3)
-                                    <span class="more-events">+{{ $day['assignments']->count() - 3 }} more</span>
+                                    <span class="more-events">+{{ $day['assignments']->count() - 3 }}{{-- Clipped out of sight on a phone, where the cell is 47px wide and the count is the whole message. --}}<span> more</span></span>
                                 @endif
                                 @foreach($day['day_offs']->take(2) as $dayOff)
                                     <span class="schedule-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" data-confirm="Remove this day off?">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>
