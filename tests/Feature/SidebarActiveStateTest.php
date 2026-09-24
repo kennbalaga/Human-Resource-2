@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -63,7 +64,7 @@ class SidebarActiveStateTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('railPages')]
+    #[DataProvider('railPages')]
     public function test_the_rail_marks_the_section_the_page_belongs_to(string $url, string $expected): void
     {
         $this->assertSame($expected, $this->activeRailEntry($url));
