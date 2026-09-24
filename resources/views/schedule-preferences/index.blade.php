@@ -42,7 +42,7 @@
 
                 <section class="panel workforce-table-panel">
                     <div class="panel-header"><div><p class="panel-kicker">Requests</p><h2>Shift swap history</h2></div><span class="history-caption">{{ $swapRequests->total() }} results</span></div>
-                    <div class="table-responsive"><table class="dashboard-table workforce-table"><thead><tr><th>Requester</th><th>Gives up</th><th>Colleague</th><th>Takes</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+                    <div class="table-responsive"><table class="dashboard-table workforce-table swap-history-table"><thead><tr><th>Requester</th><th>Gives up</th><th>Colleague</th><th>Takes</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead><tbody>
                         @forelse($swapRequests as $swap)
                             <tr>
                                 <td><div class="employee-cell"><span class="avatar avatar-table">{{ strtoupper(substr($swap->requesterEmployee->first_name,0,1).substr($swap->requesterEmployee->last_name,0,1)) }}</span><div><strong>{{ $swap->requesterEmployee->full_name }}</strong><span>{{ $swap->requesterEmployee->department?->name }}</span></div></div></td>

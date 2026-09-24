@@ -1,7 +1,10 @@
 {{-- Theatre lists: a room held by the clock rather than by the shift. Only the
      rooms that work that way carry one, so a ward panel does not appear on a
      board that has no theatres in it. --}}
-@php($theatreRows = collect($board['rooms'])->filter(fn ($row) => in_array($row['room']->room_type, App\Models\Room::restrictedTypes(), true)))
+{{-- The caller works the same set out before it lays the page out, since
+     whether this panel renders decides whether it shares its row. It is passed
+     in rather than recomputed, so the two can never disagree. --}}
+@php($theatreRows = $theatreRows ?? collect($board['rooms'])->filter(fn ($row) => in_array($row['room']->room_type, App\Models\Room::restrictedTypes(), true)))
 
 @if($theatreRows->isNotEmpty())
     <section class="panel">

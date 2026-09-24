@@ -1,3 +1,4 @@
+import { initActionMenus } from './action-menu';
 /* `root` is the whole document on load, and the modal's content when a form has
    just been fetched into it - that form is not in the DOM when this first runs. */
 const initializePositionFiltering = (root = document) => {
@@ -108,6 +109,10 @@ const initializeLiveEmployeeDirectory = () => {
             if (!response.ok) return;
 
             results.innerHTML = await response.text();
+            // The rows are new nodes, so their overflow menus have no dropdown
+            // instance yet -- and without one they would fall back to the
+            // absolute positioning the table's scroll container clips.
+            initActionMenus(results);
             if (pushHistory) window.history.pushState({}, '', url);
         } catch (error) {
             if (error.name !== 'AbortError') throw error;

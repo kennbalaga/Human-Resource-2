@@ -3,10 +3,10 @@
         <x-page-tab-label icon="users" title="Employees" description="People, accounts, and reporting lines" />
     </a>
     <a href="{{ route('departments.index') }}" @class(['page-tab', 'active' => request()->routeIs('departments.*')]) @if(request()->routeIs('departments.*')) aria-current="page" @endif>
-        <x-page-tab-label icon="building" title="Departments" description="Hospital units and workforce capacity" />
+        <x-page-tab-label icon="building" title="Departments" description="Operational units and their heads" />
     </a>
     <a href="{{ route('positions.index') }}" @class(['page-tab', 'active' => request()->routeIs('positions.*')]) @if(request()->routeIs('positions.*')) aria-current="page" @endif>
-        <x-page-tab-label icon="briefcase" title="Positions" description="Approved roles and department alignment" />
+        <x-page-tab-label icon="briefcase" title="Positions" description="Defined roles and their codes" />
     </a>
     <a href="{{ route('rooms.index') }}" @class(['page-tab', 'active' => request()->routeIs('rooms.*')]) @if(request()->routeIs('rooms.*')) aria-current="page" @endif>
         <x-page-tab-label icon="layers" title="Rooms" description="Theatres, wards, and clinic rooms" />

@@ -53,16 +53,20 @@ class AttendanceOverviewService
      *     to: string,
      *     range_label: string,
      *     series: array<int, array{key: string, label: string, total: int}>,
-     *     buckets: array<int, array{date: string, label: string, weekday: string, weekday_long: string, full_label: string, present: int, late: int, on_leave: int, absent: int, expected: int, rate: float|null, total: int}>,
+     *     buckets: array<int, array{date: string, label: string, weekday: string, weekday_long: string, full_label: string, present: int, late: int, on_leave: int, absent: int, expected: int, rate: float|null, total: int, worked_minutes: int, hours: float}>,
      *     totals: array<string, int>,
      *     tracked: int,
      *     max: int,
      *     hours_logged: int,
+     *     hours_max: float,
+     *     peak_hours_day: array{weekday: string, label: string, hours: float}|null,
+     *     lowest_hours_day: array{weekday: string, label: string, hours: float}|null,
      *     on_time_rate: float|null,
      *     attendance_rate: float|null,
      *     peak_day: array{weekday: string, label: string, rate: float}|null,
      *     lowest_day: array{weekday: string, label: string, rate: float}|null,
      *     leave_total: int,
+     *     leave_pending: int,
      *     leave_resolved: int,
      *     leave_resolved_rate: float|null,
      * }
@@ -74,7 +78,7 @@ class AttendanceOverviewService
         // The dashboard already pays for several queries; a short window keeps a
         // reload cheap without hiding a check-in that just happened.
         return Cache::remember(
-            "dashboard.attendance-overview.v2.{$days}",
+            "dashboard.attendance-overview.v3.{$days}",
             now()->addSeconds(60),
             fn (): array => $this->build($days),
         );
@@ -111,15 +115,29 @@ class AttendanceOverviewService
 
         $onLeave = $this->leaveIdsByDate($from, $to);
 
-        // The hours actually worked in the window, straight off the records the
-        // check-out writes. Summed in the database rather than over the collection
-        // above, which is fetched without this column and only for its statuses.
-        $workedMinutes = (int) $this->withinWindow(
+        // The hours actually worked, per day, straight off the records the
+        // check-out writes. Grouped in the database rather than over the
+        // collection above, which is fetched without this column and only for
+        // its statuses. This is what the chart plots: the panel is read for how
+        // much work the window absorbed, and a column per day says that in a
+        // way four stacked headcounts never did.
+        $workedByDate = $this->withinWindow(
             $this->workforceOnly(AttendanceRecord::query()),
             'attendance_date',
             $from,
             $to,
-        )->sum('worked_minutes');
+        )
+            ->selectRaw('attendance_date, sum(worked_minutes) as minutes')
+            ->groupBy('attendance_date')
+            ->pluck('minutes', 'attendance_date')
+            // The grouped key comes back driver-shaped -- "2026-09-24 00:00:00"
+            // on one connection, "2026-09-24" on another -- and has to match the
+            // plain date the buckets are keyed by.
+            ->mapWithKeys(fn ($minutes, $date): array => [
+                Carbon::parse((string) $date)->toDateString() => (int) $minutes,
+            ]);
+
+        $workedMinutes = (int) $workedByDate->sum();
 
         // Leave filed inside the window, and how much of it somebody has since
         // dealt with. Measured on the request date, not the dates requested: this
@@ -139,6 +157,7 @@ class AttendanceOverviewService
                 $rostered,
                 $daysOff,
                 $onLeave,
+                $workedByDate,
             ))
             ->values()
             ->all();
@@ -156,6 +175,12 @@ class AttendanceOverviewService
         // "lowest day" every week while describing nothing that went wrong.
         $rated = collect($buckets)->filter(fn (array $bucket): bool => $bucket['rate'] !== null);
         $resolved = $leaveStatuses->reject(fn (string $status): bool => $status === 'pending')->count();
+
+        // Best and worst day by hours worked, drawn from the same rated set and
+        // for the same reason: an unrostered Sunday logs no hours and would take
+        // "lowest day" every week while describing nothing that went wrong.
+        $peakHours = $rated->sortByDesc('hours')->first();
+        $lowestHours = $rated->sortBy('hours')->first();
 
         return [
             'days' => $days,
@@ -176,6 +201,11 @@ class AttendanceOverviewService
             // The tallest column sets the scale; never zero, so the bar maths is safe.
             'max' => max(1, (int) collect($buckets)->max('total')),
             'hours_logged' => (int) round($workedMinutes / 60),
+            // The scale for the hours chart. Never zero, so the bar maths is
+            // safe on a window where nobody has clocked out yet.
+            'hours_max' => max(1.0, (float) collect($buckets)->max('hours')),
+            'peak_hours_day' => $this->hoursDay($peakHours),
+            'lowest_hours_day' => $this->hoursDay($lowestHours),
             // Of the people who turned up, how many were on time. Absences are not
             // in the denominator: somebody who never came in was not late.
             'on_time_rate' => $this->rate($totals['present'], $attended),
@@ -183,6 +213,7 @@ class AttendanceOverviewService
             'peak_day' => $this->extremeDay($rated->sortByDesc('rate')->first()),
             'lowest_day' => $this->extremeDay($rated->sortBy('rate')->first()),
             'leave_total' => $leaveStatuses->count(),
+            'leave_pending' => $leaveStatuses->filter(fn (string $status): bool => $status === 'pending')->count(),
             'leave_resolved' => $resolved,
             'leave_resolved_rate' => $this->rate($resolved, $leaveStatuses->count()),
         ];
@@ -195,6 +226,19 @@ class AttendanceOverviewService
     private function rate(int $part, int $whole): ?float
     {
         return $whole > 0 ? round($part / $whole * 100, 1) : null;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $bucket
+     * @return array{weekday: string, label: string, hours: float}|null
+     */
+    private function hoursDay(?array $bucket): ?array
+    {
+        return $bucket === null ? null : [
+            'weekday' => $bucket['weekday'],
+            'label' => $bucket['label'],
+            'hours' => $bucket['hours'],
+        ];
     }
 
     /**
@@ -215,9 +259,10 @@ class AttendanceOverviewService
      * @param  Collection<string, Collection<int, int>>  $rostered
      * @param  Collection<string, Collection<int, int>>  $daysOff
      * @param  Collection<string, Collection<int, int>>  $onLeave
+     * @param  Collection<string, int>  $workedByDate
      * @return array<string, mixed>
      */
-    private function bucket(Carbon $date, Collection $attendance, Collection $rostered, Collection $daysOff, Collection $onLeave): array
+    private function bucket(Carbon $date, Collection $attendance, Collection $rostered, Collection $daysOff, Collection $onLeave, Collection $workedByDate): array
     {
         $key = $date->toDateString();
         $records = $attendance->get($key, collect());
@@ -247,8 +292,12 @@ class AttendanceOverviewService
         // stays out of both halves of the day's rate.
         $expected = $counts['present'] + $counts['late'] + $counts['absent'];
 
+        $workedMinutes = (int) $workedByDate->get($key, 0);
+
         return $counts + [
             'date' => $key,
+            'worked_minutes' => $workedMinutes,
+            'hours' => round($workedMinutes / 60, 1),
             'label' => $date->format('M j'),
             'weekday' => $date->format('D'),
             'weekday_long' => $date->format('l'),

@@ -12,6 +12,25 @@
  * quiet.
  */
 
+/* .panel carries no margin of its own, and this page stacks four of them under
+   the filter bar. Without this they meet edge to edge and read as one very
+   long card with internal rules rather than as four separate answers. */
+.room-board-page > .panel,
+.room-board-page > .room-board-pair {
+    margin-bottom: 20px;
+}
+
+/* Theatre lists and the people still to place answer the same afternoon from
+   two sides. auto-fit rather than two fixed tracks: either panel can be absent
+   -- a unit with no theatres, a day where everyone has a room -- and the one
+   that remains should take the width rather than leave a hole beside itself. */
+.room-board-pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
 .room-board-toolbar {
     display: flex;
     flex-wrap: wrap;

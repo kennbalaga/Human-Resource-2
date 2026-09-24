@@ -25,6 +25,17 @@
     /* Integrations and audit logs are deliberately absent from the rail. Only a
        System Administrator may open them, and they reach both from the
        Operational tools panel in Settings. */
+
+    /* A badge is a call to act, so an empty queue shows nothing rather than a
+       zero -- three grey noughts down the rail read as decoration and train the
+       eye to skip the plate that does mean something. The composer supplies the
+       counts; see SidebarBadgeService for what each one is counting. */
+    $sidebarBadges = $sidebarBadges ?? ['swaps' => 0, 'timesheets' => 0, 'leave' => 0];
+    $sidebarBadge = fn (int $count): ?string => $count < 1
+        ? null
+        : ($count > \App\Services\SidebarBadgeService::MAX_DISPLAY
+            ? \App\Services\SidebarBadgeService::MAX_DISPLAY.'+'
+            : (string) $count);
 @endphp
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Primary navigation">
@@ -69,7 +80,10 @@
             </x-sidebar-link>
 
             @if ($sidebarCanSeeOrganization)
-                <x-sidebar-link :href="route('organization.index')" icon="building" :active="request()->routeIs('organization.*', 'employees.*', 'departments.*', 'positions.*')">Organization</x-sidebar-link>
+                {{-- Rooms is the fourth tab of this workspace, so it belongs here. Reaching
+                     it from the room board's "Manage rooms" used to leave the whole rail
+                     unlit, with nothing saying which section you had landed in. --}}
+                <x-sidebar-link :href="route('organization.index')" icon="building" :active="request()->routeIs('organization.*', 'employees.*', 'departments.*', 'positions.*', 'rooms.*')">Organization</x-sidebar-link>
             @endif
         </div>
 
@@ -86,7 +100,7 @@
                     Room board
                 </x-sidebar-link>
             @endif
-            <x-sidebar-link :href="route('schedule-preferences.index')" icon="swap" :active="request()->routeIs('schedule-preferences.*', 'shift-swaps.*')">
+            <x-sidebar-link :href="route('schedule-preferences.index')" icon="swap" :active="request()->routeIs('schedule-preferences.*', 'shift-swaps.*')" :badge="$sidebarBadge($sidebarBadges['swaps'])">
                 Preferences and Swaps
             </x-sidebar-link>
             @if ($sidebarCanManageShifts)
@@ -100,11 +114,14 @@
             <h2 class="sidebar-nav-heading" id="sidebar-group-time">Time &amp; attendance</h2>
 
             {{-- The badge scanner is a tab on this page, so Attendance stays
-                 highlighted on both of its views. --}}
-            <x-sidebar-link :href="route('attendance.index')" icon="clock" :active="request()->routeIs('attendance.index')">
+                 highlighted on both of its views -- and so does the override
+                 screen, which is a route of its own under the same module. The
+                 attendance report is the one exception: it is reached from
+                 Reports and lights Reports. --}}
+            <x-sidebar-link :href="route('attendance.index')" icon="clock" :active="request()->routeIs('attendance.*') && ! request()->routeIs('attendance.reports.*')">
                 Attendance
             </x-sidebar-link>
-            <x-sidebar-link :href="route('timesheets.index')" icon="timesheet" :active="request()->routeIs('timesheets.*')">
+            <x-sidebar-link :href="route('timesheets.index')" icon="timesheet" :active="request()->routeIs('timesheets.*')" :badge="$sidebarBadge($sidebarBadges['timesheets'])">
                 Timesheets
             </x-sidebar-link>
         </div>
@@ -113,7 +130,7 @@
         <div class="sidebar-nav-group" role="group" aria-labelledby="sidebar-group-pay">
             <h2 class="sidebar-nav-heading" id="sidebar-group-pay">Time off &amp; pay</h2>
 
-            <x-sidebar-link :href="route('leaves.index')" icon="leave" :active="request()->routeIs('leaves.*') || request()->routeIs('leave-attachments.*')">
+            <x-sidebar-link :href="route('leaves.index')" icon="leave" :active="request()->routeIs('leaves.*') || request()->routeIs('leave-attachments.*')" :badge="$sidebarBadge($sidebarBadges['leave'])">
                 Leave Management
             </x-sidebar-link>
             <x-sidebar-link :href="route('payslips.index')" icon="receipt" :active="request()->routeIs('payslips.*')">

@@ -18,8 +18,8 @@
 <aside class="panel schedule-calendar" aria-labelledby="schedule-calendar-title">
     <div class="panel-header">
         <div>
-            <p class="panel-kicker">Scheduling</p>
-            <h2 id="schedule-calendar-title">Calendar</h2>
+            <p class="panel-kicker">This week</p>
+            <h2 id="schedule-calendar-title">Roster at a glance</h2>
         </div>
         <span class="schedule-calendar-month">{{ $calendar['month_label'] }}</span>
     </div>

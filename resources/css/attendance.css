@@ -109,6 +109,15 @@
     font-size: var(--fs-2xs);
 }
 
+/* As a panel's own child rather than a line inside its header, the caption has
+   to bring the panel's gutters with it. Flush to the edge it read as a stray
+   sentence dropped under the form instead of a note about it. */
+.panel > .history-caption {
+    display: block;
+    margin: 0;
+    padding: 0 1.25rem 12px;
+}
+
 .attendance-table,
 .report-table {
     min-width: 930px;
@@ -273,8 +282,12 @@
     margin-bottom: 22px;
 }
 
+/* Reports run from ten columns to sixteen, so the table that has to scroll
+   sizes itself from how many it is carrying rather than from one number that
+   fitted the shortest of them. The floor keeps the narrow reports exactly where
+   they were. */
 .report-table {
-    min-width: 1150px;
+    min-width: max(1150px, calc(var(--report-columns, 10) * 120px));
 }
 
 .report-pagination {

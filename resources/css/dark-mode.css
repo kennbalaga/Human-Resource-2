@@ -9,29 +9,29 @@
  * The fill/text split from tokens.css holds here too, but the two halves move
  * much closer together: on a dark ground the emerald is the lightest thing in
  * the frame, so the value that paints a button can also carry small text
- * (#12c98b on --hr-surface is 7.68:1). --hr-primary-text therefore differs from
+ * (#10b981 on --hr-surface is 6.43:1). --hr-primary-text therefore differs from
  * --hr-primary only slightly, and exists so that component rules written
  * against the light theme need no dark-specific branch.
  */
 html[data-theme-resolved='dark'] {
     color-scheme: dark;
 
-    --hr-primary: #12c98b;          /* 7.68:1 on --hr-surface — paints and reads */
-    --hr-primary-hover: #20d99a;
-    --hr-primary-dark: #20d99a;     /* legacy alias of -hover */
-    --hr-primary-accent: #12c98b;   /* already the bright emerald in this theme */
-    --hr-primary-text: #2fd59a;     /* 8.6:1 — green wording and glyphs */
-    --hr-primary-soft: #123d32;     /* the tinted plate behind an icon or chip */
-    --hr-primary-rgb: 18, 201, 139;
+    --hr-primary: #10b981;          /* 6.43:1 on --hr-surface — paints and reads */
+    --hr-primary-hover: #34d399;
+    --hr-primary-dark: #34d399;     /* legacy alias of -hover */
+    --hr-primary-accent: #10b981;   /* already the bright emerald in this theme */
+    --hr-primary-text: #34d399;     /* 8.57:1 — green wording and glyphs */
+    --hr-primary-soft: #10302a;     /* the tinted plate behind an icon or chip */
+    --hr-primary-rgb: 16, 185, 129;
 
     /*
      * Dark flips which half of the pair is legible: on a dark ground the lifted
      * emerald is bright enough to be the fill, and the label on it goes dark
      * rather than white (7.80:1).
      */
-    --hr-primary-fill: #12c98b;
-    --hr-primary-fill-hover: #20d99a;
-    --hr-on-primary: #04211a;
+    --hr-primary-fill: #10b981;
+    --hr-primary-fill-hover: #34d399;
+    --hr-on-primary: #04231a;       /* 6.50:1 on the fill, 8.67:1 on its hover */
 
     /*
      * Depth comes from the surface ladder, not from borders: each rung is a
@@ -75,9 +75,9 @@ html[data-theme-resolved='dark'] {
      * that asks for one must never fall through to the light palette. The
      * -soft plates are opaque and dark, so badge wording keeps its contrast.
      */
-    --hr-success: #35cf8e;
-    --hr-success-text: #35cf8e;
-    --hr-success-soft: #123b2b;
+    --hr-success: #34d399;
+    --hr-success-text: #34d399;
+    --hr-success-soft: #10302a;
     --hr-warning: #e0b473;
     --hr-warning-text: #e0b473;
     --hr-warning-soft: #3a2f18;
@@ -90,14 +90,14 @@ html[data-theme-resolved='dark'] {
 
     /* Plate edges. On this ground they run lighter than the plate rather than
        darker, which is the one thing that does invert between the themes. */
-    --hr-primary-line: #2b5448;
-    --hr-success-line: #235c45;
+    --hr-primary-line: #1f5646;
+    --hr-success-line: #1f5646;
     --hr-warning-line: #5c4d2a;
     --hr-danger-line: #603840;
 
     /* Tints for pill backgrounds: translucent so they inherit the surface below. */
-    --hr-tint-primary: rgba(18, 201, 139, .14);
-    --hr-tint-success: rgba(53, 207, 142, .14);
+    --hr-tint-primary: rgba(16, 185, 129, .14);
+    --hr-tint-success: rgba(52, 211, 153, .14);
     --hr-tint-warning: rgba(224, 180, 115, .14);
     --hr-tint-danger: rgba(240, 144, 156, .14);
     --hr-tint-info: rgba(143, 187, 236, .14);
@@ -105,26 +105,30 @@ html[data-theme-resolved='dark'] {
     --hr-tint-neutral: rgba(255, 255, 255, .07);
 
     /*
-     * The rail barely flips at all, and that is the point of it being a painted
-     * slab: it was already deep forest, so the dark theme only takes it a step
-     * deeper so it is not the brightest thing in the frame — and, as the brief
-     * requires, it stays distinctly darker than the content beside it.
+     * The rail stops being a painted slab in the dark theme and becomes a
+     * surface, the same rung the cards sit on: with the light theme's rail
+     * white, a forest rail here was the one part of the frame that did not
+     * carry across, and the two themes should be the same room at different
+     * times of day. It reads against the canvas by being LIGHTER than it, not
+     * darker, which is the one thing that inverts between the themes.
      */
-    --hr-sidebar: #003d31;                   /* gradient top */
-    --hr-sidebar-deep: #002a22;              /* gradient bottom */
-    --hr-sidebar-text: #ffffff;              /* 12.28:1 */
-    --hr-sidebar-label: #a9d1c5;             /* 7.37:1 - group headings */
-    --hr-sidebar-link: #d9f0e9;              /* 10.28:1 - an unselected destination */
-    --hr-sidebar-icon: #a9d1c5;              /* 7.37:1 - an unselected glyph */
-    --hr-sidebar-hover: rgba(255, 255, 255, .09);
-    --hr-sidebar-border: rgba(255, 255, 255, .14);
+    --hr-sidebar: #131e1b;                   /* gradient top - flat, level with a card */
+    --hr-sidebar-deep: #131e1b;              /* gradient bottom */
+    --hr-sidebar-text: #e6f1ec;              /* 15.1:1 - hovered links */
+    --hr-sidebar-label: #7f958e;             /* 5.36:1 - group headings */
+    --hr-sidebar-link: #bdd0c8;              /* 10.59:1 - an unselected destination */
+    --hr-sidebar-icon: #8ba49b;              /* 6.41:1 - an unselected glyph */
+    --hr-sidebar-hover: #1d2b26;
+    --hr-sidebar-border: #23332e;
     /* The same emerald plate as the light theme, on a rail one step deeper —
        so it gains contrast (5.70:1) rather than glare. */
-    --hr-sidebar-active-bg: #12c98b;         /* 5.70:1 against the rail */
-    --hr-sidebar-active-text: #04291b;       /* 7.30:1 on the plate */
-    --hr-sidebar-badge-bg: rgba(232, 244, 240, .92);
-    --hr-sidebar-badge-text: #00563a;        /* 7.6:1 on the pill */
-    --hr-sidebar-badge-border: rgba(232, 244, 240, .92);
+    --hr-sidebar-active-bg: #10b981;         /* 6.67:1 against the rail */
+    --hr-sidebar-active-text: #04231a;       /* 6.50:1 on the plate */
+    /* A dark green pill on a dark rail, the inverse of the light theme's light
+       pill on a white one. */
+    --hr-sidebar-badge-bg: #10302a;
+    --hr-sidebar-badge-text: #34d399;        /* 7.39:1 on the pill */
+    --hr-sidebar-badge-border: #1f5646;
     --hr-sidebar-focus: #ffffff;
     /* The logo's on-dark version in the rail: white figures and "Work" on a
        faint plate, peach "Force" (4.4:1 on the rail). */
@@ -136,9 +140,10 @@ html[data-theme-resolved='dark'] {
     --hr-brand-ink: #eef2f7;
     --hr-brand-accent: #f6ad7b;
     --hr-brand-dot: #f08a4b;
-    /* Deeper than the light theme's spill: on a dark canvas the rail needs to
-       separate itself, not announce itself. */
-    --hr-sidebar-glow: rgba(0, 42, 34, .55);
+    /* A shadow rather than a spill of the rail's own colour: the rail no longer
+       has a colour of its own to spill, so the edge is drawn the way a card's
+       is, and the hairline above carries the rest. */
+    --hr-sidebar-glow: rgba(0, 0, 0, .5);
 
     /* The lock screen keeps its own deep ground in both themes - see tokens.css. */
     --hr-lock: #003326;
@@ -179,7 +184,6 @@ html[data-theme-resolved='dark'] .schedule-list-item,
 html[data-theme-resolved='dark'] .timesheet-entry-grid article { color:var(--hr-text); border-color:transparent; background:var(--hr-surface); box-shadow:var(--hr-shadow); }
 html[data-theme-resolved='dark'] .stat-card:hover,
 html[data-theme-resolved='dark'] .stat-card:focus-visible { border-color:transparent; background:var(--hr-surface-2); }
-html[data-theme-resolved='dark'] .stat-card-link-icon { color:var(--hr-icon); border-color:transparent; background:var(--hr-surface-2); }
 html[data-theme-resolved='dark'] .stat-icon { color:var(--hr-primary-text); background:var(--hr-primary-soft); }
 
 html[data-theme-resolved='dark'] .global-search,
@@ -299,7 +303,6 @@ html[data-theme-resolved='dark'] .workforce-detail-row td { background:var(--hr-
 html[data-theme-resolved='dark'] .empty-table-cell,
 html[data-theme-resolved='dark'] .compact-empty-state { color:var(--hr-muted); }
 html[data-theme-resolved='dark'] .employee-cell strong,
-html[data-theme-resolved='dark'] .shift-identity strong,
 html[data-theme-resolved='dark'] .timesheet-entry-grid strong,
 html[data-theme-resolved='dark'] .leave-balance-card strong,
 html[data-theme-resolved='dark'] .integration-card h2,
@@ -523,7 +526,6 @@ html[data-theme-resolved='dark'] .event-copy strong,
 html[data-theme-resolved='dark'] .week-schedule-event strong,
 html[data-theme-resolved='dark'] .schedule-list-employee strong,
 html[data-theme-resolved='dark'] .series-main strong,
-html[data-theme-resolved='dark'] .shift-identity strong,
 html[data-theme-resolved='dark'] .shift-active-toggle strong,
 html[data-theme-resolved='dark'] .shift-hours strong { color:var(--hr-text); }
 html[data-theme-resolved='dark'] .schedule-event,
@@ -538,14 +540,7 @@ html[data-theme-resolved='dark'] .weekday-selector input:checked+span { color:va
 html[data-theme-resolved='dark'] .schedule-conflict-status.checking { color:var(--hr-warning-text); background:var(--hr-warning-soft); }
 html[data-theme-resolved='dark'] .schedule-conflict-status.available { color:var(--hr-primary-text); background:var(--hr-primary-soft); }
 html[data-theme-resolved='dark'] .schedule-conflict-status.conflict { color:var(--hr-danger-text); background:var(--hr-danger-soft); }
-html[data-theme-resolved='dark'] .shift-status.active { color:var(--hr-primary-text); background:var(--hr-primary-soft); }
-html[data-theme-resolved='dark'] .shift-status.inactive { color:var(--hr-text); background:var(--hr-border); }
 html[data-theme-resolved='dark'] .shift-template-table tbody tr:hover { background:var(--hr-surface); }
-html[data-theme-resolved='dark'] .shift-code-chip { color:var(--hr-icon); border-color:var(--hr-border-strong); background:var(--hr-sunken); }
-html[data-theme-resolved='dark'] .shift-toggle-btn-deactivate { color:var(--hr-warning-text); border-color:var(--hr-warning-line); background:var(--hr-warning-soft); }
-html[data-theme-resolved='dark'] .shift-toggle-btn-deactivate:hover { border-color:var(--hr-warning-line); background:var(--hr-warning-soft); }
-html[data-theme-resolved='dark'] .shift-toggle-btn-activate { color:var(--hr-primary-text); border-color:var(--hr-primary-line); background:var(--hr-primary-soft); }
-html[data-theme-resolved='dark'] .shift-toggle-btn-activate:hover { border-color:var(--hr-primary-line); background:var(--hr-primary-soft); }
 html[data-theme-resolved='dark'] .shift-code-field input[readonly] { color:var(--hr-primary-text); }
 html[data-theme-resolved='dark'] .shift-color-choices legend { color:var(--hr-icon); }
 html[data-theme-resolved='dark'] .shift-color-choice { box-shadow:0 0 0 1px var(--hr-border-strong); }
@@ -841,21 +836,19 @@ html[data-theme-resolved='dark'] .status-bar-rejected { background:var(--hr-dang
  * These are the same four hues re-stepped for the dark surface and re-checked
  * for colour-blind separation and 3:1 contrast. Not a flip of the light steps.
  */
-html[data-theme-resolved='dark'] .attendance-swatch-present,
+html[data-theme-resolved='dark'] .attendance-fill-hours,
 html[data-theme-resolved='dark'] .attendance-fill-present { background:var(--hr-primary); }
-html[data-theme-resolved='dark'] .attendance-swatch-late,
+html[data-theme-resolved='dark'] .attendance-column.is-peak .attendance-fill-hours { background:var(--hr-primary-hover); }
 html[data-theme-resolved='dark'] .attendance-fill-late { background:#bf8a1f; }
-html[data-theme-resolved='dark'] .attendance-swatch-on_leave,
 html[data-theme-resolved='dark'] .attendance-fill-on_leave { background:#9d84d8; }
-html[data-theme-resolved='dark'] .attendance-swatch-absent,
 html[data-theme-resolved='dark'] .attendance-fill-absent { background:var(--hr-danger); }
 
 html[data-theme-resolved='dark'] .attendance-range { border-color:var(--hr-border-strong); background:var(--hr-sunken); }
 html[data-theme-resolved='dark'] .attendance-range a.is-active { color:var(--hr-primary-text); background:var(--hr-surface-2); box-shadow:none; }
 html[data-theme-resolved='dark'] .attendance-column small,
 html[data-theme-resolved='dark'] .attendance-axis,
-html[data-theme-resolved='dark'] .attendance-legend-item,
 html[data-theme-resolved='dark'] .attendance-overview-caption { color:var(--hr-muted); }
+html[data-theme-resolved='dark'] .attendance-column.is-peak small { color:var(--hr-primary-text); }
 html[data-theme-resolved='dark'] .attendance-tooltip { border-color:var(--hr-border-strong); background:var(--hr-surface-2); box-shadow:var(--hr-shadow); }
 html[data-theme-resolved='dark'] .attendance-tooltip-row { color:var(--hr-muted); }
 html[data-theme-resolved='dark'] .attendance-table-view { border-top-color:var(--hr-border); }
@@ -914,7 +907,7 @@ html[data-theme-resolved='dark'] .attendance-headline-rate a { color:var(--hr-pr
  * again -- the light theme's green, violet and amber never clear the dark
  * surface, so each meter is re-stepped rather than dimmed.
  */
-html[data-theme-resolved='dark'] .analytics-metric { border-color:var(--hr-border); background:var(--hr-surface-2); --analytics-accent:var(--hr-primary); }
+html[data-theme-resolved='dark'] .analytics-preview .analytics-metric { border-color:var(--hr-border); background:var(--hr-surface-2); box-shadow:none; --analytics-accent:var(--hr-primary); }
 html[data-theme-resolved='dark'] .analytics-metric-violet { --analytics-accent:#9d84d8; }
 html[data-theme-resolved='dark'] .analytics-metric-amber { --analytics-accent:#bf8a1f; }
 html[data-theme-resolved='dark'] .analytics-metric-meter { background:var(--hr-sunken); }
@@ -954,12 +947,10 @@ html[data-theme-resolved='dark'] .stat-detail {
 html[data-theme-resolved='dark'] .stat-detail .ui-icon { color:inherit; }
 
 html[data-theme-resolved='dark'] .status-success,
-html[data-theme-resolved='dark'] .shift-status.active { color:var(--hr-success-text); background:var(--hr-success-soft); }
 html[data-theme-resolved='dark'] .status-warning { color:var(--hr-warning-text); background:var(--hr-warning-soft); }
 html[data-theme-resolved='dark'] .status-danger { color:var(--hr-danger-text); background:var(--hr-danger-soft); }
 html[data-theme-resolved='dark'] .status-primary { color:var(--hr-info-text); background:var(--hr-tint-info); }
 html[data-theme-resolved='dark'] .status-secondary,
-html[data-theme-resolved='dark'] .shift-status.inactive { color:var(--hr-text); background:var(--hr-tint-neutral); }
 
 /* Icon plates on stat cards and metrics follow the same tint scale. */
 html[data-theme-resolved='dark'] .notification-primary,
@@ -1248,18 +1239,17 @@ html[data-theme-resolved='dark'] .skip-link:focus-visible { color:var(--hr-bg); 
    generic `.panel` rule above; these are the pieces inside them — the inset
    group card steps UP from the panel here rather than down, the same
    inversion the schedule rail's timeline cards use. */
-html[data-theme-resolved='dark'] .approval-group { border-color:var(--hr-border); background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .approval-group { border-color:var(--hr-border); background:transparent; }
+html[data-theme-resolved='dark'] .approval-group:hover,
+html[data-theme-resolved='dark'] .approval-group:focus-visible { background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .approval-group-copy strong { color:var(--hr-text); }
+html[data-theme-resolved='dark'] .approval-group-copy > span { color:var(--hr-muted); }
 html[data-theme-resolved='dark'] .approval-group.is-clear { background:transparent; }
 html[data-theme-resolved='dark'] .approval-group-icon { color:var(--hr-primary-text); background:var(--hr-primary-soft); }
 html[data-theme-resolved='dark'] .approval-queue-total { color:var(--hr-primary-text); background:var(--hr-primary-soft); }
 html[data-theme-resolved='dark'] .approval-queue-total.is-overdue { color:var(--hr-warning-text); background:var(--hr-tint-warning); }
-html[data-theme-resolved='dark'] .approval-item,
-html[data-theme-resolved='dark'] .approval-item-list,
-html[data-theme-resolved='dark'] .approval-group-more,
 html[data-theme-resolved='dark'] .exception-block,
 html[data-theme-resolved='dark'] .exception-item { border-color:var(--hr-border); }
-html[data-theme-resolved='dark'] .approval-item:hover,
-html[data-theme-resolved='dark'] .approval-item:focus-visible { background:var(--hr-surface-3); }
 html[data-theme-resolved='dark'] .exception-count { color:var(--hr-muted); background:var(--hr-tint-neutral); }
 html[data-theme-resolved='dark'] .exception-count.is-alert { color:var(--hr-warning-text); background:var(--hr-tint-warning); }
 

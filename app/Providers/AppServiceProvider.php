@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\User;
 use App\Services\Security\AttachmentMalwareScanner;
 use App\Services\Security\ClamAvAttachmentScanner;
+use App\Services\SidebarBadgeService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -68,6 +69,12 @@ class AppServiceProvider extends ServiceProvider
                 'downloadConfirmedUntil' => ConfirmPasswordForDownload::confirmedUntil(request()),
                 'downloadPasswordTimeout' => (int) config('security.downloads.password_timeout_seconds', 900),
             ]);
+        });
+
+        // The rail is on screen in every module, so what is waiting on the
+        // reader rides along with it rather than only on the dashboard.
+        View::composer('partials.sidebar', function ($view): void {
+            $view->with('sidebarBadges', app(SidebarBadgeService::class)->forUser(auth()->user()));
         });
 
         View::composer('partials.topbar', function ($view): void {

@@ -30,12 +30,18 @@
                                    aria-label="{{ $room->code }} runs the {{ $shift->name }}">
                         </td>
                         <td>
+                            {{-- Named per row. The column heading alone does not
+                                 reach a screen reader inside a cell, so four
+                                 rows of these announced themselves as eight
+                                 unlabelled number boxes. --}}
                             <input type="number" name="requirements[{{ $shift->id }}][minimum_staff]" min="1" max="100"
                                    value="{{ old('requirements.'.$shift->id.'.minimum_staff', $requirement->minimum_staff ?? '') }}"
+                                   aria-label="{{ $shift->name }} minimum staff"
                                    placeholder="{{ $derivedMinimum ?? 1 }}">
                         </td>
                         <td>
                             <input type="number" name="requirements[{{ $shift->id }}][minimum_senior]" min="0" max="100"
+                                   aria-label="{{ $shift->name }} minimum senior"
                                    value="{{ old('requirements.'.$shift->id.'.minimum_senior', $requirement->minimum_senior ?? ($room->min_seniority_rank > 1 ? 1 : 0)) }}">
                         </td>
                     </tr>

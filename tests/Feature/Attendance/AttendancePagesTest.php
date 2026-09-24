@@ -32,7 +32,7 @@ class AttendancePagesTest extends TestCase
             ->get('/attendance')
             ->assertOk()
             ->assertSee('<h1>Attendance</h1>', false)
-            ->assertSee('Recent attendance')
+            ->assertSee('Your time records')
             ->assertSee('Check in now')
             ->assertDontSee('Location verification')
             ->assertDontSee('Device location verification')

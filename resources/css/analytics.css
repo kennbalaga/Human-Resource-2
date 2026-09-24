@@ -4,10 +4,17 @@
 .analytics-metric-icon { display:grid; width:2.7rem; height:2.7rem; border-radius:var(--r-md); place-items:center; }
 .analytics-metric-icon svg { width:1.2rem; }
 .analytics-metric-icon.blue{color:var(--hr-info);background:var(--hr-tint-info)}.analytics-metric-icon.green{color:var(--hr-text);background:var(--hr-primary-soft)}.analytics-metric-icon.violet{color:var(--hr-violet);background:var(--hr-tint-info)}.analytics-metric-icon.amber{color:var(--hr-warning-text);background:var(--hr-tint-warning)}.analytics-metric-icon.red{color:var(--hr-danger);background:var(--hr-tint-danger)}
-.analytics-metric>div { display:grid; }
+/* The copy block beside the icon. Excludes .progress because the dashboard's
+   preview card shares this class name and its meter is a <div> child -- this
+   rule was quietly turning Bootstrap's flex progress bar into a grid. */
+.analytics-metric>div:not(.progress) { display:grid; }
 .analytics-metric span:not(.analytics-metric-icon),.analytics-metric small { color:var(--hr-subtle); font-size: var(--fs-2xs); }
 .analytics-metric strong { color:var(--hr-text); font-size: var(--fs-xl); line-height:1.25; }
 .analytics-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.25rem; }
+/* The burnout page stacks two of these -- the results, then the panel that
+   explains what the score is and is not. The grid's gap only spaces its own
+   cells, so without this the second grid starts where the first one ends. */
+.analytics-grid + .analytics-grid { margin-top:1.25rem; }
 .ai-insight-panel .btn { display:inline-flex; align-items:center; gap:.4rem; }
 .ai-insight-panel .btn svg { width:1rem; }
 .ai-insight-copy { padding:0 1.25rem 1.25rem; color:var(--hr-muted); font-size: var(--fs-base); line-height:1.7; white-space:normal; }

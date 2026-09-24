@@ -25,17 +25,17 @@
         @page { margin: 26px 36px 48px; }
         /* dompdf's default_font is serif, so the family is stated outright.
            DejaVu Sans is the bundled face that has the en and em dashes. */
-        body { margin: 0; color: #193451; font-family: 'DejaVu Sans', sans-serif; font-size: 10.5px; line-height: 1.45; }
+        body { margin: 0; color: #14211d; font-family: 'DejaVu Sans', sans-serif; font-size: 10.5px; line-height: 1.45; }
         table { width: 100%; border-collapse: collapse; }
 
         /* Masthead. The employee is the subject; the document names itself on
            the line beneath, which on screen is the page heading. */
-        .masthead { border-bottom: 2px solid #008f68; }                      /* --hr-primary */
+        .masthead { border-bottom: 2px solid #059669; }                      /* --hr-primary */
         .masthead td { padding: 0 0 7px; vertical-align: middle; }
         .masthead .logo { width: 54px; }
-        .masthead .kicker { margin: 0; color: #007a59; font-size: 8px; font-weight: bold; letter-spacing: .1em; text-transform: uppercase; }  /* --hr-primary-text */
+        .masthead .kicker { margin: 0; color: #047857; font-size: 8px; font-weight: bold; letter-spacing: .1em; text-transform: uppercase; }  /* --hr-primary-text */
         .masthead h1 { margin: 1px 0 0; font-size: 15px; }
-        .masthead .docline { margin: 2px 0 0; color: #5f7690; font-size: 9.5px; }  /* --hr-muted */
+        .masthead .docline { margin: 2px 0 0; color: #64748b; font-size: 9.5px; }  /* --hr-muted */
         .masthead .flags { text-align: right; vertical-align: top; }
         .badge { padding: 3px 8px; border-radius: 9px; color: #2e6699; background: #eaf1f8; font-size: 8.5px; font-weight: bold; }  /* --hr-info-text on a flattened --hr-tint-info */
         .badge-partial { color: #8a5f06; background: #fff6dd; }              /* --hr-warning-text / -soft */
@@ -45,8 +45,8 @@
         /* Identity: the same six cells as the screen, 3 x 2. */
         .meta { margin-top: 9px; page-break-inside: avoid; }
         .meta td { width: 33.33%; padding: 4px 9px 4px 0; vertical-align: top; }
-        .meta .label { display: block; color: #5f7690; font-size: 7.5px; font-weight: bold; letter-spacing: .05em; text-transform: uppercase; }
-        .meta .hint { display: block; color: #566e8a; font-size: 8px; }      /* --hr-subtle */
+        .meta .label { display: block; color: #64748b; font-size: 7.5px; font-weight: bold; letter-spacing: .05em; text-transform: uppercase; }
+        .meta .hint { display: block; color: #5d6b72; font-size: 8px; }      /* --hr-subtle */
 
         /* Only short content goes in a two-column layout table: a nested table
            that splits across a page break reflows badly, so each one is kept
@@ -54,14 +54,14 @@
         .cols { margin-top: 9px; page-break-inside: avoid; }
         .cols > tbody > tr > td { width: 50%; padding: 0 9px 0 0; vertical-align: top; }
         .cols > tbody > tr > td.right { padding: 0 0 0 9px; }
-        h2 { margin: 0 0 4px; padding-bottom: 3px; border-bottom: 1px solid #dce4ea; color: #5f7690; font-size: 8.5px; letter-spacing: .05em; text-transform: uppercase; }
-        .lines td { padding: 3px 0; border-bottom: 1px solid #eef3f7; }    /* --hr-surface-3 */
+        h2 { margin: 0 0 4px; padding-bottom: 3px; border-bottom: 1px solid #e3e8e8; color: #64748b; font-size: 8.5px; letter-spacing: .05em; text-transform: uppercase; }
+        .lines td { padding: 3px 0; border-bottom: 1px solid #f1f4f4; }    /* --hr-surface-3 */
         .lines td.value { text-align: right; }
-        .lines small { display: block; color: #566e8a; font-size: 8px; }
-        .placeholder { color: #8293a6; text-align: right; }                  /* --hr-placeholder */
-        .note { margin: 6px 0 0; color: #566e8a; font-size: 8px; }
+        .lines small { display: block; color: #5d6b72; font-size: 8px; }
+        .placeholder { color: #879595; text-align: right; }                  /* --hr-placeholder */
+        .note { margin: 6px 0 0; color: #5d6b72; font-size: 8px; }
 
-        .net { margin-top: 9px; border: 1px solid #a8dfcb; background: #e5f7f1; page-break-inside: avoid; }  /* --hr-primary-line / -soft */
+        .net { margin-top: 9px; border: 1px solid #a7f3d0; background: #ecfdf5; page-break-inside: avoid; }  /* --hr-primary-line / -soft */
         .net td { padding: 6px 10px; font-size: 11.5px; font-weight: bold; }
         .net td.right { text-align: right; }
 
@@ -71,12 +71,12 @@
         .daily { margin-top: 10px; }
         .daily thead { display: table-header-group; }
         .daily tr { page-break-inside: avoid; }
-        .daily th { padding: 3px 6px; border-bottom: 1px solid #76889c; color: #5f7690; font-size: 7.5px; letter-spacing: .04em; text-align: left; text-transform: uppercase; }  /* --hr-border-strong */
-        .daily td { padding: 3px 6px; border-bottom: 1px solid #eef3f7; font-size: 10px; }
+        .daily th { padding: 3px 6px; border-bottom: 1px solid #7b8a8a; color: #64748b; font-size: 7.5px; letter-spacing: .04em; text-align: left; text-transform: uppercase; }  /* --hr-border-strong */
+        .daily td { padding: 3px 6px; border-bottom: 1px solid #f1f4f4; font-size: 10px; }
         .daily th.num, .daily td.num { text-align: right; }
-        .daily tbody tr.alt td { background: #f8fafc; }
+        .daily tbody tr.alt td { background: #fafbfb; }
 
-        .footnote { margin: 9px 0 0; padding-top: 5px; border-top: 1px solid #dce4ea; color: #566e8a; font-size: 8px; }
+        .footnote { margin: 9px 0 0; padding-top: 5px; border-top: 1px solid #e3e8e8; color: #5d6b72; font-size: 8px; }
     </style>
 </head>
 <body>

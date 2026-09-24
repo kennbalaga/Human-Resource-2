@@ -3,7 +3,7 @@
 @php($selectedPositionId = old('position_id', $employee->position_id ?? null))
 @php($selectedPositionCode = $positions->firstWhere('id', (int) $selectedPositionId)?->code)
 <fieldset class="organization-fieldset">
-    <legend>Account and identity</legend>
+    <legend><span class="organization-step">1</span>Account and identity</legend>
     @if($editing)
         <label class="organization-field"><span>Employee ID</span><input type="text" value="{{ $employee->employee_number }}" readonly aria-readonly="true"><small>Permanent identity value. Department or position changes do not rename an existing employee ID.</small></label>
     @elseif($employeeNumberAutoGenerate)
@@ -23,7 +23,7 @@
 </fieldset>
 
 <fieldset class="organization-fieldset">
-    <legend>Work assignment</legend>
+    <legend><span class="organization-step">2</span>Work assignment</legend>
     <label class="organization-field"><span>Department</span><select name="department_id" required data-department-select><option value="">Select department</option>@foreach($departments as $department)<option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>{{ $department->name }}</option>@endforeach</select>@error('department_id')<small class="organization-error">{{ $message }}</small>@enderror</label>
     <label class="organization-field"><span>Position</span><select name="position_id" required data-position-select><option value="">Select position</option>@foreach($positions as $position)<option value="{{ $position->id }}" data-department-id="{{ $position->department_id }}" data-position-code="{{ $position->code }}" @selected($selectedPositionId == $position->id)>{{ $position->title }} · {{ $position->department?->code }}</option>@endforeach</select>@error('position_id')<small class="organization-error">{{ $message }}</small>@enderror</label>
     <label class="organization-field"><span>Supervisor</span><select name="supervisor_id"><option value="">No direct supervisor</option>@foreach($supervisors as $supervisor)@if(!isset($employee) || $employee->id !== $supervisor->id)<option value="{{ $supervisor->id }}" @selected(old('supervisor_id', $employee->supervisor_id ?? null) == $supervisor->id)>{{ $supervisor->full_name }} · {{ $supervisor->employee_number }}</option>@endif @endforeach</select>@error('supervisor_id')<small class="organization-error">{{ $message }}</small>@enderror</label>
@@ -32,7 +32,7 @@
 </fieldset>
 
 <fieldset class="organization-fieldset">
-    <legend>Contact information</legend>
+    <legend><span class="organization-step">3</span>Contact information</legend>
     <label class="organization-field"><span>Contact number</span><input type="text" name="contact_number" maxlength="30" value="{{ old('contact_number', $employee->contact_number ?? '') }}" placeholder="+63 900 000 0000">@error('contact_number')<small class="organization-error">{{ $message }}</small>@enderror</label>
     <label class="organization-field organization-field-full"><span>Home address</span><textarea name="address" maxlength="1000" placeholder="Complete residential address">{{ old('address', $employee->address ?? '') }}</textarea>@error('address')<small class="organization-error">{{ $message }}</small>@enderror</label>
 </fieldset>

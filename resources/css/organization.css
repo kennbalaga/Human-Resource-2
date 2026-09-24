@@ -6,6 +6,13 @@
     gap: .65rem;
 }
 
+/* The directory's last column holds one 32px overflow menu, parked at the end
+   of the row where the eye finishes reading it. */
+.organization-row-actions-cell {
+    text-align: right;
+    white-space: nowrap;
+}
+
 .organization-filters {
     display: grid;
     grid-template-columns: minmax(14rem, 2fr) repeat(2, minmax(10rem, 1fr)) auto;
@@ -240,8 +247,11 @@
     color: var(--hr-text);
 }
 
+/* The record form runs the content column rather than a reading measure: its
+   fields sit three across, and a 920px cap left the third track too narrow to
+   hold a date or a select without wrapping its label. */
 .organization-form-shell {
-    max-width: 920px;
+    max-width: 1180px;
     margin: 0 auto;
 }
 
@@ -252,8 +262,8 @@
 
 .organization-fieldset {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem 1.15rem;
     padding: 1.25rem;
     border: 0;
 }
@@ -262,15 +272,35 @@
     border-top: 1px solid var(--hr-border);
 }
 
+/* A numbered heading rather than a small uppercase label: the form is three
+   sections long, and a reader who leaves it half-finished needs to see where
+   they stopped. Sentence case at heading size, with the step on a plate. */
 .organization-fieldset legend {
+    display: flex;
+    align-items: center;
     grid-column: 1 / -1;
     float: none;
     width: auto;
-    margin: 0;
+    margin: 0 0 .15rem;
+    gap: .6rem;
+    color: var(--hr-text);
+    font-size: var(--fs-base);
+    font-weight: 660;
+    letter-spacing: -.01em;
+    text-transform: none;
+}
+
+.organization-step {
+    display: grid;
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: 0 0 auto;
+    border-radius: var(--r-pill);
     color: var(--hr-primary-text);
+    background: var(--hr-primary-soft);
     font-size: var(--fs-2xs);
-    letter-spacing: .06em;
-    text-transform: uppercase;
+    font-weight: 700;
+    place-items: center;
 }
 
 .organization-field-full {
@@ -312,10 +342,19 @@
 
 .organization-form-footer {
     display: flex;
+    align-items: center;
     padding: 1rem 1.25rem;
     border-top: 1px solid var(--hr-border);
+    background: var(--hr-surface-2);
     justify-content: flex-end;
     gap: .65rem;
+}
+
+/* What saving will actually do, beside the button that does it. */
+.organization-form-note {
+    margin-right: auto;
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
 }
 
 /* ===========================================================================
@@ -986,7 +1025,6 @@
 
 html[data-theme-resolved='dark'] .organization-filters label > span,
 html[data-theme-resolved='dark'] .organization-field > span,
-html[data-theme-resolved='dark'] .organization-fieldset legend,
 html[data-theme-resolved='dark'] .organization-card p,
 html[data-theme-resolved='dark'] .organization-card-counts,
 html[data-theme-resolved='dark'] .organization-field small,
@@ -1025,6 +1063,10 @@ html[data-theme-resolved='dark'] .organization-code {
     .organization-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .organization-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .organization-filter-actions { align-items: center; }
+    /* Between the phone's single column and the desktop's three: a laptop at
+       this width still fits two fields, and three would wrap their labels.
+       Declared here, above the 700px block, so the phone's rule still wins. */
+    .organization-fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 700px) {
@@ -1060,7 +1102,18 @@ html[data-theme-resolved='dark'] .organization-code {
     font-size: var(--fs-sm);
 }
 
+/* The draft/saved chip sits with the close button rather than being spread
+   across the header: Bootstrap's space-between would otherwise strand it in
+   the middle, reading as a third heading instead of the record's state. */
+.schedule-modal-content .modal-header .status-badge {
+    margin-left: auto;
+    margin-right: .75rem;
+}
+
+/* Two across inside the dialog: the modal is 800px, and a third track there
+   leaves a date field narrower than the date itself. */
 .organization-modal-form .organization-fieldset {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 1.1rem 1.25rem;
 }
 

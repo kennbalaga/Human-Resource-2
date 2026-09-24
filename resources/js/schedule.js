@@ -646,12 +646,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!matches) input.checked = false;
             if (matches) visibleCount += 1;
         });
+        // Naming the department is the point of the line: the list below it is
+        // already filtered to one, and "include" alone never said which.
+        const departmentName = bulkForm.elements.department_id.selectedOptions[0]?.textContent.trim();
+
         if (!departmentId) {
             help.textContent = 'Select a department first';
         } else if (visibleCount === 0) {
             help.textContent = 'No positions are on record for this department yet.';
         } else {
-            help.textContent = 'Select one or more positions to include.';
+            help.textContent = departmentName
+                ? `Select one or more positions in the ${departmentName}.`
+                : 'Select one or more positions to include.';
         }
     };
 

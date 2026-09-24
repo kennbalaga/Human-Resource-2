@@ -57,7 +57,7 @@ class EmployeeEligibilityService
         $reasons = collect();
 
         if ($employee->employment_status !== 'active') {
-            $reasons->push(['code' => 'employee_inactive', 'message' => 'Employee is not active.']);
+            $reasons->push(['code' => 'employee_inactive', 'message' => 'Not an active employee.']);
         }
 
         // Separate from the status check above, and not covered by it: a record
@@ -66,42 +66,47 @@ class EmployeeEligibilityService
         // rather than from a filtered picker. Without this, the one employee
         // HR has deliberately filed away is the one the board can still roster.
         if ($employee->isArchived()) {
-            $reasons->push(['code' => 'employee_archived', 'message' => 'Employee record is archived.']);
+            $reasons->push(['code' => 'employee_archived', 'message' => 'Record is archived.']);
         }
 
         if (! $employee->department?->is_active) {
-            $reasons->push(['code' => 'employee_department_inactive', 'message' => 'Employee department is inactive.']);
+            $reasons->push(['code' => 'employee_department_inactive', 'message' => 'Department is inactive.']);
         }
 
         if (! $employee->position?->is_active) {
-            $reasons->push(['code' => 'employee_position_inactive', 'message' => 'Employee position is inactive.']);
+            $reasons->push(['code' => 'employee_position_inactive', 'message' => 'Position is inactive.']);
         }
 
         if ($employee->department_id !== $department->id) {
-            $reasons->push(['code' => 'department_mismatch', 'message' => 'Employee belongs to a different department.']);
+            $reasons->push(['code' => 'department_mismatch', 'message' => 'Belongs to a different department.']);
         }
 
         if ($employee->position_id !== $position->id) {
-            $reasons->push(['code' => 'position_mismatch', 'message' => 'Employee holds a different position.']);
+            $reasons->push(['code' => 'position_mismatch', 'message' => 'Holds a different position.']);
         }
 
         if ($this->hasApprovedLeave($employee, $shift, $workDate)) {
-            $reasons->push(['code' => 'approved_leave', 'message' => 'Employee has approved leave covering this shift.']);
+            $reasons->push(['code' => 'approved_leave', 'message' => 'On approved leave covering this shift.']);
         }
 
         $conflicts = $this->scheduleService->conflictsFor($employee, $shift, $workDate);
         if ($conflicts->isNotEmpty()) {
             $reasons->push([
                 'code' => 'schedule_overlap',
-                'message' => 'Employee has an overlapping scheduled assignment.',
+                'message' => 'Already rostered on an overlapping shift.',
                 'conflict_ids' => $conflicts->pluck('id')->map(fn ($id) => (int) $id)->all(),
             ]);
         }
         $restConflicts = $this->scheduleService->restConflictsFor($employee, $shift, $workDate);
         if ($restConflicts->isNotEmpty()) {
+            $minimumRestHours = max(0, (int) config('schedule.minimum_rest_hours'));
+
             $reasons->push([
                 'code' => 'insufficient_rest',
-                'message' => 'Employee would not receive the configured minimum rest period.',
+                // Naming the hours is the point: "the configured minimum rest
+                // period" sent the reader off to find a setting before they
+                // could judge whether the rejection was reasonable.
+                'message' => 'Would leave under '.$minimumRestHours.' '.str('hour')->plural($minimumRestHours).' of rest between shifts.',
                 'conflict_ids' => $restConflicts->pluck('id')->map(fn ($id) => (int) $id)->all(),
             ]);
         }

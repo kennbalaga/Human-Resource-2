@@ -861,6 +861,12 @@
         flex: none;
     }
 
+    /* The module name goes at this width. The bar is already two rows here and
+       the page's own heading names the screen a few pixels below it. */
+    .topbar-context {
+        display: none;
+    }
+
     .topbar-actions {
         display: contents;
     }

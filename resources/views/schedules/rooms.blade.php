@@ -44,6 +44,9 @@
         </div>
     </form>
 
+    {{-- Holds the stack together: .panel brings no margin of its own, so the
+         gap between these belongs to the page, not to each card. --}}
+    <div class="room-board-page">
     @if($board === null)
         <section class="panel">
             <div class="compact-empty-state">
@@ -117,9 +120,18 @@
             </div>
         </section>
 
-        @include('schedules.partials.room-lists', ['board' => $board, 'date' => $date, 'canManage' => $canManage])
+        {{-- What is booked into the theatres, and who is on duty with nowhere
+             to stand: the same afternoon read from two sides, so they share a
+             row when both are on the page and each takes the full width when
+             it is the only one. --}}
+        @php($theatreRows = collect($board['rooms'])->filter(fn ($row) => in_array($row['room']->room_type, App\Models\Room::restrictedTypes(), true)))
+        @php($hasUnplaced = $board['summary']['unplaced'] > 0)
 
-        @if($board['summary']['unplaced'] > 0)
+        @if($theatreRows->isNotEmpty() || $hasUnplaced)
+        <div class="room-board-pair">
+        @include('schedules.partials.room-lists', ['board' => $board, 'date' => $date, 'canManage' => $canManage, 'theatreRows' => $theatreRows])
+
+        @if($hasUnplaced)
             <section class="panel">
                 <div class="panel-header">
                     <div>
@@ -145,6 +157,8 @@
                     @endforeach
                 </div>
             </section>
+        @endif
+        </div>
         @endif
 
         <section class="panel">
@@ -178,4 +192,5 @@
             @include('schedules.partials.room-assign-modal', ['date' => $date])
         @endif
     @endif
+    </div>
 @endsection

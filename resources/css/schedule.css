@@ -66,6 +66,19 @@
     margin-bottom: 1.25rem;
 }
 
+/* The compliance and lock panel is a plain .panel, not one of workforce.css's
+   table panels, so its two tables were meeting the panel edge while everything
+   above and below them sat in the 1.25rem gutter. The forms then lose most of
+   their top padding, because the caption over each one already supplies the
+   gap. */
+.compliance-lock-panel > .table-responsive {
+    padding: 0 1.25rem 1.25rem;
+}
+
+.compliance-lock-panel > .workforce-filters {
+    padding-top: 4px;
+}
+
 .schedule-toolbar {
     display: flex;
     align-items: center;
@@ -208,7 +221,7 @@
 .calendar-view-switch a.active {
     color: var(--hr-primary-text);
     background: var(--hr-surface);
-    box-shadow: 0 1px 3px rgba(28, 43, 70, .12);
+    box-shadow: 0 1px 3px rgba(20, 33, 29, .12);
 }
 
 .month-weekdays,
@@ -644,7 +657,7 @@
     overflow: hidden;
     border: 0;
     border-radius: var(--r-lg);
-    box-shadow: 0 20px 60px rgba(25, 42, 70, .2);
+    box-shadow: 0 20px 60px rgba(20, 33, 29, .2);
 }
 
 .schedule-modal-content .modal-header,
@@ -912,7 +925,7 @@
 .schedule-form-grid select:focus,
 .schedule-form-grid textarea:focus {
     border-color: var(--hr-primary);
-    box-shadow: 0 0 0 3px rgba(44, 112, 205, .12);
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .18);
 }
 
 .full-width {
@@ -1034,43 +1047,66 @@
     background: var(--hr-surface-2);
 }
 
-.shift-identity,
-.shift-row-actions,
-.shift-active-toggle {
+/*
+ * The shift cell: a tile, the name, and one muted line under it.
+ *
+ * The tile is tinted with the template's own colour -- the same colour the
+ * calendar paints its events with -- so the table stays the one place all six
+ * can be compared. The glyph is mixed 20% toward black because the palette
+ * includes an orange that, at full strength on a 14% wash of itself, measures
+ * 2.74:1 against the tile and misses the 3:1 floor a graphical object has to
+ * clear. Darkened it measures 4.07:1, and every other colour in the set only
+ * improves.
+ */
+.shift-name {
     display: flex;
     align-items: center;
-}
-
-.shift-identity {
     gap: .65rem;
 }
 
-.shift-color {
-    width: .45rem;
-    height: 2.25rem;
-    border-radius: var(--r-xs);
+.shift-swatch {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    border-radius: var(--r-md);
+    color: color-mix(in srgb, var(--shift-color, var(--hr-primary)) 80%, #000);
+    background: color-mix(in srgb, var(--shift-color, var(--hr-primary)) 14%, var(--hr-surface));
+    place-items: center;
+}
+
+.shift-swatch .ui-icon {
+    width: 17px;
+    height: 17px;
+}
+
+.shift-name-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    line-height: var(--lh-tight);
+}
+
+.shift-name-copy strong {
+    color: var(--hr-text);
+    font-size: var(--fs-xs);
+    font-weight: 640;
+}
+
+.shift-name-copy > span {
+    margin-top: .15rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
 }
 
 .shift-hours {
     display: grid;
 }
 
-.shift-identity-body {
-    display: grid;
-    gap: .35rem;
-}
-
-.shift-identity-title {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: .5rem;
-}
-
-.shift-identity strong,
 .shift-hours strong {
     color: var(--hr-text);
     font-size: var(--fs-base);
+    font-variant-numeric: tabular-nums;
 }
 
 .shift-hours small {
@@ -1078,109 +1114,10 @@
     font-size: var(--fs-2xs);
 }
 
-.shift-code-chip {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    padding: .12rem .5rem;
-    border: 1px solid var(--hr-border);
-    border-radius: var(--r-sm);
-    background: var(--hr-surface-2);
-    color: var(--hr-muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: var(--fs-2xs);
-    font-weight: 600;
-    letter-spacing: .01em;
-}
-
-.shift-status {
-    display: inline-flex;
-    align-items: center;
-    gap: .3rem;
-    padding: .28rem .6rem;
-    border-radius: var(--r-pill);
-    font-size: var(--fs-2xs);
-    font-weight: 800;
-}
-
-.shift-status .ui-icon {
-    width: 12px;
-    height: 12px;
-}
-
-.shift-status.active {
-    color: var(--hr-text);
-    background: var(--hr-primary-soft);
-}
-
-.shift-status.inactive {
-    color: var(--hr-muted);
-    background: var(--hr-surface-2);
-}
-
-.shift-row-actions {
-    justify-content: flex-end;
-    gap: .35rem;
-    flex-wrap: wrap;
-}
-
-.shift-row-actions form {
-    display: inline-flex;
-}
-
-.shift-toggle-btn {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: .3rem;
-    height: 32px;
-    padding: 0 .65rem;
-    border: 1px solid transparent;
-    border-radius: var(--r-pill);
-    font-size: var(--fs-2xs);
-    font-weight: 700;
+/* One 32px control, parked where the row finishes. */
+.shift-row-actions-cell {
+    text-align: right;
     white-space: nowrap;
-    cursor: pointer;
-    transition: background-color 150ms ease, border-color 150ms ease;
-}
-
-/* 44px target without changing the painted size - see .tap-target. */
-.shift-toggle-btn::after {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: var(--tap-min);
-    height: var(--tap-min);
-    transform: translate(-50%, -50%);
-    content: "";
-}
-
-
-.shift-toggle-btn .ui-icon {
-    width: 15px;
-    height: 15px;
-}
-
-.shift-toggle-btn-deactivate {
-    color: var(--hr-warning-text);
-    border-color: var(--hr-warning);
-    background: var(--hr-tint-warning);
-}
-
-.shift-toggle-btn-deactivate:hover {
-    border-color: var(--hr-warning);
-    background: var(--hr-tint-warning);
-}
-
-.shift-toggle-btn-activate {
-    color: var(--hr-text);
-    border-color: var(--hr-border-strong);
-    background: var(--hr-primary-soft);
-}
-
-.shift-toggle-btn-activate:hover {
-    border-color: var(--hr-border-strong);
-    background: var(--hr-primary-soft);
 }
 
 .shift-code-field input[readonly] {
@@ -1562,7 +1499,7 @@
 .bulk-justification-field textarea:focus {
     outline: none;
     border-color: var(--hr-warning);
-    box-shadow: 0 0 0 3px rgba(201, 130, 27, .14);
+    box-shadow: 0 0 0 3px rgba(197, 138, 22, .14);
 }
 
 .bulk-protected-rules {
@@ -2740,7 +2677,7 @@
 .roster-view-switch button.is-active {
     color: var(--hr-text);
     background: var(--hr-surface);
-    box-shadow: 0 1px 2px rgba(20, 40, 30, .12);
+    box-shadow: 0 1px 2px rgba(20, 33, 29, .12);
 }
 
 .roster-pager {

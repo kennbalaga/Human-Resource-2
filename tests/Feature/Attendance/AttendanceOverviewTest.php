@@ -44,8 +44,8 @@ class AttendanceOverviewTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Attendance overview')
-            ->assertSee('Time &amp; Attendance', false)
+            ->assertSee('Hours worked per day')
+            ->assertSee('Trailing 7 days')
             ->assertSee('data-attendance-chart', false)
             ->assertSee('View data table');
 
@@ -59,7 +59,7 @@ class AttendanceOverviewTest extends TestCase
         $this->actingAs($this->manager())
             ->get('/dashboard')
             ->assertOk()
-            ->assertSee('Attendance overview')
+            ->assertSee('Hours worked per day')
             ->assertDontSee('data-attendance-chart', false)
             ->assertSee('No attendance, leave, or roster activity');
     }

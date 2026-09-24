@@ -16,6 +16,21 @@
 .workforce-filters input,.workforce-filters select,.inline-review-form input,.attendance-reject-form input { min-height:2.5rem; padding:.55rem .7rem; border:1px solid var(--hr-field-border); border-radius:var(--r-md); color:var(--hr-text); background:var(--hr-surface); font-size: var(--fs-sm); }
 .workforce-table-panel>.table-responsive { padding:0 1.25rem 1.25rem; }
 .workforce-table th { white-space:nowrap; }
+/*
+ * The swap history is the widest table here: two employee cells, two shift-and-
+ * date cells, a reason, a status and up to three decision buttons. Squeezed
+ * into the panel width every one of those wrapped, and the action group -- the
+ * only column whose contents are a set -- broke into a vertical stack that made
+ * one row three rows tall. It scrolls instead, which is what .table-responsive
+ * is there for and what the attendance and report tables already do.
+ *
+ * 84rem is the three-button set (accept, decline, cancel) on one line with the
+ * other six columns at their natural widths. A manager reviewing instead gets a
+ * fourth item -- the reject reason field -- and that group is still allowed to
+ * wrap: each control is one flex item, so it folds between controls and never
+ * splits the reason box from the button it belongs to.
+ */
+.swap-history-table { min-width:84rem; }
 .workforce-table td { vertical-align:middle; }
 .text-action { padding:0; border:0; color:var(--hr-primary-text); background:none; font-size: var(--fs-sm); font-weight:800; }
 .row-action-group { display:flex; align-items:center; flex-wrap:wrap; gap:.35rem; }
@@ -33,6 +48,10 @@
 .leave-balance-heading h2 { margin:0; color:var(--hr-text); font-size: var(--fs-base); font-weight:800; }
 .leave-balance-heading span { color:var(--hr-subtle); font-size: var(--fs-2xs); }
 .leave-balance-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(13rem,1fr)); gap:.6rem; }
+/* The balances come in two groups, so the second group's heading follows a
+   grid rather than a panel edge. .panel-kicker carries bottom spacing only,
+   which left "Company policy" sitting on top of the cards above it. */
+.leave-balance-grid + .panel-kicker { margin-top:.8rem; }
 .leave-balance-card { display:flex; align-items:stretch; gap:.55rem; min-width:0; padding:.6rem .7rem; border:1px solid var(--hr-border); border-radius:var(--r-md); background:var(--hr-surface); box-shadow:var(--hr-shadow); }
 .leave-balance-color { width:.32rem; min-height:2.1rem; border-radius:var(--r-pill); background:var(--leave-color); flex-shrink:0; }
 .leave-balance-card div { display:grid; align-content:center; gap:.05rem; min-width:0; }

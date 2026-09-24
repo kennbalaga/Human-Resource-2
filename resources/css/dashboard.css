@@ -160,9 +160,9 @@ input {
     left: 100%;
     z-index: 1;
     display: grid;
-    width: 30px;
-    height: 30px;
-    margin-left: 12px;
+    width: var(--sidebar-toggle-size);
+    height: var(--sidebar-toggle-size);
+    margin-left: var(--sidebar-toggle-offset);
     padding: 0;
     border: 0;
     border-radius: var(--r-md);
@@ -339,18 +339,12 @@ input {
     box-shadow: none;
 }
 
-/* The glyph and the count ride the fill with the label rather than keeping the
-   resting palette, which would leave two white marks on a mint plate. */
-.sidebar-link.active .sidebar-link-icon,
-.sidebar-link.active .sidebar-link-badge {
+/* The glyph rides the fill with the label rather than keeping the resting
+   palette, which would leave a white mark on a mint plate. The count does not:
+   it keeps its own mint plate on the active bar, which is the one place on the
+   rail where a queue is still worth reading at a glance. */
+.sidebar-link.active .sidebar-link-icon {
     color: var(--hr-sidebar-active-text);
-}
-
-/* The count outlines itself in the label's own colour rather than carrying a
-   translucent-white fill, which on a plate this light would not show up. */
-.sidebar-link.active .sidebar-link-badge {
-    border-color: currentColor;
-    background: transparent;
 }
 
 .sidebar-link-icon {
@@ -373,16 +367,18 @@ input {
     transition: max-width 180ms ease, opacity 140ms ease;
 }
 
+/* A count, not a word: the tracking and the uppercasing this carried were cut
+   for a plate that now only ever holds digits, where both only made "18" wider
+   and no easier to read. The plate is the fill on its own -- an outline as well
+   would be two edges around two characters. */
 .sidebar-link-badge {
-    padding: 3px 7px;
-    border: 1px solid var(--hr-sidebar-badge-border);
+    padding: 3px 8px;
     border-radius: var(--r-pill);
     color: var(--hr-sidebar-badge-text);
     background: var(--hr-sidebar-badge-bg);
     font-size: var(--fs-2xs);
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
     transition: max-width 180ms ease, opacity 140ms ease, padding 180ms ease;
 }
 
@@ -485,7 +481,6 @@ input {
         padding-right: 0;
         padding-left: 0;
         overflow: hidden;
-        border-width: 0;
         opacity: 0;
     }
 
@@ -528,6 +523,17 @@ input {
     .app-topbar {
         backdrop-filter: blur(14px);
     }
+
+    /*
+     * The collapse button hangs off the rail into this bar's left gutter, and
+     * it only exists at this width. Reserve its overhang plus the same offset
+     * again as clearance, so the module name starts beside the button instead
+     * of underneath it. Reserved rather than clipped or nudged: the button is
+     * out of flow, so nothing else can make room for it.
+     */
+    .app-topbar {
+        padding-left: calc(var(--sidebar-toggle-offset) * 2 + var(--sidebar-toggle-size));
+    }
 }
 
 .topbar-left,
@@ -543,6 +549,65 @@ input {
     min-width: 0;
     flex: none;
     gap: 14px;
+}
+
+/* The module name and what it covers. Truncates rather than wraps: the bar is
+   one row tall and this is a label, not content. */
+.topbar-context {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    line-height: var(--lh-tight);
+}
+
+.topbar-context strong {
+    overflow: hidden;
+    color: var(--hr-text);
+    font-size: var(--fs-md);
+    font-weight: 660;
+    letter-spacing: -.015em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.topbar-context span {
+    overflow: hidden;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The signed-in name beside the avatar. Held off the phone, where the bar
+   gives the field its own row and has nothing left for this. */
+.topbar-profile-copy {
+    display: none;
+    min-width: 0;
+    flex-direction: column;
+    line-height: var(--lh-tight);
+    text-align: left;
+}
+
+.topbar-profile-copy strong {
+    overflow: hidden;
+    color: var(--hr-text);
+    font-size: var(--fs-xs);
+    font-weight: 640;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.topbar-profile-copy span {
+    overflow: hidden;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (min-width: 1101px) {
+    .topbar-profile-copy { display: flex; }
 }
 
 /* The bar carries 30px of side padding and 44px controls; spacing its own
@@ -805,30 +870,36 @@ input {
    alerts and the account, as in the reference.
    --------------------------------------------------------------------------- */
 
+/* A card, not a bare figure. Opposite a greeting the hour reads as part of the
+   sentence unless something holds it apart; the card is that something, and it
+   matches the stat cards the row below it. */
+/* No card. The clock is a reading off the page, not an object on it, and a
+   bordered plate around two lines of text claimed more of the heading row than
+   a glanceable figure needs. */
 .current-time-strip {
     flex: none;
     justify-content: flex-end;
 }
 
-/* Right-aligned rather than centred: the label is short and the date is long,
-   and the edge they share is the one the page's own gutter already draws.
-
-   The two rows below are built to the greeting's own measurements — the time to
-   its h1, the date to the sentence under it. That parity is what makes the two
-   halves of the row line up: they are bottom-aligned, so any difference in the
-   trailing rows pushed the clock off the greeting. */
+/* Both lines end on the page's right gutter. Centring them on their own axis
+   was tried and is wrong here: with no card around them there is no box to be
+   centred in, so the shorter line simply pulled away from the edge every other
+   element in the row is squared against. */
 .current-time {
     display: grid;
     justify-items: end;
+    text-align: right;
 }
 
-/* Sized off the greeting it sits opposite: the same clamp and weight as
-   .page-heading h1, so the two ends of the row read as one line rather than a
-   headline with a footnote pinned beside it. */
+/* Tracks the greeting rather than sitting on a fixed rung, and lands at about
+   90% of it at every width -- big enough to read as the other half of the row,
+   short enough that it never outgrows the h1 it sits opposite. A fixed size
+   could not do both: the greeting is fluid, so 32px was under it on a wide
+   screen and over it on a laptop. */
 .current-time-value {
     margin: 0;
     color: var(--hr-text);
-    font-size: clamp(1.65rem, 2vw, 2.15rem);
+    font-size: clamp(1.5rem, 1.8vw, 1.95rem);
     /* The seconds tick every second; without fixed-width figures the whole
        number shuffles sideways on every one of them. */
     font-variant-numeric: tabular-nums;
@@ -836,13 +907,13 @@ input {
     letter-spacing: -0.035em;
 }
 
-/* Matches the sentence under the greeting: same size, same 7px above it. Left
-   at the caption size it was, it also read as fine print under a number three
-   times its height. */
+/* Off the floor and given room to sit apart from the figure above it: at 12px
+   tight under a 24px number it read as fine print rather than as the date the
+   time belongs to. */
 .current-time-date {
-    margin: 7px 0 0;
+    margin: 4px 0 0;
     color: var(--hr-muted);
-    font-size: var(--fs-base);
+    font-size: var(--fs-xs);
     white-space: nowrap;
 }
 
@@ -929,6 +1000,20 @@ input {
     width: 15px;
     height: 15px;
     color: var(--hr-primary-text);
+}
+
+/* Items that post rather than navigate -- archive, restore -- are a button in
+   a form. The form is only a carrier for the method and the token, so it adds
+   no box of its own. */
+.dashboard-action-menu .dropdown-menu form {
+    margin: 0;
+}
+
+.dashboard-action-menu .dropdown-menu form .dropdown-item {
+    width: 100%;
+    border: 0;
+    background: none;
+    text-align: left;
 }
 
 .notification-button {
@@ -1525,11 +1610,15 @@ input {
     outline-offset: 3px;
 }
 
+/* Label on the left, icon plate on the right. The label sits in this row
+   rather than under it so the figure below has the card's full width and
+   nothing shares its line. */
 .stat-card-top {
     display: flex;
-    margin-bottom: 11px;
+    margin-bottom: 6px;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
 }
 
 /* One colour for all four cards. The tones these used to carry varied by card
@@ -1550,51 +1639,39 @@ input {
     height: 16px;
 }
 
-.stat-card-link-icon {
-    display: grid;
-    width: 26px;
-    height: 26px;
-    border: 1px solid var(--hr-border);
-    border-radius: var(--r-md);
-    color: var(--hr-muted);
-    background: var(--hr-surface);
-    place-items: center;
-    transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
-}
-
-.stat-card-link-icon .ui-icon {
-    width: 14px;
-    height: 14px;
-}
-
-.stat-card:hover .stat-card-link-icon,
-.stat-card:focus-visible .stat-card-link-icon {
-    border-color: var(--hr-primary-fill);
-    color: var(--hr-on-primary);
-    background: var(--hr-primary-fill);
-    transform: translateX(2px);
-}
-
 .stat-title {
-    margin: 0 0 3px;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
     color: var(--hr-muted);
-    font-size: var(--fs-2xs);
-    font-weight: 520;
+    font-size: var(--fs-xs);
+    font-weight: 550;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .stat-value-row {
     display: flex;
     min-width: 0;
     align-items: baseline;
-    justify-content: space-between;
     gap: 8px;
+}
+
+/* Its own line under the figure, so a long detail wraps away from the number
+   instead of squeezing it. */
+.stat-detail-row {
+    display: flex;
+    min-width: 0;
+    margin-top: 4px;
+    align-items: center;
 }
 
 .stat-value {
     color: var(--hr-text);
-    font-size: var(--fs-xl);
+    font-size: var(--fs-2xl);
     font-weight: 700;
     letter-spacing: -0.04em;
+    line-height: var(--lh-tight);
 }
 
 /* Neutral by default. `.stat-detail-up` / `.stat-detail-down` colour the line
@@ -1747,6 +1824,22 @@ input {
     border-bottom: 0;
 }
 
+/*
+ * A cell holding a value and a qualifier under it -- a shift and the date it
+ * falls on, a room and its code. A bare <span> after a <strong> is inline, so
+ * the two ran together as "Administrative ShiftSep 9, 2026"; every cell that
+ * got this right was carrying .organization-secondary and the ones that forgot
+ * had no way to show it. The pattern is now correct by construction, and that
+ * class stays as the explicit spelling of the same thing.
+ */
+.dashboard-table td > strong + span {
+    display: block;
+    margin-top: .15rem;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 400;
+}
+
 .dashboard-table tbody tr:hover td {
     background: var(--hr-primary-soft);
 }
@@ -1782,7 +1875,8 @@ input {
     font-size: var(--fs-2xs);
 }
 
-.employee-cell > div {
+.employee-cell > div,
+.employee-cell-copy {
     display: flex;
     min-width: 0;
     flex-direction: column;
@@ -1806,11 +1900,24 @@ input {
     white-space: nowrap;
 }
 
+/* A chip, not a run of monospace. The id is a label the eye skips over on its
+   way down the column, and giving it an edge lets it be skipped cleanly instead
+   of competing with the name beside it. Digits are tabular so the codes line up
+   down the column. */
 .employee-number {
-    color: var(--hr-muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--r-sm);
+    color: var(--hr-subtle);
+    background: var(--hr-sunken);
     font-size: var(--fs-2xs);
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Opt-in lining figures, for anything columnar that is not already a chip. */
+.tabular {
+    font-variant-numeric: tabular-nums;
 }
 
 .status-badge {
@@ -1822,6 +1929,9 @@ input {
     gap: 6px;
     font-size: var(--fs-2xs);
     font-weight: 600;
+    /* A pill is sized to its label. Wrapped, "Pending Target" became a
+       two-line lozenge that set the height of its whole row. */
+    white-space: nowrap;
 }
 
 .status-dot {
@@ -2029,63 +2139,49 @@ input {
 .attendance-range a.is-active {
     color: var(--hr-primary-text);
     background: var(--hr-surface);
-    box-shadow: 0 1px 2px rgba(22, 48, 42, .11);
+    box-shadow: 0 1px 2px rgba(20, 33, 29, .12);
 }
 
+/* The one thing the table's numbers do not say for themselves, kept with them
+   inside the disclosure rather than on the panel face: only the reader who
+   opened the breakdown needs it. */
 .attendance-overview-caption {
-    display: flex;
-    flex-wrap: wrap;
     margin: 0;
-    padding: 14px 20px 0;
+    padding: 12px 20px 0;
     color: var(--hr-muted);
-    gap: 3px 14px;
     font-size: var(--fs-2xs);
 }
 
-.attendance-legend {
-    display: flex;
-    flex-wrap: wrap;
-    padding: 12px 20px 2px;
-    gap: 8px 20px;
+/* The bar. One series, so the colour carries no meaning beyond "this is the
+   measure" -- and the tallest day is picked out darker, which is the one
+   comparison a reader makes without being asked to. */
+.attendance-fill-hours {
+    background: var(--hr-primary);
 }
 
-.attendance-legend-item {
-    display: inline-flex;
-    align-items: center;
-    color: var(--hr-muted);
-    gap: 7px;
-    font-size: var(--fs-xs);
+.attendance-column.is-peak .attendance-fill-hours {
+    background: var(--hr-primary-fill);
 }
 
-.attendance-legend-item strong {
-    color: var(--hr-text);
-    font-size: var(--fs-xs);
+.attendance-column.is-peak small {
+    color: var(--hr-primary-text);
     font-weight: 650;
 }
 
-.attendance-swatch {
-    width: 10px;
-    height: 10px;
-    border-radius: var(--r-xs);
-    flex: 0 0 auto;
-}
-
-.attendance-swatch-present,
+/* Still drawn, but only as the keys in the hover readout: the column's hours
+   broken down into the four ways a day is accounted for. */
 .attendance-fill-present {
     background: var(--hr-primary);
 }
 
-.attendance-swatch-late,
 .attendance-fill-late {
     background: var(--hr-warning);
 }
 
-.attendance-swatch-on_leave,
 .attendance-fill-on_leave {
     background: var(--hr-violet);
 }
 
-.attendance-swatch-absent,
 .attendance-fill-absent {
     background: var(--hr-danger);
 }
@@ -2880,14 +2976,25 @@ input {
     font-size: var(--fs-2xs);
 }
 
-.analytics-metric-grid {
+/*
+ * Scoped to this panel, and it has to be.
+ *
+ * The Workforce Analytics page has its own .analytics-metric in analytics.css:
+ * an icon beside a label, a value and a caption. This one is a different card
+ * entirely -- a column with an accent edge and a meter -- and the two were
+ * sharing a class name. analytics.css loads later, so on the page the column
+ * direction and the grid padding below leaked in from here and stood the icon
+ * on top of its own text; on the dashboard, the page's rules overrode almost
+ * all of this one's. Neither screen was getting the card it was written for.
+ */
+.analytics-preview .analytics-metric-grid {
     display: grid;
     padding: 14px 20px 18px;
     grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
     gap: 12px;
 }
 
-.analytics-metric {
+.analytics-preview .analytics-metric {
     --analytics-accent: var(--hr-primary);
 
     display: flex;
@@ -2896,7 +3003,9 @@ input {
     border-left: 3px solid var(--analytics-accent);
     border-radius: var(--r-md);
     background: var(--hr-surface);
+    box-shadow: none;
     flex-direction: column;
+    align-items: stretch;
     gap: 7px;
 }
 
@@ -3138,14 +3247,12 @@ input {
         padding: 16px;
     }
 
-    .attendance-overview-caption,
-    .attendance-legend,
     .attendance-chart,
     .attendance-headline,
     .attendance-tiles,
     .attendance-table-view > summary,
     .analytics-preview-caption,
-    .analytics-metric-grid,
+    .analytics-preview .analytics-metric-grid,
     .analytics-table-view > summary,
     .analytics-preview-footer {
         padding-right: 16px;
@@ -3231,10 +3338,6 @@ input {
         gap: 12px;
     }
 
-    .attendance-legend {
-        gap: 6px 14px;
-    }
-
     /* Two tiles a row rather than four squeezed into a phone's width. */
     .attendance-tiles {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3246,7 +3349,7 @@ input {
         gap: 8px;
     }
 
-    .analytics-metric-grid {
+    .analytics-preview .analytics-metric-grid {
         grid-template-columns: 1fr;
     }
 
@@ -3510,16 +3613,21 @@ body.reduce-motion *::after {
 /* ==========================================================================
    Employee name as a link
    --------------------------------------------------------------------------
-   Matches the <strong> it replaces exactly, so the row is unchanged until it
-   is pointed at. The record's URL redirects into the directory with the panel
-   already open, which is why this reads as a link and not as a button.
+   Carries the brand colour at rest rather than only on hover. It is the one
+   thing in the row that opens the row, and a directory is read by scanning
+   names down the first column -- painted like the cells beside it, nothing
+   said so until the pointer happened to land on one. 5.48:1 on the surface and
+   5.0:1 on the hovered row, so it clears AA in both states.
+
+   The record's URL redirects into the directory with the panel already open,
+   which is why this reads as a link and not as a button.
    ========================================================================== */
 
 .employee-cell-link {
     overflow: hidden;
-    color: var(--hr-text);
+    color: var(--hr-primary-text);
     font-size: var(--fs-xs);
-    font-weight: 650;
+    font-weight: 620;
     text-decoration: none;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -3527,7 +3635,7 @@ body.reduce-motion *::after {
 
 .employee-cell-link:hover,
 .employee-cell-link:focus-visible {
-    color: var(--hr-primary-text);
+    color: var(--hr-primary-hover);
     text-decoration: underline;
 }
 
@@ -3541,23 +3649,20 @@ body.reduce-motion *::after {
 
 .approval-queue-total {
     display: inline-flex;
-    padding: 4px 12px;
+    padding: 5px 12px;
     border-radius: var(--r-pill);
     color: var(--hr-primary-text);
     background: var(--hr-primary-soft);
-    align-items: baseline;
-    gap: 5px;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--fs-2xs);
+    font-weight: 650;
     white-space: nowrap;
 }
 
-.approval-queue-total strong {
-    font-size: var(--fs-md);
-    font-weight: 700;
-}
-
-.approval-queue-total small {
-    font-size: var(--fs-2xs);
-    font-weight: 600;
+.approval-queue-total .ui-icon {
+    width: 14px;
+    height: 14px;
 }
 
 /* The front of the queue has been waiting long enough to stop reading as
@@ -3567,38 +3672,70 @@ body.reduce-motion *::after {
     background: var(--hr-tint-warning);
 }
 
+
+
+
+
 .approval-queue-caption {
-    display: flex;
     margin: 0;
-    padding: 13px 20px 0;
+    padding: 12px 20px 0;
     color: var(--hr-muted);
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
     font-size: var(--fs-2xs);
-    flex-wrap: wrap;
 }
 
-.approval-queue-oldest {
-    color: var(--hr-warning-text);
-    font-weight: 620;
-}
-
+/* One row per group, filling the panel. The rows share whatever height the
+   panel has rather than sitting at the top of it: this panel stands beside a
+   taller one, and a stack of fixed rows left a band of empty card under the
+   last of them. */
 .approval-queue-groups {
-    display: grid;
-    padding: 14px 20px 18px;
-    gap: 14px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
     flex: 1;
+    flex-direction: column;
 }
 
 .approval-group {
     display: flex;
-    overflow: hidden;
-    border: 1px solid var(--hr-border);
-    border-radius: var(--r-md);
+    flex: 1;
+    min-height: 62px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--hr-border);
+    color: inherit;
+    align-items: center;
+    gap: 13px;
+    text-decoration: none;
+    transition: background-color 160ms ease;
+}
+
+.approval-group:last-child {
+    border-bottom: 0;
+}
+
+.approval-group:hover,
+.approval-group:focus-visible {
+    color: inherit;
     background: var(--hr-surface-2);
+}
+
+.approval-group-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
     flex-direction: column;
+    line-height: var(--lh-tight);
+}
+
+.approval-group-copy strong {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-weight: 640;
+}
+
+.approval-group-copy > span {
+    overflow: hidden;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* A group with nothing in it keeps its place -- an HR manager reading "0
@@ -3607,12 +3744,7 @@ body.reduce-motion *::after {
     background: transparent;
 }
 
-.approval-group-header {
-    display: flex;
-    padding: 12px 13px;
-    align-items: center;
-    gap: 10px;
-}
+
 
 .approval-group-icon {
     display: grid;
@@ -3630,23 +3762,11 @@ body.reduce-motion *::after {
     height: 16px;
 }
 
-.approval-group-header > div {
-    min-width: 0;
-    flex: 1;
-}
 
-.approval-group-header h3 {
-    margin: 0;
-    color: var(--hr-text);
-    font-size: var(--fs-xs);
-    font-weight: 650;
-}
 
-.approval-group-header p {
-    margin: 2px 0 0;
-    color: var(--hr-muted);
-    font-size: var(--fs-2xs);
-}
+
+
+
 
 .approval-group-count {
     color: var(--hr-text);
@@ -3659,105 +3779,31 @@ body.reduce-motion *::after {
     color: var(--hr-subtle);
 }
 
-.approval-item-list {
-    margin: 0;
-    padding: 0;
-    border-top: 1px solid var(--hr-border);
-    list-style: none;
-}
 
-.approval-item {
-    display: flex;
-    padding: 10px 13px;
-    border-bottom: 1px solid var(--hr-border);
-    color: inherit;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-    text-decoration: none;
-}
 
-.approval-item:hover,
-.approval-item:focus-visible {
-    background: var(--hr-surface-3);
-}
 
-.approval-item-main {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-}
 
-.approval-item-main strong {
-    overflow: hidden;
-    color: var(--hr-text);
-    font-size: var(--fs-2xs);
-    font-weight: 650;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
 
-.approval-item-meta {
-    margin-top: 2px;
-    overflow: hidden;
-    color: var(--hr-muted);
-    font-size: var(--fs-2xs);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
 
-.approval-item-age {
-    display: inline-flex;
-    flex: none;
-    color: var(--hr-subtle);
-    align-items: center;
-    gap: 3px;
-    font-size: var(--fs-2xs);
-    font-weight: 600;
-    white-space: nowrap;
-}
 
-.approval-item-age.is-stale {
-    color: var(--hr-warning-text);
-}
 
-.approval-item-age .ui-icon {
-    width: 13px;
-    height: 13px;
-}
 
-.approval-group-more,
-.approval-group-link {
-    display: flex;
-    min-height: 38px;
-    padding: 0 13px;
-    color: var(--hr-primary-text);
-    align-items: center;
-    gap: 3px;
-    font-size: var(--fs-2xs);
-    font-weight: 620;
-    text-decoration: none;
-}
 
-.approval-group-more {
-    border-bottom: 1px solid var(--hr-border);
-    color: var(--hr-muted);
-}
 
-.approval-group-link {
-    margin-top: auto;
-}
 
-.approval-group-more:hover,
-.approval-group-link:hover {
-    text-decoration: underline;
-}
 
-.approval-group-more .ui-icon,
-.approval-group-link .ui-icon {
-    width: 13px;
-    height: 13px;
-}
+
+
+
+
+
+
+
+
+
+
+
+
 
 .approval-queue-empty {
     flex: 1;

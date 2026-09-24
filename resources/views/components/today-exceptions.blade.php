@@ -5,8 +5,8 @@
 <aside class="panel today-exceptions" id="today-exceptions" aria-labelledby="today-exceptions-title">
     <div class="panel-header">
         <div>
-            <p class="panel-kicker">Today</p>
-            <h2 id="today-exceptions-title">Who is not on the floor</h2>
+            <p class="panel-kicker">Who is not on the floor</p>
+            <h2 id="today-exceptions-title">Today's exceptions</h2>
         </div>
         <span class="today-exceptions-asof">as of {{ $exceptions['as_of'] }}</span>
     </div>

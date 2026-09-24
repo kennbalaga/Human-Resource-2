@@ -15,16 +15,20 @@
     'href' => '#',
 ])
 
+{{-- Label first, then the figure, with the icon held out to the right: the card
+     is read for its number, so the number is the thing with nothing beside it.
+     The whole card is the link, which is why there is no separate chevron. --}}
 <a class="stat-card" href="{{ $href }}" aria-label="Open {{ $title }}">
     <div class="stat-card-top">
+        <p class="stat-title">{{ $title }}</p>
         <span class="stat-icon">
             <x-icon :name="$icon" />
         </span>
-        <span class="stat-card-link-icon" aria-hidden="true"><x-icon name="chevron-right" /></span>
     </div>
-    <p class="stat-title">{{ $title }}</p>
     <div class="stat-value-row">
         <strong class="stat-value">{{ $value }}</strong>
+    </div>
+    <div class="stat-detail-row">
         @if ($detail)
             <span
                 @class([
@@ -45,3 +49,4 @@
         @endif
     </div>
 </a>
+

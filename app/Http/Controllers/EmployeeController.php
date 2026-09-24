@@ -68,6 +68,22 @@ class EmployeeController extends Controller
             );
 
         $canManage = $this->canWrite($request);
+
+        /*
+         * The headline counts above the table. Deliberately NOT taken from the
+         * filtered query: they are the shape of the whole workforce, which is
+         * what makes them worth reading while a filter is narrowing the list
+         * below them. One grouped pass rather than four counts of the same
+         * table, and archived records stay out of all of them — they are off
+         * the shelf, not a status.
+         */
+        $statusCounts = Employee::query()
+            ->notArchived()
+            ->toBase()
+            ->selectRaw('employment_status, count(*) as total')
+            ->groupBy('employment_status')
+            ->pluck('total', 'employment_status');
+
         // The filters, and only the filters. `withQueryString()` would drag the
         // `employee` parameter into every page link too, so paging away from the
         // first page and then reloading would pop the panel open again.
@@ -85,11 +101,21 @@ class EmployeeController extends Controller
             return view('employees._table', [
                 'employees' => $employees,
                 'canManage' => $canManage,
+                // The results header names the scope it is counting, so the
+                // live refresh has to carry the filters too — otherwise every
+                // keystroke repaints the list under a stale "All departments".
+                'filters' => $filters,
+                // Only the department the header names. The refresh has no
+                // <select> to repopulate, so the whole list would be waste.
+                'departments' => ($filters['department_id'] ?? null)
+                    ? Department::query()->whereKey($filters['department_id'])->get()
+                    : collect(),
             ]);
         }
 
         return view('employees.index', [
             'employees' => $employees,
+            'statusCounts' => $statusCounts,
             'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(),
             'filters' => $filters,
             'canManage' => $canManage,

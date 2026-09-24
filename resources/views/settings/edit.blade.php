@@ -3,7 +3,7 @@
 @section('title', 'Account Settings')
 
 @section('content')
-    <section class="page-heading workforce-heading"><div><p class="eyebrow">Personal preferences</p><h1>Account Settings</h1><p>Manage account security, notifications, timezone, and interface preferences.</p></div><a class="btn btn-outline-primary profile-heading-action" href="{{ route('profile.show') }}"><x-icon name="users" /> View profile</a></section>
+    <section class="page-heading workforce-heading"><div><p class="eyebrow">Account</p><h1>Settings</h1><p>Your profile, appearance, notifications, and the operational tools you administer.</p></div><a class="btn btn-outline-primary profile-heading-action" href="{{ route('profile.show') }}"><x-icon name="users" /> View profile</a></section>
 
     @if(session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
     @if(session('warning'))<div class="attendance-alert attendance-alert-warning"><x-icon name="settings" /><span>{{ session('warning') }}</span></div>@endif
@@ -55,26 +55,36 @@
             </article>
 
             <article class="panel settings-panel" id="preferences">
-                <div class="panel-header"><div><p class="panel-kicker">Workspace behavior</p><h2>Preferences</h2></div><x-icon name="settings" /></div>
+                {{-- Named for what the sidebar link that lands here calls it. "Preferences"
+                     under an "Appearance" nav entry made the reader check they had
+                     arrived. --}}
+                <div class="panel-header"><div><p class="panel-kicker">Appearance</p><h2>How the app looks</h2></div><x-icon name="settings" /></div>
                 <form method="POST" action="{{ route('settings.preferences.update') }}" class="profile-settings-form">
                     @csrf @method('PATCH')
                     <fieldset class="appearance-options">
                         <legend>Color theme</legend>
-                        <p>Choose a theme or follow your device appearance automatically.</p>
+                        <p>System follows your device setting and changes with it. Your choice is saved to your account, so it travels to every device you sign in on.</p>
                         <div>
                             @foreach(['light' => ['sun', 'Light', 'Bright and clear'], 'dark' => ['moon', 'Dark', 'Easy on the eyes'], 'system' => ['settings', 'System', 'Follow this device']] as $value => [$icon, $label, $description])
                                 <label class="appearance-option"><input type="radio" name="theme" value="{{ $value }}" @checked(old('theme', $preference->theme) === $value)><span><x-icon :name="$icon" /><strong>{{ $label }}</strong><small>{{ $description }}</small></span></label>
                             @endforeach
                         </div>
                     </fieldset>
-                    <input type="hidden" name="timezone" value="Asia/Manila">
                     <div class="settings-toggle-list">
                         @foreach([
                             'compact_navigation' => ['Compact navigation', 'Reduce spacing in the sidebar navigation.'],
-                            'reduce_motion' => ['Reduce motion', 'Minimize interface transitions and animations.'],
+                            'reduce_motion' => ['Reduce motion', 'Turns off transitions and the sidebar slide. Already on if your device asks for reduced motion.'],
                         ] as $field => [$title, $description])
                             <label class="settings-toggle"><span><strong>{{ $title }}</strong><small>{{ $description }}</small></span><input type="checkbox" name="{{ $field }}" value="1" @checked(old($field, $preference->{$field}))><i aria-hidden="true"></i></label>
                         @endforeach
+                        {{-- Not a choice: the request forces this zone whatever is
+                             posted, so it is stated instead of offered. It used to
+                             ride along as a hidden field, which meant the one thing
+                             every timestamp on the page depends on was invisible. --}}
+                        <div class="settings-toggle is-static">
+                            <span><strong>Time zone</strong><small>Used for your attendance timestamps and the clock on the dashboard.</small></span>
+                            <span class="settings-static-value">{{ config('workforce.timezone', 'Asia/Manila') }} (PHT)</span>
+                        </div>
                     </div>
                     {{-- Said here because the switches that used to sit in this
                          list are gone. Without a word, their absence reads as a

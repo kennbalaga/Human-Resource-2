@@ -38,7 +38,7 @@
 .ai-scheduling-results { display: grid; max-height: 25rem; gap: .8rem; overflow-y: auto; }
 .ai-result-label { margin: 0 0 .4rem; color: var(--hr-muted); font-size: var(--fs-2xs); font-weight: 800; text-transform: uppercase; }
 .ai-candidate { display: grid; gap: .55rem; padding: .75rem; border: 1px solid var(--hr-border); border-radius: var(--r-md); background: var(--hr-surface); }
-.ai-candidate-primary { border-color: var(--hr-primary); box-shadow: 0 0 0 2px rgba(56, 125, 203, .08); }
+.ai-candidate-primary { border-color: var(--hr-primary); box-shadow: 0 0 0 2px rgba(var(--hr-primary-rgb), .12); }
 .ai-candidate-heading { justify-content: space-between; }
 .ai-candidate-heading strong { color: var(--hr-text); font-size: var(--fs-sm); }
 .ai-candidate-heading span { color: var(--hr-subtle); font-size: var(--fs-2xs); }

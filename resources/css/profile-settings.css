@@ -112,6 +112,9 @@
 .settings-toggle input:checked+i { background:var(--hr-primary); }
 .settings-toggle input:checked+i::after { transform:translateX(1rem); }
 .settings-toggle input:focus-visible+i { outline:3px solid rgba(var(--hr-primary-rgb), .2); outline-offset:2px; }
+/* A row in the toggle list that states a fact instead of offering a switch. */
+.settings-toggle.is-static { cursor:default; }
+.settings-static-value { flex:0 0 auto; color:var(--hr-text); font-size:var(--fs-xs); font-weight:650; font-variant-numeric:tabular-nums; }
 .settings-security-note { display:flex; gap:.65rem; margin:0 1.25rem 1rem; padding:.8rem; border-radius:var(--r-md); color:var(--hr-warning-text); background:var(--hr-tint-warning); }
 .settings-security-note svg { width:1rem; flex:0 0 auto; }
 .settings-security-note p { margin:0; font-size: var(--fs-xs); line-height:1.5; }

@@ -10,15 +10,20 @@
                 {{-- Marks the flashed old input as this form's, so a failed submit
                      reopens the modal instead of the directory's own filters. --}}
                 <input type="hidden" name="_form" value="create-employee">
+                {{-- The record names itself before its fields do, and says plainly
+                     that nothing has been written yet — a long form with a Save at
+                     the far end otherwise gives no clue whether it is holding
+                     anything. Same header the standalone page carries. --}}
                 <div class="modal-header">
-                    <div><p class="panel-kicker">Organization · Employees</p><h2 class="modal-title" id="createEmployeeModalLabel">Add employee</h2></div>
+                    <div><p class="panel-kicker">New record</p><h2 class="modal-title" id="createEmployeeModalLabel">Employee details</h2></div>
+                    <span class="status-badge status-secondary"><span class="status-dot"></span>Draft · not yet saved</span>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body organization-modal-form">
                     <p class="organization-modal-intro">Create a workforce profile and send a secure password setup link to the employee’s work email.</p>
                     @include('employees._form-fields', ['employee' => null])
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit">Create employee</button></div>
+                <div class="modal-footer"><span class="organization-form-note">The account invitation is emailed once the record is saved.</span><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit"><x-icon name="check" /> Save employee</button></div>
             </form>
         </div>
     </div>

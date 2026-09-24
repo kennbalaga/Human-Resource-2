@@ -1,4 +1,5 @@
-import { Dropdown, Tooltip } from 'bootstrap';
+import { Tooltip } from 'bootstrap';
+import { initActionMenus } from './action-menu';
 
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
@@ -49,14 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    document.querySelectorAll('[data-dashboard-action-menu]').forEach((toggle) => {
-        Dropdown.getOrCreateInstance(toggle, {
-            popperConfig: (defaultConfig) => ({
-                ...defaultConfig,
-                strategy: 'fixed',
-            }),
-        });
-    });
+    initActionMenus();
 
     const syncCollapseButton = () => {
         if (!sidebarCollapseButton) {
@@ -191,6 +185,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (attendanceChart) {
         const series = [
+            // The bar itself first, then who worked it. The four headcounts are
+            // no longer drawn, but they are what the hours are made of, so the
+            // readout still breaks the column down.
+            { key: 'hours', fill: 'hours', label: 'Hours worked' },
             { key: 'present', fill: 'present', label: 'Present' },
             { key: 'late', fill: 'late', label: 'Late' },
             { key: 'onLeave', fill: 'on_leave', label: 'On leave' },

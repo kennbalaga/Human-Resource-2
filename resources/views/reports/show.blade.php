@@ -16,7 +16,10 @@
         </div>
 
         <div class="table-responsive">
-            <table class="dashboard-table report-table table-stack">
+            {{-- The scroll width follows the column count. One fixed minimum
+                 suited the narrowest report and left the sixteen-column
+                 attendance export squeezing every heading onto two lines. --}}
+            <table class="dashboard-table report-table table-stack" style="--report-columns: {{ count($columns) }}">
                 <thead>
                     <tr>
                         @foreach ($columns as $column)

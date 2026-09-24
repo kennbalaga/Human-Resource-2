@@ -46,65 +46,70 @@
                             $shiftPayload = ['id' => $shift->id, 'code' => $shift->code, 'name' => $shift->name, 'start_time' => substr($shift->start_time, 0, 5), 'end_time' => substr($shift->end_time, 0, 5), 'break_minutes' => $shift->break_minutes, 'color' => $shift->color, 'is_active' => $shift->is_active, 'is_rotating' => $shift->is_rotating];
                         @endphp
                         <tr>
+                            {{-- The code and where the template came from are one
+                                 muted line under the name. They were a monospace
+                                 chip and a status badge sitting on two lines of
+                                 their own, which gave a row that says one thing --
+                                 "this is the morning shift" -- three competing
+                                 voices. --}}
                             <td data-label="Shift">
-                                <div class="shift-identity">
-                                    <span class="shift-color" style="background: {{ $shift->color }}"></span>
-                                    <div class="shift-identity-body">
-                                        <div class="shift-identity-title">
-                                            <strong>{{ $shift->name }}</strong>
-                                            @if($shift->is_system)
-                                                <x-status-badge status="System" />
-                                            @endif
-                                        </div>
-                                        <span class="shift-code-chip">{{ $shift->code }}</span>
-                                    </div>
+                                <div class="shift-name">
+                                    <span class="shift-swatch" style="--shift-color: {{ $shift->color }}"><x-icon name="clock" /></span>
+                                    <span class="shift-name-copy">
+                                        <strong>{{ $shift->name }}</strong>
+                                        <span>{{ $shift->code }}@if($shift->is_system) &middot; system template @endif</span>
+                                    </span>
                                 </div>
                             </td>
                             <td data-label="Working hours"><div class="shift-hours"><strong>{{ $shift->formatted_time }}</strong><small>{{ $shift->break_minutes }}-minute break @if($shift->crosses_midnight) · Overnight @endif</small></div></td>
                             <td data-label="Paid duration">{{ number_format($shift->duration_minutes / 60, 1) }} hours</td>
                             <td data-label="Usage">{{ number_format($shift->assignments_count) }} assignments</td>
-                            <td data-label="Status">
-                                <span @class(['shift-status', 'active' => $shift->is_active, 'inactive' => ! $shift->is_active])>
-                                    <x-icon :name="$shift->is_active ? 'check-circle' : 'circle'" />
-                                    {{ $shift->is_active ? 'Active' : 'Inactive' }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="shift-row-actions">
-                                    @if($canManageData)
-                                    <button
-                                        class="icon-button subtle"
-                                        type="button"
-                                        aria-label="Edit {{ $shift->name }}"
-                                        title="Edit"
-                                        data-edit-shift
-                                        data-shift='{{ json_encode($shiftPayload, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG) }}'
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#shiftTemplateModal"
-                                    ><x-icon name="edit" /></button>
-                                    <form
-                                        method="POST"
-                                        action="{{ route('shifts.toggle-active', $shift) }}"
-                                        @if ($shift->is_active) data-confirm="Deactivate this shift template? It will be hidden from new schedule assignments, but existing schedules keep this shift." @endif
-                                    >
-                                        @csrf @method('PATCH')
-                                        <button
-                                            class="shift-toggle-btn {{ $shift->is_active ? 'shift-toggle-btn-deactivate' : 'shift-toggle-btn-activate' }}"
-                                            type="submit"
-                                            aria-label="{{ $shift->is_active ? 'Deactivate' : 'Activate' }} {{ $shift->name }}"
-                                            title="{{ $shift->is_active ? 'Hide from future assignments' : 'Make available for assignments' }}"
-                                        >
-                                            <x-icon :name="$shift->is_active ? 'circle' : 'check-circle'" />
-                                            {{ $shift->is_active ? 'Deactivate' : 'Activate' }}
-                                        </button>
-                                    </form>
-                                    @if (! $shift->is_system && $shift->assignments_count === 0)
-                                        <form method="POST" action="{{ route('shifts.destroy', $shift) }}" data-confirm="Delete this unused shift template?">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Delete {{ $shift->name }}" title="Delete"><x-icon name="trash" /></button></form>
-                                    @endif
-                                    @else
-                                        <span class="shift-template-hint">View only</span>
-                                    @endif
-                                </div>
+                            <td data-label="Status"><x-status-badge :status="$shift->is_active ? 'Active' : 'Inactive'" /></td>
+                            {{-- Edit, deactivate and delete are one overflow menu.
+                                 Spread across the row they were a mixed set -- two
+                                 bare icons and a labelled button -- competing with
+                                 the status beside them for the reader's attention,
+                                 and only one of the three is ever the reason
+                                 somebody opened this page. --}}
+                            <td class="shift-row-actions-cell">
+                                @if($canManageData)
+                                    <x-dashboard-action-menu :label="'Actions for '.$shift->name">
+                                        <li>
+                                            <button
+                                                class="dropdown-item"
+                                                type="button"
+                                                data-edit-shift
+                                                data-shift='{{ json_encode($shiftPayload, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG) }}'
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#shiftTemplateModal"
+                                            ><x-icon name="edit" /><span>Edit template</span></button>
+                                        </li>
+                                        <li>
+                                            <form
+                                                method="POST"
+                                                action="{{ route('shifts.toggle-active', $shift) }}"
+                                                @if ($shift->is_active) data-confirm="Deactivate this shift template? It will be hidden from new schedule assignments, but existing schedules keep this shift." @endif
+                                            >
+                                                @csrf @method('PATCH')
+                                                <button
+                                                    class="dropdown-item"
+                                                    type="submit"
+                                                    title="{{ $shift->is_active ? 'Hide from future assignments' : 'Make available for assignments' }}"
+                                                >
+                                                    <x-icon :name="$shift->is_active ? 'circle' : 'check-circle'" />
+                                                    <span>{{ $shift->is_active ? 'Deactivate' : 'Activate' }}</span>
+                                                </button>
+                                            </form>
+                                        </li>
+                                        @if (! $shift->is_system && $shift->assignments_count === 0)
+                                            <li>
+                                                <form method="POST" action="{{ route('shifts.destroy', $shift) }}" data-confirm="Delete this unused shift template?">@csrf @method('DELETE')<button class="dropdown-item text-danger" type="submit"><x-icon name="trash" /><span>Delete template</span></button></form>
+                                            </li>
+                                        @endif
+                                    </x-dashboard-action-menu>
+                                @else
+                                    <span class="shift-template-hint">View only</span>
+                                @endif
                             </td>
                         </tr>
                     @empty

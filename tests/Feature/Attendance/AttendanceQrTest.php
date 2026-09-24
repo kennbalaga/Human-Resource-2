@@ -321,7 +321,7 @@ class AttendanceQrTest extends TestCase
             ->assertOk()
             ->assertDontSee('data-qr-scanner', false)
             ->assertDontSee('Badge scanner')
-            ->assertSee('Recent attendance');
+            ->assertSee('Your time records');
     }
 
     public function test_qr_records_can_be_filtered_and_read_back_in_the_reports(): void

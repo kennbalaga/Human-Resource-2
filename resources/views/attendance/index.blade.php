@@ -38,6 +38,7 @@
     >
         <section class="page-heading attendance-heading">
             <div>
+                <p class="eyebrow">Time &amp; attendance</p>
                 <h1>Attendance</h1>
                 <p>{{ $view === 'scanner' ? 'Scan employee badges to record their time in and out.' : 'See today’s status and your recent time records.' }}</p>
             </div>
@@ -72,14 +73,14 @@
                     @class(['page-tab', 'attendance-tab', 'is-active' => $view === 'mine'])
                     @if ($view === 'mine') aria-current="page" @endif
                 >
-                    <x-page-tab-label icon="clock" title="My attendance" description="Today's punches and your recent record" />
+                    <x-page-tab-label icon="clock" title="My attendance" description="Today's status and your recent records" />
                 </a>
                 <a
                     href="{{ route('attendance.index', ['view' => 'scanner']) }}"
                     @class(['page-tab', 'attendance-tab', 'is-active' => $view === 'scanner'])
                     @if ($view === 'scanner') aria-current="page" @endif
                 >
-                    <x-page-tab-label icon="scan" title="Badge scanner" description="Scan a colleague's badge to clock them in or out" />
+                    <x-page-tab-label icon="scan" title="Badge scanner" description="Scan employee badges at the entrance" />
                 </a>
             </nav>
         @endif
@@ -240,8 +241,16 @@
 
             <section class="panel attendance-history-panel" aria-labelledby="attendanceHistoryTitle">
                 <div class="panel-header">
-                    <h2 id="attendanceHistoryTitle">Recent attendance</h2>
-                    <span class="history-caption">Last 7 days</span>
+                    {{-- Kicker, title, count: the same three parts every other
+                         panel header in the product carries. The window used to
+                         sit where the count goes, which left the panel with no
+                         kicker and a right-hand slot that said nothing about
+                         how much was in the table. --}}
+                    <div>
+                        <p class="panel-kicker">Last {{ count($attendance['days']) }} days</p>
+                        <h2 id="attendanceHistoryTitle">Your time records</h2>
+                    </div>
+                    <span class="history-caption">{{ count($attendance['days']) }} {{ str('result')->plural(count($attendance['days'])) }}</span>
                 </div>
 
                 <div class="table-responsive">

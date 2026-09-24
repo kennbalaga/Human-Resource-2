@@ -25,9 +25,15 @@
         <div class="ai-scheduling-status" data-ai-status role="status" aria-live="polite" hidden></div>
         <div class="ai-scheduling-results" data-ai-results hidden>
             <p class="ai-scheduling-explanation" data-ai-explanation></p>
+            {{-- The pick and the people it beat, side by side: in the wide
+                 workspace these two land in the results grid's two columns, so
+                 the comparison a reviewer actually makes happens without
+                 scrolling. The score breakdown used to sit between them, which
+                 put the runner-up beside the ineligible list instead. Both
+                 disclosures now share the row below. --}}
             <div data-ai-recommended></div>
-            <details data-ai-breakdown><summary>View score breakdown</summary><div data-ai-breakdown-list></div></details>
             <div data-ai-alternatives></div>
+            <details data-ai-breakdown><summary>View score breakdown</summary><div data-ai-breakdown-list></div></details>
             <details data-ai-ineligible><summary>View ineligible candidates</summary><div data-ai-ineligible-list></div></details>
             <div class="ai-scheduling-result-actions">
                 <button class="btn btn-primary" type="button" data-ai-apply disabled>Apply Recommendation</button>

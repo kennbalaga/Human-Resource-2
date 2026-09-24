@@ -6,6 +6,31 @@
         ->take(2)
         ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
         ->implode('');
+
+    /*
+     * The module the reader is in, named in the bar. Matched on the route here
+     * rather than declared by every view, so a page cannot forget to say where
+     * it is; anything unmatched falls through to the product's own name, which
+     * is never wrong, only unhelpful.
+     */
+    $topbarContext = match (true) {
+        request()->routeIs('dashboard') => ['Human Resource Management', 'Workforce operations'],
+        request()->routeIs('organization.*', 'employees.*', 'departments.*', 'positions.*', 'rooms.*') => ['Organization', 'Employees, departments and positions'],
+        request()->routeIs('schedules.rooms.*') => ['Scheduling', 'Who is in which room today'],
+        request()->routeIs('schedules.*', 'shifts.*', 'schedule-preferences.*', 'shift-swaps.*') => ['Scheduling', 'Coverage and shift assignments'],
+        request()->routeIs('attendance.reports.*') => ['Insights', 'Reports and workforce analytics'],
+        request()->routeIs('attendance.override.*') => ['Time & attendance', 'Authorised unscheduled punches'],
+        request()->routeIs('attendance.*') => ['Time & attendance', 'Today and your recent records'],
+        request()->routeIs('timesheets.*') => ['Time & attendance', 'Weekly work records'],
+        request()->routeIs('leaves.*', 'leave-attachments.*') => ['Time off & pay', 'Balances, requests and documents'],
+        request()->routeIs('payslips.*') => ['Time off & pay', 'Semi-monthly pay periods'],
+        request()->routeIs('reports.*', 'analytics.*') => ['Insights', 'Reports and workforce analytics'],
+        request()->routeIs('settings.*', 'profile.*') => ['Account', 'Profile, appearance and tools'],
+        request()->routeIs('audit-logs.*', 'integrations.*') => ['Account', 'Operational tools'],
+        default => [config('branding.short_name'), config('branding.tagline')],
+    };
+
+    $topbarRole = $topbarUser->roles->first()?->name;
 @endphp
 
 <header class="app-topbar">
@@ -14,6 +39,14 @@
             <x-icon name="menu" />
             <span class="visually-hidden">Open navigation</span>
         </button>
+
+        {{-- Where you are, held at the left edge opposite the account. The rail
+             already marks the page; this names the module it belongs to, which
+             the rail's own grouping only implies. --}}
+        <span class="topbar-context">
+            <strong>{{ $topbarContext[0] }}</strong>
+            <span>{{ $topbarContext[1] }}</span>
+        </span>
     </div>
 
     {{-- A direct child of the bar rather than a member of .topbar-actions: the
@@ -131,10 +164,17 @@
                  from under the choice. The other items all navigate away, so
                  the menu's state after a click on them is moot either way. --}}
             <button class="topbar-profile-button" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Open account menu">
-                {{-- Avatar and caret only. The name is the first line of the
-                     menu this opens, which is where the reference bar keeps
-                     it too. --}}
+                {{-- The name and role are read here rather than only inside the
+                     menu: on a shared ward workstation, who is signed in is the
+                     thing worth being able to check without opening anything.
+                     Hidden on a phone, where the bar has no room for it. --}}
                 <span class="avatar avatar-sm">{{ $topbarInitials }}</span>
+                <span class="topbar-profile-copy">
+                    <strong>{{ $topbarUser->name }}</strong>
+                    @if ($topbarRole)
+                        <span>{{ $topbarRole }}</span>
+                    @endif
+                </span>
                 <x-icon name="chevron-down" class="topbar-profile-caret" />
             </button>
 

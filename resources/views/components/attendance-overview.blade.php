@@ -4,7 +4,14 @@
     // Label every column on the 7-day view; on the 30-day view label every fifth so
     // the axis stays readable instead of turning into a grey smear.
     $labelEvery = $overview['days'] > 14 ? 5 : 1;
-    $midTick = (int) round($overview['max'] / 2);
+
+    // The axis counts hours now, which are rarely whole, so the ticks round to
+    // something a reader can hold: "1,400" rather than "1,398.5".
+    $axis = fn (float $value): string => number_format($value, $value < 10 ? 1 : 0);
+    $peakDate = collect($overview['buckets'])
+        ->filter(fn (array $bucket): bool => $bucket['hours'] > 0)
+        ->sortByDesc('hours')
+        ->first()['date'] ?? null;
 
     // A rate is null when nothing was measured, which is not the same as zero and
     // must never be printed as "0%".
@@ -12,33 +19,39 @@
         ? '—'
         : rtrim(rtrim(number_format($value, 1), '0'), '.').'%';
 
-    // The four figures worth reading before the chart. Peak and lowest name the
-    // day as well as the number: "95%" is only actionable once you know it was
-    // Tuesday.
+    $hours = fn (?float $value): string => $value === null
+        ? '—'
+        : rtrim(rtrim(number_format($value, 1), '0'), '.').' h';
+
+    // The four figures worth reading beside the chart. Peak and lowest name the
+    // day as well as the number: "1,400 h" is only actionable once you know it
+    // was Thursday.
     $tiles = [
         [
             'label' => 'Peak day',
-            'detail' => $overview['peak_day']['weekday'] ?? 'No rostered days',
-            'value' => $percent($overview['peak_day']['rate'] ?? null),
+            'detail' => $overview['peak_hours_day']['weekday'] ?? 'No rostered days',
+            'value' => $hours($overview['peak_hours_day']['hours'] ?? null),
         ],
         [
             'label' => 'Lowest day',
-            'detail' => $overview['lowest_day']['weekday'] ?? 'No rostered days',
-            'value' => $percent($overview['lowest_day']['rate'] ?? null),
+            'detail' => $overview['lowest_hours_day']['weekday'] ?? 'No rostered days',
+            'value' => $hours($overview['lowest_hours_day']['hours'] ?? null),
         ],
         [
-            'label' => 'Attendance',
+            'label' => 'On-time rate',
             // Short enough to survive a quarter of the panel's width: the tile
             // details are clipped rather than wrapped, so the copy has to fit.
-            'detail' => 'Of those due',
-            'value' => $percent($overview['attendance_rate']),
+            'detail' => 'Of those who came in',
+            'value' => $percent($overview['on_time_rate']),
         ],
         [
             'label' => 'Leave requests',
             'detail' => $overview['leave_total'] > 0
-                ? $overview['leave_resolved'].' of '.$overview['leave_total'].' resolved'
+                ? $overview['leave_total'].' filed in the window'
                 : 'None filed',
-            'value' => $percent($overview['leave_resolved_rate']),
+            'value' => $overview['leave_pending'] > 0
+                ? $overview['leave_pending'].' pending'
+                : 'All cleared',
         ],
     ];
 @endphp
@@ -46,8 +59,11 @@
 <section class="panel attendance-overview" id="attendance-overview" aria-labelledby="attendance-overview-title">
     <div class="panel-header">
         <div>
-            <p class="panel-kicker">Time &amp; Attendance</p>
-            <h2 id="attendance-overview-title">Attendance overview</h2>
+            {{-- The window states itself, because the control that changes it
+                 sits on the other side of this header and a fixed kicker would
+                 contradict it the moment somebody switched to 30 days. --}}
+            <p class="panel-kicker">Trailing {{ $overview['days'] }} days</p>
+            <h2 id="attendance-overview-title">Hours worked per day</h2>
         </div>
         <div class="attendance-range" role="group" aria-label="Attendance trend range">
             @foreach (\App\Services\AttendanceOverviewService::RANGES as $range)
@@ -99,20 +115,6 @@
         @endforeach
     </dl>
 
-    <p class="attendance-overview-caption">
-        <span>Absences count rostered staff with no check-in and no approved leave.</span>
-    </p>
-
-    <div class="attendance-legend">
-        @foreach ($overview['series'] as $series)
-            <div class="attendance-legend-item">
-                <span class="attendance-swatch attendance-swatch-{{ $series['key'] }}"></span>
-                <span>{{ $series['label'] }}</span>
-                <strong>{{ number_format($series['total']) }}</strong>
-            </div>
-        @endforeach
-    </div>
-
     @if ($overview['tracked'] < 1)
         <div class="compact-empty-state attendance-overview-empty">
             <x-icon name="clock" />
@@ -121,8 +123,8 @@
     @else
         <div class="attendance-chart" data-attendance-chart>
             <div class="attendance-axis" aria-hidden="true">
-                <span>{{ number_format($overview['max']) }}</span>
-                <span>{{ number_format($midTick) }}</span>
+                <span>{{ $axis($overview['hours_max']) }}</span>
+                <span>{{ $axis($overview['hours_max'] / 2) }}</span>
                 <span>0</span>
             </div>
 
@@ -130,33 +132,32 @@
                 <div class="attendance-plot" style="--attendance-columns: {{ count($overview['buckets']) }}">
                     @foreach ($overview['buckets'] as $bucket)
                         @php
+                            $isPeak = $peakDate !== null && $bucket['date'] === $peakDate;
+                            $showLabel = $loop->iteration % $labelEvery === 0 || $loop->last;
+                            // The day's headcounts stay on the column as data
+                            // attributes: the hover readout still breaks the
+                            // hours down into who turned up to work them.
                             $readout = collect($overview['series'])
                                 ->map(fn (array $series): string => $bucket[$series['key']].' '.strtolower($series['label']))
                                 ->implode(', ');
-                            $showLabel = $loop->iteration % $labelEvery === 0 || $loop->last;
                         @endphp
                         <div
-                            class="attendance-column"
+                            @class(['attendance-column', 'is-peak' => $isPeak])
                             tabindex="0"
-                            aria-label="{{ $bucket['full_label'] }}: {{ $readout }}."
+                            aria-label="{{ $bucket['full_label'] }}: {{ $hours($bucket['hours']) }} worked — {{ $readout }}."
                             data-attendance-column
                             data-day="{{ $bucket['full_label'] }}"
+                            data-hours="{{ $bucket['hours'] }}"
                             @foreach ($overview['series'] as $series)
                                 data-{{ str_replace('_', '-', $series['key']) }}="{{ $bucket[$series['key']] }}"
                             @endforeach
                         >
                             <div class="attendance-track">
                                 <div
-                                    @class(['attendance-stack', 'is-zero' => $bucket['total'] < 1])
-                                    style="height: {{ round($bucket['total'] / $overview['max'] * 100, 2) }}%"
+                                    @class(['attendance-stack', 'is-zero' => $bucket['hours'] <= 0])
+                                    style="height: {{ round(min(1, $bucket['hours'] / $overview['hours_max']) * 100, 2) }}%"
                                 >
-                                    @foreach ($overview['series'] as $series)
-                                        @continue($bucket[$series['key']] < 1)
-                                        <i
-                                            class="attendance-fill attendance-fill-{{ $series['key'] }}"
-                                            style="flex-grow: {{ $bucket[$series['key']] }}"
-                                        ></i>
-                                    @endforeach
+                                    <i class="attendance-fill attendance-fill-hours"></i>
                                 </div>
                             </div>
                             <small aria-hidden="true">{{ $showLabel ? ($labelEvery === 1 ? $bucket['weekday'] : $bucket['label']) : '' }}</small>
@@ -169,12 +170,17 @@
 
     <details class="attendance-table-view">
         <summary>View data table</summary>
+        <p class="attendance-overview-caption">Absences count rostered staff with no check-in and no approved leave.</p>
         <div class="table-responsive">
             <table class="dashboard-table attendance-data-table">
-                <caption class="visually-hidden">Daily attendance breakdown for the last {{ $overview['days'] }} days</caption>
+                <caption class="visually-hidden">Hours worked and the daily attendance breakdown for the last {{ $overview['days'] }} days</caption>
                 <thead>
                     <tr>
                         <th scope="col">Date</th>
+                        {{-- The charted measure leads; the four headcounts behind
+                             it follow, which is the breakdown the chart used to
+                             draw and the only place it is still written out. --}}
+                        <th scope="col">Hours</th>
                         @foreach ($overview['series'] as $series)
                             <th scope="col">{{ $series['label'] }}</th>
                         @endforeach
@@ -185,6 +191,7 @@
                     @foreach ($overview['buckets'] as $bucket)
                         <tr>
                             <th scope="row">{{ $bucket['full_label'] }}</th>
+                            <td>{{ $hours($bucket['hours']) }}</td>
                             @foreach ($overview['series'] as $series)
                                 <td>{{ number_format($bucket[$series['key']]) }}</td>
                             @endforeach
@@ -195,6 +202,7 @@
                 <tfoot>
                     <tr>
                         <th scope="row">Total</th>
+                        <td>{{ number_format($overview['hours_logged']) }} h</td>
                         @foreach ($overview['series'] as $series)
                             <td>{{ number_format($series['total']) }}</td>
                         @endforeach
