@@ -61,7 +61,12 @@
                         </dl>
                         <p class="profile-qr-warning"><x-icon name="shield" /> <span>Treat this like your ID. Anyone holding a copy can have it scanned in your name — tell HR at once if you lose it, so they can retire it and issue you a new one.</span></p>
                         <div class="profile-qr-actions">
-                            <a class="btn btn-primary" data-download href="{{ route('profile.attendance-qr.download') }}"><x-icon name="download" /> Download</a>
+                            {{-- Showing it is the everyday act and leaves nothing
+                                 behind, so it leads; the download is a copy off
+                                 the device, which is why it stays audited and
+                                 behind the password check. --}}
+                            <a class="btn btn-primary" href="{{ route('profile.badge') }}"><x-icon name="scan" /> Show full screen</a>
+                            <a class="btn btn-light" data-download href="{{ route('profile.attendance-qr.download') }}"><x-icon name="download" /> Download</a>
                         </div>
                     </div>
                 </div>

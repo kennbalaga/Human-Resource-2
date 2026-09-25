@@ -26,6 +26,9 @@ export default defineConfig({
                 // picker; the board itself is server-drawn and every
                 // change is a plain form post.
                 'resources/js/room-board.js',
+                // Only the badge screen, and only to hold a wake lock while the
+                // code is being held up at a door.
+                'resources/js/badge-screen.js',
             ],
             refresh: true,
             fonts: [

@@ -857,3 +857,11 @@
 .reduce-motion .attendance-session-row.is-new {
     animation: none;
 }
+
+/* The heading's own actions. Two of them now — the badge and the timesheet —
+   so they wrap rather than squeezing the heading on a narrow screen. */
+.attendance-heading-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+}

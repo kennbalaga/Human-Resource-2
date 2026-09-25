@@ -31,6 +31,28 @@ class ProfileController extends Controller
     }
 
     /**
+     * The badge on its own screen, for holding up to the entrance scanner.
+     *
+     * Separate from the profile because presenting the badge is a ten-second
+     * act at a door, not a visit to a record: the profile page around it is
+     * three screens of detail nobody reads while an officer waits. The code
+     * itself is the same one the profile draws — same payload, same signature,
+     * so a badge shown here and a badge printed from there are one badge.
+     */
+    public function badge(Request $request, AttendanceQrService $attendanceCodes): View
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Your user account is not linked to an employee profile.');
+
+        $employee->loadMissing(['department', 'position']);
+
+        return view('profile.badge', [
+            'employee' => $employee,
+            'attendanceQrSvg' => QrEncoder::svg($attendanceCodes->payloadFor($employee)),
+        ]);
+    }
+
+    /**
      * The badge as a file, for printing or for carrying on a phone.
      */
     public function downloadAttendanceQr(Request $request, AttendanceQrService $attendanceCodes): Response

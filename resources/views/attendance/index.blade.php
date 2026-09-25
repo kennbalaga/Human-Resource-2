@@ -43,9 +43,18 @@
                 <p>{{ $view === 'scanner' ? 'Scan employee badges to record their time in and out.' : 'See today’s status and your recent time records.' }}</p>
             </div>
             @if ($view === 'mine')
-                <a class="btn btn-primary dashboard-action" href="{{ route('timesheets.index') }}">
-                    <x-icon name="timesheet" /> My timesheet
-                </a>
+                <div class="attendance-heading-actions">
+                    {{-- The badge sits beside the punch because that is where it
+                         is reached for: the entrance scanner is one of the ways
+                         time is recorded, and hunting for it inside the profile
+                         while an officer waits is the thing to avoid. --}}
+                    <a class="btn btn-light dashboard-action" href="{{ route('profile.badge') }}">
+                        <x-icon name="scan" /> My badge
+                    </a>
+                    <a class="btn btn-primary dashboard-action" href="{{ route('timesheets.index') }}">
+                        <x-icon name="timesheet" /> My timesheet
+                    </a>
+                </div>
             @endif
         </section>
 

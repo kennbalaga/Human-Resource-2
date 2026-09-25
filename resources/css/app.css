@@ -42,3 +42,8 @@
    is behind a breakpoint, a coarse-pointer query, or display-mode: standalone,
    so it overrides the sheets above only where the desktop never sees it. */
 @import './mobile.css';
+
+/* The phone's navigation shell. After mobile.css because it retires that
+   sheet's drawer on touch devices, and last overall so it settles the bottom of
+   the screen for the toast and the install prompt as well. */
+@import './mobile-shell.css';

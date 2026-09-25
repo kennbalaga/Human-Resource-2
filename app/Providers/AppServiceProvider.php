@@ -73,7 +73,7 @@ class AppServiceProvider extends ServiceProvider
 
         // The rail is on screen in every module, so what is waiting on the
         // reader rides along with it rather than only on the dashboard.
-        View::composer('partials.sidebar', function ($view): void {
+        View::composer(['partials.sidebar', 'partials.mobile-tabbar'], function ($view): void {
             $view->with('sidebarBadges', app(SidebarBadgeService::class)->forUser(auth()->user()));
         });
 

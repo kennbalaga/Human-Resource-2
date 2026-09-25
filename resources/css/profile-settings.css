@@ -46,6 +46,28 @@
 .profile-qr-actions .btn { display:inline-flex; align-items:center; gap:.4rem; font-size: var(--fs-xs); }
 .profile-qr-actions .btn svg { width:1rem; }
 .profile-qr-actions form { margin:0; }
+/* ---- The badge on its own screen (profile/badge) ----
+   The same code the panel above draws, sized for a door instead of a desk. It
+   reuses .profile-qr-code so the white plate a camera needs survives the dark
+   theme here too, and only overrides the size. */
+.badge-screen { display:grid; max-width:520px; margin-inline:auto; gap:var(--sp-4); }
+.badge-card { display:grid; padding:var(--sp-6); gap:var(--sp-4); justify-items:center; text-align:center; }
+.badge-qr { padding:var(--sp-4); }
+/* Bounded by the viewport, not just by a pixel count: at 320px the code still
+   has to leave the card's padding room, and on a desktop it must not become a
+   poster. */
+.badge-qr svg { width:min(264px, 62vw); height:min(264px, 62vw); }
+.badge-identity { display:grid; gap:.15rem; }
+.badge-identity strong { font-size:var(--fs-lg); }
+.badge-identity span { color:var(--hr-muted); font-size:var(--fs-sm); }
+.badge-identity .badge-number { color:var(--hr-subtle); font-size:var(--fs-2xs); font-weight:700; letter-spacing:.04em; }
+.badge-awake { display:flex; align-items:center; justify-content:center; margin:0; gap:.4rem; color:var(--hr-muted); font-size:var(--fs-2xs); }
+.badge-awake svg { width:.95rem; color:var(--hr-primary-text); }
+.badge-note { display:flex; align-items:flex-start; padding:var(--sp-4); gap:.6rem; border:1px solid var(--hr-warning-line); border-radius:var(--r-lg); background:var(--hr-warning-soft); }
+.badge-note svg { width:1.05rem; flex:none; margin-top:.1rem; color:var(--hr-warning-text); }
+.badge-note p { margin:0; font-size:var(--fs-sm); line-height:1.55; }
+.badge-actions { display:flex; justify-content:center; }
+
 .profile-empty-state { display:grid; justify-items:center; padding:3rem; text-align:center; }
 .profile-empty-state svg { width:2rem; color:var(--hr-primary-text); }
 .profile-empty-state h2 { margin:.8rem 0 .25rem; font-size: var(--fs-md); }

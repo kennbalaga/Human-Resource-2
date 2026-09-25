@@ -310,6 +310,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    enableDrawerSwipe();
+    /*
+     * The drawer's gestures only exist where the drawer does. An account with
+     * the tab bar has no rail to swipe open on a phone, and leaving the
+     * edge-swipe bound would claim a gesture that opens nothing — worse on iOS,
+     * where a left-edge drag is the browser's own back and this handler calls
+     * preventDefault on it.
+     */
+    if (!document.querySelector('.app-tabbar')) {
+        enableDrawerSwipe();
+    }
+
     keepFocusedFieldVisible();
 });

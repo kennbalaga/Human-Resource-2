@@ -1,0 +1,186 @@
+/*
+ * ---- The phone's shell ----
+ *
+ * The tab bar that replaces the drawer, and the handful of things that have to
+ * move out of its way. Everything here is behind BOTH a width query and a
+ * coarse-pointer query, so a desktop browser dragged narrow keeps the rail it
+ * has always had; only a real touch device switches shells.
+ *
+ * `body.has-tabbar` is the second gate. The bar is rendered only for accounts
+ * that may use a phone (partials/mobile-tabbar), and every rule that hides the
+ * rail is keyed to that class — so an account which did not get a tab bar can
+ * never end up with no navigation at all.
+ *
+ * Imported after mobile.css, which owns the drawer these rules retire.
+ */
+
+.app-tabbar {
+    display: none;
+}
+
+/* The screen's own name, for the phone header. The desktop bar names the module
+   instead, in .topbar-context, which stays the wider layout's job. */
+.topbar-screen {
+    display: none;
+}
+
+:root {
+    /* The bar's own height, before the safe-area inset. Everything that has to
+       sit above it — the toast, the install prompt, the content's last row —
+       reads this rather than repeating the number. */
+    --tabbar-height: 64px;
+}
+
+@media (max-width: 1100px) and (pointer: coarse) {
+    /* ---- Out with the drawer ----
+       The rail, its scrim and the hamburger that opened it. The markup stays in
+       the page: hiding it here rather than branching in Blade keeps one layout
+       for both shells, and the drawer returns the moment the viewport grows. */
+    body.has-tabbar .app-sidebar,
+    body.has-tabbar .sidebar-overlay,
+    body.has-tabbar .mobile-menu-button {
+        display: none;
+    }
+
+    /* ---- The header, down to two slots ----
+       The screen's name and the bell. The module-and-subtitle strip says where
+       you are a second time now that the tab bar says it permanently; the
+       global search field is a staff directory an employee does not browse from
+       a phone, and it costs a whole row under 520px; the account button is a
+       second door to a tab the bar already names. */
+    body.has-tabbar .topbar-context,
+    body.has-tabbar .global-search-wrapper,
+    body.has-tabbar .topbar-profile {
+        display: none;
+    }
+
+    body.has-tabbar .topbar-screen {
+        display: block;
+        overflow: hidden;
+        flex-grow: 1;
+        color: var(--hr-text);
+        font-size: var(--fs-md);
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    /* ---- The bar ---- */
+    body.has-tabbar .app-tabbar {
+        position: fixed;
+        z-index: 1035;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        padding: 6px 4px calc(6px + var(--safe-bottom, 0px));
+        border-top: 1px solid var(--hr-border);
+        background: var(--hr-surface);
+    }
+
+    body.has-tabbar .app-tab {
+        display: flex;
+        min-height: var(--tap-min);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2px 0;
+        gap: 3px;
+        color: var(--hr-subtle);
+        text-decoration: none;
+    }
+
+    body.has-tabbar .app-tab-glyph {
+        position: relative;
+        display: grid;
+        padding: 3px 14px;
+        border-radius: var(--r-pill);
+        place-items: center;
+    }
+
+    body.has-tabbar .app-tab-glyph .ui-icon {
+        width: 21px;
+        height: 21px;
+    }
+
+    body.has-tabbar .app-tab-label {
+        /* The 12px floor tokens.css sets, not the 10px a tab bar usually gets
+           away with. Five labels still fit on a 320px screen. */
+        font-size: var(--fs-2xs);
+        font-weight: 600;
+        line-height: 1;
+    }
+
+    /* The current tab is a filled plate behind the glyph plus emerald wording,
+       the same rule the rail follows: it reads as a shape before it reads as a
+       colour, so it survives being the only cue on a dim screen. */
+    body.has-tabbar .app-tab.is-active {
+        color: var(--hr-primary-text);
+    }
+
+    body.has-tabbar .app-tab.is-active .app-tab-glyph {
+        background: var(--hr-primary-soft);
+    }
+
+    body.has-tabbar .app-tab.is-active .app-tab-label {
+        font-weight: 700;
+    }
+
+    body.has-tabbar .app-tab:active .app-tab-glyph {
+        transform: scale(0.94);
+        transition-duration: 40ms;
+    }
+
+    body.has-tabbar .app-tab:focus-visible {
+        outline: 3px solid rgba(var(--hr-primary-rgb), .35);
+        outline-offset: -3px;
+        border-radius: var(--r-md);
+    }
+
+    /* A dot, not a tally — the same choice the topbar bell makes. The count is
+       written out on the list the tab opens. */
+    body.has-tabbar .app-tab-dot {
+        position: absolute;
+        top: 0;
+        right: 9px;
+        width: 8px;
+        height: 8px;
+        border: 2px solid var(--hr-surface);
+        border-radius: var(--r-pill);
+        background: var(--hr-danger);
+    }
+
+    /* ---- Room for it ----
+       The last card on every page would otherwise sit under the bar. */
+    body.has-tabbar .app-content {
+        padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom, 0px) + var(--sp-5));
+    }
+
+    /* The copyright line costs a row on a phone whose chrome is already
+       branded, and it would be the thing hidden behind the bar. */
+    body.has-tabbar .app-footer {
+        display: none;
+    }
+
+    /* ---- Things that live in the strip above the bar ----
+       Both of these were written when the bottom of the screen was empty. */
+    body.has-tabbar .app-toast {
+        bottom: calc(var(--tabbar-height) + var(--safe-bottom, 0px) + var(--sp-3));
+    }
+
+    body.has-tabbar .pwa-install-banner {
+        bottom: calc(var(--tabbar-height) + var(--safe-bottom, 0px) + var(--sp-3));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.has-tabbar .app-tab:active .app-tab-glyph {
+        transform: none;
+    }
+}
+
+body.reduce-motion .app-tab:active .app-tab-glyph {
+    transform: none;
+}

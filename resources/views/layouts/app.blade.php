@@ -1,5 +1,12 @@
 @php
     $uiPreference = auth()->user()->preference;
+    /*
+     * Whether this account gets the phone's tab bar instead of the drawer.
+     * Same question as the install offer and the sign-in refusal, asked once:
+     * the five tabs name an employee's destinations, so an account that may not
+     * use a phone at all keeps the rail it would otherwise be stranded without.
+     */
+    $phoneTabBar = ! app(App\Services\Security\MobileAccessPolicy::class)->restricts(auth()->user());
     $sessionTimeoutSeconds = max(60, (int) config('session.lifetime', 30) * 60);
     $sessionWarningSeconds = max(30, min((int) config('security.session.warning_seconds', 300), $sessionTimeoutSeconds - 30));
 @endphp
@@ -101,10 +108,12 @@
         request()->routeIs('attendance.index') ? 'resources/js/attendance-qr.js' : null,
         // Fills the room board's assign picker. Nowhere else needs it.
         request()->routeIs('schedules.rooms.index') ? 'resources/js/room-board.js' : null,
+        // Holds the screen awake while the badge is being shown at a door.
+        request()->routeIs('profile.badge') ? 'resources/js/badge-screen.js' : null,
     ])))
     @stack('head')
 </head>
-<body class="app-body {{ $uiPreference->compact_navigation ? 'compact-navigation' : '' }} {{ $uiPreference->reduce_motion ? 'reduce-motion' : '' }}">
+<body class="app-body {{ $uiPreference->compact_navigation ? 'compact-navigation' : '' }} {{ $uiPreference->reduce_motion ? 'reduce-motion' : '' }} {{ $phoneTabBar ? 'has-tabbar' : '' }}">
     {{-- The sidebar puts a dozen links in front of the content on every page. A
          keyboard or screen-reader user had to walk all of them to reach the
          thing they navigated here for. Off-screen until focused. --}}
@@ -130,6 +139,13 @@
                 <span>Human Resource Management System</span>
             </footer>
         </div>
+
+        {{-- The phone's navigation. Fixed to the bottom of the viewport, so it
+             sits outside the main column rather than at the end of it. Hidden by
+             CSS on every layout that keeps the rail. --}}
+        @if ($phoneTabBar)
+            @include('partials.mobile-tabbar')
+        @endif
     </div>
 
     {{-- Device app lock. Inert on desktop: app-lock.js returns immediately

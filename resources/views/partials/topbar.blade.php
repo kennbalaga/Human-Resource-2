@@ -47,6 +47,12 @@
             <strong>{{ $topbarContext[0] }}</strong>
             <span>{{ $topbarContext[1] }}</span>
         </span>
+
+        {{-- The phone's version of the line above: the screen's own name rather
+             than the module's, because the tab bar already names the module and
+             saying it twice costs a third of the first fold. Hidden on every
+             layout that keeps .topbar-context. --}}
+        <span class="topbar-screen">@yield('title', config('branding.short_name'))</span>
     </div>
 
     {{-- A direct child of the bar rather than a member of .topbar-actions: the

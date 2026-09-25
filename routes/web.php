@@ -129,6 +129,9 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    /* The badge on its own screen. Read-only and no download, so it carries
+       none of the confirmation the file behind it does. */
+    Route::get('/profile/badge', [ProfileController::class, 'badge'])->name('profile.badge');
     Route::get('/profile/attendance-qr/download', [ProfileController::class, 'downloadAttendanceQr'])->middleware($auditedDownload)->name('profile.attendance-qr.download');
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::patch('/settings/account', [SettingsController::class, 'updateAccount'])->name('settings.account.update');
