@@ -396,7 +396,9 @@
     aspect-ratio: 4 / 3;
     border: 3px solid transparent;
     border-radius: var(--r-lg);
-    background: var(--hr-bg);
+    /* Fixed dark viewfinder glass in both themes: the idle icon/text/reticle
+       colors below are hardcoded white and unreadable against a light --hr-bg. */
+    background: #0b1715;
     place-items: center;
     transition: border-color 200ms ease;
 }
