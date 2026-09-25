@@ -285,6 +285,35 @@ class RoomBoardTest extends TestCase
         $this->assertSame('scheduled', $assignment->fresh()->status);
     }
 
+    public function test_taking_somebody_out_from_the_board_script_hands_back_what_undo_needs(): void
+    {
+        $room = $this->room('BT-UNDO', ['min_seniority_rank' => 1]);
+        $nurse = $this->employee('BT-0011', $this->chargeNurse);
+        $assignment = $this->roster($nurse, $this->morning, $room);
+
+        $undo = $this->actingAs($this->manager)
+            ->deleteJson(route('schedules.rooms.destroy', $assignment))
+            ->assertOk()
+            ->assertJsonPath('message', "{$nurse->full_name} taken out of BT-UNDO.")
+            ->assertJsonPath('undo', [
+                'room_id' => $room->id,
+                'shift_id' => $this->morning->id,
+                'employee_id' => $nurse->id,
+                'date' => $this->date,
+            ])
+            ->json('undo');
+
+        $this->assertNull($assignment->fresh()->room_id);
+
+        // Undo is the same payload posted straight back.
+        $this->actingAs($this->manager)
+            ->postJson(route('schedules.rooms.store'), $undo)
+            ->assertOk()
+            ->assertJsonPath('message', "{$nurse->full_name} is back in BT-UNDO.");
+
+        $this->assertSame($room->id, $assignment->fresh()->room_id);
+    }
+
     public function test_the_candidate_endpoint_lists_the_shifts_roster(): void
     {
         $room = $this->room('BT-PICK', ['min_seniority_rank' => 1]);

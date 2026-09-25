@@ -1445,6 +1445,18 @@ input {
     height: 16px;
 }
 
+/* Sign out sits apart from everything above it, and tall enough to hit on
+   purpose: the gap is what stops a stray tap on the menu from ending the
+   session. */
+.profile-dropdown .topbar-signout-divider {
+    margin-block: 10px;
+}
+
+.profile-dropdown .topbar-signout {
+    min-height: 44px;
+    font-weight: 600;
+}
+
 .app-content {
     width: 100%;
     max-width: 1660px;

@@ -1,4 +1,5 @@
 import { scrollBehavior } from './motion';
+import { confirmAction } from './confirm-actions';
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
@@ -1518,9 +1519,30 @@ document.addEventListener('DOMContentLoaded', () => {
         rosterEvaluateTimer = window.setTimeout(evaluateRoster, 250);
     };
 
+    // Clearing or refilling throws away whatever is on the board, including
+    // hand edits that exist nowhere else yet. Ask only when there is something
+    // to lose; an empty board just fills.
+    const confirmBoardLoss = ({ title, action, button }) => {
+        const count = rosterEntries.length;
+        if (count === 0) return Promise.resolve(true);
+
+        return confirmAction({
+            title,
+            message: `The ${count} ${count === 1 ? 'shift assignment' : 'shift assignments'} on the board now will be ${action}. Nothing already published changes.`,
+            button,
+            tone: 'caution',
+        });
+    };
+
     // Both fill buttons only propose: they replace what is on the board, and
     // nothing reaches the database until the roster is published.
     const fillRosterFrom = async (button, url, busyLabel, failure) => {
+        if (!(await confirmBoardLoss({
+            title: 'Replace the roster board?',
+            action: 'swapped for a new fill',
+            button: 'Replace board',
+        }))) return;
+
         const original = button.textContent;
         button.disabled = true;
         button.textContent = busyLabel;
@@ -1559,7 +1581,13 @@ document.addEventListener('DOMContentLoaded', () => {
         'That shift could not be filled.',
     ));
 
-    rosterClearButton?.addEventListener('click', () => {
+    rosterClearButton?.addEventListener('click', async () => {
+        if (!(await confirmBoardLoss({
+            title: 'Clear the roster board?',
+            action: 'removed',
+            button: 'Clear board',
+        }))) return;
+
         setAssistantNotice(null);
         setRosterEntries([]);
     });
@@ -1677,6 +1705,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 discard.className = 'btn btn-sm btn-light';
                 discard.textContent = 'Discard';
                 discard.addEventListener('click', async () => {
+                    const confirmed = await confirmAction({
+                        title: 'Discard this saved draft?',
+                        message: 'Anyone picking it up to continue will lose it too. This can’t be undone.',
+                        button: 'Discard draft',
+                        tone: 'danger',
+                    });
+                    if (!confirmed) return;
+
                     await fetch(bulkForm.dataset.rosterDraftDiscardUrlTemplate.replace('__ID__', draft.id), {
                         method: 'DELETE',
                         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },

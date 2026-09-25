@@ -69,10 +69,6 @@
     </div>
 @endif
 
-@if (session('success'))
-    <div class="attendance-alert attendance-alert-success" role="status"><x-icon name="check-circle" /> <span>{{ session('success') }}</span></div>
-@endif
-
 <section class="report-stats-grid" aria-label="{{ $report->label() }} report summary">
     @foreach ($summary as $tile)
         <article class="report-stat">

@@ -5,7 +5,8 @@
 @section('content')
     <section class="page-heading workforce-heading"><div><p class="eyebrow">Account</p><h1>Settings</h1><p>Your profile, appearance, notifications, and the operational tools you administer.</p></div><a class="btn btn-outline-primary profile-heading-action" href="{{ route('profile.show') }}"><x-icon name="users" /> View profile</a></section>
 
-    @if(session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
+    {{-- A next step, not a confirmation, so it stays on the page (see partials/organization-feedback). --}}
+    @if(session('notice'))<div class="attendance-alert attendance-alert-success" role="status"><x-icon name="shield" /><span>{{ session('notice') }}</span></div>@endif
     @if(session('warning'))<div class="attendance-alert attendance-alert-warning"><x-icon name="settings" /><span>{{ session('warning') }}</span></div>@endif
     @if(session('two_factor_required'))<div class="attendance-alert attendance-alert-danger"><x-icon name="shield" /><span>{{ session('two_factor_required') }}</span></div>@endif
     @if($twoFactorSetupReset)<div class="attendance-alert attendance-alert-warning"><x-icon name="shield" /><span>An incomplete 2FA setup from another environment could not be decrypted and was safely reset. Start the setup again on this device.</span></div>@endif

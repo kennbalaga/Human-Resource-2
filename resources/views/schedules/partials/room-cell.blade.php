@@ -15,7 +15,10 @@
                     <span class="room-board-rank">{{ $person['rank'] }}</span>
                     <span class="room-board-person-name">{{ $person['name'] }}</span>
                     @if($canManage)
-                        <form method="POST" action="{{ route('schedules.rooms.destroy', $person['assignment_id']) }}">
+                        {{-- No prompt: room-board.js removes at once and offers
+                             Undo in the shared toast. Without the script this is
+                             still a plain form post. --}}
+                        <form method="POST" action="{{ route('schedules.rooms.destroy', $person['assignment_id']) }}" data-room-remove>
                             @csrf
                             @method('DELETE')
                             <button class="room-board-remove" type="submit" aria-label="Take {{ $person['name'] }} out of {{ $room->code }}">&times;</button>

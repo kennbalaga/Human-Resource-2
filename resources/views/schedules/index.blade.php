@@ -59,10 +59,6 @@
         @endif
     </section>
 
-    @if (session('success'))
-        <div class="attendance-alert attendance-alert-success" role="status"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>
-    @endif
-
     @if ($errors->any())
         <div class="attendance-alert attendance-alert-danger" role="alert"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>
     @endif
@@ -170,7 +166,7 @@
                                     <span class="more-events">+{{ $day['assignments']->count() - 3 }}{{-- Clipped out of sight on a phone, where the cell is 47px wide and the count is the whole message. --}}<span> more</span></span>
                                 @endif
                                 @foreach($day['day_offs']->take(2) as $dayOff)
-                                    <span class="schedule-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" data-confirm="Remove this day off?">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>
+                                    <span class="schedule-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" data-confirm="Remove {{ $dayOff->employee->full_name }}’s day off on {{ $dayOff->work_date->format('M j') }}? They can be scheduled that day again." data-confirm-button="Remove day off" data-confirm-tone="caution">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>
                                 @endforeach
                                 @foreach($day['leaves']->take(2) as $leave)
                                     <span class="schedule-leave-event" style="--leave-color: {{ $leave->leaveType->color }}"><x-icon name="leave" /><span><strong>{{ $leave->employee->first_name }} {{ $leave->employee->last_name }}</strong><small>{{ $leave->leaveType->name }}</small></span></span>
@@ -201,7 +197,7 @@
                             @empty
                                 @if($day['leaves']->isEmpty() && $day['day_offs']->isEmpty())<span class="week-empty">No shifts</span>@endif
                             @endforelse
-                            @foreach($day['day_offs'] as $dayOff)<span class="schedule-day-off-event week-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" data-confirm="Remove this day off?">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>@endforeach
+                            @foreach($day['day_offs'] as $dayOff)<span class="schedule-day-off-event week-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" data-confirm="Remove {{ $dayOff->employee->full_name }}’s day off on {{ $dayOff->work_date->format('M j') }}? They can be scheduled that day again." data-confirm-button="Remove day off" data-confirm-tone="caution">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>@endforeach
                             @foreach($day['leaves'] as $leave)<span class="schedule-leave-event week-leave-event" style="--leave-color: {{ $leave->leaveType->color }}"><x-icon name="leave" /><span><strong>{{ $leave->employee->full_name }}</strong><small>{{ $leave->leaveType->name }}</small></span></span>@endforeach
                         </div>
                     </article>
@@ -229,7 +225,7 @@
                                 </button>
                             @endforeach
                             @foreach ($dayOffsByDate->get($date, collect()) as $dayOff)
-                                <div class="schedule-list-item schedule-list-day-off"><span class="event-color"></span><span class="schedule-list-time">All day</span><span class="schedule-list-employee"><strong>{{ $dayOff->employee->full_name }}</strong><small>{{ $dayOff->employee->employee_number }} · {{ $dayOff->employee->department?->name }}</small></span><span class="schedule-list-shift">Day off</span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" data-confirm="Remove this day off?">@csrf @method('DELETE')<button class="icon-button subtle" type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</div>
+                                <div class="schedule-list-item schedule-list-day-off"><span class="event-color"></span><span class="schedule-list-time">All day</span><span class="schedule-list-employee"><strong>{{ $dayOff->employee->full_name }}</strong><small>{{ $dayOff->employee->employee_number }} · {{ $dayOff->employee->department?->name }}</small></span><span class="schedule-list-shift">Day off</span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" data-confirm="Remove {{ $dayOff->employee->full_name }}’s day off on {{ $dayOff->work_date->format('M j') }}? They can be scheduled that day again." data-confirm-button="Remove day off" data-confirm-tone="caution">@csrf @method('DELETE')<button class="icon-button subtle" type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</div>
                             @endforeach
                         </div>
                     </section>
@@ -248,7 +244,7 @@
                     <article class="recurring-series-card">
                         <span class="series-color" style="background: {{ $series->shift->color }}"></span>
                         <div class="series-main"><strong>{{ $series->employee->full_name }}</strong><span>{{ $series->shift->name }} · {{ $series->shift->formatted_time }}</span><small>{{ $series->start_date->format('M j') }}–{{ $series->end_date->format('M j, Y') }} · {{ str($series->recurrence_type)->headline() }}</small></div>
-                        @if($canManageData)<form method="POST" action="{{ route('recurring-schedules.destroy', $series) }}" data-confirm="Cancel this recurring series and remove its future assignments?">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Cancel recurring series"><x-icon name="trash" /></button></form>@endif
+                        @if($canManageData)<form method="POST" action="{{ route('recurring-schedules.destroy', $series) }}" data-confirm="Cancel {{ $series->employee->full_name }}’s {{ $series->shift->name }} series? Its future assignments are removed. Past shifts stay on record." data-confirm-button="Cancel series" data-confirm-cancel="Keep series" data-confirm-tone="danger">@csrf @method('DELETE')<button class="icon-button subtle text-danger" type="submit" aria-label="Cancel recurring series"><x-icon name="trash" /></button></form>@endif
                     </article>
                 @empty
                     <div class="compact-empty-state"><x-icon name="repeat" /><p>No active recurring schedule series.</p></div>
@@ -317,7 +313,7 @@
                         <td>{{ $lock->start_date->format('M j, Y') }} – {{ $lock->end_date->format('M j, Y') }}</td>
                         <td>{{ $lock->lockedBy?->name ?? '—' }}</td>
                         <td>{{ $lock->locked_at->format('M j, Y g:i A') }}</td>
-                        <td><form method="POST" action="{{ route('schedule-locks.destroy', $lock) }}" data-confirm="Unlock this period?">@csrf @method('DELETE')<button class="btn btn-sm btn-light" type="submit">Unlock</button></form></td>
+                        <td><form method="POST" action="{{ route('schedule-locks.destroy', $lock) }}" data-confirm="Unlock {{ $lock->department->name }}, {{ $lock->start_date->format('M j') }}–{{ $lock->end_date->format('M j, Y') }}? Schedules in this period can be edited again." data-confirm-button="Unlock period" data-confirm-tone="caution">@csrf @method('DELETE')<button class="btn btn-sm btn-light" type="submit">Unlock</button></form></td>
                     </tr>
                 @empty
                     <tr><td colspan="5" class="empty-table-cell"><x-icon name="shield" /><strong>No locked periods</strong><span>Locked schedules will appear here.</span></td></tr>

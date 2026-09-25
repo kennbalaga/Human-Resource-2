@@ -20,7 +20,6 @@
         </div>
     </section>
 
-    @if(session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
     @if($errors->any())<div class="attendance-alert attendance-alert-danger"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>@endif
 
     @if($canSeeSwaps)
@@ -61,7 +60,7 @@
                                         <form method="POST" action="{{ route('shift-swaps.reject', $swap) }}" class="inline-review-form">@csrf<input name="reviewer_notes" minlength="5" placeholder="Reason" required><button class="btn btn-sm btn-outline-danger">Reject</button></form>
                                     @endif
                                     @if(in_array($swap->status, ['pending_target', 'pending_manager']) && ($swap->requester_employee_id === $employee->id || $canManageData))
-                                        <form method="POST" action="{{ route('shift-swaps.cancel', $swap) }}" data-confirm="Cancel this swap request?">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>
+                                        <form method="POST" action="{{ route('shift-swaps.cancel', $swap) }}" data-confirm="Cancel this swap request? To swap later, a new request will need to be sent." data-confirm-button="Cancel request" data-confirm-cancel="Keep request">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>
                                     @endif
                                 </div></td>
                             </tr>
@@ -110,7 +109,7 @@
                                     <form method="POST" action="{{ route('schedule-preferences.reject-day-off', $preference) }}" class="inline-review-form">@csrf<input name="reviewer_notes" minlength="5" placeholder="Reason" required><button class="btn btn-sm btn-outline-danger">Reject</button></form>
                                 @endif
                                 @if(in_array($preference->status, ['pending', 'approved']) && ($preference->employee_id === $employee->id || $canManageData))
-                                    <form method="POST" action="{{ route('schedule-preferences.cancel-day-off', $preference) }}" data-confirm="Cancel this request?">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>
+                                    <form method="POST" action="{{ route('schedule-preferences.cancel-day-off', $preference) }}" data-confirm="Cancel this day-off request? {{ $preference->preferred_date->format('M j, Y') }}. To take it later, it will need to be requested again." data-confirm-button="Cancel request" data-confirm-cancel="Keep request">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>
                                 @endif
                             </div></td>
                         </tr>

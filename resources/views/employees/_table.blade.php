@@ -63,9 +63,9 @@
                                  rather than disabled: a greyed-out control invites
                                  the click that the rule exists to prevent. --}}
                             @if($canManage && $employee->isArchived())
-                                <li><form method="POST" action="{{ route('employees.restore', $employee) }}" data-confirm="Restore {{ $employee->full_name }} to the directory? They stay out of the archive until you archive them again.">@csrf<button class="dropdown-item" type="submit"><x-icon name="repeat" /><span>Restore to directory</span></button></form></li>
+                                <li><form method="POST" action="{{ route('employees.restore', $employee) }}" data-confirm="Restore {{ $employee->full_name }} to the directory? They stay out of the archive until you archive them again." data-confirm-button="Restore record">@csrf<button class="dropdown-item" type="submit"><x-icon name="repeat" /><span>Restore to directory</span></button></form></li>
                             @elseif($canManage && $employee->canBeArchived())
-                                <li><form method="POST" action="{{ route('employees.archive', $employee) }}" data-confirm="Archive {{ $employee->full_name }}? The record is kept in full and can be restored at any time.">@csrf<button class="dropdown-item" type="submit"><x-icon name="inbox" /><span>Archive record</span></button></form></li>
+                                <li><form method="POST" action="{{ route('employees.archive', $employee) }}" data-confirm="Archive {{ $employee->full_name }}? The record is kept in full and can be restored at any time." data-confirm-button="Archive record" data-confirm-tone="caution">@csrf<button class="dropdown-item" type="submit"><x-icon name="inbox" /><span>Archive record</span></button></form></li>
                             @endif
                         </x-dashboard-action-menu>
                     </td>

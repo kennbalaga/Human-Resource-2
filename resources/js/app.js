@@ -17,6 +17,8 @@ import './session-timeout';
 import './download-confirm';
 import './global-search';
 import './confirm-actions';
+// The shared toast. Imported here so every page shows its success flash.
+import './toast';
 import './report-print';
 import './settings-nav';
 // Touch-only interaction polish and the on-device PIN/fingerprint app lock.

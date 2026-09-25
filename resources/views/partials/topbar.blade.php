@@ -187,9 +187,6 @@
                     </div>
                 </div>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="{{ route('profile.show') }}"><x-icon name="users" /> My profile</a>
-                <a class="dropdown-item" href="{{ route('settings.edit') }}"><x-icon name="settings" /> Account settings</a>
-                <div class="dropdown-divider"></div>
                 {{-- Three options rather than a flip, so "System" is reachable
                      from here and not just from Account settings. Every button
                      carries the persist URL because theme.js reads it off the
@@ -212,9 +209,16 @@
                     </div>
                 </div>
                 <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="{{ route('profile.show') }}"><x-icon name="users" /> My profile</a>
+                <a class="dropdown-item" href="{{ route('settings.edit') }}"><x-icon name="settings" /> Account settings</a>
+                {{-- Kept away from the theme buttons, with the two links between
+                     them and a wider gap above: a slightly low tap on "System"
+                     used to land here and sign the person out, and signing back
+                     in costs a password and an authenticator code. --}}
+                <div class="dropdown-divider topbar-signout-divider"></div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button class="dropdown-item text-danger" type="submit"><x-icon name="logout" /> Log out</button>
+                    <button class="dropdown-item text-danger topbar-signout" type="submit"><x-icon name="logout" /> Sign out</button>
                 </form>
             </div>
         </div>

@@ -35,6 +35,10 @@
 .text-action { padding:0; border:0; color:var(--hr-primary-text); background:none; font-size: var(--fs-sm); font-weight:800; }
 .row-action-group { display:flex; align-items:center; flex-wrap:wrap; gap:.35rem; }
 .row-action-group form { margin:0; }
+/* Said beside the button rather than asked in a prompt: submitting is a routine
+   step every period, and a dialog there would be clicked through unread. */
+.timesheet-submit-form { display:grid; justify-items:start; gap:.2rem; }
+.timesheet-submit-note { color:var(--hr-subtle); font-size: var(--fs-2xs); line-height:1.35; }
 .inline-review-form,.attendance-reject-form { display:flex; align-items:center; gap:.3rem; }
 .inline-review-form input,.attendance-reject-form input { width:8.5rem; min-height:2rem; padding:.35rem .5rem; }
 .attendance-approval-actions { display:flex; align-items:center; flex-wrap:wrap; gap:.35rem; min-width:17rem; }

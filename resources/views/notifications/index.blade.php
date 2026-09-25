@@ -17,10 +17,6 @@
         @endif
     </section>
 
-    @if(session('success'))
-        <div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>
-    @endif
-
     @php
         $categoryMeta = [
             'attendance' => ['label' => 'Attendance', 'tone' => 'warning', 'icon' => 'clock', 'description' => 'Punches, lateness and corrections'],

@@ -46,7 +46,7 @@
 
     {{-- Holds the stack together: .panel brings no margin of its own, so the
          gap between these belongs to the page, not to each card. --}}
-    <div class="room-board-page">
+    <div class="room-board-page" data-room-board data-room-assign-url="{{ route('schedules.rooms.store') }}">
     @if($board === null)
         <section class="panel">
             <div class="compact-empty-state">

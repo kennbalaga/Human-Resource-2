@@ -8,7 +8,6 @@
         <a class="btn btn-outline-primary profile-heading-action" href="{{ route('settings.edit') }}"><x-icon name="settings" /> Account settings</a>
     </section>
 
-    @if(session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
     @if($errors->any())<div class="attendance-alert attendance-alert-danger"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>@endif
 
     <section class="profile-hero panel">

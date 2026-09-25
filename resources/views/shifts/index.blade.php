@@ -15,10 +15,6 @@
         </div>
     </section>
 
-    @if (session('success'))
-        <div class="attendance-alert attendance-alert-success" role="status"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>
-    @endif
-
     @if ($errors->any())
         <div class="attendance-alert attendance-alert-danger" role="alert"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>
     @endif
@@ -88,7 +84,7 @@
                                             <form
                                                 method="POST"
                                                 action="{{ route('shifts.toggle-active', $shift) }}"
-                                                @if ($shift->is_active) data-confirm="Deactivate this shift template? It will be hidden from new schedule assignments, but existing schedules keep this shift." @endif
+                                                @if ($shift->is_active) data-confirm="Deactivate {{ $shift->name }}? It’s hidden from new assignments. Existing schedules keep it." data-confirm-button="Deactivate template" data-confirm-tone="caution" @endif
                                             >
                                                 @csrf @method('PATCH')
                                                 <button
@@ -103,7 +99,7 @@
                                         </li>
                                         @if (! $shift->is_system && $shift->assignments_count === 0)
                                             <li>
-                                                <form method="POST" action="{{ route('shifts.destroy', $shift) }}" data-confirm="Delete this unused shift template?">@csrf @method('DELETE')<button class="dropdown-item text-danger" type="submit"><x-icon name="trash" /><span>Delete template</span></button></form>
+                                                <form method="POST" action="{{ route('shifts.destroy', $shift) }}" data-confirm="Delete {{ $shift->name }}? It isn’t used in any schedule. This can’t be undone." data-confirm-button="Delete template" data-confirm-tone="danger">@csrf @method('DELETE')<button class="dropdown-item text-danger" type="submit"><x-icon name="trash" /><span>Delete template</span></button></form>
                                             </li>
                                         @endif
                                     </x-dashboard-action-menu>

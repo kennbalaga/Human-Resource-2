@@ -238,7 +238,9 @@ class EmployeeController extends Controller
 
         return redirect()
             ->route('employees.index', ['employee' => $employee->id])
-            ->with('success', "A new attendance badge was issued for {$employee->full_name}. Their previous code no longer scans — ask them to download the new one.");
+            // A notice, not a success: it ends with something HR still has to do,
+            // so it stays as a banner instead of fading with the toast.
+            ->with('notice', "A new attendance badge was issued for {$employee->full_name}. Their previous code no longer scans — ask them to download the new one.");
     }
 
     public function create(Request $request): View

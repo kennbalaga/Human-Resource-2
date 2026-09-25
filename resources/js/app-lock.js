@@ -44,6 +44,7 @@
 // "Mobile devices only" is shared with the trusted-device sync and the role
 // restriction, which must draw the same line this does.
 import { isMobileDevice } from './mobile-device';
+import { confirmAction } from './confirm-actions';
 
 const STORAGE_KEY = 'hrms.device-lock.v1';
 const SESSION_KEY = 'hrms.device-lock.session.v1';
@@ -956,9 +957,15 @@ class LockSettings {
         window.dispatchEvent(new CustomEvent('hrms:device-lock-lock-now'));
     }
 
-    remove() {
-        // eslint-disable-next-line no-alert
-        if (!window.confirm('Remove the app lock from this device? The PIN and any fingerprint saved here are deleted, and signing in on this device will ask for your authenticator code again. Your account and password are not affected.')) {
+    async remove() {
+        const confirmed = await confirmAction({
+            title: 'Remove the app lock from this device?',
+            message: 'The PIN and any fingerprint saved here are deleted, and signing in on this device will ask for your authenticator code again. Your account and password are not affected.',
+            button: 'Remove app lock',
+            tone: 'danger',
+        });
+
+        if (!confirmed) {
             return;
         }
 

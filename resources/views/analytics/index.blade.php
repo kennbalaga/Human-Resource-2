@@ -11,7 +11,6 @@
     @include('analytics._tabs')
 
     @if($errors->any())<div class="attendance-alert attendance-alert-danger"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>@endif
-    @if(session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
     @if(session('warning'))<div class="attendance-alert attendance-alert-warning"><x-icon name="ai" /><span>{{ session('warning') }}</span></div>@endif
 
     <section class="panel workforce-filter-panel">

@@ -139,6 +139,11 @@
     {{-- The password check in front of every download link on the page. --}}
     @include('partials.download-confirm')
 
+    {{-- The one confirmation prompt and the one toast, shared by every page.
+         See confirm-actions.js and toast.js for when each is used. --}}
+    @include('partials.confirm-dialog')
+    @include('partials.toast')
+
     @include('partials.session-timeout', [
         'sessionTimeoutSeconds' => $sessionTimeoutSeconds,
         'sessionWarningSeconds' => $sessionWarningSeconds,

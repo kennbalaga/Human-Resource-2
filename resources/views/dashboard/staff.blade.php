@@ -26,13 +26,6 @@
             @include('partials.current-time')
         </section>
 
-        @if (session('success'))
-            <div class="staff-flash staff-flash-success" role="status">
-                <x-icon name="check-circle" />
-                <span>{{ session('success') }}</span>
-            </div>
-        @endif
-
         @if ($errors->any())
             <div class="staff-flash staff-flash-danger" role="alert">
                 <x-icon name="close" />

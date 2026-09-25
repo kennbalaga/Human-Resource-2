@@ -96,7 +96,7 @@ class RoomBoardController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $this->requireBoardAccess($request);
         $this->requireManager($request);
@@ -116,10 +116,16 @@ class RoomBoardController extends Controller
 
         $this->assignments->assign($room, $shift, $validated['date'], $employee, $request->user());
 
+        // The board's Undo puts somebody back without leaving the page; it
+        // redraws the board itself and says so in its own toast.
+        if ($request->expectsJson()) {
+            return response()->json(['message' => "{$employee->full_name} is back in {$room->code}."]);
+        }
+
         return back()->with('success', "{$employee->full_name} is now in {$room->code}.");
     }
 
-    public function destroy(Request $request, ScheduleAssignment $scheduleAssignment): RedirectResponse
+    public function destroy(Request $request, ScheduleAssignment $scheduleAssignment): RedirectResponse|JsonResponse
     {
         $this->requireBoardAccess($request);
         $this->requireManager($request);
@@ -129,6 +135,23 @@ class RoomBoardController extends Controller
 
         $room = $scheduleAssignment->room;
         $this->assignments->unassign($scheduleAssignment, $request->user());
+
+        // Asked from the board's script: no prompt before the removal, so the
+        // answer carries exactly what its Undo has to post back to store() to
+        // put the same person in the same room again.
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $room === null
+                    ? 'That shift was not in a room.'
+                    : "{$employee?->full_name} taken out of {$room->code}.",
+                'undo' => $room === null ? null : [
+                    'room_id' => $room->id,
+                    'shift_id' => $scheduleAssignment->shift_id,
+                    'employee_id' => $scheduleAssignment->employee_id,
+                    'date' => $scheduleAssignment->work_date->toDateString(),
+                ],
+            ]);
+        }
 
         return back()->with('success', $room === null
             ? 'That shift was not in a room.'

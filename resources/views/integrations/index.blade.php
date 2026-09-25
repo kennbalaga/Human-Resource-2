@@ -4,7 +4,6 @@
 
 @section('content')
     <section class="page-heading workforce-heading"><div><p class="eyebrow">System Administration</p><h1>AI Integration</h1><p>Manage the Gemini-powered features used for workforce insights and scheduling explanations.</p></div></section>
-    @if(session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
     @if(session('warning'))<div class="attendance-alert attendance-alert-warning"><x-icon name="plug" /><span>{{ session('warning') }}</span></div>@endif
     @if($errors->any())<div class="attendance-alert attendance-alert-danger"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>@endif
 

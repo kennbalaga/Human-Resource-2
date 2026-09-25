@@ -29,7 +29,9 @@
                                     {{ $booking['lead'] ? 'Led by '.$booking['lead'].' · ' : '' }}{{ $booking['scrubbed'] }} scrubbed · {{ App\Models\RoomBooking::statuses()[$booking['status']] ?? $booking['status'] }}
                                 </span>
                                 @if($canManage)
-                                    <form method="POST" action="{{ route('schedules.room-bookings.destroy', $booking['id']) }}">
+                                    <form method="POST" action="{{ route('schedules.room-bookings.destroy', $booking['id']) }}"
+                                          data-confirm="Stand down {{ $booking['purpose'] }} in {{ $room->code }} ({{ $booking['window'] }})? The booking comes off the theatre list. This can’t be undone."
+                                          data-confirm-button="Stand down case" data-confirm-tone="danger">
                                         @csrf
                                         @method('DELETE')
                                         <button class="room-board-add" type="submit">Stand down</button>

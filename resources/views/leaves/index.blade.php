@@ -11,7 +11,6 @@
         </div>
     </section>
 
-    @if(session('success'))<div class="attendance-alert attendance-alert-success"><x-icon name="check-circle" /><span>{{ session('success') }}</span></div>@endif
     @if($errors->any())<div class="attendance-alert attendance-alert-danger"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>@endif
 
     <section class="workforce-stats-grid">
@@ -70,7 +69,7 @@
                         <form method="POST" action="{{ route('leaves.approve', $leave) }}">@csrf<button class="btn btn-sm btn-success">Approve</button></form>
                         <form method="POST" action="{{ route('leaves.reject', $leave) }}" class="inline-review-form">@csrf<input name="reviewer_notes" minlength="5" placeholder="Reason" required><button class="btn btn-sm btn-outline-danger">Reject</button></form>
                     @endif
-                    @if($leave->isCancellable() && ($leave->employee_id === auth()->user()->employee?->id || $canManageData))<form method="POST" action="{{ route('leaves.cancel', $leave) }}" data-confirm="Cancel this leave request?">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>@endif
+                    @if($leave->isCancellable() && ($leave->employee_id === auth()->user()->employee?->id || $canManageData))<form method="POST" action="{{ route('leaves.cancel', $leave) }}" data-confirm="Cancel this leave request? {{ $leave->leaveType->name }}, {{ $leave->start_date->format('M j') }}–{{ $leave->end_date->format('M j, Y') }}. To take it later, it will need to be requested again." data-confirm-button="Cancel request" data-confirm-cancel="Keep request">@csrf<button class="btn btn-sm btn-light">Cancel</button></form>@endif
                 </div></td></tr>
             @empty<tr><td colspan="8" class="empty-table-cell"><x-icon name="leave" /><strong>No leave requests found</strong><span>New requests will appear here.</span></td></tr>@endforelse
         </tbody></table></div>

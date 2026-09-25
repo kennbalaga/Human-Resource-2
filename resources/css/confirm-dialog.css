@@ -1,0 +1,155 @@
+/* The shared confirmation prompt. The same card as the download password check
+   (download-confirm.css) so an interruption reads as one system, with a tone on
+   top: neutral for your own item, caution for someone else's that can be put
+   back, danger for what cannot be recovered. See confirm-actions.js for which
+   is which. */
+.confirm-dialog {
+    width: min(440px, calc(100% - 2rem));
+    padding: 0;
+    color: var(--hr-text);
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-xl);
+    background: var(--hr-surface);
+    box-shadow: 0 28px 80px rgba(17, 50, 34, .24);
+}
+
+.confirm-dialog::backdrop {
+    background: rgba(12, 28, 24, .48);
+}
+
+.confirm-dialog[open] {
+    animation: confirm-dialog-rise .18s ease-out;
+}
+
+@keyframes confirm-dialog-rise {
+    from { opacity: 0; transform: translateY(8px) scale(.985); }
+    to { opacity: 1; transform: none; }
+}
+
+.confirm-dialog-body {
+    display: grid;
+    justify-items: center;
+    gap: .45rem;
+    padding: 1.75rem 2rem 1.25rem;
+    text-align: center;
+}
+
+.confirm-dialog-icon {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    margin-bottom: .35rem;
+    border: 1px solid;
+    border-radius: var(--r-lg);
+    place-items: center;
+}
+
+.confirm-dialog-icon > span {
+    display: none;
+}
+
+.confirm-dialog-icon .ui-icon {
+    width: 25px;
+    height: 25px;
+}
+
+.confirm-dialog[data-tone='neutral'] [data-confirm-icon='neutral'],
+.confirm-dialog[data-tone='caution'] [data-confirm-icon='caution'],
+.confirm-dialog[data-tone='danger'] [data-confirm-icon='danger'] {
+    display: grid;
+}
+
+.confirm-dialog-kicker {
+    margin: 0;
+    font-size: var(--fs-xs);
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.confirm-dialog-title {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-2xl);
+    font-weight: 750;
+    line-height: 1.25;
+    text-wrap: balance;
+}
+
+.confirm-dialog-message {
+    max-width: 340px;
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-base);
+    line-height: 1.6;
+}
+
+.confirm-dialog-message:empty {
+    display: none;
+}
+
+.confirm-dialog[data-tone='neutral'] .confirm-dialog-icon {
+    color: var(--hr-primary-text);
+    border-color: color-mix(in srgb, var(--hr-primary) 28%, transparent);
+    background: var(--hr-primary-soft);
+}
+
+.confirm-dialog[data-tone='neutral'] .confirm-dialog-kicker { color: var(--hr-primary-text); }
+
+.confirm-dialog[data-tone='caution'] .confirm-dialog-icon {
+    color: var(--hr-warning-text);
+    border-color: var(--hr-warning-line);
+    background: var(--hr-warning-soft);
+}
+
+.confirm-dialog[data-tone='caution'] .confirm-dialog-kicker { color: var(--hr-warning-text); }
+
+.confirm-dialog[data-tone='danger'] .confirm-dialog-icon {
+    color: var(--hr-danger-text);
+    border-color: var(--hr-danger-line);
+    background: var(--hr-danger-soft);
+}
+
+.confirm-dialog[data-tone='danger'] .confirm-dialog-kicker { color: var(--hr-danger-text); }
+
+.confirm-dialog-actions {
+    display: flex;
+    justify-content: center;
+    gap: .65rem;
+    padding: 1rem 1.5rem 1.4rem;
+    border-top: 1px solid var(--hr-border);
+}
+
+.confirm-dialog-actions .btn {
+    min-width: 140px;
+    border-radius: var(--r-md);
+    font-weight: 700;
+}
+
+html[data-theme-resolved='dark'] .confirm-dialog {
+    box-shadow: 0 28px 80px rgba(0, 0, 0, .5);
+}
+
+html[data-theme-resolved='dark'] .confirm-dialog::backdrop {
+    background: rgba(0, 0, 0, .62);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .confirm-dialog[open] { animation: none; }
+}
+
+.reduce-motion .confirm-dialog[open] { animation: none; }
+
+@media (max-width: 600px) {
+    .confirm-dialog-body {
+        padding-inline: 1.25rem;
+    }
+
+    .confirm-dialog-actions {
+        flex-direction: column-reverse;
+    }
+
+    .confirm-dialog-actions .btn {
+        width: 100%;
+    }
+}

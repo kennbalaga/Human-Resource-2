@@ -25,7 +25,9 @@ class TwoFactorSettingsController extends Controller
         $enable($request->user());
 
         return redirect()->to(route('settings.edit').'#two-factor')
-            ->with('success', 'Scan the QR code and enter a code to finish enabling two-factor authentication.');
+            // A notice: setup is only half done, and the instruction has to stay in
+            // view while the person reaches for their phone.
+            ->with('notice', 'Scan the QR code and enter a code to finish enabling two-factor authentication.');
     }
 
     public function confirm(

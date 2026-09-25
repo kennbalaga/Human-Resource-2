@@ -26,6 +26,8 @@
 @import './ai-scheduling.css';
 @import './session-timeout.css';
 @import './download-confirm.css';
+@import './confirm-dialog.css';
+@import './toast.css';
 /* After the component sheets so it settles the look of a search field wherever
    one appears, and before dark-mode.css so the dark variants still win. */
 @import './search-fields.css';
