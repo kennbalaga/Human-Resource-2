@@ -18,9 +18,10 @@
     display: none;
 }
 
-/* The screen's own name, for the phone header. The desktop bar names the module
-   instead, in .topbar-context, which stays the wider layout's job. */
-.topbar-screen {
+/* The phone's bar carries the product mark; the desktop's names the module in
+   .topbar-context, which stays the wider layout's job. */
+.topbar-brand,
+.app-screen-name {
     display: none;
 }
 
@@ -54,19 +55,45 @@
         display: none;
     }
 
-    body.has-tabbar .topbar-screen {
-        display: block;
+    body.has-tabbar .topbar-brand {
+        display: flex;
         overflow: hidden;
+        align-items: center;
         flex-grow: 1;
+        gap: .45rem;
+        color: var(--hr-brand-ink);
+    }
+
+    body.has-tabbar .topbar-brand-mark {
+        flex: none;
+    }
+
+    body.has-tabbar .topbar-brand-name {
+        font-size: var(--fs-md);
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+    }
+
+    /*
+     * The screen's name, now the page's own heading rather than a label on the
+     * bar. It is the only h1 a phone shows — every page's own heading wording
+     * is hidden up there — so it takes the size a page heading deserves.
+     */
+    body.has-tabbar .app-screen-name {
+        display: block;
+        margin: 0 0 var(--sp-4);
         color: var(--hr-text);
-        /* The screen's name is the only heading a phone gets now that the page
-           heading's wording is hidden, so it carries that weight: 18px, not the
-           16px it started at, which read as a caption beside the bell. */
-        font-size: var(--fs-lg);
+        font-size: var(--fs-2xl);
         font-weight: 700;
         letter-spacing: -0.02em;
-        white-space: nowrap;
-        text-overflow: ellipsis;
+        line-height: 1.2;
+    }
+
+    /* A page that keeps a heading of its own says so, and this steps aside.
+       Higher specificity than the rule above rather than !important. */
+    body.has-tabbar .app-screen-name.is-hidden {
+        display: none;
     }
 
     /*

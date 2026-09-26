@@ -48,11 +48,17 @@
             <span>{{ $topbarContext[1] }}</span>
         </span>
 
-        {{-- The phone's version of the line above: the screen's own name rather
-             than the module's, because the tab bar already names the module and
-             saying it twice costs a third of the first fold. Hidden on every
-             layout that keeps .topbar-context. --}}
-        <span class="topbar-screen">@yield('title', config('branding.short_name'))</span>
+        {{-- The phone's version of the line above: the product, not the page.
+             The screen's own name moved below the bar, where it reads as the
+             page's heading rather than as a label on the chrome.
+
+             Deliberately not a link. The rail's logo goes home because a rail
+             has no home button; here the Today tab is one tap away, and a logo
+             that navigates would be a second door to it. --}}
+        <span class="topbar-brand">
+            <x-brand-mark :size="26" class="topbar-brand-mark" />
+            <x-brand-wordmark class="topbar-brand-name" />
+        </span>
     </div>
 
     {{-- A direct child of the bar rather than a member of .topbar-actions: the

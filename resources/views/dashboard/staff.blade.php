@@ -2,6 +2,12 @@
 
 @section('title', 'My Dashboard')
 
+{{-- This page keeps its own heading — the greeting names the reader and the
+     hour — so it opts out of the generic screen name the bar would otherwise
+     put above it. Two headings on one fold, one of them saying "My Dashboard"
+     to somebody already looking at it, is the double header again. --}}
+@section('screen_name_class', 'is-hidden')
+
 @section('content')
     @php
         $greetingNow = now(config('workforce.timezone', 'Asia/Manila'));

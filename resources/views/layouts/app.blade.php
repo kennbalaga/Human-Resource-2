@@ -131,6 +131,15 @@
                  without it the browser scrolls to the landmark and leaves the
                  keyboard where it was, back in the sidebar. --}}
             <main class="app-content" id="appContent" tabindex="-1">
+                {{-- The screen's name, under the bar rather than in it, so the
+                     bar can carry the product mark. Inside the content column
+                     so it picks up the same gutters everything below it has.
+
+                     Phone only. On a wider layout the page draws its own
+                     heading and this stays out of the way, which is also what
+                     keeps exactly one h1 visible at any width. --}}
+                <h1 class="app-screen-name @yield('screen_name_class')">@yield('title', config('branding.short_name'))</h1>
+
                 @yield('content')
             </main>
 
