@@ -82,7 +82,9 @@
      */
     body.has-tabbar .app-screen-name {
         display: block;
-        margin: 0 0 var(--sp-4);
+        /* Close to the description beneath it: the two are one block — the
+           page's name and what it is for — not two stacked headings. */
+        margin: 0 0 var(--sp-1);
         color: var(--hr-text);
         font-size: var(--fs-2xl);
         font-weight: 700;
@@ -99,21 +101,32 @@
     /*
      * ---- One heading, not two ----
      *
-     * The bar above already names the screen. Repeating it as an h1, with an
-     * eyebrow over it and a sentence under it, costs about a third of the first
-     * fold and says nothing the bar has not already said — which is the double
-     * header this shell was meant to remove, reintroduced by every page that
-     * draws its own.
+     * .app-screen-name above already names the screen, so a page repeating it
+     * as its own h1 with an eyebrow over it was the double header this shell
+     * was meant to remove, reintroduced by every page that draws one.
      *
-     * Only the wording goes. A heading's siblings are the page's own actions,
-     * not its label, so they stay where the page put them.
+     * The name and the eyebrow go; the sentence beneath them stays and reads
+     * under the name instead, because what a page is FOR is not something the
+     * bar or the tab ever said. A heading's siblings are the page's own
+     * actions, not its label, so they stay where the page put them too.
      *
      * `.page-heading-keep` opts out, for the few headings whose text is content
      * rather than a label — the dashboard's greeting is the obvious one: it
      * names the reader and the time of day, which no bar repeats.
      */
-    body.has-tabbar .page-heading:not(.page-heading-keep) > div:first-child {
+    body.has-tabbar .page-heading:not(.page-heading-keep) > div:first-child > .eyebrow,
+    body.has-tabbar .page-heading:not(.page-heading-keep) > div:first-child > h1 {
         display: none;
+    }
+
+    /* The sentence under the title stays, and now reads under the name in the
+       content column instead — what the page is for, said once. The eyebrow
+       above it does not: it names the module, which the tab bar already does. */
+    body.has-tabbar .page-heading:not(.page-heading-keep) > div:first-child > p {
+        margin: 0;
+        color: var(--hr-muted);
+        font-size: var(--fs-sm);
+        line-height: 1.5;
     }
 
     /*
@@ -125,7 +138,7 @@
      * the dashboard's greeting sitting directly on the card beneath it.
      */
     body.has-tabbar .page-heading:not(.page-heading-keep) {
-        margin-bottom: 0;
+        margin-bottom: var(--sp-4);
         gap: var(--sp-2);
     }
 
