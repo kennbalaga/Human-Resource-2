@@ -23,6 +23,7 @@ use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Reports\ReportController;
+use App\Http\Controllers\RequestsController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\Schedule\AiScheduleRecommendationController;
 use App\Http\Controllers\Schedule\RecurringScheduleController;
@@ -134,6 +135,10 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     /* The phone's fifth tab: a list of the destinations the other four do not
        carry. Nothing on it is new reach — the rail lists all of it already. */
     Route::get('/more', MoreController::class)->name('more');
+
+    /* Leave, swaps and days off in one list. Read-only: each row links back to
+       the page that owns its kind, where the forms and the rules already are. */
+    Route::get('/requests', RequestsController::class)->name('requests.index');
 
     /* An employee's own burnout, tallies and analytics, moved off the bottom of
        the dashboard. Their own record only; the analytics module proper stays

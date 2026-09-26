@@ -25,6 +25,8 @@
 /* The phone's fifth tab. After profile-settings.css because it reuses the
    avatar and panel rules that sheet establishes. */
 @import './more.css';
+/* The merged requests list: leave, swaps and days off in one place. */
+@import './requests.css';
 @import './organization.css';
 @import './ai-scheduling.css';
 @import './session-timeout.css';

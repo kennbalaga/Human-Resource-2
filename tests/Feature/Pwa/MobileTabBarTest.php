@@ -46,7 +46,7 @@ class MobileTabBarTest extends TestCase
             route('dashboard'),
             route('attendance.index'),
             route('schedules.index'),
-            route('leaves.index'),
+            route('requests.index'),
             route('more'),
         ] as $destination) {
             $response->assertSee($destination, false);

@@ -29,7 +29,7 @@
     $onAttendance = (request()->routeIs('attendance.*') && ! request()->routeIs('attendance.reports.*'))
         || request()->routeIs('timesheets.*');
     $onSchedule = request()->routeIs('schedules.*') && ! request()->routeIs('schedules.rooms.*');
-    $onRequests = request()->routeIs('leaves.*', 'leave-attachments.*', 'shift-swaps.*', 'schedule-preferences.*');
+    $onRequests = request()->routeIs('requests.*', 'leaves.*', 'leave-attachments.*', 'shift-swaps.*', 'schedule-preferences.*');
 
     /* Everything the four tabs do not claim — payslips, notifications, the
        profile, settings, search — is reached through More, so More lights for
@@ -53,7 +53,7 @@
         <span class="app-tab-label">Schedule</span>
     </a>
 
-    <a @class(['app-tab', 'is-active' => $onRequests]) href="{{ route('leaves.index') }}" @if ($onRequests) aria-current="page" @endif>
+    <a @class(['app-tab', 'is-active' => $onRequests]) href="{{ route('requests.index') }}" @if ($onRequests) aria-current="page" @endif>
         <span class="app-tab-glyph">
             <x-icon name="leave" />
             @if ($tabRequestsWaiting > 0)

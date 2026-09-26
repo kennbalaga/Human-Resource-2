@@ -1,0 +1,227 @@
+/*
+ * ---- Requests ----
+ *
+ * Three modules' worth of asking, in one list. The rows are deliberately all
+ * the same shape whatever kind they are: the reader is scanning for a status,
+ * not for a category, and three different card designs would make the status
+ * the hardest thing on the page to find.
+ *
+ * Renders at any width — the rail links to the owning pages, this is the
+ * summary — so it is held to a readable measure rather than stretched.
+ */
+
+.requests-screen {
+    display: grid;
+    max-width: 640px;
+    gap: var(--sp-3);
+}
+
+/* ---- What is left, and what is outstanding ---- */
+.requests-summary {
+    display: grid;
+    padding: var(--sp-4);
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: var(--sp-2);
+}
+
+.requests-summary-value {
+    margin: 0;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    letter-spacing: -.01em;
+}
+
+.requests-summary-value.is-warning {
+    color: var(--hr-warning-text);
+}
+
+.requests-summary-label {
+    margin: .15rem 0 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    line-height: 1.35;
+}
+
+/* ---- The four filters ---- */
+.requests-filters {
+    display: flex;
+    overflow-x: auto;
+    padding: 4px;
+    gap: 6px;
+    border-radius: var(--r-lg);
+    background: var(--hr-sunken);
+    scrollbar-width: none;
+}
+
+.requests-filters::-webkit-scrollbar {
+    display: none;
+}
+
+.requests-filters a {
+    display: flex;
+    min-height: 40px;
+    flex: 1 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0 .75rem;
+    gap: .35rem;
+    border-radius: var(--r-sm);
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.requests-filters a.is-active {
+    background: var(--hr-surface);
+    box-shadow: 0 1px 2px rgba(20, 33, 29, .08);
+    color: var(--hr-text);
+    font-weight: 700;
+}
+
+.requests-filters a span {
+    color: var(--hr-placeholder);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+}
+
+.requests-filters a.is-active span {
+    color: var(--hr-primary-text);
+}
+
+/* ---- One row per request, whatever kind ---- */
+.requests-item {
+    display: grid;
+    padding: var(--sp-4);
+    gap: .3rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.requests-item:hover {
+    border-color: var(--hr-border-strong);
+}
+
+.requests-item-head {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+
+.requests-item-kind {
+    flex-grow: 1;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.requests-item-title {
+    font-size: var(--fs-md);
+}
+
+.requests-item-detail {
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+}
+
+/* ---- Nothing yet ---- */
+.requests-empty {
+    display: grid;
+    padding: var(--sp-7) var(--sp-5);
+    gap: .35rem;
+    justify-items: center;
+    text-align: center;
+}
+
+.requests-empty .ui-icon {
+    width: 1.75rem;
+    margin-bottom: .35rem;
+    color: var(--hr-icon);
+}
+
+.requests-empty span {
+    max-width: 34ch;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+}
+
+/* ---- Filing something new ----
+   A disclosure rather than a link, because "new request" is three destinations
+   and picking for the reader would send two thirds of them to the wrong page.
+   Sticky at the bottom of the thumb's half on a phone, inline elsewhere. */
+.requests-new {
+    position: relative;
+}
+
+.requests-new > summary {
+    display: flex;
+    min-height: 50px;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    border-radius: var(--r-pill);
+    background: var(--hr-primary-fill);
+    color: var(--hr-on-primary);
+    cursor: pointer;
+    font-size: var(--fs-base);
+    font-weight: 700;
+    list-style: none;
+}
+
+.requests-new > summary::-webkit-details-marker {
+    display: none;
+}
+
+.requests-new > summary .ui-icon {
+    width: 1.1rem;
+}
+
+.requests-new-menu {
+    display: grid;
+    margin-top: var(--sp-2);
+    overflow: hidden;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-surface);
+    box-shadow: var(--hr-shadow);
+}
+
+.requests-new-menu a {
+    display: flex;
+    min-height: 52px;
+    align-items: center;
+    padding: 0 var(--sp-4);
+    gap: var(--sp-3);
+    color: inherit;
+    font-size: var(--fs-base);
+    text-decoration: none;
+}
+
+.requests-new-menu a + a {
+    border-top: 1px solid var(--hr-border);
+}
+
+.requests-new-menu a:hover {
+    background: var(--hr-surface-3);
+}
+
+.requests-new-menu .ui-icon {
+    width: 1.15rem;
+    flex: none;
+    color: var(--hr-primary-text);
+}
+
+@media (max-width: 1100px) and (pointer: coarse) {
+    /* Above the tab bar, where the thumb is. The toast shares this strip and
+       takes it while it is showing (mobile-shell.css). */
+    body.has-tabbar .requests-new {
+        position: sticky;
+        z-index: 3;
+        bottom: var(--sp-3);
+    }
+}
