@@ -59,9 +59,12 @@
         overflow: hidden;
         flex-grow: 1;
         color: var(--hr-text);
-        font-size: var(--fs-md);
+        /* The screen's name is the only heading a phone gets now that the page
+           heading's wording is hidden, so it carries that weight: 18px, not the
+           16px it started at, which read as a caption beside the bell. */
+        font-size: var(--fs-lg);
         font-weight: 700;
-        letter-spacing: -0.01em;
+        letter-spacing: -0.02em;
         white-space: nowrap;
         text-overflow: ellipsis;
     }

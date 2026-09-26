@@ -93,6 +93,33 @@ class MoreScreenTest extends TestCase
         $this->actingAs($user)->get(route('more'))->assertOk()->assertSee('1 to submit');
     }
 
+    /**
+     * Appearance saves itself from here.
+     *
+     * The phone has no account menu — the topbar's went when the tab bar
+     * replaced the drawer — and that menu was the only control in the app that
+     * persisted a theme on click. The settings radios preview until the form is
+     * submitted, so without this a phone user tapped Dark, saw it, and watched
+     * it revert on the next screen.
+     */
+    public function test_the_theme_can_be_set_and_saved_from_here(): void
+    {
+        $user = $this->employeeUser();
+
+        $this->actingAs($user)
+            ->get(route('more'))
+            ->assertOk()
+            // The contract theme.js reads: the value and where to persist it.
+            ->assertSee('data-theme-set="dark"', false)
+            ->assertSee(route('settings.theme.update'), false);
+
+        $this->actingAs($user)
+            ->patchJson(route('settings.theme.update'), ['theme' => 'dark'])
+            ->assertOk();
+
+        $this->assertSame('dark', $user->fresh()->preference->theme);
+    }
+
     public function test_an_account_without_an_employee_record_still_opens(): void
     {
         // An administrator account need not be linked to an employee. The page

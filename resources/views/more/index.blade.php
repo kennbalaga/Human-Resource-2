@@ -80,6 +80,39 @@
             </div>
         </section>
 
+        {{--
+            Appearance, saved the moment it is chosen.
+
+            It lives here because the phone has no account menu: the topbar's
+            was hidden when the tab bar replaced the drawer, and that menu was
+            the only place in the app where choosing a theme saved itself. The
+            radios on the settings page only preview until the form is
+            submitted, so somebody tapping Dark there and walking away watched
+            it revert on the next screen.
+
+            Same contract as the desktop menu — data-theme-set plus the persist
+            URL, read by theme.js off the button that was clicked.
+        --}}
+        <section class="more-group" aria-labelledby="more-appearance">
+            <h2 class="more-group-title" id="more-appearance">Appearance</h2>
+            <div class="panel more-appearance">
+                <div class="theme-choice-options" role="group" aria-labelledby="more-appearance">
+                    @foreach (['light' => ['sun', 'Light'], 'dark' => ['moon', 'Dark'], 'system' => ['settings', 'System']] as $value => [$themeIcon, $themeLabel])
+                        <button
+                            class="theme-choice-option"
+                            type="button"
+                            data-theme-set="{{ $value }}"
+                            data-theme-update-url="{{ route('settings.theme.update') }}"
+                            aria-pressed="{{ $moreUser->preference->theme === $value ? 'true' : 'false' }}"
+                        >
+                            <x-icon :name="$themeIcon" />
+                            <span>{{ $themeLabel }}</span>
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+
         <section class="more-group" aria-labelledby="more-device">
             <h2 class="more-group-title" id="more-device">This device</h2>
             <div class="panel more-list">

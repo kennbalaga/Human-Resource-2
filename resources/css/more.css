@@ -90,6 +90,7 @@
 }
 
 .more-row {
+    position: relative;
     display: flex;
     min-height: 52px;
     align-items: center;
@@ -99,12 +100,21 @@
     text-decoration: none;
 }
 
-/* The divider starts where the label does, so the icon column reads as one
-   run down the list rather than each row being a separate box. */
-.more-row + .more-row {
+/*
+ * The divider starts where the label does, so the icon column reads as one run
+ * down the list rather than each row being a separate box.
+ *
+ * Drawn as a pseudo-element rather than a left margin on the row: the margin
+ * moved the whole row, so every row after the first sat indented from the one
+ * above it and the icons no longer lined up at all.
+ */
+.more-row + .more-row::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: calc(var(--sp-4) + 20px + var(--sp-3));
     border-top: 1px solid var(--hr-border);
-    margin-left: calc(var(--sp-4) + 20px + var(--sp-3));
-    padding-left: 0;
+    content: '';
 }
 
 .more-row:hover {
@@ -132,15 +142,10 @@
 .more-row > .ui-icon {
     width: 1.1rem;
     flex: none;
-    margin-right: var(--sp-4);
     color: var(--hr-icon);
 }
 
-/* The first row has no left-trimmed divider, so its chevron needs the padding
-   the others get from the row itself. */
-.more-row:first-child > .ui-icon {
-    margin-right: 0;
-}
+
 
 /* ---- Leaving ----
    Held apart from the list above by its own gap: the rows are places to go and
@@ -181,4 +186,26 @@
     font-size: var(--fs-2xs);
     line-height: 1.6;
     text-align: center;
+}
+
+/* ---- Appearance ----
+   The desktop's account menu carries this; the phone has no account menu, so it
+   carries it here. Taller than the menu's version because this one is tapped. */
+.more-appearance {
+    padding: var(--sp-2);
+}
+
+.more-appearance .theme-choice-options {
+    background: transparent;
+    gap: var(--sp-2);
+}
+
+.more-appearance .theme-choice-option {
+    min-height: var(--tap-min);
+    border: 1px solid var(--hr-border);
+    font-size: var(--fs-xs);
+}
+
+.more-appearance .theme-choice-option[aria-pressed='true'] {
+    border-color: var(--hr-primary);
 }
