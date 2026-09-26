@@ -33,8 +33,16 @@
         </span>
     </div>
 
-    <p class="phone-today-hours">{{ $shift['hours'] }}</p>
-    <p class="phone-today-meta">{{ $shift['name'] }}@if ($shift['department']) · {{ $shift['department'] }}@endif</p>
+    @if ($shift['kind'] === 'shift')
+        <p class="phone-today-hours">{{ $shift['hours'] }}</p>
+        <p class="phone-today-meta">{{ $shift['name'] }}@if ($shift['department']) · {{ $shift['department'] }}@endif</p>
+    @else
+        {{-- No shift, no hours: the slot above rendered a lone em dash at 32px,
+             which read as a value that had failed to load rather than as a day
+             off. The reason says itself instead, and the department is left out
+             because the greeting two lines up has just given it. --}}
+        <p class="phone-today-none">{{ $shift['name'] }}</p>
+    @endif
 
     {{-- The door leads. Under hybrid the button below is a fallback and reads
          as one; under biometric_only there is no button at all and this line is

@@ -89,9 +89,15 @@
         display: none;
     }
 
-    /* With the wording gone the section is either a row of actions or nothing
-       at all; either way it should not keep the 26px it reserved for a title. */
-    body.has-tabbar .page-heading {
+    /*
+     * With the wording gone the section is either a row of actions or nothing
+     * at all; either way it should not keep the 26px it reserved for a title.
+     *
+     * Only where the wording actually went, though. A kept heading still has
+     * something to separate from what follows, and zeroing its margin too left
+     * the dashboard's greeting sitting directly on the card beneath it.
+     */
+    body.has-tabbar .page-heading:not(.page-heading-keep) {
         margin-bottom: 0;
         gap: var(--sp-2);
     }

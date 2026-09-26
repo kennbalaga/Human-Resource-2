@@ -1787,6 +1787,15 @@
     font-size: var(--fs-sm);
 }
 
+/* The no-shift headline. Takes the hours' place rather than leaving it to a
+   dash: "No shift assigned" is the answer, not a missing value. */
+.phone-today-none {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 650;
+    letter-spacing: -.01em;
+}
+
 .phone-today-route {
     display: flex;
     align-items: center;
