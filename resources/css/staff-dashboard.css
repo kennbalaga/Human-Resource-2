@@ -1662,3 +1662,335 @@
         animation: none;
     }
 }
+
+/* ------------------------------------------------------------------------
+ * The phone's first fold
+ *
+ * `.staff-phone-fold` and `.staff-desk-fold` are the same two facts — today's
+ * attendance and today's shift — composed twice. On a phone the pair becomes
+ * one card whose job is to say how to be recorded and get out of the way; on a
+ * desktop the pair keeps every readout it has, because there the fold is 900px
+ * tall and nothing has to be given up to fit.
+ *
+ * Gated on the same query as the tab bar, so a phone gets one shell and one
+ * dashboard rather than a mix of the two.
+ * --------------------------------------------------------------------- */
+.staff-phone-fold {
+    display: none;
+}
+
+@media (max-width: 1100px) and (pointer: coarse) {
+    body.has-tabbar .staff-phone-fold {
+        display: grid;
+        gap: var(--sp-3);
+    }
+
+    body.has-tabbar .staff-desk-fold {
+        display: none;
+    }
+
+    /* Upcoming and the timesheet status are both reproduced in the fold above,
+       so the pair that would repeat them goes. Everything further down the page
+       — schedule changes, burnout, the monthly tallies, analytics — stays: it
+       has no other home on a phone, and hiding it would be losing the reader
+       something rather than reordering it. */
+    body.has-tabbar .staff-grid-split {
+        display: none;
+    }
+}
+
+/* ---- The fold itself ---- */
+.phone-today {
+    display: grid;
+    padding: var(--sp-5);
+    gap: var(--sp-3);
+    border-radius: var(--r-lg);
+    background: var(--hr-primary-fill);
+    color: var(--hr-on-primary);
+}
+
+.phone-today-head {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+
+.phone-today-kicker {
+    margin: 0;
+    flex-grow: 1;
+    color: #d1fae5;
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.phone-today-chip {
+    padding: .25rem .6rem;
+    border-radius: var(--r-pill);
+    background: #ffffff;
+    color: var(--hr-primary-fill-hover);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+}
+
+.phone-today-chip-warning {
+    background: var(--hr-warning-soft);
+    color: var(--hr-warning-text);
+}
+
+.phone-today-chip-danger {
+    background: var(--hr-danger-soft);
+    color: var(--hr-danger-text);
+}
+
+.phone-today-hours {
+    margin: 0;
+    font-size: var(--fs-3xl);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+}
+
+.phone-today-meta {
+    margin: 0;
+    color: #d1fae5;
+    font-size: var(--fs-sm);
+}
+
+.phone-today-route {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    font-size: var(--fs-sm);
+    line-height: 1.45;
+}
+
+.phone-today-route .ui-icon {
+    width: 1.5rem;
+    flex: none;
+}
+
+.phone-today-form {
+    display: grid;
+    margin: 0;
+    gap: var(--sp-3);
+}
+
+.phone-today-reason {
+    display: grid;
+    gap: .35rem;
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+}
+
+.phone-today-reason input {
+    min-height: var(--tap-min);
+    padding: 0 .75rem;
+    border: 1px solid rgba(255, 255, 255, .55);
+    border-radius: var(--r-md);
+    background: rgba(255, 255, 255, .14);
+    color: #ffffff;
+    font-family: inherit;
+    font-size: var(--fs-base);
+}
+
+.phone-today-reason input::placeholder {
+    color: #a7f3d0;
+}
+
+.phone-today-actions {
+    display: flex;
+    gap: var(--sp-2);
+}
+
+/* Both routes out of this card are the same weight: neither the badge nor the
+   manual punch is the primary act — the reader is, and it is not on screen. */
+.phone-today-ghost {
+    display: flex;
+    min-height: 48px;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    border: 1.5px solid rgba(255, 255, 255, .75);
+    border-radius: var(--r-md);
+    background: transparent;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.phone-today-ghost .ui-icon {
+    width: 1.05rem;
+}
+
+.phone-today-ghost:active {
+    background: rgba(255, 255, 255, .12);
+}
+
+.phone-today-ghost-wide {
+    flex-basis: 100%;
+}
+
+.phone-today-closed {
+    margin: 0;
+    color: #d1fae5;
+    font-size: var(--fs-2xs);
+    line-height: 1.5;
+}
+
+/* ---- The three figures ---- */
+.phone-stats {
+    display: grid;
+    padding: var(--sp-4);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sp-2);
+}
+
+.phone-stat-value {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    letter-spacing: -.01em;
+}
+
+.phone-stat-value.is-warning {
+    color: var(--hr-warning-text);
+}
+
+.phone-stat-label {
+    margin: .15rem 0 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    line-height: 1.35;
+}
+
+/* ---- The one thing asking to be acted on ---- */
+.phone-attention {
+    display: flex;
+    align-items: center;
+    padding: var(--sp-4);
+    gap: var(--sp-3);
+    border: 1px solid var(--hr-warning-line);
+    border-radius: var(--r-lg);
+    background: var(--hr-warning-soft);
+    color: inherit;
+    text-decoration: none;
+}
+
+.phone-attention-icon {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+    color: var(--hr-warning-text);
+    place-items: center;
+}
+
+.phone-attention-icon .ui-icon {
+    width: 1.1rem;
+}
+
+.phone-attention-copy {
+    display: grid;
+    flex-grow: 1;
+    gap: .1rem;
+}
+
+.phone-attention-copy strong {
+    font-size: var(--fs-sm);
+}
+
+.phone-attention-copy span {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.phone-attention > .ui-icon {
+    width: 1.1rem;
+    flex: none;
+    color: var(--hr-warning-text);
+}
+
+/* ---- The next few days ---- */
+.phone-upcoming {
+    padding: 0;
+}
+
+.phone-upcoming-title {
+    margin: 0;
+    padding: var(--sp-3) var(--sp-4) .35rem;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+}
+
+.phone-upcoming ul {
+    display: grid;
+    margin: 0;
+    padding: 0 var(--sp-4) var(--sp-3);
+    gap: .7rem;
+    list-style: none;
+}
+
+.phone-upcoming li {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+}
+
+.phone-upcoming-day {
+    display: grid;
+    width: 46px;
+    flex: none;
+    gap: .05rem;
+}
+
+.phone-upcoming-day b {
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--hr-muted);
+}
+
+.phone-upcoming-day span {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+}
+
+.phone-upcoming-what {
+    flex-grow: 1;
+    font-size: var(--fs-xs);
+}
+
+.phone-upcoming-tag {
+    padding: .15rem .5rem;
+    border-radius: var(--r-pill);
+    background: var(--hr-sunken);
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+}
+
+.phone-upcoming-link {
+    display: flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    gap: .3rem;
+    border-top: 1px solid var(--hr-border);
+    background: var(--hr-surface-2);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.phone-upcoming-link .ui-icon {
+    width: .9rem;
+}

@@ -66,7 +66,7 @@
         @endif
     </a>
 
-    <a @class(['app-tab', 'is-active' => $onMore]) href="{{ route('settings.edit') }}" @if ($onMore) aria-current="page" @endif>
+    <a @class(['app-tab', 'is-active' => $onMore]) href="{{ route('more') }}" @if ($onMore) aria-current="page" @endif>
         <span class="app-tab-glyph"><x-icon name="menu" /></span>
         <span class="app-tab-label">More</span>
     </a>

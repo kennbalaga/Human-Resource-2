@@ -16,6 +16,7 @@ use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\LeaveAttachmentController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\MobileUnavailableController;
+use App\Http\Controllers\MoreController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PositionController;
@@ -129,6 +130,10 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    /* The phone's fifth tab: a list of the destinations the other four do not
+       carry. Nothing on it is new reach — the rail lists all of it already. */
+    Route::get('/more', MoreController::class)->name('more');
+
     /* The badge on its own screen. Read-only and no download, so it carries
        none of the confirmation the file behind it does. */
     Route::get('/profile/badge', [ProfileController::class, 'badge'])->name('profile.badge');

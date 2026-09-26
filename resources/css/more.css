@@ -1,0 +1,184 @@
+/*
+ * ---- The More tab ----
+ *
+ * A list of destinations, so almost all of this is row geometry. The rows are
+ * built to the same 52px floor the tab bar uses, because this is the screen
+ * somebody opens one-handed on a ward to find their payslip.
+ *
+ * It renders on a desktop too — the route is not gated — so the whole thing is
+ * held to a readable measure rather than stretched across a monitor.
+ */
+
+.more-screen {
+    display: grid;
+    max-width: 560px;
+    gap: var(--sp-5);
+}
+
+/* ---- Who is signed in ---- */
+.more-identity {
+    display: flex;
+    align-items: center;
+    padding: var(--sp-4);
+    gap: var(--sp-4);
+    color: inherit;
+    text-decoration: none;
+}
+
+.more-identity:hover {
+    background: var(--hr-surface-3);
+}
+
+.more-identity > .ui-icon {
+    width: 1.1rem;
+    flex: none;
+    color: var(--hr-icon);
+}
+
+.more-avatar {
+    width: 48px;
+    height: 48px;
+    flex: none;
+    font-size: var(--fs-md);
+}
+
+.more-identity-copy {
+    display: grid;
+    min-width: 0;
+    flex-grow: 1;
+    gap: .15rem;
+}
+
+.more-identity-copy strong {
+    color: var(--hr-text);
+    font-size: var(--fs-md);
+}
+
+.more-identity-copy span {
+    overflow: hidden;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.more-identity-copy .more-identity-number {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
+/* ---- Grouped destinations ---- */
+.more-group {
+    display: grid;
+    gap: var(--sp-2);
+}
+
+.more-group-title {
+    margin: 0 0 0 var(--sp-1);
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.more-list {
+    padding: 0;
+    overflow: hidden;
+}
+
+.more-row {
+    display: flex;
+    min-height: 52px;
+    align-items: center;
+    padding: var(--sp-2) var(--sp-4);
+    gap: var(--sp-3);
+    color: inherit;
+    text-decoration: none;
+}
+
+/* The divider starts where the label does, so the icon column reads as one
+   run down the list rather than each row being a separate box. */
+.more-row + .more-row {
+    border-top: 1px solid var(--hr-border);
+    margin-left: calc(var(--sp-4) + 20px + var(--sp-3));
+    padding-left: 0;
+}
+
+.more-row:hover {
+    background: var(--hr-surface-3);
+}
+
+.more-row-icon {
+    display: grid;
+    width: 20px;
+    flex: none;
+    color: var(--hr-primary-text);
+    place-items: center;
+}
+
+.more-row-icon .ui-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.more-row-label {
+    flex-grow: 1;
+    font-size: var(--fs-base);
+}
+
+.more-row > .ui-icon {
+    width: 1.1rem;
+    flex: none;
+    margin-right: var(--sp-4);
+    color: var(--hr-icon);
+}
+
+/* The first row has no left-trimmed divider, so its chevron needs the padding
+   the others get from the row itself. */
+.more-row:first-child > .ui-icon {
+    margin-right: 0;
+}
+
+/* ---- Leaving ----
+   Held apart from the list above by its own gap: the rows are places to go and
+   this one ends the session, so it must not be a sixth row somebody taps by
+   momentum. */
+.more-signout {
+    margin: 0;
+}
+
+.more-signout-button {
+    display: flex;
+    width: 100%;
+    min-height: 50px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-2);
+    border: 1px solid var(--hr-danger-line);
+    border-radius: var(--r-lg);
+    color: var(--hr-danger-text);
+    background: var(--hr-surface);
+    font-size: var(--fs-base);
+    font-weight: 700;
+}
+
+.more-signout-button:hover {
+    border-color: var(--hr-danger);
+    background: var(--hr-danger-soft);
+    color: var(--hr-danger-text);
+}
+
+.more-signout-button .ui-icon {
+    width: 1.15rem;
+}
+
+.more-footnote {
+    margin: 0;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    line-height: 1.6;
+    text-align: center;
+}

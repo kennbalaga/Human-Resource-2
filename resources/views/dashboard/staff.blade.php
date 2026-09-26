@@ -37,7 +37,21 @@
              that stops being useful the moment it is read too late. --}}
         <x-staff.schedule-changes :changes="$dashboard['schedule_changes']" />
 
-        <div class="staff-grid staff-grid-hero">
+        {{-- The phone's first fold: the same data as the pair below, composed
+             for one column and one thumb. Each is hidden where the other is
+             shown, so only one is ever visible. --}}
+        <div class="staff-phone-fold">
+            <x-staff.phone-today
+                :today="$dashboard['today']"
+                :shift="$dashboard['shift']"
+                :timesheet="$dashboard['timesheet']"
+                :summary="$dashboard['attendance_summary']"
+                :overtime="$dashboard['overtime']"
+                :upcoming="$dashboard['upcoming']"
+            />
+        </div>
+
+        <div class="staff-grid staff-grid-hero staff-desk-fold">
             <x-staff.today-attendance :today="$dashboard['today']" />
             <x-staff.my-shift :shift="$dashboard['shift']" />
         </div>
