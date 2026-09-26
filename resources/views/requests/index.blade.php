@@ -78,7 +78,7 @@
 
         {{-- The one action on this page, in the thumb's half of the screen.
              Each destination is the page that owns that kind of request. --}}
-        <details class="requests-new">
+        <details class="requests-new" data-fab-menu>
             <summary>
                 <x-icon name="plus" /> New request
             </summary>

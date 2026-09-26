@@ -216,12 +216,98 @@
     color: var(--hr-primary-text);
 }
 
-@media (max-width: 1100px) and (pointer: coarse) {
-    /* Above the tab bar, where the thumb is. The toast shares this strip and
-       takes it while it is showing (mobile-shell.css). */
-    body.has-tabbar .requests-new {
-        position: sticky;
-        z-index: 3;
-        bottom: var(--sp-3);
+/* The plus turns into a close as the menu opens, so one control says both
+   states rather than the menu being the only clue it is open. */
+.requests-new > summary .ui-icon {
+    transition: transform 160ms cubic-bezier(.32, .72, 0, 1);
+}
+
+.requests-new[open] > summary .ui-icon {
+    transform: rotate(45deg);
+}
+
+.requests-new[open] > .requests-new-menu {
+    animation: requests-menu-rise 160ms cubic-bezier(.32, .72, 0, 1);
+}
+
+@keyframes requests-menu-rise {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(.97);
     }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (max-width: 1100px) and (pointer: coarse) {
+    /*
+     * A floating button, not a row at the end of the page.
+     *
+     * It was sticky inside the flow, which meant the menu opened downward —
+     * straight into the tab bar, where its own options were hidden behind the
+     * navigation. Fixed to the corner, the menu opens upward from the button
+     * and both stay above everything else.
+     */
+    body.has-tabbar .requests-new {
+        position: fixed;
+        z-index: 1040;
+        right: var(--sp-4);
+        bottom: calc(var(--tabbar-height) + var(--safe-bottom, 0px) + var(--sp-3));
+        left: auto;
+    }
+
+    body.has-tabbar .requests-new > summary {
+        padding: 0 var(--sp-5);
+        box-shadow: 0 10px 28px rgba(4, 120, 87, .38), 0 2px 6px rgba(20, 33, 29, .16);
+    }
+
+    /* Upward, and anchored to the button's right edge so it never runs off
+       the screen on a narrow handset. */
+    body.has-tabbar .requests-new-menu {
+        position: absolute;
+        right: 0;
+        bottom: calc(100% + var(--sp-2));
+        min-width: 232px;
+        margin-top: 0;
+        box-shadow: var(--hr-shadow-lg);
+    }
+
+    /* The button floats over the list, so the last card needs somewhere to
+       end that is not underneath it. */
+    body.has-tabbar .requests-screen {
+        padding-bottom: 58px;
+    }
+
+    body.has-tabbar .requests-new > summary {
+        transition: transform 180ms cubic-bezier(.32, .72, 0, 1);
+    }
+
+    /*
+     * The toast owns this strip while it is showing, so the button steps up out
+     * of its way and comes back down after. Behind a @supports because the
+     * whole thing hinges on :has(); without it the two simply overlap for the
+     * few seconds a toast lasts, which is what happened before either existed.
+     */
+    @supports selector(:has(*)) {
+        body.has-tabbar:has(.app-toast:not([hidden])) .requests-new > summary {
+            transform: translateY(-64px);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .requests-new > summary .ui-icon,
+    .requests-new[open] > .requests-new-menu {
+        animation: none;
+        transition: none;
+    }
+}
+
+.reduce-motion .requests-new > summary .ui-icon,
+.reduce-motion .requests-new[open] > .requests-new-menu {
+    animation: none;
+    transition: none;
 }
