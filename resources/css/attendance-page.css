@@ -1068,3 +1068,37 @@
     font-weight: 500;
     line-height: 1.35;
 }
+
+/* The heading's own buttons on a phone. "My badge" is already the card's, and
+   two full-width buttons stacked above the status were the first thing on the
+   screen — ahead of whether the reader is even checked in. Both go; the
+   timesheet keeps its link inside the card. */
+@media (max-width: 1100px) and (pointer: coarse) {
+    body.has-tabbar .attendance-heading-actions {
+        display: none;
+    }
+}
+
+.attendance-phone-timesheet {
+    display: flex;
+    min-height: var(--tap-min);
+    align-items: center;
+    padding-top: var(--sp-3);
+    gap: .5rem;
+    border-top: 1px solid var(--hr-border);
+    color: var(--hr-primary-text);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.attendance-phone-timesheet .ui-icon {
+    width: 1.05rem;
+    flex: none;
+}
+
+/* The chevron sits at the far end, the label next to its own glyph. */
+.attendance-phone-timesheet .ui-icon:last-child {
+    margin-left: auto;
+    color: var(--hr-icon);
+}

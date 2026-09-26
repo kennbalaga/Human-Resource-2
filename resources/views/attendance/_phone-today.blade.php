@@ -109,4 +109,12 @@
             @endforeach
         </dl>
     @endif
+
+    {{-- The heading's buttons are hidden on a phone — one of them repeated the
+         badge already in this card — so the timesheet keeps its way out from
+         here, where it reads as the next question after today's hours. --}}
+    <a class="attendance-phone-timesheet" href="{{ route('timesheets.index') }}">
+        <x-icon name="timesheet" /> My timesheet
+        <x-icon name="chevron-right" />
+    </a>
 </section>

@@ -66,6 +66,33 @@
         text-overflow: ellipsis;
     }
 
+    /*
+     * ---- One heading, not two ----
+     *
+     * The bar above already names the screen. Repeating it as an h1, with an
+     * eyebrow over it and a sentence under it, costs about a third of the first
+     * fold and says nothing the bar has not already said — which is the double
+     * header this shell was meant to remove, reintroduced by every page that
+     * draws its own.
+     *
+     * Only the wording goes. A heading's siblings are the page's own actions,
+     * not its label, so they stay where the page put them.
+     *
+     * `.page-heading-keep` opts out, for the few headings whose text is content
+     * rather than a label — the dashboard's greeting is the obvious one: it
+     * names the reader and the time of day, which no bar repeats.
+     */
+    body.has-tabbar .page-heading:not(.page-heading-keep) > div:first-child {
+        display: none;
+    }
+
+    /* With the wording gone the section is either a row of actions or nothing
+       at all; either way it should not keep the 26px it reserved for a title. */
+    body.has-tabbar .page-heading {
+        margin-bottom: 0;
+        gap: var(--sp-2);
+    }
+
     /* ---- The bar ---- */
     body.has-tabbar .app-tabbar {
         position: fixed;

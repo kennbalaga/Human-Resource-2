@@ -38,7 +38,9 @@
         </article>
 
         <article class="panel colleague-shift">
-            <p class="colleague-shift-kicker">{{ $isToday ? 'Today, with you' : 'With you on this day' }}</p>
+            {{-- Carries the date itself: a phone hides the heading's wording,
+                 and "with you on this day" with no day named is useless. --}}
+            <p class="colleague-shift-kicker">{{ $isToday ? 'Today, with you' : 'With you on '.$date->format('D j M') }}</p>
             @if ($hours)
                 <p class="colleague-shift-hours">{{ $hours }}</p>
             @endif

@@ -21,9 +21,13 @@
             <div>
                 <p class="eyebrow">Time &amp; attendance</p>
                 <h1>My badge</h1>
-                <p>Hold this up to the officer at the entrance. They scan it — there is nothing here for you to tap.</p>
             </div>
         </section>
+
+        {{-- Outside the heading on purpose: a phone hides a heading's wording,
+             because the bar above already says the screen's name — but this is
+             the instruction, not the name, and it has to survive that. --}}
+        <p class="badge-instruction">Hold this up to the officer at the entrance. They scan it — there is nothing here for you to tap.</p>
 
         <article class="panel badge-card">
             {{-- .profile-qr-code carries the white plate the camera needs to find

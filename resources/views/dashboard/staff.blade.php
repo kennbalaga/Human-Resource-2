@@ -13,7 +13,9 @@
     @endphp
 
     <div class="staff-dashboard">
-        <section class="page-heading staff-heading">
+        {{-- Kept on a phone: "Good morning, Maria" is content, not a label, and
+             the topbar says "Today" rather than who is reading. --}}
+        <section class="page-heading page-heading-keep staff-heading">
             <div>
                 <p class="eyebrow">My workday</p>
                 <h1>{{ $greeting }}, {{ $dashboard['employee']['first_name'] }}.</h1>

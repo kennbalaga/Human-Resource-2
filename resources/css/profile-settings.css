@@ -51,6 +51,9 @@
    reuses .profile-qr-code so the white plate a camera needs survives the dark
    theme here too, and only overrides the size. */
 .badge-screen { display:grid; max-width:520px; margin-inline:auto; gap:var(--sp-4); }
+/* The instruction, kept out of the heading so a phone does not hide it with
+   the screen's name. */
+.badge-instruction { margin:0; color:var(--hr-muted); font-size:var(--fs-base); line-height:1.55; text-align:center; }
 .badge-card { display:grid; padding:var(--sp-6); gap:var(--sp-4); justify-items:center; text-align:center; }
 .badge-qr { padding:var(--sp-4); }
 /* Bounded by the viewport, not just by a pixel count: at 320px the code still
