@@ -1690,13 +1690,42 @@
     }
 
     /* Upcoming and the timesheet status are both reproduced in the fold above,
-       so the pair that would repeat them goes. Everything further down the page
-       — schedule changes, burnout, the monthly tallies, analytics — stays: it
-       has no other home on a phone, and hiding it would be losing the reader
-       something rather than reordering it. */
+       so the pair that would repeat them goes. */
     body.has-tabbar .staff-grid-split {
         display: none;
     }
+
+    /*
+     * Moved rather than hidden. Each of these now has somewhere to be:
+     *
+     *   burnout, the month's tally, overtime, analytics -> My work patterns,
+     *     reached from More. None of them is answerable in the next ten
+     *     minutes, which is why they are not in the phone's one fold.
+     *   leave balances -> the Leave page the Requests tab opens, which already
+     *     draws them in more detail than the card ever did.
+     *
+     * Schedule changes stay on Today: a shift that moved is the one thing here
+     * that stops being useful if it is read late.
+     */
+    body.has-tabbar .staff-burnout,
+    body.has-tabbar .staff-analytics,
+    body.has-tabbar .staff-grid-trio {
+        display: none;
+    }
+}
+
+/* ---- My work patterns ----
+   The two monthly tallies sit side by side where there is room and stack where
+   there is not. The cards themselves are the dashboard's, unchanged. */
+.insights-mine {
+    display: grid;
+    gap: var(--sp-5);
+}
+
+.insights-pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--sp-5);
 }
 
 /* ---- The fold itself ---- */

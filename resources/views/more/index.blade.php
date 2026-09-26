@@ -69,6 +69,14 @@
                     <span class="more-row-label">Payslips</span>
                     <x-icon name="chevron-right" />
                 </a>
+
+                @if ($employee)
+                    <a class="more-row" href="{{ route('insights.mine') }}">
+                        <span class="more-row-icon"><x-icon name="trend" /></span>
+                        <span class="more-row-label">My work patterns</span>
+                        <x-icon name="chevron-right" />
+                    </a>
+                @endif
             </div>
         </section>
 

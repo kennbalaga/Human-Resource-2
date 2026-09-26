@@ -17,6 +17,7 @@ use App\Http\Controllers\LeaveAttachmentController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\MobileUnavailableController;
 use App\Http\Controllers\MoreController;
+use App\Http\Controllers\MyInsightsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PositionController;
@@ -133,6 +134,11 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     /* The phone's fifth tab: a list of the destinations the other four do not
        carry. Nothing on it is new reach — the rail lists all of it already. */
     Route::get('/more', MoreController::class)->name('more');
+
+    /* An employee's own burnout, tallies and analytics, moved off the bottom of
+       the dashboard. Their own record only; the analytics module proper stays
+       behind workforce.view. */
+    Route::get('/my-work-patterns', MyInsightsController::class)->name('insights.mine');
 
     /* The badge on its own screen. Read-only and no download, so it carries
        none of the confirmation the file behind it does. */
