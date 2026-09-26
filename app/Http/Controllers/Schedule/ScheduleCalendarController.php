@@ -18,6 +18,7 @@ use App\Models\ScheduleDayOff;
 use App\Models\ScheduleLock;
 use App\Models\Shift;
 use App\Services\ReferenceDataCache;
+use App\Services\Schedule\MyScheduleService;
 use App\Services\ScheduleService;
 use App\Services\Scheduling\AiSchedulingFeatureSettings;
 use Carbon\Carbon;
@@ -32,8 +33,12 @@ class ScheduleCalendarController extends Controller
 {
     use ScopesWorkforceAccess;
 
-    public function index(Request $request, AiSchedulingFeatureSettings $aiSettings, ReferenceDataCache $reference): View
-    {
+    public function index(
+        Request $request,
+        AiSchedulingFeatureSettings $aiSettings,
+        ReferenceDataCache $reference,
+        MyScheduleService $mySchedule,
+    ): View {
         $view = in_array($request->query('view'), ['month', 'week', 'list'], true)
             ? $request->query('view')
             : 'month';
@@ -186,6 +191,11 @@ class ScheduleCalendarController extends Controller
                 ->all(),
             'defaultSeniorRank' => ScheduleService::DEFAULT_SENIOR_RANK_THRESHOLD,
             'calendarView' => $view,
+            /* The phone's own read of this page: one day at a time, from the
+               reader's own roster. Built here rather than in the view so the
+               grid below and the strip above cannot drift apart on the date
+               they are focused on. */
+            'myPhoneSchedule' => $mySchedule->forEmployee($currentEmployee, $request->query('date')),
             'focusDate' => $focusDate,
             'rangeStart' => $rangeStart,
             'rangeEnd' => $rangeEnd,

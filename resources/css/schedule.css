@@ -3370,3 +3370,316 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+/* ------------------------------------------------------------------------
+ * The schedule, read one day at a time
+ *
+ * The grid answers "who is working this month" and needs a desk to read. This
+ * answers "what am I doing today, and who is on with me" and needs a thumb.
+ * Gated on the same query as the tab bar.
+ * --------------------------------------------------------------------- */
+.schedule-phone-fold {
+    display: none;
+}
+
+@media (max-width: 1100px) and (pointer: coarse) {
+    body.has-tabbar .schedule-phone-fold {
+        display: block;
+    }
+
+    body.has-tabbar .schedule-desk-fold {
+        display: none;
+    }
+}
+
+.schedule-phone {
+    display: grid;
+    gap: var(--sp-3);
+}
+
+/* ---- The page's own view switch, carried across ---- */
+.schedule-phone-views {
+    display: flex;
+    padding: 4px;
+    gap: 6px;
+    border-radius: var(--r-lg);
+    background: var(--hr-sunken);
+}
+
+.schedule-phone-views a {
+    display: flex;
+    min-height: 40px;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--r-sm);
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.schedule-phone-views a.is-active {
+    background: var(--hr-surface);
+    box-shadow: 0 1px 2px rgba(20, 33, 29, .08);
+    color: var(--hr-text);
+    font-weight: 700;
+}
+
+/* ---- The week strip ---- */
+.schedule-phone-strip {
+    padding: var(--sp-3) var(--sp-2) var(--sp-3);
+}
+
+.schedule-phone-strip-head {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--sp-2) var(--sp-2);
+    gap: var(--sp-2);
+}
+
+.schedule-phone-strip-head strong {
+    flex-grow: 1;
+    font-size: var(--fs-xs);
+}
+
+.schedule-phone-today {
+    display: flex;
+    min-height: 28px;
+    align-items: center;
+    padding: 0 .65rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-pill);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.schedule-phone-days {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+    list-style: none;
+}
+
+.schedule-phone-day {
+    display: grid;
+    padding: 6px 0;
+    gap: 4px;
+    border-radius: var(--r-md);
+    color: inherit;
+    justify-items: center;
+    text-decoration: none;
+}
+
+.schedule-phone-letter {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+}
+
+.schedule-phone-number {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    place-items: center;
+}
+
+.schedule-phone-day.is-past .schedule-phone-number {
+    color: var(--hr-placeholder);
+}
+
+/* The focused day is a filled plate, the same way the rail marks the current
+   page: a shape before it is a colour. */
+.schedule-phone-day.is-focus .schedule-phone-number {
+    background: var(--hr-primary-fill);
+    color: var(--hr-on-primary);
+    font-weight: 700;
+}
+
+.schedule-phone-day.is-today:not(.is-focus) .schedule-phone-number {
+    box-shadow: inset 0 0 0 1.5px var(--hr-primary);
+    color: var(--hr-primary-text);
+}
+
+.schedule-phone-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: var(--r-pill);
+}
+
+.schedule-phone-dot.is-shift { background: var(--hr-primary); }
+.schedule-phone-dot.is-day-off { background: var(--hr-warning); }
+.schedule-phone-dot.is-none { background: transparent; }
+
+/* ---- The day itself ---- */
+.schedule-phone-detail {
+    display: grid;
+    padding: var(--sp-4);
+    gap: var(--sp-3);
+}
+
+.schedule-phone-detail-head {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+
+.schedule-phone-detail-head h2 {
+    margin: 0;
+    flex-grow: 1;
+    font-size: var(--fs-md);
+}
+
+.schedule-phone-shift {
+    display: flex;
+    gap: var(--sp-3);
+}
+
+.schedule-phone-shift-bar {
+    width: 4px;
+    flex: none;
+    border-radius: var(--r-pill);
+    background: var(--shift-color, var(--hr-primary));
+}
+
+.schedule-phone-hours {
+    margin: 0;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    letter-spacing: -.01em;
+}
+
+.schedule-phone-where {
+    margin: .2rem 0 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.schedule-phone-with {
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--hr-border);
+}
+
+.schedule-phone-with-title {
+    margin: 0 0 var(--sp-2);
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.schedule-phone-with ul {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    list-style: none;
+}
+
+.schedule-phone-mate {
+    display: flex;
+    min-height: var(--tap-min);
+    align-items: center;
+    padding: 0 .8rem 0 .3rem;
+    gap: .5rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-pill);
+}
+
+.schedule-phone-mate b {
+    display: block;
+    font-size: var(--fs-xs);
+}
+
+.schedule-phone-mate small {
+    display: block;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.schedule-phone-swap {
+    display: flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    border: 1px solid var(--hr-primary-line);
+    border-radius: var(--r-md);
+    background: var(--hr-primary-soft);
+    color: var(--hr-primary-text);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.schedule-phone-swap .ui-icon {
+    width: 1.05rem;
+}
+
+.schedule-phone-empty {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    gap: .5rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.schedule-phone-empty .ui-icon {
+    width: 1.05rem;
+    color: var(--hr-icon);
+}
+
+/* ---- The fortnight ahead ---- */
+.schedule-phone-next {
+    padding: 0;
+}
+
+.schedule-phone-next-title {
+    margin: 0;
+    padding: var(--sp-3) var(--sp-4) .35rem;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+}
+
+.schedule-phone-next ul {
+    margin: 0;
+    padding: 0 0 var(--sp-2);
+    list-style: none;
+}
+
+.schedule-phone-next a {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 0 var(--sp-4);
+    gap: var(--sp-3);
+    color: inherit;
+    text-decoration: none;
+}
+
+.schedule-phone-next a:hover {
+    background: var(--hr-surface-3);
+}
+
+.schedule-phone-next-day {
+    width: 52px;
+    flex: none;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+}
+
+.schedule-phone-next-what {
+    flex-grow: 1;
+    font-size: var(--fs-xs);
+}

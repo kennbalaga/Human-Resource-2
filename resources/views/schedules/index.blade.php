@@ -63,14 +63,22 @@
         <div class="attendance-alert attendance-alert-danger" role="alert"><x-icon name="close" /><span>{{ $errors->first() }}</span></div>
     @endif
 
-    <section class="schedule-stats-grid">
+    {{-- The phone's read of this page: one day at a time. The calendar, its
+         toolbar and the stats above it are hidden beneath it on a phone, where
+         a month grid and four tallies are neither readable nor what was being
+         asked for. --}}
+    <div class="schedule-phone-fold">
+        @include('schedules._phone')
+    </div>
+
+    <section class="schedule-stats-grid schedule-desk-fold">
         <article class="report-stat"><span class="report-stat-icon report-stat-blue"><x-icon name="calendar" /></span><div><span>Assignments shown</span><strong>{{ number_format($stats['assignments']) }}</strong></div></article>
         <article class="report-stat"><span class="report-stat-icon report-stat-green"><x-icon name="users" /></span><div><span>Employees scheduled</span><strong>{{ number_format($stats['employees']) }}</strong></div></article>
         <article class="report-stat"><span class="report-stat-icon report-stat-violet"><x-icon name="clock" /></span><div><span>Scheduled hours</span><strong>{{ number_format($stats['hours'], 1) }}</strong></div></article>
         <article class="report-stat"><span class="report-stat-icon report-stat-amber"><x-icon name="repeat" /></span><div><span>Overnight assignments</span><strong>{{ number_format($stats['overnight']) }}</strong></div></article>
     </section>
 
-    <section class="panel schedule-calendar-panel">
+    <section class="panel schedule-calendar-panel schedule-desk-fold">
         <div class="schedule-toolbar">
             <div class="calendar-navigation">
                 <a class="calendar-nav-button" href="{{ $queryFor(['date' => $previousDate->toDateString()]) }}" aria-label="Previous period"><x-icon name="chevron-right" class="flip-horizontal" /></a>
