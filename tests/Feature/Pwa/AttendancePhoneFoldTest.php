@@ -5,6 +5,7 @@ namespace Tests\Feature\Pwa;
 use App\Models\AttendanceRecord;
 use App\Models\OfficeLocation;
 use App\Models\User;
+use App\Services\Attendance\MyAttendanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -90,6 +91,61 @@ class AttendancePhoneFoldTest extends TestCase
             ->getContent();
 
         $this->assertLessThanOrEqual(1, substr_count($html, 'id="attendancePhoneReason"'));
+    }
+
+    /**
+     * The window control. Two periods onto this page and one link to the other
+     * view of the same hours, all three under the Attendance tab.
+     */
+    public function test_the_period_control_offers_both_windows_and_the_timesheet(): void
+    {
+        $this->actingAs($this->employeeUser())
+            ->get('/attendance')
+            ->assertOk()
+            ->assertSee('Last 7 days')
+            ->assertSee('This month')
+            ->assertSee(route('attendance.index', ['period' => 'month']), false)
+            ->assertSee(route('timesheets.index'), false);
+    }
+
+    /**
+     * The month runs from the 1st to today. Days that have not happened are not
+     * records, so it must never be longer than the date allows — and on the 1st
+     * itself that is a single row, not an empty table.
+     */
+    public function test_this_month_covers_the_first_to_today(): void
+    {
+        $user = $this->employeeUser();
+        $office = OfficeLocation::query()->where('is_active', true)->firstOrFail();
+        $expected = (int) now($office->timezone)->format('j');
+
+        $rows = app(MyAttendanceService::class)
+            ->forEmployee($user->employee, $office, MyAttendanceService::PERIOD_MONTH)['days'];
+
+        $this->assertCount($expected, $rows);
+    }
+
+    /**
+     * The rolling week stays the default, so anything that relied on this
+     * service before keeps the shape it had.
+     */
+    public function test_the_default_window_is_still_seven_days(): void
+    {
+        $user = $this->employeeUser();
+        $office = OfficeLocation::query()->where('is_active', true)->firstOrFail();
+
+        $this->assertCount(7, app(MyAttendanceService::class)->forEmployee($user->employee, $office)['days']);
+    }
+
+    /**
+     * A hand-typed window falls back rather than emptying the table.
+     */
+    public function test_an_unknown_period_falls_back_to_the_week(): void
+    {
+        $this->actingAs($this->employeeUser())
+            ->get(route('attendance.index', ['period' => 'decade']))
+            ->assertOk()
+            ->assertSee('Last 7 days');
     }
 
     private function employeeUser(): User

@@ -1079,26 +1079,36 @@
     }
 }
 
-.attendance-phone-timesheet {
+/* ---- Which records are shown ----
+   Two windows onto this page and one other view of the same hours. The third
+   navigates, which is only coherent because Timesheets sits under the
+   Attendance tab too: the tab stays lit either way. */
+.attendance-periods {
     display: flex;
-    min-height: var(--tap-min);
+    margin-top: var(--sp-3);
+    padding: 4px;
+    gap: 6px;
+    border-radius: var(--r-lg);
+    background: var(--hr-sunken);
+}
+
+.attendance-periods a {
+    display: flex;
+    min-height: 40px;
+    flex: 1 1 0;
     align-items: center;
-    padding-top: var(--sp-3);
-    gap: .5rem;
-    border-top: 1px solid var(--hr-border);
-    color: var(--hr-primary-text);
-    font-size: var(--fs-sm);
+    justify-content: center;
+    border-radius: var(--r-sm);
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
     font-weight: 600;
+    text-align: center;
     text-decoration: none;
 }
 
-.attendance-phone-timesheet .ui-icon {
-    width: 1.05rem;
-    flex: none;
-}
-
-/* The chevron sits at the far end, the label next to its own glyph. */
-.attendance-phone-timesheet .ui-icon:last-child {
-    margin-left: auto;
-    color: var(--hr-icon);
+.attendance-periods a.is-active {
+    background: var(--hr-surface);
+    box-shadow: 0 1px 2px rgba(20, 33, 29, .08);
+    color: var(--hr-text);
+    font-weight: 700;
 }

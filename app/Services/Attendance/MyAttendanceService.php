@@ -28,6 +28,10 @@ use Illuminate\Support\Collection;
  */
 class MyAttendanceService
 {
+    public const PERIOD_WEEK = 'week';
+
+    public const PERIOD_MONTH = 'month';
+
     private const HISTORY_DAYS = 7;
 
     /**
@@ -41,12 +45,24 @@ class MyAttendanceService
     /**
      * @return array{today: array<string, mixed>, days: list<array<string, mixed>>, missing_time_out: list<string>}
      */
-    public function forEmployee(Employee $employee, OfficeLocation $office): array
+    public function forEmployee(Employee $employee, OfficeLocation $office, string $period = self::PERIOD_WEEK): array
     {
         $timezone = $office->timezone;
         $now = Carbon::now($timezone);
         $today = Carbon::parse($now->toDateString());
-        $from = $today->copy()->subDays(self::HISTORY_DAYS - 1);
+
+        /*
+         * Two windows, and the rolling week stays the default so nothing that
+         * relied on this service changes shape. The month runs from the 1st to
+         * today rather than the whole calendar month: days that have not
+         * happened are not records, and a fortnight of blank rows below the
+         * reader is not history.
+         */
+        $period = $period === self::PERIOD_MONTH ? self::PERIOD_MONTH : self::PERIOD_WEEK;
+        $from = $period === self::PERIOD_MONTH
+            ? $today->copy()->startOfMonth()
+            : $today->copy()->subDays(self::HISTORY_DAYS - 1);
+        $dayCount = (int) $from->diffInDays($today) + 1;
 
         $records = AttendanceRecord::query()
             ->with(['officeLocation:id,name', 'checkInBiometricDevice:id,name', 'checkOutBiometricDevice:id,name'])
@@ -74,7 +90,7 @@ class MyAttendanceService
 
         $leaveDates = $this->leaveDatesBetween($employee, $from, $today);
 
-        $days = collect(range(0, self::HISTORY_DAYS - 1))
+        $days = collect(range(0, $dayCount - 1))
             ->map(function (int $offset) use ($today, $records, $assignments, $restDays, $leaveDates, $timezone): array {
                 $date = $today->copy()->subDays($offset);
                 $key = $date->toDateString();

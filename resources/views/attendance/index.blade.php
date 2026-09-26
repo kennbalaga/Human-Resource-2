@@ -153,6 +153,25 @@
                  for one fold. Each is hidden where the other is shown. --}}
             <div class="attendance-phone-fold">
                 @include('attendance._phone-today')
+
+                {{-- Which window the records below cover, and the one other
+                     view of the same hours. All three sit under the Attendance
+                     tab, so choosing Timesheet leaves the page without leaving
+                     the tab — which is what makes it belong in this control
+                     rather than beside it. --}}
+                <nav class="attendance-periods" aria-label="Records shown">
+                    <a
+                        href="{{ route('attendance.index') }}"
+                        @class(['is-active' => $period === \App\Services\Attendance\MyAttendanceService::PERIOD_WEEK])
+                        @if ($period === \App\Services\Attendance\MyAttendanceService::PERIOD_WEEK) aria-current="page" @endif
+                    >Last 7 days</a>
+                    <a
+                        href="{{ route('attendance.index', ['period' => 'month']) }}"
+                        @class(['is-active' => $period === \App\Services\Attendance\MyAttendanceService::PERIOD_MONTH])
+                        @if ($period === \App\Services\Attendance\MyAttendanceService::PERIOD_MONTH) aria-current="page" @endif
+                    >This month</a>
+                    <a href="{{ route('timesheets.index') }}">Timesheet</a>
+                </nav>
             </div>
 
             <section class="panel attendance-today attendance-desk-fold is-{{ $today['tone'] }}" data-attendance-live aria-labelledby="attendanceTodayTitle">

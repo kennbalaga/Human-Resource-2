@@ -44,13 +44,20 @@ class AttendanceController extends Controller
 
         $captureState = $this->captureState($captureSettings);
 
+        /* Which window the records below cover. Anything unrecognised falls
+           back to the rolling week rather than emptying the table. */
+        $period = $request->query('period') === MyAttendanceService::PERIOD_MONTH
+            ? MyAttendanceService::PERIOD_MONTH
+            : MyAttendanceService::PERIOD_WEEK;
+
         return view('attendance.index', [
+            'period' => $period,
             'employee' => $employee,
             'office' => $office,
             'canScanQr' => $canScanQr,
             'view' => $view,
             'todayRecord' => $todayRecord,
-            'attendance' => $view === 'mine' ? $myAttendance->forEmployee($employee, $office) : null,
+            'attendance' => $view === 'mine' ? $myAttendance->forEmployee($employee, $office, $period) : null,
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'attendanceCaptureMode' => $captureState['mode'],
             'attendanceCaptureState' => $captureState['identifier'],
