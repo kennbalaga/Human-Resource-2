@@ -7,27 +7,9 @@
  * value on the page.
  */
 document.addEventListener('DOMContentLoaded', () => {
-    const elapsedOutput = document.querySelector('[data-elapsed-since]');
-    const clockedInCard = document.querySelector('[data-clocked-in-since]');
-
-    if (elapsedOutput && clockedInCard) {
-        const since = Number(clockedInCard.dataset.clockedInSince) * 1000;
-
-        if (Number.isFinite(since) && since > 0) {
-            const renderElapsed = () => {
-                // Clamp at zero: a terminal whose clock runs a little ahead of the
-                // browser's must not render the shift as negative.
-                const seconds = Math.max(0, Math.floor((Date.now() - since) / 1000));
-                const hours = Math.floor(seconds / 3600);
-                const minutes = Math.floor((seconds % 3600) / 60);
-
-                elapsedOutput.textContent = `${hours}h ${String(minutes).padStart(2, '0')}m`;
-            };
-
-            renderElapsed();
-            window.setInterval(renderElapsed, 30_000);
-        }
-    }
+    // The elapsed counter moved to elapsed.js when the attendance page wanted
+    // one too: two copies of a clock is how two clocks end up a minute apart on
+    // the same screen. It still reads this card's data-clocked-in-since.
 
     const trend = document.querySelector('[data-staff-trend]');
 

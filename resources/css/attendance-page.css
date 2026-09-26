@@ -865,3 +865,206 @@
     flex-wrap: wrap;
     gap: var(--sp-2);
 }
+
+/* ------------------------------------------------------------------------
+ * The attendance page's phone fold
+ *
+ * The panel beside it keeps every readout it has; this one leads with the two
+ * things somebody opens the page for mid-shift — how long they have been on
+ * the clock, and how they are meant to be recorded — and puts the readouts
+ * after them.
+ *
+ * Gated on the same query as the tab bar so a phone gets one shell and one
+ * attendance page rather than a mix.
+ * --------------------------------------------------------------------- */
+.attendance-phone-fold {
+    display: none;
+}
+
+@media (max-width: 1100px) and (pointer: coarse) {
+    body.has-tabbar .attendance-phone-fold {
+        display: block;
+    }
+
+    body.has-tabbar .attendance-desk-fold {
+        display: none;
+    }
+}
+
+.attendance-phone {
+    display: grid;
+    padding: var(--sp-4);
+    gap: var(--sp-3);
+}
+
+.attendance-phone-head {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+}
+
+.attendance-phone-head h2 {
+    margin: 0;
+    font-size: var(--fs-md);
+}
+
+.attendance-phone-dot {
+    width: 10px;
+    height: 10px;
+    flex: none;
+    border-radius: var(--r-pill);
+    background: var(--hr-border-strong);
+}
+
+.attendance-phone.is-success .attendance-phone-dot { background: var(--hr-success); }
+.attendance-phone.is-warning .attendance-phone-dot { background: var(--hr-warning); }
+.attendance-phone.is-danger .attendance-phone-dot { background: var(--hr-danger); }
+
+.attendance-phone-elapsed {
+    display: flex;
+    align-items: baseline;
+    margin: 0;
+    gap: .5rem;
+}
+
+.attendance-phone-elapsed b {
+    font-size: var(--fs-3xl);
+    font-weight: 700;
+    letter-spacing: -.03em;
+    line-height: 1;
+}
+
+.attendance-phone-elapsed span {
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.attendance-phone-track {
+    overflow: hidden;
+    height: 8px;
+    border-radius: var(--r-pill);
+    background: var(--hr-sunken);
+}
+
+.attendance-phone-track span {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: var(--r-pill);
+    background: var(--hr-primary);
+    transition: width 400ms ease;
+}
+
+.attendance-phone-line {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+}
+
+.attendance-phone-route {
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    padding: var(--sp-3);
+    gap: .6rem;
+    border-radius: var(--r-md);
+    background: var(--hr-surface-2);
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+}
+
+.attendance-phone-route .ui-icon {
+    width: 1.1rem;
+    flex: none;
+    margin-top: .1rem;
+    color: var(--hr-primary-text);
+}
+
+.attendance-phone-form {
+    display: grid;
+    margin: 0;
+    gap: var(--sp-3);
+}
+
+.attendance-phone-reason {
+    display: grid;
+    gap: .35rem;
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+}
+
+.attendance-phone-reason input {
+    min-height: var(--tap-min);
+    padding: 0 .75rem;
+    border: 1px solid var(--hr-border-strong);
+    border-radius: var(--r-md);
+    background: var(--hr-sunken);
+    font-family: inherit;
+    font-size: var(--fs-base);
+}
+
+.attendance-phone-actions {
+    display: flex;
+    gap: var(--sp-2);
+}
+
+/* Neither route is the primary act: the reader is, and it is not on screen. */
+.attendance-phone-ghost {
+    display: flex;
+    min-height: 48px;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    border: 1.5px solid var(--hr-primary-fill);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+    color: var(--hr-primary-text);
+    font-family: inherit;
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.attendance-phone-ghost .ui-icon {
+    width: 1.05rem;
+}
+
+.attendance-phone-ghost:active {
+    background: var(--hr-primary-soft);
+}
+
+.attendance-phone-ghost-wide {
+    flex-basis: 100%;
+}
+
+.attendance-phone-tiles {
+    display: grid;
+    margin: 0;
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--hr-border);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sp-2);
+}
+
+.attendance-phone-tiles dt {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.attendance-phone-tiles dd {
+    margin: .2rem 0 0;
+    font-size: var(--fs-sm);
+    font-weight: 650;
+}
+
+.attendance-phone-tiles .attendance-phone-tile-detail {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 500;
+    line-height: 1.35;
+}

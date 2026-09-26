@@ -149,7 +149,13 @@
         @else
             @php($today = $attendance['today'])
 
-            <section class="panel attendance-today is-{{ $today['tone'] }}" data-attendance-live aria-labelledby="attendanceTodayTitle">
+            {{-- The phone's version of the panel below: same payload, ordered
+                 for one fold. Each is hidden where the other is shown. --}}
+            <div class="attendance-phone-fold">
+                @include('attendance._phone-today')
+            </div>
+
+            <section class="panel attendance-today attendance-desk-fold is-{{ $today['tone'] }}" data-attendance-live aria-labelledby="attendanceTodayTitle">
                 <div class="attendance-today-top">
                     <div class="attendance-today-summary">
                         <span class="attendance-today-icon"><x-icon :name="$today['icon']" /></span>

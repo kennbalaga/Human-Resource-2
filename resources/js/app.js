@@ -2,6 +2,9 @@ import * as bootstrap from 'bootstrap';
 import './leave-site-confirm';
 import './dashboard';
 import './staff-dashboard';
+// The "on the clock for 4h 12m" readout, shared by the dashboard card and the
+// attendance page's phone fold.
+import './elapsed';
 import './attendance';
 import './attendance-settings';
 import './schedule';
