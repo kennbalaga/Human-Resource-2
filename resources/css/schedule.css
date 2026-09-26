@@ -3592,6 +3592,13 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
     gap: .5rem;
     border: 1px solid var(--hr-border);
     border-radius: var(--r-pill);
+    color: inherit;
+    text-decoration: none;
+}
+
+.schedule-phone-mate:hover {
+    border-color: var(--hr-primary);
+    background: var(--hr-primary-soft);
 }
 
 .schedule-phone-mate b {
@@ -3682,4 +3689,156 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
 .schedule-phone-next-what {
     flex-grow: 1;
     font-size: var(--fs-xs);
+}
+
+/* ------------------------------------------------------------------------
+ * The colleague card
+ *
+ * Small on purpose: who this is, what you are both on, and whether you can ask
+ * them to take it. Held to a readable measure because the route works at any
+ * width, even though only the phone links to it.
+ * --------------------------------------------------------------------- */
+.colleague-card {
+    display: grid;
+    max-width: 520px;
+    gap: var(--sp-3);
+}
+
+.colleague-identity {
+    display: grid;
+    padding: var(--sp-6) var(--sp-5);
+    gap: .2rem;
+    justify-items: center;
+    text-align: center;
+}
+
+.colleague-avatar {
+    width: 64px;
+    height: 64px;
+    margin-bottom: var(--sp-2);
+    font-size: var(--fs-xl);
+}
+
+.colleague-identity strong {
+    font-size: var(--fs-lg);
+    letter-spacing: -.01em;
+}
+
+.colleague-identity span {
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.colleague-identity .colleague-number {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
+.colleague-shift {
+    display: grid;
+    padding: var(--sp-4);
+    gap: .25rem;
+    border-color: var(--hr-primary-line);
+    background: var(--hr-primary-soft);
+}
+
+.colleague-shift-kicker {
+    margin: 0;
+    color: var(--hr-primary-text);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.colleague-shift-hours {
+    margin: 0;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    letter-spacing: -.01em;
+}
+
+.colleague-shift-where {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+}
+
+.colleague-shift-note {
+    display: flex;
+    align-items: center;
+    margin: .35rem 0 0;
+    gap: .4rem;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.colleague-shift-note .ui-icon {
+    width: .95rem;
+    flex: none;
+    color: var(--hr-primary-text);
+}
+
+.colleague-swap {
+    display: flex;
+    min-height: 50px;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    border-radius: var(--r-md);
+    background: var(--hr-primary-fill);
+    color: var(--hr-on-primary);
+    font-size: var(--fs-base);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.colleague-swap:hover {
+    background: var(--hr-primary-fill-hover);
+    color: var(--hr-on-primary);
+}
+
+.colleague-swap .ui-icon {
+    width: 1.1rem;
+}
+
+.colleague-note {
+    display: flex;
+    align-items: flex-start;
+    padding: var(--sp-4);
+    gap: .6rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-surface-2);
+}
+
+.colleague-note .ui-icon {
+    width: 1.05rem;
+    flex: none;
+    margin-top: .1rem;
+    color: var(--hr-icon);
+}
+
+.colleague-note p {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+}
+
+.colleague-back {
+    display: flex;
+    min-height: var(--tap-min);
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.colleague-back .ui-icon {
+    width: 1rem;
 }

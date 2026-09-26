@@ -155,6 +155,7 @@ class MyScheduleService
             ->limit(8)
             ->get()
             ->map(fn (ScheduleAssignment $row): array => [
+                'id' => $row->employee_id,
                 'name' => $row->employee?->full_name ?? 'Unknown',
                 'short_name' => $this->shortName($row->employee?->full_name ?? 'Unknown'),
                 'initials' => $this->initials($row->employee?->full_name ?? '?'),

@@ -9,6 +9,7 @@ use App\Http\Controllers\Attendance\AttendanceQrScanController;
 use App\Http\Controllers\Attendance\BiometricSimulatorController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BurnoutRiskController;
+use App\Http\Controllers\ColleagueController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
@@ -139,6 +140,11 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     /* Leave, swaps and days off in one list. Read-only: each row links back to
        the page that owns its kind, where the forms and the rules already are. */
     Route::get('/requests', RequestsController::class)->name('requests.index');
+
+    /* Someone you are rostered beside, reached only from the schedule's day
+       card. The share-a-shift rule is checked in the controller, not assumed
+       from the link: a URL is a guess away. */
+    Route::get('/colleagues/{employee}', ColleagueController::class)->name('colleagues.show');
 
     /* An employee's own burnout, tallies and analytics, moved off the bottom of
        the dashboard. Their own record only; the analytics module proper stays

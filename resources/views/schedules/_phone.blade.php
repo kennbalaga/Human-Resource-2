@@ -89,12 +89,17 @@
                     <p class="schedule-phone-with-title">On with you</p>
                     <ul>
                         @foreach ($phone['colleagues'] as $colleague)
-                            <li class="schedule-phone-mate">
-                                <span class="avatar avatar-sm" aria-hidden="true">{{ $colleague['initials'] }}</span>
-                                <span>
-                                    <b>{{ $colleague['short_name'] }}</b>
-                                    <small>{{ $colleague['position'] }}</small>
-                                </span>
+                            <li>
+                                {{-- The chip is the link: these are the only
+                                     names an employee can open on a phone, and
+                                     they are the ones already beside them. --}}
+                                <a class="schedule-phone-mate" href="{{ route('colleagues.show', ['employee' => $colleague['id'], 'date' => $phone['focus_date']]) }}">
+                                    <span class="avatar avatar-sm" aria-hidden="true">{{ $colleague['initials'] }}</span>
+                                    <span>
+                                        <b>{{ $colleague['short_name'] }}</b>
+                                        <small>{{ $colleague['position'] }}</small>
+                                    </span>
+                                </a>
                             </li>
                         @endforeach
                     </ul>
