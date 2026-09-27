@@ -1712,6 +1712,22 @@
     body.has-tabbar .staff-grid-trio {
         display: none;
     }
+
+    /*
+     * Schedule changes come off the phone too.
+     *
+     * Five of them, each with its before, its after and its reason, filled the
+     * entire first fold and pushed the punch — the reason the app is on the
+     * phone at all — off the bottom of the screen. The roster they describe is
+     * on the Schedule tab, one tap away.
+     *
+     * Worth knowing what this does cost: the Schedule tab shows what a shift
+     * IS, not that it changed, what it was before, or why. That history stays
+     * on the desktop dashboard, which has the room for it.
+     */
+    body.has-tabbar .staff-alert {
+        display: none;
+    }
 }
 
 /* ---- My work patterns ----
