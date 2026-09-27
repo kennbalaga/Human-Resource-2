@@ -1724,8 +1724,13 @@
      * Worth knowing what this does cost: the Schedule tab shows what a shift
      * IS, not that it changed, what it was before, or why. That history stays
      * on the desktop dashboard, which has the room for it.
+     *
+     * Keyed on the screen alone, not on body.has-tabbar like its neighbours
+     * above. Those swap one navigation for another and are meaningless without
+     * the tab bar; this one is about a card that cannot be read on a small
+     * touch screen at all, which is true whichever nav is on the page.
      */
-    body.has-tabbar .staff-alert {
+    .staff-alert {
         display: none;
     }
 }
