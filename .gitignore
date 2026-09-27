@@ -16,7 +16,19 @@
 /auth.json
 /backups
 /node_modules
-/public/build
+# TEMPORARY — compiled assets are committed while the host's build stage is
+# down. The platform allocates no builder (every deploy dies in 0s with "no
+# eligible ..."), so a deploy that only clones has to find public/build already
+# there or every page throws ViteManifestNotFoundException.
+#
+# While this is in force: run `npm run build` and commit public/build with any
+# change to resources/css or resources/js, or the site ships the previous look.
+#
+# To undo once the platform builds again:
+#   1. restore the `/public/build` line below
+#   2. git rm -r --cached public/build
+#   3. commit
+# /public/build
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
