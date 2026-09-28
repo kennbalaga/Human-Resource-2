@@ -86,6 +86,8 @@ class ShiftSwapService
 
     public function approve(ShiftSwapRequest $swap, User $reviewer, ?string $notes): ShiftSwapRequest
     {
+        $this->ensureNotParticipant($swap, $reviewer, 'approve');
+
         return DB::transaction(function () use ($swap, $reviewer, $notes) {
             $swap = ShiftSwapRequest::query()->lockForUpdate()->findOrFail($swap->id);
             if ($swap->status !== 'pending_manager') {
@@ -175,6 +177,8 @@ class ShiftSwapService
 
     public function reject(ShiftSwapRequest $swap, User $reviewer, string $notes): ShiftSwapRequest
     {
+        $this->ensureNotParticipant($swap, $reviewer, 'reject');
+
         return DB::transaction(function () use ($swap, $reviewer, $notes) {
             $swap = ShiftSwapRequest::query()->lockForUpdate()->findOrFail($swap->id);
             if (! in_array($swap->status, ['pending_target', 'pending_manager'], true)) {
@@ -194,8 +198,10 @@ class ShiftSwapService
 
     public function cancel(ShiftSwapRequest $swap, User $user): ShiftSwapRequest
     {
+        // A manager's cancel is a review action, so it stops at the units the
+        // manager supervises, as leave cancellation does.
         if ($swap->requester_employee_id !== $user->employee?->id
-            && ! Gate::forUser($user)->allows('workforce.manage')) {
+            && ! Gate::forUser($user)->allows('workforce.manage.record', [$swap->loadMissing('requesterEmployee')->requesterEmployee])) {
             abort(403);
         }
 
@@ -218,6 +224,20 @@ class ShiftSwapService
      * name an administrative colleague's assignment as the other half of the
      * trade.
      */
+    /**
+     * A manager who is one of the two people trading shifts is not the one
+     * to sign it off -- the same rule leave, attendance and timesheets hold.
+     */
+    private function ensureNotParticipant(ShiftSwapRequest $swap, User $reviewer, string $action): void
+    {
+        $reviewerEmployeeId = $reviewer->employee?->id;
+
+        if ($reviewerEmployeeId !== null
+            && in_array($reviewerEmployeeId, [$swap->requester_employee_id, $swap->target_employee_id], true)) {
+            throw ValidationException::withMessages(['swap' => "You cannot {$action} a shift swap you are part of."]);
+        }
+    }
+
     private function ensureEligible(Employee $employee, string $field): void
     {
         if (! $employee->canUseShiftSwaps()) {

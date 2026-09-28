@@ -379,6 +379,7 @@ class ScheduleCalendarController extends Controller
             $data['exclude_assignment_id'] ?? null,
         );
         $dayOff = $scheduleService->dayOffFor($employee, $data['work_date']);
+        $leave = $scheduleService->approvedLeaveFor($employee, $shift, $data['work_date']);
         $restConflicts = $scheduleService->restConflictsFor(
             $employee,
             $shift,
@@ -387,8 +388,12 @@ class ScheduleCalendarController extends Controller
         );
 
         return response()->json([
-            'has_conflicts' => $conflicts->isNotEmpty() || $restConflicts->isNotEmpty() || $dayOff !== null,
+            'has_conflicts' => $conflicts->isNotEmpty() || $restConflicts->isNotEmpty() || $dayOff !== null || $leave !== null,
             'day_off' => $dayOff ? ['date' => $dayOff->work_date->toDateString()] : null,
+            'leave' => $leave ? [
+                'start_date' => $leave->start_date->toDateString(),
+                'end_date' => $leave->end_date->toDateString(),
+            ] : null,
             'rest_conflicts' => $restConflicts->map(fn (ScheduleAssignment $assignment) => [
                 'id' => $assignment->id,
                 'date' => $assignment->work_date->toDateString(),

@@ -105,7 +105,10 @@ class TimesheetController extends Controller
     public function export(TimesheetFilterRequest $request): StreamedResponse
     {
         $filters = $request->validated();
-        $records = $this->query($request, $filters, $this->canManage($request))->latest('period_start')->cursor();
+        // lazy() rather than cursor(): it still streams, but in chunks that
+        // honour the query's eager loads -- cursor() dropped them and cost two
+        // lazy loads per row. The id tie-break keeps chunk boundaries stable.
+        $records = $this->query($request, $filters, $this->canManage($request))->latest('period_start')->orderByDesc('id')->lazy(500);
 
         return response()->streamDownload(function () use ($records): void {
             $output = fopen('php://output', 'w');

@@ -133,6 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.day_off) {
                 updateConflictStatus('conflict', `Conflict: this employee has a scheduled day off on ${formatScheduleDate(result.day_off.date)}.`);
+            } else if (result.leave) {
+                updateConflictStatus('conflict', `Conflict: this employee is on approved leave from ${formatScheduleDate(result.leave.start_date)} to ${formatScheduleDate(result.leave.end_date)}.`);
             } else if (conflicts.length) {
                 const conflict = conflicts[0];
                 updateConflictStatus('conflict', `Conflict: ${conflict.shift} on ${formatScheduleDate(conflict.date)} (${conflict.time}).`);

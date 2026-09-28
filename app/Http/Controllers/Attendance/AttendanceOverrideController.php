@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Attendance;
 use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Attendance\AttendanceOverrideRequest;
-use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Models\OfficeLocation;
 use App\Services\AttendanceService;
@@ -91,11 +90,7 @@ class AttendanceOverrideController extends Controller
         $this->requireSupervision($request, $employee, 'attendance.override.record');
         $office = OfficeLocation::query()->where('is_active', true)->findOrFail($request->integer('office_location_id'));
 
-        $today = now()->timezone($office->timezone)->toDateString();
-        $existing = AttendanceRecord::query()
-            ->where('employee_id', $employee->id)
-            ->whereDate('attendance_date', $today)
-            ->first();
+        $existing = $attendanceService->recordToClose($employee, $office->timezone, now());
 
         $reason = $request->string('reason')->trim()->value();
         $notes = trim(($existing?->notes ? $existing->notes.' ' : '').'Manager override by '.$request->user()->name.": {$reason}");

@@ -301,4 +301,18 @@ class SchedulePagesTest extends TestCase
 
         $this->assertDatabaseHas('shifts', ['id' => $shift->id, 'is_active' => false]);
     }
+
+    public function test_saving_one_standing_preference_without_the_other_is_not_a_server_error(): void
+    {
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+        $shift = Shift::query()->where('is_active', true)->firstOrFail();
+
+        $this->actingAs($employee)
+            ->patch(route('schedule-preferences.update-standing'), ['preferred_shift_id' => $shift->id])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $this->assertSame($shift->id, $employee->employee->refresh()->preferred_shift_id);
+        $this->assertNull($employee->employee->preferred_weekly_off_day);
+    }
 }

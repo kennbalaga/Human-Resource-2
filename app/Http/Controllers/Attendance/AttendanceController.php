@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Attendance;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Attendance\AttendanceActionRequest;
-use App\Models\AttendanceRecord;
 use App\Models\OfficeLocation;
 use App\Services\Attendance\MyAttendanceService;
 use App\Services\AttendanceCaptureSettings;
@@ -23,6 +22,7 @@ class AttendanceController extends Controller
         Request $request,
         AttendanceCaptureSettings $captureSettings,
         MyAttendanceService $myAttendance,
+        AttendanceService $attendanceService,
     ): View {
         $employee = $request->user()->employee;
         abort_if($employee === null, 403, 'Your user account is not linked to an employee profile.');
@@ -30,11 +30,9 @@ class AttendanceController extends Controller
         $office = OfficeLocation::query()->where('is_active', true)->first();
         abort_if($office === null, 503, 'No active attendance location has been configured.');
 
-        $today = now()->timezone($office->timezone)->toDateString();
-        $todayRecord = AttendanceRecord::query()
-            ->where('employee_id', $employee->id)
-            ->whereDate('attendance_date', $today)
-            ->first();
+        // Includes last night's open record, so a night shift offers Check out
+        // after midnight rather than a second Check in.
+        $todayRecord = $attendanceService->recordToClose($employee, $office->timezone, now());
 
         // Scanning writes somebody else's attendance, so the camera belongs to
         // the people who already carry workforce records, not to whoever happens

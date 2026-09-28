@@ -15,8 +15,8 @@ class AnalyticsRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'date_from' => $this->input('date_from', now()->startOfMonth()->toDateString()),
-            'date_to' => $this->input('date_to', now()->toDateString()),
+            'date_from' => $this->input('date_from', now(config('workforce.timezone'))->startOfMonth()->toDateString()),
+            'date_to' => $this->input('date_to', now(config('workforce.timezone'))->toDateString()),
         ]);
     }
 

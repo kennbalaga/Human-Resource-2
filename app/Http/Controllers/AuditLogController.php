@@ -40,7 +40,9 @@ class AuditLogController extends Controller
         // re-filter in a spreadsheet — and the wider extract is itself a
         // disclosure worth making someone ask for.
         $filters = $request->query('scope') === 'all' ? [] : $this->filters($request);
-        $logs = $this->query($filters)->with('user')->latest('created_at')->cursor();
+        // lazy() rather than cursor(), so the user eager load is honoured
+        // chunk by chunk instead of costing a query per row.
+        $logs = $this->query($filters)->with('user')->latest('created_at')->orderByDesc('id')->lazy(500);
 
         $response = response()->streamDownload(function () use ($logs): void {
             $output = fopen('php://output', 'w');

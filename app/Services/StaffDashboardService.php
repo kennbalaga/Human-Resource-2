@@ -73,6 +73,7 @@ class StaffDashboardService
     public function __construct(
         private readonly AttendanceCaptureSettings $captureSettings,
         private readonly BurnoutRiskService $burnoutRisk,
+        private readonly AttendanceService $attendance,
     ) {}
 
     /**
@@ -122,7 +123,18 @@ class StaffDashboardService
                 'department' => $employee->department?->name,
                 'position' => $employee->position?->title,
             ],
-            'today' => $this->today($employee, $office, $timezone, $now, $today, $todayRecord, $todayAssignment),
+            // The clock card alone also takes last night's open record, so a
+            // night shift can be clocked out of after midnight. The tallies
+            // and the shift card stay on today's date.
+            'today' => $this->today(
+                $employee,
+                $office,
+                $timezone,
+                $now,
+                $today,
+                $todayRecord ?? ($office !== null ? $this->attendance->recordToClose($employee, $timezone, $now) : null),
+                $todayAssignment,
+            ),
             'shift' => $this->shiftToday($employee, $office, $timezone, $now, $today, $ledger, $todayRecord),
             'upcoming' => $this->upcoming($employee, $today),
             'attendance_summary' => $summary,

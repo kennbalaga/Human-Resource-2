@@ -57,11 +57,9 @@ class AttendanceQrScanController extends Controller
         }
 
         $employee = $codes->resolve($validated['payload']);
-        $today = now()->timezone($office->timezone)->toDateString();
-        $existing = AttendanceRecord::query()
-            ->where('employee_id', $employee->id)
-            ->whereDate('attendance_date', $today)
-            ->first();
+        // Today's record, or last night's still-open one: a scan at 06:00 ends
+        // a night shift rather than starting a new day.
+        $existing = $attendance->recordToClose($employee, $office->timezone, now());
 
         if ($replay = $this->replayOfRecentScan($existing, $employee, $office->timezone)) {
             return response()->json($replay);

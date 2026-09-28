@@ -15,7 +15,7 @@ class LeaveFilterRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['year' => $this->input('year', now()->year)]);
+        $this->merge(['year' => $this->input('year', now(config('workforce.timezone'))->year)]);
     }
 
     public function rules(): array

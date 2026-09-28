@@ -10,8 +10,10 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\OfficeLocation;
 use App\Models\PreferredDayOff;
+use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Scheduling\RosterWriteContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -181,6 +183,30 @@ class DepartmentScopingTest extends TestCase
             'employee_id' => $this->outsideEmployee->id,
             'work_date' => '2027-06-07',
         ]);
+    }
+
+    public function test_a_head_cannot_take_another_departments_shift_by_moving_it_onto_their_own_staff(): void
+    {
+        $shift = Shift::query()->where('is_active', true)->firstOrFail();
+        $assignment = RosterWriteContext::allowUnattended(fn () => ScheduleAssignment::query()->create([
+            'employee_id' => $this->outsideEmployee->id,
+            'shift_id' => $shift->id,
+            'work_date' => '2027-06-07',
+            'status' => 'scheduled',
+            'created_by' => $this->hrManager->id,
+        ]));
+
+        // The new employee_id is the head's own nurse, so the request rules
+        // pass; it is the assignment being edited that is not theirs.
+        $this->actingAs($this->departmentHead)
+            ->put(route('schedules.update', $assignment), [
+                'employee_id' => $this->ownEmployee->id,
+                'shift_id' => $shift->id,
+                'work_date' => '2027-06-07',
+            ])
+            ->assertForbidden();
+
+        $this->assertSame($this->outsideEmployee->id, $assignment->refresh()->employee_id);
     }
 
     public function test_a_head_cannot_force_an_attendance_punch_for_another_department(): void

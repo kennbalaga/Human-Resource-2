@@ -98,10 +98,15 @@ class SidebarBadgeService
     private function waitingSwaps(User $user, ?Employee $employee, bool $canManage): Builder
     {
         if ($canManage) {
+            // Both sides, matching who may approve one.
             return Employee::constrainRelatedQuery(
-                ShiftSwapRequest::query()->where('status', 'pending_manager'),
+                Employee::constrainRelatedQuery(
+                    ShiftSwapRequest::query()->where('status', 'pending_manager'),
+                    $user,
+                    'requesterEmployee',
+                ),
                 $user,
-                'requesterEmployee',
+                'targetEmployee',
             );
         }
 

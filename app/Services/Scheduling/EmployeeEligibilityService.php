@@ -89,6 +89,12 @@ class EmployeeEligibilityService
             $reasons->push(['code' => 'approved_leave', 'message' => 'On approved leave covering this shift.']);
         }
 
+        // Saving the assignment refuses a scheduled day off, so recommending
+        // one only hands HR a name the schedule form will then reject.
+        if ($this->scheduleService->dayOffFor($employee, $workDate) !== null) {
+            $reasons->push(['code' => 'scheduled_day_off', 'message' => 'Has a scheduled day off on this date.']);
+        }
+
         $conflicts = $this->scheduleService->conflictsFor($employee, $shift, $workDate);
         if ($conflicts->isNotEmpty()) {
             $reasons->push([

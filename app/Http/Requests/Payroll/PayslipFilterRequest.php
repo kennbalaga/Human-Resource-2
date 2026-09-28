@@ -19,8 +19,8 @@ class PayslipFilterRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'date_from' => $this->input('date_from', now()->subMonths(2)->startOfMonth()->toDateString()),
-            'date_to' => $this->input('date_to', now()->endOfMonth()->toDateString()),
+            'date_from' => $this->input('date_from', now(config('workforce.timezone'))->subMonths(2)->startOfMonth()->toDateString()),
+            'date_to' => $this->input('date_to', now(config('workforce.timezone'))->endOfMonth()->toDateString()),
         ]);
     }
 

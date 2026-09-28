@@ -3,9 +3,11 @@
 namespace Tests\Feature\Timesheet;
 
 use App\Models\AttendanceRecord;
+use App\Models\Employee;
 use App\Models\OfficeLocation;
 use App\Models\Timesheet;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -86,6 +88,35 @@ class TimesheetWorkflowTest extends TestCase
 
         $this->actingAs($employee)->get('/timesheets')->assertOk()->assertSee('Timesheet Management');
         $this->actingAs($employee)->get('/timesheets/export')->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+    }
+
+    public function test_the_default_period_follows_the_manila_calendar_not_utc(): void
+    {
+        // 03:00 on 1 October in Manila is still 30 September in UTC.
+        $this->travelTo(Carbon::parse('2026-10-01 03:00:00', 'Asia/Manila'));
+        $employee = User::query()->where('email', 'employee@hrms.local')->firstOrFail();
+
+        $filters = $this->actingAs($employee)->get(route('timesheets.index'))->assertOk()->viewData('filters');
+
+        $this->assertSame('2026-10-01', $filters['date_from']);
+        $this->assertSame('2026-10-31', $filters['date_to']);
+    }
+
+    public function test_the_export_does_not_query_once_per_timesheet(): void
+    {
+        $manager = User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail();
+        $employees = Employee::query()->whereKeyNot($manager->employee->id)->limit(20)->get();
+        foreach ($employees as $employee) {
+            Timesheet::query()->create(['employee_id' => $employee->id, 'period_start' => '2027-05-03', 'period_end' => '2027-05-09', 'status' => 'draft']);
+        }
+        $queries = 0;
+        DB::listen(function () use (&$queries): void {
+            $queries++;
+        });
+
+        $this->actingAs($manager)->get(route('timesheets.export', ['date_from' => '2027-05-01', 'date_to' => '2027-05-31']))->streamedContent();
+
+        $this->assertLessThan($employees->count(), $queries);
     }
 
     private function completedAttendance(User $employee, string $date): AttendanceRecord

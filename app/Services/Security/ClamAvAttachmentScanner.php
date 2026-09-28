@@ -52,7 +52,11 @@ class ClamAvAttachmentScanner implements AttachmentMalwareScanner
             return;
         }
 
-        if ($process->getExitCode() === 1) {
+        // Exit code 1 is "virus found" to clamscan, but it is also what
+        // cmd.exe returns when the binary is not installed at all. Only a
+        // report naming a signature ("<path>: <signature> FOUND") is a
+        // detection; anything else is a scanner that could not run.
+        if ($process->getExitCode() === 1 && str_contains($process->getOutput(), ' FOUND')) {
             $this->alerts->alertAdministrators(
                 'attachment.malware_detected',
                 'Malicious attachment blocked',

@@ -36,6 +36,10 @@ class ScheduleAssignmentController extends Controller
         ScheduleService $scheduleService,
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
+        // The request rules hold the new employee_id to the author's units;
+        // this holds the assignment being edited to them too, so a shift
+        // cannot be taken off another ward by moving it onto one's own.
+        $this->requireSupervision($request, $scheduleAssignment->loadMissing('employee')->employee, 'workforce.manage.record');
         $assignment = $scheduleService->updateAssignment($scheduleAssignment, $request->validated(), $request->user());
         $this->notifyEmployee($assignment, 'updated', $notifications);
 

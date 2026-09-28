@@ -9,6 +9,7 @@ use App\Models\Position;
 use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Attendance\AttendanceQrService;
 use App\Services\AttendanceService;
 use App\Services\Scheduling\AttendanceScheduleSettings;
 use App\Services\Scheduling\RosterWriteContext;
@@ -204,6 +205,65 @@ class ScheduleAwareAttendanceTest extends TestCase
 
         // 08:00-17:00 shift, 60 minute break -> 480 rostered minutes.
         $this->assertSame(480, $entry->scheduled_minutes);
+    }
+
+    public function test_a_night_shift_is_checked_out_of_after_midnight(): void
+    {
+        $this->enableScheduleAware();
+        $office = $this->office();
+        $employee = $this->rosterableEmployee();
+        $this->assign($employee, $this->shift('22:00:00', '06:00:00'), '2027-08-24');
+
+        Carbon::setTestNow(Carbon::parse('2027-08-24 21:55:00', 'Asia/Manila'));
+        $checkIn = app(AttendanceService::class)->checkIn($employee, $office, null, '127.0.0.1', 'PHPUnit');
+
+        Carbon::setTestNow(Carbon::parse('2027-08-25 06:30:00', 'Asia/Manila'));
+        $checkOut = app(AttendanceService::class)->checkOut($employee, $office, null, '127.0.0.1', 'PHPUnit');
+
+        // The same record, still dated the night it started on.
+        $this->assertSame($checkIn->id, $checkOut->id);
+        $this->assertSame('2027-08-24', $checkOut->attendance_date->toDateString());
+        $this->assertSame(30, $checkOut->overtime_minutes);
+        $this->assertDatabaseCount('attendance_records', 1);
+    }
+
+    public function test_a_badge_scan_after_midnight_ends_the_night_shift_instead_of_starting_a_day(): void
+    {
+        $this->enableScheduleAware();
+        $employee = $this->rosterableEmployee();
+        $this->assign($employee, $this->shift('22:00:00', '06:00:00'), '2027-08-24');
+        $payload = app(AttendanceQrService::class)->payloadFor($employee);
+
+        Carbon::setTestNow(Carbon::parse('2027-08-24 21:55:00', 'Asia/Manila'));
+        $this->actingAs($this->manager())->postJson(route('attendance.qr-scan.store'), ['payload' => $payload])
+            ->assertOk()
+            ->assertJsonPath('action', 'check-in');
+
+        Carbon::setTestNow(Carbon::parse('2027-08-25 06:05:00', 'Asia/Manila'));
+        $this->actingAs($this->manager())->postJson(route('attendance.qr-scan.store'), ['payload' => $payload])
+            ->assertOk()
+            ->assertJsonPath('action', 'check-out');
+
+        $this->assertDatabaseCount('attendance_records', 1);
+    }
+
+    public function test_a_day_shift_left_open_yesterday_is_not_closed_the_next_morning(): void
+    {
+        $this->enableScheduleAware();
+        $office = $this->office();
+        $employee = $this->rosterableEmployee();
+        $this->assign($employee, $this->shift('08:00:00', '17:00:00'), '2027-08-24');
+
+        Carbon::setTestNow(Carbon::parse('2027-08-24 08:00:00', 'Asia/Manila'));
+        app(AttendanceService::class)->checkIn($employee, $office, null, '127.0.0.1', 'PHPUnit');
+
+        // Forgot to check out. The next morning's check-out is a missing
+        // time-out on the 24th, not a 23-hour day.
+        Carbon::setTestNow(Carbon::parse('2027-08-25 07:00:00', 'Asia/Manila'));
+
+        $this->expectException(ValidationException::class);
+
+        app(AttendanceService::class)->checkOut($employee, $office, null, '127.0.0.1', 'PHPUnit');
     }
 
     private function enableScheduleAware(bool $enforce = false): void

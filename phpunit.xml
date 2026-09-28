@@ -40,5 +40,9 @@
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="AI_WORKFORCE_SCHEDULING_ENABLED" value="false" force="true"/>
         <env name="TWO_FACTOR_REQUIRED_ROLES" value="" force="true"/>
+        <!-- Uploads in the suite must not depend on whether ClamAV happens to be
+             installed on the machine running it. The scanner's own tests switch
+             it back on through config(). -->
+        <env name="MALWARE_SCANNING_ENABLED" value="false" force="true"/>
     </php>
 </phpunit>

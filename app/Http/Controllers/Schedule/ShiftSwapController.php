@@ -84,7 +84,7 @@ class ShiftSwapController extends Controller
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
         abort_unless(Gate::forUser($request->user())->allows('workforce.manage'), 403);
-        $this->requireSupervision($request, $shiftSwapRequest->loadMissing('requesterEmployee')->requesterEmployee, 'workforce.manage.record');
+        $this->requireSupervisionOfBoth($request, $shiftSwapRequest);
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $swap = $service->approve($shiftSwapRequest, $request->user(), $validated['reviewer_notes'] ?? null);
 
@@ -105,7 +105,7 @@ class ShiftSwapController extends Controller
         PreferenceNotificationService $notifications,
     ): RedirectResponse {
         abort_unless(Gate::forUser($request->user())->allows('workforce.manage'), 403);
-        $this->requireSupervision($request, $shiftSwapRequest->loadMissing('requesterEmployee')->requesterEmployee, 'workforce.manage.record');
+        $this->requireSupervisionOfBoth($request, $shiftSwapRequest);
         $validated = $request->validate(['reviewer_notes' => ['required', 'string', 'min:5', 'max:500']]);
         $swap = $service->reject($shiftSwapRequest, $request->user(), $validated['reviewer_notes']);
 
@@ -132,6 +132,20 @@ class ShiftSwapController extends Controller
         ], $notifications);
 
         return back()->with('success', 'Swap request cancelled.');
+    }
+
+    /**
+     * A swap moves a shift on each side, and the target may sit in another
+     * clinical unit, so a reviewer must supervise both people -- otherwise the
+     * requester's head could move another ward's nurse without that ward's
+     * head ever seeing it.
+     */
+    private function requireSupervisionOfBoth(Request $request, ShiftSwapRequest $swap): void
+    {
+        $swap->loadMissing(['requesterEmployee', 'targetEmployee']);
+
+        $this->requireSupervision($request, $swap->requesterEmployee, 'workforce.manage.record');
+        $this->requireSupervision($request, $swap->targetEmployee, 'workforce.manage.record');
     }
 
     /** @param array<int, string> $lines */

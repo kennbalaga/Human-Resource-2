@@ -118,13 +118,8 @@ class AttendanceService
         return DB::transaction(function () use ($employee, $office, $notes, $ipAddress, $userAgent, $method, $biometricDevice, $occurredAt) {
             $now = $occurredAt ? Carbon::instance($occurredAt)->copy() : now();
             $localNow = $now->copy()->timezone($office->timezone);
-            $attendanceDate = $localNow->toDateString();
 
-            $record = AttendanceRecord::query()
-                ->where('employee_id', $employee->id)
-                ->whereDate('attendance_date', $attendanceDate)
-                ->lockForUpdate()
-                ->first();
+            $record = $this->recordToClose($employee, $office->timezone, $now, lock: true);
 
             if ($record === null || $record->check_in_at === null) {
                 throw ValidationException::withMessages([
@@ -150,9 +145,11 @@ class AttendanceService
             $breakMinutes = $grossMinutes >= 300 ? $recordOffice->break_minutes : 0;
             $workedMinutes = max(0, $grossMinutes - $breakMinutes);
 
+            // The record's own date, not today's: a night shift checked out of
+            // after midnight is still timed against the day it started on.
             [$undertimeMinutes, $overtimeMinutes] = $this->checkOutTiming(
                 $recordOffice,
-                $attendanceDate,
+                $record->attendance_date->toDateString(),
                 $localNow,
                 $record,
                 $workedMinutes,
@@ -172,6 +169,41 @@ class AttendanceService
 
             return $record->refresh();
         });
+    }
+
+    /**
+     * The record a check-out at this moment would close.
+     *
+     * Normally that is today's. A night shift is the exception: 22:00–06:00 is
+     * checked into on one date and out of on the next, so after midnight the
+     * record to close is yesterday's -- but only while it is still open and the
+     * shift it was bound to ends today. A day shift somebody forgot to close
+     * yesterday is not picked up here; that is a missing time-out, not a
+     * check-out.
+     */
+    public function recordToClose(Employee $employee, string $timezone, CarbonInterface $at, bool $lock = false): ?AttendanceRecord
+    {
+        $localNow = Carbon::instance($at)->copy()->timezone($timezone);
+        $query = fn () => AttendanceRecord::query()
+            ->where('employee_id', $employee->id)
+            ->when($lock, fn ($builder) => $builder->lockForUpdate());
+
+        $today = $query()->whereDate('attendance_date', $localNow->toDateString())->first();
+
+        if ($today !== null) {
+            return $today;
+        }
+
+        $overnight = $query()
+            ->whereDate('attendance_date', $localNow->copy()->subDay()->toDateString())
+            ->whereNotNull('check_in_at')
+            ->whereNull('check_out_at')
+            ->whereNotNull('shift_end_at')
+            ->first();
+
+        return $overnight !== null && $overnight->shift_end_at->copy()->timezone($timezone)->isSameDay($localNow)
+            ? $overnight
+            : null;
     }
 
     /**

@@ -69,7 +69,10 @@ class SchedulePreferenceController extends Controller
                 $builder->where('requester_employee_id', $employee->id)->orWhere('target_employee_id', $employee->id);
             });
         } else {
+            // Both sides, because approving needs both: a swap reaching into
+            // another unit is that unit's head's to see too, or HR's.
             Employee::constrainRelatedQuery($baseQuery, $request->user(), 'requesterEmployee');
+            Employee::constrainRelatedQuery($baseQuery, $request->user(), 'targetEmployee');
         }
 
         $canRequestSwap = $employee->canUseShiftSwaps();
@@ -118,8 +121,10 @@ class SchedulePreferenceController extends Controller
         ]);
 
         $employee->update([
-            'preferred_shift_id' => $validated['preferred_shift_id'] ?: null,
-            'preferred_weekly_off_day' => $validated['preferred_weekly_off_day'] ?: null,
+            // A nullable field left out of the request is absent from
+            // validated(), not null, so it must not be indexed directly.
+            'preferred_shift_id' => ($validated['preferred_shift_id'] ?? null) ?: null,
+            'preferred_weekly_off_day' => ($validated['preferred_weekly_off_day'] ?? null) ?: null,
         ]);
 
         return back()->with('success', 'Your scheduling preferences were saved.');

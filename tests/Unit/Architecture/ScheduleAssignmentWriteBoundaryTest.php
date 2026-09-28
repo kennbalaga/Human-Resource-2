@@ -33,7 +33,7 @@ class ScheduleAssignmentWriteBoundaryTest extends TestCase
         'app/Services/Scheduling/RoomBookingService.php' => 'theatre list -- writes room_booking_id on an existing row, never creates or deletes one',
         'app/Http/Controllers/Schedule/ScheduleAssignmentController.php' => 'manual delete (web)',
         'app/Http/Controllers/Api/V1/ScheduleController.php' => 'manual delete (API)',
-        'app/Http/Controllers/Schedule/RecurringScheduleController.php' => 'recurring series cancellation (mass delete)',
+        'app/Http/Controllers/Schedule/RecurringScheduleController.php' => 'recurring series cancellation (per-row delete, so each is audited)',
         'database/seeders/ShiftScheduleSeeder.php' => 'demo data, allowUnattended() only',
     ];
 

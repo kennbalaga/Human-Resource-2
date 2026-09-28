@@ -394,6 +394,12 @@ class ScheduleService
             // overlap test is time-based, not date-based.
             $rangeStart = $dates->first();
             $rangeEnd = $dates->last();
+
+            // Every date after the first is later still, so one check covers
+            // the series: a started or past day is not written by a recurrence
+            // any more than by hand.
+            $this->assertDateEditable($rangeStart, 'start_date');
+
             $locks = $employee->department !== null
                 ? $this->activeLocksFor($employee->department, $rangeStart, $rangeEnd)
                 : collect();
@@ -413,6 +419,14 @@ class ScheduleService
                 ])
                 ->get();
             $minimumRestMinutes = max(0, (int) config('schedule.minimum_rest_hours')) * 60;
+            // A day of margin on the far end for a night shift running into
+            // the morning after the range.
+            $approvedLeaves = LeaveRequest::query()
+                ->where('employee_id', $employee->id)
+                ->where('status', 'approved')
+                ->whereDate('start_date', '<=', $rangeEnd->copy()->addDay()->toDateString())
+                ->whereDate('end_date', '>=', $rangeStart->toDateString())
+                ->get();
 
             foreach ($dates as $date) {
                 $dateString = $date->toDateString();
@@ -431,6 +445,14 @@ class ScheduleService
                 }
 
                 [$candidateStart, $candidateEnd] = $this->intervalFor($shift, $dateString);
+
+                $leave = $approvedLeaves->first(fn (LeaveRequest $approved) => $approved->start_date->toDateString() <= $candidateEnd->toDateString()
+                    && $approved->end_date->toDateString() >= $candidateStart->toDateString());
+                if ($leave !== null) {
+                    throw ValidationException::withMessages([
+                        'schedule' => "Recurring schedule falls on approved leave on {$date->format('M j, Y')} ({$leave->start_date->format('M j, Y')} to {$leave->end_date->format('M j, Y')}).",
+                    ]);
+                }
 
                 $conflicts = $this->filterConflicts($nearbyAssignments, $candidateStart, $candidateEnd);
                 if ($conflicts->isNotEmpty()) {
@@ -517,6 +539,23 @@ class ScheduleService
                 return $candidateStart->lessThan($existingEnd) && $candidateEnd->greaterThan($existingStart);
             })
             ->values();
+    }
+
+    /**
+     * Approved leave overlapping this shift, if any. Measured against the
+     * shift's own interval, as EmployeeEligibilityService does, so a night
+     * shift running into the first day of leave is caught too.
+     */
+    public function approvedLeaveFor(Employee $employee, Shift $shift, string $workDate): ?LeaveRequest
+    {
+        [$start, $end] = $this->intervalFor($shift, $workDate);
+
+        return LeaveRequest::query()
+            ->where('employee_id', $employee->id)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $end->toDateString())
+            ->whereDate('end_date', '>=', $start->toDateString())
+            ->first();
     }
 
     public function dayOffFor(Employee $employee, string $workDate): ?ScheduleDayOff
@@ -667,6 +706,16 @@ class ScheduleService
         ?int $excludeAssignmentId = null,
     ): void {
         $this->ensureNoDayOff($employee, $workDate);
+
+        // The bulk and roster paths already refuse this through
+        // bulkAssignmentBlockReason(); a hand-made assignment must too.
+        $leave = $this->approvedLeaveFor($employee, $shift, $workDate);
+        if ($leave !== null) {
+            throw ValidationException::withMessages([
+                'schedule' => "{$employee->full_name} is on approved leave from {$leave->start_date->format('M j, Y')} to {$leave->end_date->format('M j, Y')}.",
+            ]);
+        }
+
         $conflicts = $this->conflictsFor($employee, $shift, $workDate, $excludeAssignmentId);
 
         if ($conflicts->isNotEmpty()) {
