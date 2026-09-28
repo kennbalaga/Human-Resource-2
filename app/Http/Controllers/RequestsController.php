@@ -183,6 +183,10 @@ class RequestsController extends Controller
             'approved' => 'Approved',
             'rejected' => 'Declined',
             'cancelled' => 'Withdrawn',
+            // Not "Declined": nobody turned this down. The sweep records why it
+            // lapsed, and that sentence is more use than the word "Expired" on
+            // its own to the person wondering what became of their request.
+            'expired' => $swap->expired_reason ?? 'Expired unanswered',
             default => ucfirst(str_replace('_', ' ', $swap->status)),
         };
     }
@@ -192,7 +196,7 @@ class RequestsController extends Controller
         return match ($status) {
             'approved' => 'success',
             'rejected' => 'danger',
-            'cancelled' => 'secondary',
+            'cancelled', 'expired' => 'secondary',
             default => 'warning',
         };
     }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ShiftSwap\StoreShiftSwapRequest;
 use App\Models\Employee;
 use App\Models\ShiftSwapRequest;
+use App\Models\User;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\PreferenceNotificationService;
 use App\Services\ShiftSwapService;
@@ -74,6 +75,14 @@ class ShiftSwapController extends Controller
             $status === 'accepted' ? 'It now needs manager approval.' : 'You may send a new request to someone else.',
         ], $notifications);
 
+        // The moment the request becomes a manager's to answer is the moment
+        // somebody has to be told. Until now nobody was: acceptance notified the
+        // requester that it had gone to their manager, and the manager found out
+        // only by opening a page they had no reason to open.
+        if ($swap->status === 'pending_manager') {
+            $this->notifyReviewers($swap, $notifications);
+        }
+
         return back()->with('success', "Swap request {$status}.");
     }
 
@@ -132,20 +141,6 @@ class ShiftSwapController extends Controller
         ], $notifications);
 
         return back()->with('success', 'Swap request cancelled.');
-    }
-
-    /**
-     * A swap moves a shift on each side, and the target may sit in another
-     * clinical unit, so a reviewer must supervise both people -- otherwise the
-     * requester's head could move another ward's nurse without that ward's
-     * head ever seeing it.
-     */
-    private function requireSupervisionOfBoth(Request $request, ShiftSwapRequest $swap): void
-    {
-        $swap->loadMissing(['requesterEmployee', 'targetEmployee']);
-
-        $this->requireSupervision($request, $swap->requesterEmployee, 'workforce.manage.record');
-        $this->requireSupervision($request, $swap->targetEmployee, 'workforce.manage.record');
     }
 
     /** @param array<int, string> $lines */

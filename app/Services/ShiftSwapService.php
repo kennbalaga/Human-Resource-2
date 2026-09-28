@@ -20,6 +20,15 @@ use Illuminate\Validation\ValidationException;
 
 class ShiftSwapService
 {
+    /**
+     * The two states a request can still move out of. Everything else --
+     * approved, rejected, declined, cancelled, expired -- is an ending, and no
+     * queue, badge or duplicate check should count one.
+     *
+     * @var array<int, string>
+     */
+    public const OPEN_STATUSES = ['pending_target', 'pending_manager'];
+
     public function __construct(
         private readonly ScheduleService $scheduleService,
         private readonly ScheduleLockService $scheduleLockService,
@@ -68,6 +77,17 @@ class ShiftSwapService
             abort(403);
         }
 
+        // Accepting is what puts a request in front of a manager, so the
+        // deadline has to be enforced here and not only at approval. It was
+        // checked at approval alone, which let a colleague answer days late and
+        // hand the manager a request that could never be approved -- and that
+        // then sat in their queue for good.
+        //
+        // Outside the transaction below, because closing the request is the
+        // point: raised from inside, the exception that reports the closure
+        // would roll back the closure with it.
+        $this->expireIfUnanswerable($swap);
+
         return DB::transaction(function () use ($swap, $accept, $notes) {
             $swap = ShiftSwapRequest::query()->lockForUpdate()->findOrFail($swap->id);
             if ($swap->status !== 'pending_target') {
@@ -86,8 +106,6 @@ class ShiftSwapService
 
     public function approve(ShiftSwapRequest $swap, User $reviewer, ?string $notes): ShiftSwapRequest
     {
-        $this->ensureNotParticipant($swap, $reviewer, 'approve');
-
         return DB::transaction(function () use ($swap, $reviewer, $notes) {
             $swap = ShiftSwapRequest::query()->lockForUpdate()->findOrFail($swap->id);
             if ($swap->status !== 'pending_manager') {
@@ -181,7 +199,7 @@ class ShiftSwapService
 
         return DB::transaction(function () use ($swap, $reviewer, $notes) {
             $swap = ShiftSwapRequest::query()->lockForUpdate()->findOrFail($swap->id);
-            if (! in_array($swap->status, ['pending_target', 'pending_manager'], true)) {
+            if (! in_array($swap->status, self::OPEN_STATUSES, true)) {
                 throw ValidationException::withMessages(['swap' => 'Only open requests can be rejected.']);
             }
 
@@ -207,7 +225,7 @@ class ShiftSwapService
 
         return DB::transaction(function () use ($swap) {
             $swap = ShiftSwapRequest::query()->lockForUpdate()->findOrFail($swap->id);
-            if (! in_array($swap->status, ['pending_target', 'pending_manager'], true)) {
+            if (! in_array($swap->status, self::OPEN_STATUSES, true)) {
                 throw ValidationException::withMessages(['swap' => 'Only open requests can be cancelled.']);
             }
 
@@ -215,6 +233,140 @@ class ShiftSwapService
 
             return $swap->refresh();
         });
+    }
+
+    /**
+     * Close out every open request that can no longer be answered.
+     *
+     * Two things end a request without anybody deciding anything, and neither
+     * used to end it at all:
+     *
+     *   The shift was worked. A swap answers a shift that is coming, so once
+     *   that shift is in the past there is nothing left to decide. The earlier
+     *   of the two shifts sets the deadline -- once one side has been worked
+     *   there is no trade to make, however far off the other still is.
+     *
+     *   Somebody in it stopped swapping shifts. Eligibility follows the
+     *   department, so a transfer to an administrative post takes the feature
+     *   away mid-request: the page that would show it is hidden from them, and
+     *   a request nobody can even see is not one anybody will answer.
+     *
+     * Either way the request kept its pending status for ever, counted against
+     * the reviewer's sidebar badge, and sat at the top of a queue offering an
+     * Approve button that could only ever refuse it.
+     *
+     * @return Collection<int, ShiftSwapRequest> the requests it closed, each
+     *                                           carrying the reason, so the
+     *                                           caller can report them
+     */
+    public function expireStale(): Collection
+    {
+        $closed = $this->unanswerable();
+
+        if ($closed->isEmpty()) {
+            return $closed;
+        }
+
+        // Grouped by reason rather than written a row at a time: these rows are
+        // only being stamped, and a nightly job should not open a statement per
+        // request to do it.
+        $expiredAt = now();
+
+        foreach ($closed->groupBy('expired_reason') as $reason => $swaps) {
+            ShiftSwapRequest::query()
+                ->whereKey($swaps->modelKeys())
+                ->update(['status' => 'expired', 'expired_at' => $expiredAt, 'expired_reason' => $reason]);
+        }
+
+        return $closed;
+    }
+
+    /**
+     * The open requests that can no longer be answered, each with its reason
+     * set but nothing written. What `expireStale()` is about to close, which is
+     * also exactly what a dry run wants to list -- asked once here so the two
+     * cannot drift into disagreeing about it.
+     *
+     * @return Collection<int, ShiftSwapRequest>
+     */
+    public function unanswerable(): Collection
+    {
+        $today = now(config('schedule.timezone'))->toDateString();
+
+        return ShiftSwapRequest::query()
+            ->with([
+                'requesterEmployee.department',
+                'targetEmployee.department',
+                'requesterAssignment.shift',
+                'targetAssignment.shift',
+            ])
+            ->whereIn('status', self::OPEN_STATUSES)
+            ->orderBy('id')
+            ->get()
+            ->each(fn (ShiftSwapRequest $swap) => $swap->expired_reason = $this->unanswerableReason($swap, $today))
+            ->filter(fn (ShiftSwapRequest $swap): bool => $swap->expired_reason !== null)
+            ->values();
+    }
+
+    /**
+     * Why this request can no longer be answered, or null while it still can.
+     *
+     * Written for the two people who filed it rather than for the log: it is
+     * shown against the request on the page they go looking at when they wonder
+     * what became of it.
+     */
+    private function unanswerableReason(ShiftSwapRequest $swap, string $today): ?string
+    {
+        $dates = collect([$swap->requesterAssignment?->work_date, $swap->targetAssignment?->work_date])->filter();
+
+        if ($dates->contains(fn ($date): bool => $date->toDateString() < $today)) {
+            return 'The shift was worked before anyone answered.';
+        }
+
+        foreach ([$swap->requesterEmployee, $swap->targetEmployee] as $employee) {
+            if ($employee !== null && ! $employee->canUseShiftSwaps()) {
+                return $employee->full_name.' no longer swaps shifts, so this request cannot go ahead.';
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Closes the request and says why, when it can no longer be answered.
+     *
+     * Both of the points where somebody tries to move a request forward go
+     * through here, so a late answer ends the request rather than leaving it
+     * where it was for the nightly sweep to find. The reason is the sweep's
+     * own, so a request closed by a button and one closed overnight read the
+     * same afterwards.
+     */
+    private function expireIfUnanswerable(ShiftSwapRequest $swap): void
+    {
+        // A request that has already ended keeps the ending it was given: a
+        // withdrawn or declined one is not re-labelled as lapsed just because
+        // somebody pushes a stale button at it. This runs before the caller's
+        // own status check, so it has to say so itself.
+        if (! in_array($swap->fresh()?->status ?? $swap->status, self::OPEN_STATUSES, true)) {
+            return;
+        }
+
+        $swap->loadMissing([
+            'requesterEmployee.department',
+            'targetEmployee.department',
+            'requesterAssignment',
+            'targetAssignment',
+        ]);
+
+        $reason = $this->unanswerableReason($swap, now(config('schedule.timezone'))->toDateString());
+
+        if ($reason === null) {
+            return;
+        }
+
+        $swap->update(['status' => 'expired', 'expired_at' => now(), 'expired_reason' => $reason]);
+
+        throw ValidationException::withMessages(['swap' => $reason.' This request has been closed.']);
     }
 
     /**
@@ -275,7 +427,7 @@ class ShiftSwapService
     private function ensureNoOpenSwap(int $requesterAssignmentId, int $targetAssignmentId): void
     {
         $exists = ShiftSwapRequest::query()
-            ->whereIn('status', ['pending_target', 'pending_manager'])
+            ->whereIn('status', self::OPEN_STATUSES)
             ->where(function ($query) use ($requesterAssignmentId, $targetAssignmentId) {
                 $query->whereIn('requester_assignment_id', [$requesterAssignmentId, $targetAssignmentId])
                     ->orWhereIn('target_assignment_id', [$requesterAssignmentId, $targetAssignmentId]);
