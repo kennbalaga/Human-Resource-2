@@ -24,6 +24,8 @@ class ShiftSwapRequest extends Model
         'reviewed_at',
         'reviewer_notes',
         'cancelled_at',
+        'expired_at',
+        'expired_reason',
     ];
 
     protected function casts(): array
@@ -32,6 +34,7 @@ class ShiftSwapRequest extends Model
             'target_responded_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'expired_at' => 'datetime',
         ];
     }
 

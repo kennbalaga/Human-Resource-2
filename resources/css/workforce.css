@@ -76,6 +76,9 @@
 .leave-type-label { display:inline-flex; align-items:center; gap:.45rem; white-space:nowrap; }
 .leave-type-label i { width:.55rem; height:.55rem; border-radius:50%; }
 .truncate-reason { display:block; max-width:12rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Why a request was closed, under the badge that says it was. It wraps rather
+   than truncating: the sentence is the whole point of showing it. */
+.status-note { display:block; max-width:14rem; margin-top:.3rem; color:var(--hr-subtle); font-size: var(--fs-2xs); line-height:1.35; }
 .attachment-link { display:flex; align-items:center; gap:.3rem; max-width:10rem; overflow:hidden; color:var(--hr-primary-text); font-size: var(--fs-xs); text-decoration:none; text-overflow:ellipsis; white-space:nowrap; }
 .attachment-link svg { width:.8rem; }
 .schedule-form-grid label small { color:var(--hr-subtle); font-size: var(--fs-2xs); }

@@ -31,7 +31,7 @@
                     <td><div class="employee-cell"><span class="avatar avatar-table">{{ strtoupper(substr($swap->targetEmployee->first_name,0,1).substr($swap->targetEmployee->last_name,0,1)) }}</span><div><strong>{{ $swap->targetEmployee->full_name }}</strong><span>{{ $swap->targetEmployee->department?->name }}</span></div></div></td>
                     <td><strong>{{ $swap->targetAssignment->shift->name }}</strong><span>{{ $swap->targetAssignment->work_date->format('M j, Y') }}</span></td>
                     <td><span class="truncate-reason" title="{{ $swap->reason }}">{{ $swap->reason }}</span></td>
-                    <td><x-status-badge :status="$swap->status" /></td>
+                    <td><x-status-badge :status="$swap->status" />@if($swap->status === 'expired' && filled($swap->expired_reason))<span class="status-note">{{ $swap->expired_reason }}</span>@endif</td>
                     <td><div class="row-action-group">
                         @if($swap->target_employee_id === $employee->id && $swap->status === 'pending_target')
                             <form method="POST" action="{{ route('shift-swaps.respond', $swap) }}">@csrf<input type="hidden" name="accept" value="1"><button class="btn btn-sm btn-success">Accept</button></form>

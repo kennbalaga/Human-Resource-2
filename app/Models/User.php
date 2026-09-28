@@ -6,6 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -137,6 +138,45 @@ class User extends Authenticatable
 
         return $employee->department_id !== null
             && in_array((int) $employee->department_id, $departmentIds, true);
+    }
+
+    /**
+     * The accounts that can answer an approval about this employee — the other
+     * side of `supervises()`, asked of the whole table at once so a queue can
+     * be told it has something in it.
+     *
+     * A read-only role is left out by what it can do rather than by taste: the
+     * approval gates all require `canManageData()`, so an account that could
+     * only look at the request has no use for being told it is there. That is
+     * checked in PHP, since it is a question about role membership rather than
+     * a column, and the result set here is a handful of rows.
+     *
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    public function scopeReviewersOf(Builder $query, ?Employee $employee): Builder
+    {
+        if ($employee === null) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query
+            ->where('is_active', true)
+            ->whereHas('roles', fn (Builder $role) => $role->whereIn('slug', ['hr-manager', 'department-head']))
+            ->where(fn (Builder $reviewer) => $reviewer
+                // Org-wide, so the department the request came from does not
+                // narrow them.
+                ->whereHas('roles', fn (Builder $role) => $role->whereIn('slug', self::ORGANISATION_WIDE_ROLES))
+                ->when(
+                    $employee->department_id !== null,
+                    // A head answers for the unit their own record posts them
+                    // to, which is the same rule supervisedDepartmentIds() reads
+                    // from the other direction.
+                    fn (Builder $reviewer) => $reviewer->orWhereHas(
+                        'employee',
+                        fn (Builder $head) => $head->where('department_id', $employee->department_id),
+                    ),
+                ));
     }
 
     /**

@@ -46,6 +46,19 @@ Schedule::command('burnout:snapshot')
     ->dailyAt('01:30')
     ->timezone(config('workforce.timezone'));
 
+/*
+ * Shift swaps nobody answered in time.
+ *
+ * Overnight, like the other sweeps, and for the same reason: the deadline it
+ * enforces is a calendar date, so the only thing an hourly run would buy is
+ * closing a request at 09:15 instead of 01:45 on the day it stopped being
+ * answerable. Running before the working day does mean a reviewer's queue is
+ * already clear of it when they first open the page.
+ */
+Schedule::command('shift-swaps:expire')
+    ->dailyAt('01:45')
+    ->timezone(config('schedule.timezone'));
+
 Artisan::command('attendance:remind {type}', function (string $type) {
     $sent = app(AttendanceReminderService::class)->send($type);
     $this->info("Attendance reminders sent: {$sent}");

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ShiftSwap\StoreShiftSwapRequest;
 use App\Models\Employee;
 use App\Models\ShiftSwapRequest;
+use App\Models\User;
 use App\Notifications\PreferenceMailNotification;
 use App\Services\PreferenceNotificationService;
 use App\Services\ShiftSwapService;
@@ -74,6 +75,14 @@ class ShiftSwapController extends Controller
             $status === 'accepted' ? 'It now needs manager approval.' : 'You may send a new request to someone else.',
         ], $notifications);
 
+        // The moment the request becomes a manager's to answer is the moment
+        // somebody has to be told. Until now nobody was: acceptance notified the
+        // requester that it had gone to their manager, and the manager found out
+        // only by opening a page they had no reason to open.
+        if ($swap->status === 'pending_manager') {
+            $this->notifyReviewers($swap, $notifications);
+        }
+
         return back()->with('success', "Swap request {$status}.");
     }
 
@@ -132,6 +141,42 @@ class ShiftSwapController extends Controller
         ], $notifications);
 
         return back()->with('success', 'Swap request cancelled.');
+    }
+
+    /**
+     * Tells the people who can actually approve it that a swap is waiting.
+     *
+     * Both parties are left out. A manager who is one half of the trade already
+     * knows, and "a request needs your review" about your own swap reads as a
+     * mistake; HR is org-wide, so there is always somebody else to tell.
+     */
+    private function notifyReviewers(ShiftSwapRequest $swap, PreferenceNotificationService $notifications): void
+    {
+        $swap->loadMissing(['requesterEmployee.department', 'targetEmployee', 'requesterAssignment.shift', 'targetAssignment.shift']);
+
+        User::query()
+            ->with('roles')
+            ->reviewersOf($swap->requesterEmployee)
+            ->whereNotIn('id', array_filter([$swap->requesterEmployee?->user_id, $swap->targetEmployee?->user_id]))
+            ->get()
+            ->filter->canManageData()
+            ->each(fn (User $reviewer) => $notifications->send($reviewer, 'schedule_updates', new PreferenceMailNotification(
+                'A shift swap needs your approval',
+                [
+                    $swap->requesterEmployee->full_name.' and '.$swap->targetEmployee->full_name
+                        .' have agreed to swap shifts'
+                        .($swap->requesterEmployee->department?->name !== null ? ' in '.$swap->requesterEmployee->department->name : '').'.',
+                    $swap->requesterEmployee->full_name.' gives up '.$swap->requesterAssignment?->shift?->name
+                        .' on '.$swap->requesterAssignment?->work_date?->format('j M Y')
+                        .' and takes '.$swap->targetAssignment?->shift?->name
+                        .' on '.$swap->targetAssignment?->work_date?->format('j M Y').'.',
+                    // Said plainly, because the request cannot be approved after
+                    // the shift has been worked -- it expires instead.
+                    'It can only be approved while both shifts are still to come.',
+                ],
+                'Review Shift Swaps',
+                route('shift-swaps.index'),
+            )));
     }
 
     /** @param array<int, string> $lines */
