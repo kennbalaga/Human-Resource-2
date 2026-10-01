@@ -143,6 +143,56 @@ class ShiftSwapController extends Controller
         return back()->with('success', 'Swap request cancelled.');
     }
 
+    /**
+     * A swap moves a shift on each side, and the target may sit in another
+     * clinical unit, so a reviewer must supervise both people -- otherwise the
+     * requester's head could move another ward's nurse without that ward's
+     * head ever seeing it.
+     */
+    private function requireSupervisionOfBoth(Request $request, ShiftSwapRequest $swap): void
+    {
+        $swap->loadMissing(['requesterEmployee', 'targetEmployee']);
+
+        $this->requireSupervision($request, $swap->requesterEmployee, 'workforce.manage.record');
+        $this->requireSupervision($request, $swap->targetEmployee, 'workforce.manage.record');
+    }
+
+    /**
+     * Tells the people who can actually approve it that a swap is waiting.
+     *
+     * Both parties are left out. A manager who is one half of the trade already
+     * knows, and "a request needs your review" about your own swap reads as a
+     * mistake; HR is org-wide, so there is always somebody else to tell.
+     */
+    private function notifyReviewers(ShiftSwapRequest $swap, PreferenceNotificationService $notifications): void
+    {
+        $swap->loadMissing(['requesterEmployee.department', 'targetEmployee', 'requesterAssignment.shift', 'targetAssignment.shift']);
+
+        User::query()
+            ->with('roles')
+            ->reviewersOf($swap->requesterEmployee)
+            ->whereNotIn('id', array_filter([$swap->requesterEmployee?->user_id, $swap->targetEmployee?->user_id]))
+            ->get()
+            ->filter->canManageData()
+            ->each(fn (User $reviewer) => $notifications->send($reviewer, 'schedule_updates', new PreferenceMailNotification(
+                'A shift swap needs your approval',
+                [
+                    $swap->requesterEmployee->full_name.' and '.$swap->targetEmployee->full_name
+                        .' have agreed to swap shifts'
+                        .($swap->requesterEmployee->department?->name !== null ? ' in '.$swap->requesterEmployee->department->name : '').'.',
+                    $swap->requesterEmployee->full_name.' gives up '.$swap->requesterAssignment?->shift?->name
+                        .' on '.$swap->requesterAssignment?->work_date?->format('j M Y')
+                        .' and takes '.$swap->targetAssignment?->shift?->name
+                        .' on '.$swap->targetAssignment?->work_date?->format('j M Y').'.',
+                    // Said plainly, because the request cannot be approved after
+                    // the shift has been worked -- it expires instead.
+                    'It can only be approved while both shifts are still to come.',
+                ],
+                'Review Shift Swaps',
+                route('shift-swaps.index'),
+            )));
+    }
+
     /** @param array<int, string> $lines */
     private function notify(Employee $employee, string $subject, array $lines, PreferenceNotificationService $notifications): void
     {

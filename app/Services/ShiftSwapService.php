@@ -106,6 +106,15 @@ class ShiftSwapService
 
     public function approve(ShiftSwapRequest $swap, User $reviewer, ?string $notes): ShiftSwapRequest
     {
+        $this->ensureNotParticipant($swap, $reviewer, 'approve');
+
+        // Closed rather than merely refused: a request whose shift has been
+        // worked, or whose parties no longer swap shifts, cannot become
+        // approvable by being left alone, and a reviewer told "no" on a row that
+        // then stays in their queue has been told nothing useful. Outside the
+        // transaction for the same reason as in respond().
+        $this->expireIfUnanswerable($swap);
+
         return DB::transaction(function () use ($swap, $reviewer, $notes) {
             $swap = ShiftSwapRequest::query()->lockForUpdate()->findOrFail($swap->id);
             if ($swap->status !== 'pending_manager') {
@@ -370,13 +379,6 @@ class ShiftSwapService
     }
 
     /**
-     * Both sides of a trade must be clinical staff. The requester is already
-     * gated at the request layer, but the target arrives as a bare assignment
-     * id with no such check — without this, a clinical employee could still
-     * name an administrative colleague's assignment as the other half of the
-     * trade.
-     */
-    /**
      * A manager who is one of the two people trading shifts is not the one
      * to sign it off -- the same rule leave, attendance and timesheets hold.
      */
@@ -390,6 +392,13 @@ class ShiftSwapService
         }
     }
 
+    /**
+     * Both sides of a trade must be clinical staff. The requester is already
+     * gated at the request layer, but the target arrives as a bare assignment
+     * id with no such check — without this, a clinical employee could still
+     * name an administrative colleague's assignment as the other half of the
+     * trade.
+     */
     private function ensureEligible(Employee $employee, string $field): void
     {
         if (! $employee->canUseShiftSwaps()) {
