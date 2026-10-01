@@ -56,11 +56,12 @@ $blocks = [
         'DB_PERSISTENT' => 'false',
     ],
     'railway' => [
-        // By IP, not by name: shuttle.proxy.rlwy.net publishes a NAT64 AAAA
-        // record that macOS prefers, and on a network with no NAT64 gateway
-        // every connection hangs until PHP gives up. See the note in .env.
-        'DB_HOST' => $known['DB_HOST'] ?? '66.33.22.240',
-        'DB_PORT' => '28994',
+        // The Railway project in use since 2026-10-01 (the old proxy,
+        // shuttle.proxy.rlwy.net:28994, expired). If the name hangs on a
+        // network with no NAT64 gateway, put its IPv4 in .env instead; see
+        // the note there.
+        'DB_HOST' => $known['DB_HOST'] ?? 'gondola.proxy.rlwy.net',
+        'DB_PORT' => '53303',
         'DB_DATABASE' => 'railway',
         'DB_USERNAME' => 'root',
         'DB_PASSWORD' => $railwayPassword,
@@ -76,7 +77,7 @@ if ($target === 'railway' && $blocks['railway']['DB_PASSWORD'] === '') {
 // Railway keeps whatever host .env already names when that host is not the
 // local one, so a proxy address change made by hand is not undone here.
 if ($target === 'railway' && ($blocks['railway']['DB_HOST'] === '127.0.0.1' || $blocks['railway']['DB_HOST'] === 'localhost')) {
-    $blocks['railway']['DB_HOST'] = '66.33.22.240';
+    $blocks['railway']['DB_HOST'] = 'gondola.proxy.rlwy.net';
 }
 
 $wanted = $blocks[$target];
