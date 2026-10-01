@@ -404,11 +404,14 @@
                         <div class="schedule-form-grid bulk-schedule-details bulk-step-panel" data-step-panel="1">
                             <div class="bulk-inline-step-heading full-width">
                                 <h3>Choose who to schedule</h3>
-                                <span data-bulk-selected-count>0 selected</span>
                             </div>
                             <p class="bulk-schedule-intro full-width">Choose a department and position, then select specific employees or include all active staff. {{ $aiSchedulingEnabled ? 'The assistant generates one reviewed recommendation' : 'The system generates one reviewed bulk plan' }}.</p>
                             <label><span>Department</span><select name="department_id" data-bulk-department-filter required><option value="">Select department</option>@foreach($departments as $department)<option value="{{ $department->id }}" data-employee-count="{{ $employees->where('department_id', $department->id)->count() }}" data-category="{{ $department->category }}">{{ $department->name }}</option>@endforeach</select></label>
-                            <fieldset class="bulk-position-picker full-width" data-bulk-position-picker><legend>Position</legend><p data-bulk-position-help>Select a department first</p><div data-bulk-position-options>@foreach($positions as $position)<label class="bulk-position-option" data-department-id="{{ $position->department_id }}" hidden><input type="checkbox" name="position_ids[]" value="{{ $position->id }}" data-bulk-position-filter disabled><span>{{ $position->title }}</span><em class="bulk-position-count">{{ $employees->where('position_id', $position->id)->count() }}</em></label>@endforeach</div></fieldset>
+                            {{-- Not full-width: it shares the row with the department select,
+                                 which would otherwise leave half the grid empty and cost the
+                                 staff list a row of height. Step 1's grid-template-rows in
+                                 schedule.css counts on the two sitting together. --}}
+                            <fieldset class="bulk-position-picker" data-bulk-position-picker><legend>Position</legend><p data-bulk-position-help>Select a department first</p><div data-bulk-position-options>@foreach($positions as $position)<label class="bulk-position-option" data-department-id="{{ $position->department_id }}" hidden><input type="checkbox" name="position_ids[]" value="{{ $position->id }}" data-bulk-position-filter disabled><span>{{ $position->title }}</span><em class="bulk-position-count">{{ $employees->where('position_id', $position->id)->count() }}</em></label>@endforeach</div></fieldset>
                             <div class="bulk-staff-toolbar full-width" data-bulk-staff-toolbar>
                                 <div class="bulk-staff-search"><x-icon name="search" /><input type="search" data-bulk-employee-search placeholder="Search employee name or ID" aria-label="Search employee name or ID" disabled></div>
                                 <div class="bulk-show-filter" role="group" aria-label="Show employees">

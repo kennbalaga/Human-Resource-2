@@ -9,7 +9,6 @@
 
 .ai-scheduling-heading,
 .ai-candidate-heading,
-.ai-scheduling-result-actions,
 .ai-breakdown-row {
     display: flex;
     align-items: center;
@@ -36,6 +35,7 @@
 .ai-scheduling-status[data-tone='warning'] { color: var(--hr-warning-text); background: var(--hr-tint-warning); }
 .ai-scheduling-status[data-tone='danger'] { color: var(--hr-danger); background: var(--hr-tint-danger); }
 .ai-scheduling-results { display: grid; max-height: 25rem; gap: .8rem; overflow-y: auto; }
+.ai-scheduling-results[hidden] { display: none; }
 .ai-result-label { margin: 0 0 .4rem; color: var(--hr-muted); font-size: var(--fs-2xs); font-weight: 800; text-transform: uppercase; }
 
 /* What the assistant weighs, shown while there is no result to read. */
@@ -95,12 +95,8 @@
 .ai-ineligible-row { justify-content: space-between; padding: .5rem .75rem; border-top: 1px solid var(--hr-border); color: var(--hr-muted); font-size: var(--fs-2xs); }
 .ai-ineligible-row { display: grid; gap: .15rem; }
 .ai-ineligible-row strong { color: var(--hr-muted); }
-.ai-scheduling-result-actions { flex-wrap: wrap; }
 .ai-scheduling-empty { margin: 0; color: var(--hr-danger); font-size: var(--fs-xs); }
 .ai-scheduling-explanation { margin: 0; color: var(--hr-muted); font-size: var(--fs-xs); line-height: 1.55; }
-.ai-scheduling-rejection { padding: .8rem; border: 1px solid var(--hr-danger); border-radius: var(--r-md); background: var(--hr-tint-danger); }
-.ai-scheduling-rejection label { display: block; margin-bottom: .4rem; color: var(--hr-danger); font-size: var(--fs-2xs); font-weight: 800; }
-.ai-scheduling-rejection textarea { display: block; width: 100%; margin-bottom: .6rem; padding: .6rem .7rem; resize: vertical; border: 1px solid var(--hr-danger); border-radius: var(--r-md); color: var(--hr-text); background: var(--hr-surface); font: inherit; }
 
 /* Wide assignment workspace: manual controls stay separate from advisory AI output. */
 .schedule-assignment-dialog {
@@ -200,38 +196,41 @@
 }
 
 .schedule-assignment-workspace .ai-scheduling {
+    display: flex;
+    flex-direction: column;
     min-width: 0;
     min-height: 0;
     height: 100%;
     overflow: hidden;
-    align-content: start;
-    grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
 }
 
-/* The panel scrolls at the candidate list, so the actions that record the
-   review decision stay in view without floating over the cards. */
+/* One scroller for the whole result region -- see the note above this rule
+   in the history: scrolling at the candidate list alone collapsed it. */
 .schedule-assignment-workspace .ai-scheduling-results {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
     min-height: 0;
     max-height: none;
-    padding-right: .25rem;
-    overflow: hidden;
-    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
-}
-
-.schedule-assignment-workspace .ai-candidate-list {
-    min-height: 0;
     padding-right: .25rem;
     overflow-y: auto;
 }
 
-.schedule-assignment-workspace [data-ai-breakdown],
-.schedule-assignment-workspace [data-ai-ineligible] {
-    min-width: 0;
+/* Nothing inside it gives up height. A child that shrinks here is a child
+   that disappears, because the cards are the only thing tall enough to pay. */
+.schedule-assignment-workspace .ai-scheduling-results > * {
+    flex: 0 0 auto;
 }
 
-.schedule-assignment-workspace .ai-scheduling-result-actions {
-    padding-top: .6rem;
-    border-top: 1px solid var(--hr-border);
+.schedule-assignment-workspace .ai-candidate-list {
+    min-height: 0;
+    overflow: visible;
+}
+
+.schedule-assignment-workspace [data-ai-breakdown],
+.schedule-assignment-workspace [data-ai-ineligible] {
+    flex: 0 0 auto;
+    min-width: 0;
 }
 
 html[data-theme-resolved='dark'] .ai-scheduling { border-color: var(--hr-info); background: var(--hr-sunken); }
@@ -259,9 +258,6 @@ html[data-theme-resolved='dark'] .ai-candidate,
 html[data-theme-resolved='dark'] .ai-scheduling details { color: var(--hr-text); border-color: var(--hr-border); background: var(--hr-sunken); }
 html[data-theme-resolved='dark'] .ai-breakdown-row,
 html[data-theme-resolved='dark'] .ai-ineligible-row { border-color: var(--hr-border); color: var(--hr-muted); }
-html[data-theme-resolved='dark'] .ai-scheduling-rejection { border-color: var(--hr-danger); background: var(--hr-danger-soft); }
-html[data-theme-resolved='dark'] .ai-scheduling-rejection label { color: var(--hr-danger); }
-html[data-theme-resolved='dark'] .ai-scheduling-rejection textarea { border-color: var(--hr-border-strong); color: var(--hr-text); background: var(--hr-sunken); }
 html[data-theme-resolved='dark'] .schedule-assignment-workspace { background: var(--hr-bg); }
 html[data-theme-resolved='dark'] .schedule-assignment-manual { border-color: var(--hr-primary-soft); background: var(--hr-primary-soft); }
 html[data-theme-resolved='dark'] .schedule-assignment-section-heading h3 { color: var(--hr-text); }
@@ -269,7 +265,6 @@ html[data-theme-resolved='dark'] .schedule-assignment-section-heading p { color:
 html[data-theme-resolved='dark'] .schedule-assignment-section-heading > span { color: var(--hr-primary-text); background: var(--hr-tint-success); }
 html[data-theme-resolved='dark'] .schedule-assignment-section-copy,
 html[data-theme-resolved='dark'] .schedule-save-note { color: var(--hr-muted); }
-html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-result-actions { border-color: var(--hr-border); }
 
 @media (max-width: 1100px) {
     .schedule-assignment-dialog {
@@ -296,12 +291,13 @@ html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-r
     }
 
     .schedule-assignment-workspace .ai-scheduling-results {
+        flex: 0 1 auto;
         max-height: 32rem;
         overflow-y: auto;
-        grid-template-rows: none;
     }
 
     .schedule-assignment-workspace .ai-candidate-list {
+        flex: 0 0 auto;
         overflow: visible;
     }
 }
@@ -329,7 +325,6 @@ html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-r
     .ai-scheduling-controls { grid-template-columns: 1fr; }
     .ai-scheduling-controls .btn { grid-column: 1; width: 100%; }
     .ai-scheduling-advisory { display: none; }
-    .ai-scheduling-result-actions .btn { flex: 1 1 9rem; }
 }
 
 /*

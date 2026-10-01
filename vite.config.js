@@ -9,6 +9,9 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/css/style.css',
+                // The public landing page, which like the auth pages is served
+                // outside the app shell and so imports the tokens itself.
+                'resources/css/landing.css',
                 'resources/js/app.js',
                 'resources/js/script.js',
                 // Its own entry rather than part of app.js: it is the only code

@@ -36,6 +36,10 @@
 /* After the component sheets so it settles the look of a search field wherever
    one appears, and before dark-mode.css so the dark variants still win. */
 @import './search-fields.css';
+/* The option list and calendar that stand in for the browser's own. After the
+   feature sheets because a panel belongs to no one page, and before
+   dark-mode.css so the dark variants still win. */
+@import './field-controls.css';
 
 @import './dark-mode.css';
 

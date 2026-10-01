@@ -30,10 +30,10 @@
              open it pushed the recommendation itself below the fold. It sits
              under the button rather than over it, so what the panel is for is
              the first thing read. --}}
-        <details class="ai-scheduling-about">
+        <details class="ai-scheduling-about" data-ai-criteria>
             <summary>What the assistant looks at</summary>
             <p class="ai-scheduling-notice">Uses available department, position, schedules, approved leave, attendance, overtime, and workload records. HR review is required.</p>
-            <div class="ai-scheduling-criteria" data-ai-criteria>
+            <div class="ai-scheduling-criteria">
                 <p>The assistant checks each employee for:</p>
                 <ul>
                     <li>Existing shifts on the same day</li>
@@ -47,7 +47,6 @@
 
         <div class="ai-scheduling-status" data-ai-status role="status" aria-live="polite" hidden></div>
         <div class="ai-scheduling-results" data-ai-results hidden>
-            <p class="ai-scheduling-explanation" data-ai-explanation></p>
             <div class="ai-scheduling-results-heading">
                 <strong data-ai-results-title></strong>
                 <small>Fewest paid hours this week ranks first</small>
@@ -55,22 +54,24 @@
             {{-- One ranked list rather than a pick and a separate runner-up
                  column: the comparison a reviewer makes is between the people,
                  and each card carries the button that puts that person on the
-                 shift. The score breakdown and the people who were left out
-                 stay in disclosures below. --}}
+                 shift. Who was left out follows it, because those two lists
+                 are read against each other; the score behind the order is
+                 the one thing folded away. --}}
             <div class="ai-candidate-list" data-ai-candidates></div>
-            <details data-ai-breakdown><summary>View score breakdown</summary><div data-ai-breakdown-list></div></details>
             <section class="ai-ineligible" data-ai-ineligible hidden aria-labelledby="aiIneligibleTitle"><p class="ai-ineligible-title" id="aiIneligibleTitle" data-ai-ineligible-title></p><div data-ai-ineligible-list></div></section>
-            <div class="ai-scheduling-result-actions">
-                <button class="btn btn-outline-primary" type="button" data-ai-regenerate>Regenerate</button>
-                <button class="btn btn-light" type="button" data-ai-ignore>Ignore</button>
-                <button class="btn btn-light" type="button" data-ai-reject>Reject with reason</button>
-                <button class="btn btn-light" type="button" data-ai-close>Close</button>
-            </div>
-            <div class="ai-scheduling-rejection" data-ai-rejection hidden>
-                <label for="aiRejectionReason">Reason for rejecting this recommendation</label>
-                <textarea id="aiRejectionReason" data-ai-rejection-reason rows="3" maxlength="1000" placeholder="Provide at least 5 characters for the audit record."></textarea>
-                <button class="btn btn-outline-primary" type="button" data-ai-confirm-reject>Confirm rejection</button>
-            </div>
+            {{-- The ranking in prose, kept with the numbers it describes: it
+                 says the same thing on every result, and in front of the cards
+                 it was two paragraphs standing between the question and the
+                 answer. --}}
+            <details data-ai-breakdown><summary>Why this ranking</summary><p class="ai-scheduling-explanation" data-ai-explanation></p><div data-ai-breakdown-list></div></details>
+            {{-- No row of review buttons under the list. Regenerate repeated
+                 the Recommend again button in the header, Close undid a panel
+                 that already steps aside when the shift or date changes, and
+                 the two that recorded a decision asked the reviewer to answer
+                 the assistant before answering the question the form is
+                 actually asking. Declining a suggestion here is picking
+                 somebody else, or picking nobody. The decision endpoint and
+                 its audit table are untouched. --}}
         </div>
     </section>
 @endif

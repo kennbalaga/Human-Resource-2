@@ -341,6 +341,16 @@
     --r-lg: 14px;     /* cards and panels */
     --r-xl: 18px;     /* modals and dialogs */
     --r-pill: 999px;  /* badges, avatars, toggles */
+}
+
+/*
+ * Native form controls -- checkbox, radio, range, progress -- take the brand
+ * green rather than the browser's blue. Inherited, so it is said once here
+ * instead of per component, and purely cosmetic: it paints the control the
+ * platform draws and changes no layout.
+ */
+:root {
+    accent-color: var(--hr-primary-fill);
 
     /* ---- Touch ----
      * WCAG 2.5.5 / platform HIG minimum. This app is used on phones on the ward

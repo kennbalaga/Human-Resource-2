@@ -301,28 +301,87 @@
 .room-board-swatch.is-blocked { background: var(--hr-danger-soft); border-color: var(--hr-danger-line); }
 .room-board-swatch.is-dark { background: var(--hr-sunken); border-color: var(--hr-border-strong); border-style: dashed; }
 
+/*
+ * Was a dashed box, which reads as a drop target rather than as a form; the
+ * hairline says the same "this is where a case goes" without the costume.
+ */
 .room-board-booking-form {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 12px;
+    gap: 8px 10px;
     align-items: flex-end;
     margin-top: 10px;
     padding: 10px 12px;
     background: var(--hr-surface-2);
-    border: 1px dashed var(--hr-border-strong);
+    border: 1px solid var(--hr-border);
     border-radius: 8px;
 }
 
 .room-board-booking-form label {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
     font-size: .6875rem;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
     color: var(--hr-muted);
 }
 
-.room-board-booking-purpose { flex: 1 1 200px; }
+/*
+ * These three carried no styling at all, so each arrived in the browser's own
+ * default — a grey inset box for the clocks, a flat rule for the case name —
+ * and the row read as three unrelated controls dropped on a panel. They are
+ * given the same field the rest of the system uses, at the smaller scale this
+ * inline row sits at, so the booking strip belongs to the page it is on.
+ */
+.room-board-booking-form input {
+    min-height: 2.25rem;
+    padding: .35rem .6rem;
+    border: 1px solid var(--hr-field-border);
+    border-radius: var(--r-sm);
+    color: var(--hr-text);
+    background: var(--hr-surface);
+    /* font: inherit takes the label's own weight and casing with it, which is
+       how a placeholder ends up shouting. */
+    font: inherit;
+    font-size: .8125rem;
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
+    outline: none;
+}
+
+.room-board-booking-form input::placeholder {
+    color: var(--hr-placeholder);
+}
+
+.room-board-booking-form input:focus {
+    border-color: var(--hr-primary);
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .18);
+}
+
+/* One baseline across the row: the control that files the case stands the same
+   height as the fields it files. */
+.room-board-booking-form .btn {
+    min-height: 2.25rem;
+}
+
+/* The two clock fields hold four characters, so they are sized for four; the
+   case name is the only field that earns the rest of the row, up to a width a
+   line of text can still be read across. */
+.room-board-booking-form input[type='time'] {
+    width: 8.5rem;
+}
+
+.room-board-booking-purpose {
+    flex: 1 1 14rem;
+    max-width: 26rem;
+}
+
+/* The button follows the last field rather than being pushed to the far edge:
+   with three short fields, pinning it right left a hand's width of nothing
+   between the case name and the control that files it. */
 
 .room-board-findings {
     display: flex;
@@ -330,6 +389,13 @@
     gap: 7px;
 }
 
+/*
+ * No coloured bar down the side. The level chip already names the severity in
+ * words and carries the colour, so the bar was a second copy of the same fact
+ * — and a row of them turns a calm list into a striped one. A blocker instead
+ * tints its own card, which separates "this stops the list" from "read this"
+ * without adding a rule to look past.
+ */
 .room-board-finding {
     display: grid;
     grid-template-columns: auto 1fr;
@@ -338,12 +404,13 @@
     padding: 9px 12px;
     background: var(--hr-surface-2);
     border: 1px solid var(--hr-border);
-    border-left-width: 3px;
     border-radius: 8px;
 }
 
-.room-board-finding.is-blocker { border-left-color: var(--hr-danger); }
-.room-board-finding.is-warning { border-left-color: var(--hr-warning); }
+.room-board-finding.is-blocker {
+    border-color: var(--hr-danger-line);
+    background: var(--hr-danger-soft);
+}
 
 .room-board-finding-level {
     padding: 2px 6px;
@@ -361,7 +428,19 @@
 
 .room-board-finding-message { font-size: .8125rem; color: var(--hr-text); }
 .room-board-finding-detail { display: block; font-size: .75rem; color: var(--hr-muted); margin-top: 2px; }
-.room-board-finding-code { display: block; font-size: .6875rem; color: var(--hr-placeholder); margin-top: 3px; }
+/* The rule's own handle, kept for whoever has to look one up, sized as the
+   reference it is rather than as a third line of the finding. */
+.room-board-finding-code {
+    display: inline-block;
+    margin-top: 5px;
+    padding: 1px 6px;
+    border-radius: var(--r-pill);
+    color: var(--hr-muted);
+    background: var(--hr-surface-3);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .625rem;
+    letter-spacing: .02em;
+}
 
 .room-board-clear {
     display: flex;

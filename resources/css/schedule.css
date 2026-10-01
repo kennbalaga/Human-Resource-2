@@ -183,7 +183,7 @@
 .schedule-form-grid textarea {
     width: 100%;
     border: 1px solid var(--hr-field-border);
-    border-radius: var(--r-input);
+    border-radius: var(--r-md);
     background: var(--hr-surface);
     color: var(--hr-text);
     font: inherit;
@@ -1465,6 +1465,17 @@
     display: none;
 }
 
+/*
+ * A step's rows keep their own height. The body stretches the panel to its full
+ * height, and a grid with no align-content hands that slack to every auto row
+ * at once — which is where the gap under the staff list came from: the row grew
+ * and the list, capped, could not fill it. Held to the top, a step that is
+ * shorter than the dialog simply ends, and one that is taller scrolls.
+ */
+.bulk-schedule-form > .bulk-step-panel {
+    align-content: start;
+}
+
 /* A step holding more than one block — the period fields and the rule card
    below them. The modal body's own gap does not reach inside a panel, so the
    stack supplies the same spacing between its parts. */
@@ -1675,57 +1686,60 @@
     accent-color: var(--hr-primary-fill);
 }
 
+/*
+ * The search field follows the house pattern the topbar sets: the wrapper is
+ * the field, and the magnifier and the input sit inside it. Without that the
+ * icon was simply the first thing in a block and stacked above the box.
+ *
+ * Its height is the pill group's own — two rem of button inside three pixels
+ * of track on each side — so the two sides of the toolbar stand level rather
+ * than by a number that happens to look close.
+ */
 .bulk-staff-search {
-    position: relative;
     display: flex;
+    flex: 1 1 15rem;
     align-items: center;
-    flex: 1 1 14rem;
-    min-width: 0;
+    gap: .5rem;
+    max-width: 22rem;
+    min-height: calc(2rem + 6px);
+    padding: 0 .7rem;
+    border: 1px solid var(--hr-field-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+    transition: border-color 160ms ease;
 }
 
-.bulk-staff-search svg {
-    position: absolute;
-    left: .6rem;
+.bulk-staff-search:focus-within {
+    border-color: var(--hr-primary);
+}
+
+.bulk-staff-search .ui-icon {
     width: 1rem;
     height: 1rem;
+    flex: 0 0 auto;
     color: var(--hr-placeholder);
-    pointer-events: none;
 }
 
-.schedule-form-grid .bulk-staff-search input[type="search"] {
+/* Written past search-fields.css, which draws the input itself as the field —
+   a box inside a box once the wrapper took that job. */
+.bulk-schedule-form .bulk-staff-search input[data-bulk-employee-search] {
     width: 100%;
-    min-height: 2.4rem;
-    padding: .4rem .65rem .4rem 2.1rem;
-    border: 1px solid var(--hr-field-border);
-    border-radius: var(--r-input);
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     font-size: var(--fs-sm);
-    background: var(--hr-surface);
 }
 
-.bulk-staff-search input[type="search"]:focus-visible {
-    border-color: var(--hr-primary);
-    outline: 3px solid rgba(var(--hr-primary-rgb), .35);
-    outline-offset: 0;
-}
-
-.bulk-staff-search input[type="search"]:disabled {
-    background: var(--hr-sunken);
-    cursor: not-allowed;
-}
-
-/* The selection count and Clear sit at the far end of the toolbar. */
-.bulk-staff-toolbar .bulk-selection-status {
-    margin-left: auto;
-}
-
-.bulk-next-button {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
+.bulk-staff-search:has(input:disabled) {
+    opacity: .6;
 }
 
 .bulk-show-filter {
     display: inline-flex;
+    flex: 0 0 auto;
     padding: 3px;
     border-radius: var(--r-md);
     background: var(--hr-border);
@@ -1775,9 +1789,14 @@
     font-size: var(--fs-xs);
 }
 
+/*
+ * The cap is what the window can show, not a fixed fifteen rems. Short lists
+ * are still short; a full one now uses the dialog it is sitting in instead of
+ * scrolling four rows at a time under a screen's worth of empty panel.
+ */
 .bulk-inline-employee-list {
     display: grid;
-    max-height: 15rem;
+    max-height: min(34rem, 55vh);
     overflow-y: auto;
     border: 1px solid var(--hr-border);
     border-radius: var(--r-md);
@@ -2338,12 +2357,24 @@
     margin-top: .5rem;
 }
 
-/* Staff read as a table: name, number, role, and what this period already
-   holds for them, in four columns that line up down the list. */
-.bulk-employee-head,
-.bulk-employee-option {
+/*
+ * Staff read as a table: name, number, role, and what this period already holds
+ * for them, in four columns that line up down the list.
+ *
+ * Written at this specificity on purpose. Each row is a <label>, and this list
+ * sits inside .schedule-form-grid, whose own label rules — a .4rem gap and a
+ * bold slate span — are more specific than a plain class. Left to them the head
+ * and the rows laid out on different column widths, so the headings drifted off
+ * the data under them, and every cell in the row came out shouting.
+ */
+.bulk-inline-employee-list {
+    --hr-staff-columns: 1.15rem 1.9rem minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1.6fr);
+}
+
+.schedule-form-grid .bulk-inline-employee-list .bulk-employee-head,
+.schedule-form-grid .bulk-inline-employee-list label.bulk-employee-option {
     display: grid;
-    grid-template-columns: 1.15rem 1.9rem minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1.6fr);
+    grid-template-columns: var(--hr-staff-columns);
     align-items: center;
     gap: .65rem;
     padding: .55rem 1rem;
@@ -2362,14 +2393,53 @@
     text-transform: uppercase;
 }
 
-.bulk-employee-head > span:first-of-type {
+/*
+ * The first heading covers the checkbox, the avatar and the name — three
+ * columns the row spends on one person. Which column it starts in depends on
+ * whether the head carries the select-all box, so both shapes are stated:
+ * without it the heading opens the row, with it the heading starts beside it.
+ */
+.schedule-form-grid .bulk-employee-head > span:first-child {
+    grid-column: 1 / 4;
+}
+
+.schedule-form-grid .bulk-employee-head > .bulk-master-check + span {
     grid-column: 2 / 4;
 }
 
-/* Select-all sits in the checkbox column above the rows it acts on. */
-.bulk-employee-head > .bulk-master-check {
-    grid-column: 1;
-    justify-self: start;
+/* In the head the select-all box is a cell, not a field: the form grid's own
+   label rule would otherwise stack it and open a gap under it. */
+.schedule-form-grid .bulk-inline-employee-list .bulk-employee-head label.bulk-master-check {
+    display: flex !important;
+    align-items: center;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.bulk-employee-head .bulk-master-check input {
+    margin: 0;
+}
+
+/* The row's own cells, back from the field-label styling they inherited. */
+.schedule-form-grid .bulk-employee-option > span {
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+.schedule-form-grid .bulk-employee-option > .bulk-employee-name {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+
+.schedule-form-grid .bulk-employee-option > .bulk-employee-avatar {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
 }
 
 .bulk-inline-employee-list.is-empty .bulk-employee-head {
@@ -2387,7 +2457,9 @@
     height: 1.9rem;
     border-radius: var(--r-pill);
     color: var(--hr-muted);
-    background: var(--hr-surface-2);
+    /* One rung up from the row it sits on, or the disc behind the initials is
+       not there at all. */
+    background: var(--hr-surface-3);
     font-size: var(--fs-2xs);
     font-weight: 800;
     place-items: center;
@@ -2433,70 +2505,6 @@
     background: var(--hr-tint-info);
 }
 
-/*
- * The staff table on a phone.
- *
- * Four columns read across is what makes this a table and not a list, and at
- * 390px there is no width to read them across in: an employee number is
- * sixteen characters that must not be cut, and squeezed beside a name and a
- * position it is the first thing to go. So the row keeps its checkbox and its
- * avatar where they were -- those are what the thumb aims at -- and the four
- * text columns stack into the space left over, in the order they were read in.
- *
- * The header row goes with them. It labels columns that no longer exist, and
- * the only thing in it a phone still needs is select-all, which keeps the
- * column it already sits in.
- */
-@media (max-width: 640px) {
-    .bulk-employee-head,
-    .bulk-employee-option {
-        grid-template-columns: 1.15rem 1.9rem minmax(0, 1fr);
-        align-items: start;
-        gap: .5rem .65rem;
-    }
-
-    .bulk-employee-head > span {
-        display: none;
-    }
-
-    .bulk-employee-head > .bulk-master-check {
-        grid-column: 1;
-    }
-
-    /* Nothing is left to label, so the row shrinks to the select-all it
-       still carries rather than keeping the height of a heading. */
-    .bulk-employee-head {
-        padding: .45rem 1rem;
-    }
-
-    .bulk-employee-name,
-    .bulk-employee-number,
-    .bulk-employee-position,
-    .bulk-employee-period {
-        grid-column: 3;
-        white-space: normal;
-    }
-
-    /* Pinned rather than auto-placed: a row-spanning item and four
-       explicitly-placed ones in the same grid is exactly the arrangement
-       auto-placement resolves differently than it reads. */
-    .bulk-employee-check {
-        grid-column: 1;
-        grid-row: 1;
-    }
-
-    .bulk-employee-avatar {
-        grid-column: 2;
-        grid-row: 1 / span 4;
-    }
-
-    /* The number is the one field that must survive whole: it is what the
-       roster is checked against, and a truncated one is worse than none. */
-    .bulk-employee-number {
-        font-variant-numeric: tabular-nums;
-        overflow-wrap: anywhere;
-    }
-}
 /* The picker sits inside the form grid, whose own label rule would otherwise
    stack the count under the title instead of beside it. */
 /* :not([hidden]) matters: the !important below is needed to beat the form
@@ -2740,6 +2748,11 @@
 
 .bulk-employee-check svg {
     width: .8rem;
+    visibility: hidden;
+}
+
+.bulk-employee-option input:checked + .bulk-employee-check svg {
+    visibility: visible;
 }
 
 .bulk-employee-option input:checked + .bulk-employee-check {
@@ -4649,150 +4662,6 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
     margin-left: auto;
 }
 
-/*
- * The pattern row reads as a sentence -- "Repeat every 1 week on ..." -- so
- * its parts sit on one baseline rather than each under a label of its own.
- * `flex-end` is what a row of labelled fields wants; a sentence wants centre.
- */
-.recurring-pattern-row {
-    align-items: center;
-}
-
-.recurring-pattern-lead {
-    color: var(--hr-text);
-    font-size: var(--fs-sm);
-}
-
-/* Who was picked, said back under the picker. */
-.recurring-employee-meta {
-    display: block;
-    margin-top: .35rem;
-    color: var(--hr-subtle);
-    font-size: var(--fs-xs);
-}
-
-/*
- * Starts is one field; Ends is a choice between two. They are given equal
- * width anyway, because they are one decision read across -- how long this
- * runs -- and a narrow Starts beside a wide Ends reads as a hierarchy that
- * is not there.
- */
-.recurring-range {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
-    gap: 1rem;
-    align-items: start;
-}
-
-.recurring-range-start {
-    display: grid;
-    gap: .35rem;
-}
-
-.recurring-range-start > span,
-.recurring-range-end > legend {
-    color: var(--hr-muted);
-    font-size: var(--fs-xs);
-    font-weight: 800;
-}
-
-.recurring-range-start input {
-    min-height: 2.75rem;
-    padding: .6rem .75rem;
-    font-size: var(--fs-base);
-}
-
-.recurring-range-end {
-    display: grid;
-    gap: .5rem;
-    margin: 0;
-    padding: 0;
-    border: 0;
-}
-
-.recurring-range-end > legend {
-    float: none;
-    width: auto;
-    margin-bottom: .35rem;
-    padding: 0;
-}
-
-/*
- * One row per way of ending. The live one is drawn as a selected choice tile
- * -- the same green plate a selected shift gets -- so which mode is in force
- * is visible without reading the radio.
- */
-.recurring-end-mode {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    min-height: 2.75rem;
-    padding: .35rem .65rem;
-    border: 1px solid var(--hr-border);
-    border-radius: var(--r-md);
-    color: var(--hr-text);
-    font-size: var(--fs-sm);
-    background: var(--hr-surface);
-    cursor: pointer;
-}
-
-.recurring-end-mode.is-active {
-    border-color: var(--hr-primary);
-    background: var(--hr-primary-soft);
-}
-
-.recurring-end-mode input[type="radio"] {
-    flex: none;
-    margin: 0;
-    accent-color: var(--hr-primary-fill);
-}
-
-.recurring-end-mode > span {
-    flex: none;
-}
-
-.recurring-end-mode input[type="date"],
-.recurring-end-mode input[type="number"] {
-    min-width: 0;
-    min-height: 2.25rem;
-    padding: .35rem .5rem;
-    border: 1px solid var(--hr-field-border);
-    border-radius: var(--r-input);
-    font-size: var(--fs-sm);
-    background: var(--hr-surface);
-}
-
-.recurring-end-mode input[type="date"] {
-    flex: 1 1 auto;
-}
-
-.recurring-end-mode input[type="number"] {
-    width: 5rem;
-    flex: none;
-}
-
-/* A disabled control here means "the other mode is in force", which the
-   plate already says; it is dimmed rather than struck out. */
-.recurring-end-mode input:disabled {
-    color: var(--hr-placeholder);
-    background: var(--hr-sunken);
-    cursor: not-allowed;
-}
-
-@media (max-width: 640px) {
-    .recurring-range {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .recurring-pattern-row {
-        align-items: stretch;
-    }
-
-    .recurring-presets {
-        margin-left: 0;
-    }
-}
-
 .recurring-preview {
     display: grid;
     align-content: start;
@@ -5088,8 +4957,8 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
 
 .schedule-coverage-status.is-full {
     color: var(--hr-info-text);
-    border-color: var(--hr-info-line);
-    background: var(--hr-info-soft);
+    border-color: var(--hr-info);
+    background: var(--hr-tint-info);
 }
 
 .schedule-coverage-status.is-open {

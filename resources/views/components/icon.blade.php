@@ -157,8 +157,10 @@
             <path d="M12 16v5" />
             @break
         @case('ai')
-            <path d="M12 3a5 5 0 0 0-5 5c0 .7.1 1.3.4 1.9A4 4 0 0 0 9 17.5V21h6v-3.5a4 4 0 0 0 1.6-7.6A5 5 0 0 0 12 3Z" />
-            <path d="M9 9h.01M15 9h.01M10 13h4" />
+            {{-- A four-pointed sparkle and its smaller companion: the mark the
+                 kit gives every assistant action. --}}
+            <path d="M11 3.5 12.6 8 17 9.6 12.6 11.2 11 15.7 9.4 11.2 5 9.6 9.4 8Z" />
+            <path d="M17.8 14.2l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z" />
             @break
         @case('lock')
             <rect x="4" y="10.5" width="16" height="10" rx="2.5" />

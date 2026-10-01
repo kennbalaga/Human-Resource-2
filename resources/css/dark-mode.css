@@ -86,7 +86,6 @@ html[data-theme-resolved='dark'] {
     --hr-danger-soft: #3d2029;
     --hr-info: #8fbbec;
     --hr-info-text: #8fbbec;
-    --hr-info-soft: #182b3d;
     --hr-violet: #b6a3e0;
 
     /* Plate edges. On this ground they run lighter than the plate rather than
@@ -95,7 +94,6 @@ html[data-theme-resolved='dark'] {
     --hr-success-line: #1f5646;
     --hr-warning-line: #5c4d2a;
     --hr-danger-line: #603840;
-    --hr-info-line: #2d4a66;
 
     /* Tints for pill backgrounds: translucent so they inherit the surface below. */
     --hr-tint-primary: rgba(16, 185, 129, .14);
@@ -1399,3 +1397,54 @@ html[data-theme-resolved='dark'] .roster-legend,
 html[data-theme-resolved='dark'] .roster-workload header span,
 html[data-theme-resolved='dark'] .roster-workload li small { color: var(--hr-muted); }
 html[data-theme-resolved='dark'] .roster-workload { border-color: var(--hr-border); background: var(--hr-sunken); }
+
+/*
+ * The stand-in option list and calendar. Both float above everything, so they
+ * sit on the lifted surface rather than the canvas — a panel on the canvas
+ * colour would read as a hole in the page it is floating over.
+ */
+html[data-theme-resolved='dark'] .hr-field-panel { border-color: var(--hr-border); background: var(--hr-surface); box-shadow: 0 2px 4px rgba(0, 0, 0, .3), 0 18px 40px rgba(0, 0, 0, .45); }
+html[data-theme-resolved='dark'] .hr-select-group { color: var(--hr-subtle); }
+html[data-theme-resolved='dark'] .hr-select-option { color: var(--hr-text); }
+html[data-theme-resolved='dark'] .hr-select-option.is-active { background: var(--hr-surface-3); }
+html[data-theme-resolved='dark'] .hr-select-option.is-selected { color: var(--hr-primary-text); }
+html[data-theme-resolved='dark'] .hr-select-option.is-selected.is-active { background: var(--hr-primary-soft); }
+html[data-theme-resolved='dark'] .hr-date-title,
+html[data-theme-resolved='dark'] .hr-date-day { color: var(--hr-text); }
+html[data-theme-resolved='dark'] .hr-date-weekdays span,
+html[data-theme-resolved='dark'] .hr-date-day.is-outside,
+html[data-theme-resolved='dark'] .hr-date-day:disabled { color: var(--hr-subtle); }
+html[data-theme-resolved='dark'] .hr-date-day:hover:not(:disabled),
+html[data-theme-resolved='dark'] .hr-date-step:hover:not(:disabled),
+html[data-theme-resolved='dark'] .hr-date-trigger:hover { background: var(--hr-surface-3); }
+html[data-theme-resolved='dark'] .hr-date-day.is-today { color: var(--hr-primary-text); box-shadow: inset 0 -2px 0 var(--hr-primary); }
+html[data-theme-resolved='dark'] .hr-date-day.is-selected { color: var(--hr-on-primary); background: var(--hr-primary-fill); }
+html[data-theme-resolved='dark'] .hr-date-foot { border-color: var(--hr-border); }
+html[data-theme-resolved='dark'] .hr-date-action { color: var(--hr-primary-text); }
+html[data-theme-resolved='dark'] .hr-date-action:hover:not(:disabled) { background: var(--hr-primary-soft); }
+/* After the colour rule above, so a disabled action still reads as disabled. */
+html[data-theme-resolved='dark'] .hr-date-action:disabled { color: var(--hr-subtle); }
+html[data-theme-resolved='dark'] .hr-date-trigger { color: var(--hr-muted); }
+
+/* Room board findings: the severity is the chip and, for a blocker, the card's
+   own tint — there is no bar down the side to re-point here. */
+html[data-theme-resolved='dark'] .room-board-finding { border-color: var(--hr-border); background: var(--hr-sunken); }
+html[data-theme-resolved='dark'] .room-board-finding.is-blocker { border-color: var(--hr-danger); background: var(--hr-danger-soft); }
+html[data-theme-resolved='dark'] .room-board-finding-code { color: var(--hr-muted); background: var(--hr-surface-3); }
+html[data-theme-resolved='dark'] .room-board-booking-form { border-color: var(--hr-border); background: var(--hr-sunken); }
+html[data-theme-resolved='dark'] .room-board-booking-form input { color: var(--hr-text); border-color: var(--hr-field-border); background: var(--hr-surface); }
+html[data-theme-resolved='dark'] .hr-time-cell { color: var(--hr-text); }
+html[data-theme-resolved='dark'] .hr-time-cell:hover { background: var(--hr-surface-3); }
+html[data-theme-resolved='dark'] .hr-time-cell.is-selected { color: var(--hr-on-primary); background: var(--hr-primary-fill); }
+html[data-theme-resolved='dark'] .hr-time-foot { border-color: var(--hr-border); }
+html[data-theme-resolved='dark'] .hr-time-readout { color: var(--hr-text); }
+html[data-theme-resolved='dark'] .hr-time-readout.is-empty,
+html[data-theme-resolved='dark'] .hr-time-label { color: var(--hr-subtle); }
+html[data-theme-resolved='dark'] .hr-time-meridiem { background: var(--hr-surface-3); }
+html[data-theme-resolved='dark'] .hr-time-half { color: var(--hr-muted); }
+html[data-theme-resolved='dark'] .hr-time-half.is-selected { color: var(--hr-on-primary); background: var(--hr-primary-fill); }
+html[data-theme-resolved='dark'] .hr-time-trigger { color: var(--hr-muted); }
+html[data-theme-resolved='dark'] .bulk-staff-search { border-color: var(--hr-field-border); background: var(--hr-sunken); }
+html[data-theme-resolved='dark'] .bulk-staff-search:focus-within { border-color: var(--hr-primary); }
+html[data-theme-resolved='dark'] .bulk-staff-search .ui-icon { color: var(--hr-placeholder); }
+html[data-theme-resolved='dark'] .bulk-schedule-form .bulk-staff-search input[data-bulk-employee-search] { color: var(--hr-text); background: transparent; }

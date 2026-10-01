@@ -1,0 +1,431 @@
+/*
+ * The option list and the calendar that field-controls.js draws in place of
+ * the browser's own. Both are floating panels appended to <body>, so they are
+ * styled from the tokens like any other surface and are never clipped by the
+ * modal or table they opened out of.
+ *
+ * Nothing here touches the fields themselves: a <select> and an
+ * input[type="date"] keep whatever each page already gives them.
+ */
+
+.hr-field-panel {
+    position: fixed;
+    z-index: 1090; /* over a Bootstrap modal (1055) and its backdrop */
+    max-width: calc(100vw - 1rem);
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+    box-shadow: var(--hr-shadow-lg);
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    animation: hr-field-panel-in .12s ease-out;
+}
+
+@keyframes hr-field-panel-in {
+    from { opacity: 0; transform: translateY(-2px); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hr-field-panel { animation: none; }
+}
+
+/* ---------------------------------------------------------------- *
+   Option list
+   ---------------------------------------------------------------- */
+
+.hr-select-list {
+    max-height: 17rem;
+    padding: .3rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.hr-select-group {
+    margin: .35rem 0 .15rem;
+    padding: 0 .55rem;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.hr-select-group:first-child {
+    margin-top: .1rem;
+}
+
+.hr-select-option {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    width: 100%;
+    padding: .4rem .55rem;
+    border: 0;
+    border-radius: var(--r-sm);
+    color: var(--hr-text);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+/* The tick column is held open on every row so the labels keep one left edge
+   whether or not a row is the selected one. */
+.hr-select-tick {
+    width: .9rem;
+    height: .9rem;
+    flex: 0 0 auto;
+    background: currentcolor;
+    opacity: 0;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.hr-select-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hr-select-option.is-active {
+    background: var(--hr-surface-3);
+}
+
+.hr-select-option.is-selected {
+    color: var(--hr-primary-text);
+    font-weight: 600;
+}
+
+.hr-select-option.is-selected .hr-select-tick {
+    opacity: 1;
+}
+
+.hr-select-option.is-selected.is-active {
+    background: var(--hr-primary-soft);
+}
+
+.hr-select-option:disabled {
+    color: var(--hr-subtle);
+    cursor: not-allowed;
+    opacity: .6;
+}
+
+/* While its list is open the field reads as pressed, the way a native one does. */
+select.hr-select-open {
+    border-color: var(--hr-primary) !important;
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .18) !important;
+}
+
+/* ---------------------------------------------------------------- *
+   Date field and calendar
+   ---------------------------------------------------------------- */
+
+.hr-date-field,
+.hr-time-field {
+    position: relative;
+    display: block;
+}
+
+/* The browser's own indicator is what opens the browser's own popup, so it
+   gives way to the trigger below. The field itself still types normally. */
+.hr-date-field input[type='date']::-webkit-calendar-picker-indicator,
+.hr-time-field input[type='time']::-webkit-calendar-picker-indicator {
+    display: none;
+}
+
+.hr-date-field input[type='date'],
+.hr-time-field input[type='time'] {
+    padding-right: 2.1rem;
+}
+
+.hr-date-trigger,
+.hr-time-trigger {
+    position: absolute;
+    top: 50%;
+    right: calc(var(--hr-date-inset, var(--hr-time-inset, 0px)) + .45rem);
+    display: grid;
+    width: 1.6rem;
+    height: 1.6rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    color: var(--hr-muted);
+    background: transparent;
+    cursor: pointer;
+    place-items: center;
+    transform: translateY(-50%);
+}
+
+.hr-date-trigger svg,
+.hr-time-trigger svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.hr-date-trigger:hover,
+.hr-time-trigger:hover {
+    color: var(--hr-primary-text);
+    background: var(--hr-surface-3);
+}
+
+.hr-date-trigger:disabled,
+.hr-time-trigger:disabled {
+    cursor: not-allowed;
+    opacity: .45;
+}
+
+.hr-date-panel {
+    width: 17.5rem;
+    padding: .65rem;
+}
+
+.hr-date-head {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin-bottom: .45rem;
+}
+
+.hr-date-title {
+    flex: 1 1 auto;
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    text-align: center;
+}
+
+.hr-date-step {
+    display: grid;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    color: var(--hr-muted);
+    background: transparent;
+    cursor: pointer;
+    place-items: center;
+}
+
+.hr-date-step svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.hr-date-step:hover:not(:disabled) {
+    color: var(--hr-text);
+    background: var(--hr-surface-3);
+}
+
+.hr-date-step:disabled {
+    cursor: not-allowed;
+    opacity: .35;
+}
+
+.hr-date-weekdays,
+.hr-date-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.hr-date-weekdays span {
+    padding: .2rem 0;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    text-align: center;
+}
+
+.hr-date-day {
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    color: var(--hr-text);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--fs-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.hr-date-day.is-outside {
+    color: var(--hr-subtle);
+    opacity: .55;
+}
+
+.hr-date-day:hover:not(:disabled) {
+    background: var(--hr-surface-3);
+}
+
+.hr-date-day:focus-visible {
+    outline: 2px solid var(--hr-primary);
+    outline-offset: -2px;
+}
+
+/* Today is marked with a rule under the number rather than a fill, so it never
+   competes with the selected day. */
+.hr-date-day.is-today {
+    color: var(--hr-primary-text);
+    font-weight: 700;
+    box-shadow: inset 0 -2px 0 var(--hr-primary);
+}
+
+.hr-date-day.is-selected {
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
+    box-shadow: none;
+    font-weight: 700;
+}
+
+.hr-date-day:disabled {
+    color: var(--hr-subtle);
+    cursor: not-allowed;
+    opacity: .3;
+}
+
+.hr-date-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-top: .5rem;
+    padding-top: .5rem;
+    border-top: 1px solid var(--hr-border);
+}
+
+.hr-date-action {
+    padding: .25rem .5rem;
+    border: 0;
+    border-radius: var(--r-sm);
+    color: var(--hr-primary-text);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+}
+
+.hr-date-action:hover:not(:disabled) {
+    background: var(--hr-primary-soft);
+}
+
+.hr-date-action:disabled {
+    color: var(--hr-subtle);
+    cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------- *
+   Clock
+
+   A grid, not a column. Sixty minutes behind a scrollbar made the common
+   choices — half past, quarter to — the slow ones, and put two sets of
+   scrollbar arrows inside a panel the size of a playing card. Every option is
+   now in view, so a time is two clicks away with nothing to scroll.
+   ---------------------------------------------------------------- */
+
+.hr-time-panel {
+    width: 15.5rem;
+    padding: .6rem;
+}
+
+.hr-time-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-bottom: .55rem;
+}
+
+.hr-time-readout {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.hr-time-readout.is-empty {
+    color: var(--hr-subtle);
+    font-weight: 400;
+}
+
+.hr-time-meridiem {
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: var(--r-sm);
+    background: var(--hr-surface-3);
+}
+
+.hr-time-half {
+    padding: .2rem .5rem;
+    border: 0;
+    border-radius: calc(var(--r-sm) - 1px);
+    color: var(--hr-muted);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+}
+
+.hr-time-half.is-selected {
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
+}
+
+.hr-time-group + .hr-time-group {
+    margin-top: .5rem;
+}
+
+.hr-time-label {
+    margin: 0 0 .25rem;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.hr-time-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 2px;
+}
+
+.hr-time-cell {
+    padding: .32rem 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    color: var(--hr-text);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--fs-xs);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.hr-time-cell:hover {
+    background: var(--hr-surface-3);
+}
+
+.hr-time-cell:focus-visible,
+.hr-time-half:focus-visible {
+    outline: 2px solid var(--hr-primary);
+    outline-offset: -2px;
+}
+
+.hr-time-cell.is-selected {
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
+    font-weight: 700;
+}
+
+.hr-time-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-top: .55rem;
+    padding-top: .5rem;
+    border-top: 1px solid var(--hr-border);
+}

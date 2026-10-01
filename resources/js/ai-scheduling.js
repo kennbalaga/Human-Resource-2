@@ -76,7 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncContext = () => {
         if (context) {
             const shift = form.elements.shift_id.value ? form.elements.shift_id.selectedOptions[0]?.textContent.trim() : 'No shift yet';
-            const date = form.elements.work_date.value || 'no date';
+            // The same long date the candidate chips read, not the raw value
+            // off the input: '2026-10-03' is the one thing on this line nobody
+            // is reading the line to find out.
+            const date = form.elements.work_date.value ? workDateLabel() : 'no date';
             context.textContent = [shift, date, optionText(department, 'All departments'), optionText(position, 'All positions')].join(' · ');
         }
         if (currentResult && !results.hidden && resultKey !== contextKey()) {
@@ -122,14 +125,23 @@ document.addEventListener('DOMContentLoaded', () => {
             chip.append(element('span', 'ai-chip-tick', '✓'), element('span', null, text));
             chips.append(chip);
         });
+        // Risk chips only where there is a risk. Every candidate on this list
+        // already cleared the hard constraints, so "low" and "not assessed"
+        // appeared on all three cards at once and said nothing about any of
+        // them -- three rows of status colour marking the absence of status.
+        // A moderate or high reading is a real reason to pause, and it stands
+        // out now that it is the only one of its kind on the card.
+        const notable = (level) => level === 'moderate' || level === 'high';
         const risk = candidate.workload_risk;
-        if (risk) chips.append(element('span', `ai-risk ai-risk-${risk.level}`, `${risk.label}: ${risk.level}`));
+        if (risk && notable(risk.level)) {
+            chips.append(element('span', `ai-risk ai-risk-${risk.level}`, `${risk.label}: ${risk.level}`));
+        }
         const burnout = candidate.burnout_risk;
-        const burnoutChip = burnout
-            ? element('span', `ai-risk ai-risk-${burnout.level}`, `Burnout risk: ${burnout.level}`)
-            : element('span', 'ai-risk ai-risk-unknown', 'Burnout risk: not assessed');
-        if (burnout?.drivers?.length) burnoutChip.title = burnout.drivers.join('\n');
-        chips.append(burnoutChip);
+        if (burnout && notable(burnout.level)) {
+            const burnoutChip = element('span', `ai-risk ai-risk-${burnout.level}`, `Burnout risk: ${burnout.level}`);
+            if (burnout.drivers?.length) burnoutChip.title = burnout.drivers.join('\n');
+            chips.append(burnoutChip);
+        }
         card.append(chips);
 
         if (candidate.burnout_protected) {
@@ -169,8 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedCandidateId = ranked[0] ? Number(ranked[0].employee_id) : null;
         results.hidden = false;
         showCriteria(false);
-        component.querySelector('[data-ai-rejection]').hidden = true;
-        component.querySelector('[data-ai-rejection-reason]').value = '';
         component.querySelector('[data-ai-explanation]').textContent = data.explanation || '';
         const ineligible = component.querySelector('[data-ai-ineligible-list]');
         component.querySelector('[data-ai-breakdown-list]').replaceChildren();
@@ -196,7 +206,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ineligibleTitle) ineligibleTitle.textContent = `${plural(data.ineligible.length, 'employee', 'employees')} left out`;
         component.querySelector('[data-ai-ineligible]').hidden = data.ineligible.length === 0;
         component.querySelector('[data-ai-breakdown]').hidden = ranked.length === 0;
-        showStatus(data.notice, 'success');
+        // Deliberately not announced. The notice repeats the Advisory only
+        // pill, the explainer above and the footer note, and a success
+        // message whose content is "here are the results" sits directly on
+        // top of the results. Warnings and failures still speak.
+        status.hidden = true;
     };
 
     const responseError = (payload, fallback) => payload.message
@@ -246,20 +260,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             showStatus(error.message, 'danger');
             if (button) button.disabled = false;
-        }
-    };
-
-    const recordDecision = async (action, reason = null) => {
-        if (!currentResult) return;
-        try {
-            await postJson(currentResult.decision_url, { action, reason });
-            results.hidden = true;
-            showCriteria(true);
-            showStatus(action === 'rejected'
-                ? 'Recommendation rejected and recorded. Your manual schedule form was preserved.'
-                : 'Recommendation ignored and recorded. Your manual schedule form was preserved.', 'neutral');
-        } catch (error) {
-            showStatus(error.message, 'danger');
         }
     };
 
@@ -313,26 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('#scheduleAssignmentModal')?.addEventListener('shown.bs.modal', syncContext);
     syncContext();
     generateButton.addEventListener('click', generate);
-    component.querySelector('[data-ai-regenerate]').addEventListener('click', generate);
-    component.querySelector('[data-ai-close]').addEventListener('click', () => {
-        results.hidden = true;
-        status.hidden = true;
-        showCriteria(true);
-    });
-    component.querySelector('[data-ai-ignore]').addEventListener('click', () => recordDecision('ignored'));
-    component.querySelector('[data-ai-reject]').addEventListener('click', () => {
-        const rejection = component.querySelector('[data-ai-rejection]');
-        rejection.hidden = !rejection.hidden;
-        if (!rejection.hidden) component.querySelector('[data-ai-rejection-reason]').focus();
-    });
-    component.querySelector('[data-ai-confirm-reject]').addEventListener('click', () => {
-        const reason = component.querySelector('[data-ai-rejection-reason]').value.trim();
-        if (reason.length < 5) {
-            showStatus('Enter a rejection reason with at least 5 characters.', 'warning');
-            return;
-        }
-        recordDecision('rejected', reason);
-    });
+
     // "Use this employee" is the apply step: the choice is revalidated against
     // current records before it reaches the form, whichever card it came from.
     component.addEventListener('click', (event) => {

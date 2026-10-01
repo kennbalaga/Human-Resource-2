@@ -1,0 +1,571 @@
+/*
+ * The public landing page — the one surface in this product a signed-out
+ * visitor sees by choice rather than by being turned away.
+ *
+ * Standalone, like the auth pages: it is served outside layouts/app.blade.php,
+ * so it imports the tokens directly instead of reaching them through app.css.
+ * Nothing here invents a colour, a radius or a step of spacing; every value is
+ * a token, which is what keeps this page recognisably the same product as the
+ * dashboard behind the sign-in button.
+ *
+ * Light only, as the auth pages are. The dark theme is a signed-in preference
+ * read from the account, and there is no account here to read it from.
+ */
+
+@import './tokens.css';
+@import './brand.css';
+
+/* ------------------------------------------------------------------ *
+ * Page shell
+ * ------------------------------------------------------------------ */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body.landing-body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    color: var(--hr-text);
+    background: var(--hr-surface);
+    font-family: 'Instrument Sans', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: var(--fs-base);
+    line-height: var(--lh-base);
+    -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Everything read at length is Inter; Instrument Sans carries the titles and
+ * the figures. That split is the kit's, and it is set here rather than per
+ * component so a paragraph added later inherits it.
+ */
+.landing-body p,
+.landing-body li,
+.landing-body small {
+    font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* One gutter, one maximum measure, for every band on the page. */
+.landing-wrap {
+    width: 100%;
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 0 var(--sp-4);
+}
+
+.landing-skip {
+    position: absolute;
+    left: -9999px;
+    z-index: 100;
+    padding: var(--sp-3) var(--sp-4);
+    border-radius: var(--r-md);
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
+}
+
+.landing-skip:focus {
+    left: var(--sp-4);
+    top: var(--sp-4);
+}
+
+/* ------------------------------------------------------------------ *
+ * Masthead
+ * ------------------------------------------------------------------ */
+
+.landing-head {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    border-bottom: 1px solid var(--hr-border);
+    background: rgba(255, 255, 255, .92);
+    backdrop-filter: blur(8px);
+}
+
+.landing-head-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    min-height: 4rem;
+}
+
+.landing-lockup {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    margin-right: auto;
+    min-width: 0;
+    text-decoration: none;
+}
+
+.landing-lockup-copy {
+    display: grid;
+    min-width: 0;
+}
+
+.landing-lockup-name {
+    height: 1.05rem;
+    width: auto;
+}
+
+.landing-lockup-tagline {
+    color: var(--hr-subtle);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: var(--fs-2xs);
+    white-space: nowrap;
+}
+
+.landing-head-links {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+
+/* ------------------------------------------------------------------ *
+ * Buttons. Two weights, because the page asks for one thing.
+ * ------------------------------------------------------------------ */
+
+.landing-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    min-height: 2.75rem;
+    padding: 0 var(--sp-5);
+    border: 1px solid transparent;
+    border-radius: var(--r-md);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.landing-btn svg {
+    width: 1.05rem;
+    height: 1.05rem;
+    flex: none;
+}
+
+.landing-btn-primary {
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
+}
+
+.landing-btn-primary:hover {
+    background: var(--hr-primary-fill-hover);
+}
+
+.landing-btn-ghost {
+    color: var(--hr-text);
+    border-color: var(--hr-border);
+    background: var(--hr-surface);
+}
+
+.landing-btn-ghost:hover {
+    border-color: var(--hr-border-strong);
+    background: var(--hr-surface-3);
+}
+
+.landing-btn:focus-visible,
+.landing-lockup:focus-visible,
+.landing-module:focus-visible {
+    outline: 3px solid rgba(var(--hr-primary-rgb), .35);
+    outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Hero
+ * ------------------------------------------------------------------ */
+
+.landing-hero {
+    padding: clamp(var(--sp-7), 6vw, 5.5rem) 0 clamp(var(--sp-7), 5vw, 4rem);
+    /* A trace of the brand at the very top of the page, fading into the
+       canvas before the first card — enough to say which product this is,
+       not enough to become a coloured band. */
+    background:
+        radial-gradient(60rem 28rem at 50% -8rem, var(--hr-primary-soft), transparent 70%),
+        var(--hr-surface);
+}
+
+.landing-hero-inner {
+    max-width: 46rem;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.landing-overline {
+    margin: 0 0 var(--sp-3);
+    color: var(--hr-primary-text);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.landing-hero h1 {
+    margin: 0 0 var(--sp-4);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+}
+
+.landing-lede {
+    max-width: 38rem;
+    margin: 0 auto var(--sp-6);
+    color: var(--hr-text-secondary, var(--hr-subtle));
+    font-size: var(--fs-md);
+    line-height: 1.6;
+    text-wrap: pretty;
+}
+
+.landing-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-6);
+}
+
+/* The three promises the sign-in button is asking to be trusted with. */
+.landing-assurances {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--sp-2) var(--sp-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.landing-assurances li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+.landing-assurances svg {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    color: var(--hr-primary);
+}
+
+/* ------------------------------------------------------------------ *
+ * Bands
+ * ------------------------------------------------------------------ */
+
+.landing-band {
+    padding: clamp(var(--sp-7), 5vw, 4.5rem) 0;
+}
+
+.landing-band-sunken {
+    border-top: 1px solid var(--hr-border);
+    border-bottom: 1px solid var(--hr-border);
+    background: var(--hr-bg);
+}
+
+.landing-band-head {
+    max-width: 40rem;
+    margin: 0 0 var(--sp-6);
+}
+
+.landing-band-head.is-centred {
+    margin-inline: auto;
+    text-align: center;
+}
+
+.landing-band-head h2 {
+    margin: 0 0 var(--sp-3);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -.01em;
+    text-wrap: balance;
+}
+
+.landing-band-head p {
+    margin: 0;
+    color: var(--hr-subtle);
+    font-size: var(--fs-md);
+    line-height: 1.6;
+    text-wrap: pretty;
+}
+
+/* ------------------------------------------------------------------ *
+ * Modules. One card per place a reader can actually go once inside.
+ * ------------------------------------------------------------------ */
+
+.landing-modules {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: var(--sp-4);
+}
+
+.landing-module {
+    display: grid;
+    align-content: start;
+    gap: var(--sp-3);
+    padding: var(--sp-5);
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-surface);
+}
+
+.landing-module-icon {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--r-md);
+    color: var(--hr-primary-text);
+    background: var(--hr-primary-soft);
+    place-items: center;
+}
+
+.landing-module-icon svg {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+.landing-module h3 {
+    margin: 0;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.landing-module p {
+    margin: 0;
+    color: var(--hr-subtle);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+}
+
+/* ------------------------------------------------------------------ *
+ * The scheduling band: two columns, copy against a list of the checks
+ * the roster is actually held to.
+ * ------------------------------------------------------------------ */
+
+.landing-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(var(--sp-6), 4vw, var(--sp-8));
+    align-items: center;
+}
+
+.landing-checks {
+    display: grid;
+    gap: var(--sp-3);
+    margin: 0;
+    padding: var(--sp-5);
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-surface);
+    list-style: none;
+}
+
+.landing-checks li {
+    display: grid;
+    grid-template-columns: 1.25rem minmax(0, 1fr);
+    gap: var(--sp-3);
+    align-items: start;
+}
+
+.landing-checks svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: .1rem;
+    color: var(--hr-success-text);
+}
+
+.landing-checks strong {
+    display: block;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+
+.landing-checks span {
+    display: block;
+    color: var(--hr-subtle);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+}
+
+/*
+ * The one sentence this product will not let a reader miss. It is the same
+ * promise the wizard's own footer makes, in the same words, so the page does
+ * not advertise something the software then phrases differently.
+ */
+.landing-note {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    width: max-content;
+    max-width: 100%;
+    margin-top: var(--sp-5);
+    padding: var(--sp-3) var(--sp-4);
+    border: 1px solid var(--hr-primary-line);
+    border-radius: var(--r-md);
+    color: var(--hr-primary-text);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    background: var(--hr-primary-soft);
+}
+
+.landing-note svg {
+    width: 1.05rem;
+    height: 1.05rem;
+    flex: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Safeguards
+ * ------------------------------------------------------------------ */
+
+.landing-safeguards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: var(--sp-4);
+}
+
+.landing-safeguard {
+    display: grid;
+    align-content: start;
+    gap: var(--sp-2);
+    padding: var(--sp-5);
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-surface);
+}
+
+.landing-safeguard svg {
+    width: 1.3rem;
+    height: 1.3rem;
+    color: var(--hr-primary-text);
+}
+
+.landing-safeguard h3 {
+    margin: 0;
+    font-size: var(--fs-base);
+    font-weight: 600;
+}
+
+.landing-safeguard p {
+    margin: 0;
+    color: var(--hr-subtle);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+}
+
+/* ------------------------------------------------------------------ *
+ * Closing call
+ * ------------------------------------------------------------------ */
+
+.landing-close {
+    display: grid;
+    gap: var(--sp-5);
+    justify-items: center;
+    padding: clamp(var(--sp-7), 5vw, 4rem) var(--sp-5);
+    border: 1px solid var(--hr-primary-line);
+    border-radius: var(--r-xl);
+    background: var(--hr-primary-soft);
+    text-align: center;
+}
+
+.landing-close h2 {
+    margin: 0;
+    max-width: 30rem;
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    font-weight: 600;
+    line-height: 1.2;
+    text-wrap: balance;
+}
+
+.landing-close p {
+    max-width: 34rem;
+    margin: 0;
+    color: var(--hr-primary-text);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+}
+
+/* ------------------------------------------------------------------ *
+ * Foot
+ * ------------------------------------------------------------------ */
+
+.landing-foot {
+    padding: var(--sp-6) 0;
+    border-top: 1px solid var(--hr-border);
+    background: var(--hr-surface);
+}
+
+.landing-foot-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-3) var(--sp-5);
+}
+
+.landing-foot-row small {
+    margin-right: auto;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+.landing-foot-row a {
+    color: var(--hr-primary-text);
+    font-family: Inter, system-ui, sans-serif;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrower screens. The kit targets a 390px phone, so the split folds
+ * and the gutter stays at 16px rather than collapsing to the edge.
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 60rem) {
+    .landing-split {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 40rem) {
+    .landing-lockup-tagline {
+        display: none;
+    }
+
+    .landing-head-row {
+        gap: var(--sp-2);
+    }
+
+    .landing-hero-actions .landing-btn {
+        flex: 1 1 100%;
+        justify-content: center;
+    }
+
+    .landing-note {
+        width: auto;
+        align-items: flex-start;
+    }
+
+    .landing-note svg {
+        margin-top: .1rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-btn {
+        transition: none;
+    }
+}

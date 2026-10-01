@@ -21,6 +21,9 @@ import './session-timeout';
 import './download-confirm';
 import './global-search';
 import './confirm-actions';
+// Replaces the two popups a browser draws for itself — a select's option list
+// and a date field's calendar — on pointer devices. No page opts in.
+import './field-controls';
 // Closes a floating <details> menu on an outside tap or Escape.
 import './fab-menu';
 // The shared toast. Imported here so every page shows its success flash.

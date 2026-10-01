@@ -48,7 +48,15 @@ use App\Reports\ReportRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => redirect()->route('login'));
+/*
+ * The public landing page. Signed out, it is the first thing a visitor sees;
+ * signed in, there is nothing on it they need, so they go straight to the
+ * work. This used to redirect to the sign-in form unconditionally, which left
+ * the product with no front door at all.
+ */
+Route::get('/', fn () => auth()->check()
+    ? redirect()->route('dashboard')
+    : response()->view('landing'))->name('landing');
 
 /*
  * Every route that hands out a file: password re-entry first, then a per-user
