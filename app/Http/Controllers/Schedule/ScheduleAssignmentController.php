@@ -26,8 +26,25 @@ class ScheduleAssignmentController extends Controller
     ): RedirectResponse {
         $assignment = $scheduleService->createAssignment($request->validated(), $request->user());
         $this->notifyEmployee($assignment, 'assigned', $notifications);
+        $assignment->loadMissing(['employee', 'shift']);
+        $weekHours = round($scheduleService->weeklyPaidMinutes($assignment->employee, $assignment->work_date->toDateString()) / 60, 1);
+        $limit = (int) config('schedule.compliance.max_hours_per_week');
 
-        return back()->with('success', "{$assignment->employee->full_name} was assigned successfully.");
+        return back()
+            ->with('success', "{$assignment->employee->full_name} was assigned successfully.")
+            ->with('schedule_confirmation', [
+                'title' => 'Shift assigned',
+                'text' => "{$assignment->employee->full_name} is on the {$assignment->shift->name} for {$assignment->work_date->format('D, M j, Y')}.",
+                'rows' => [
+                    ['Employee', $assignment->employee->full_name.' · '.$assignment->employee->employee_number],
+                    ['Shift', $assignment->shift->name.' · '.$assignment->shift->formatted_time],
+                    ['Date', $assignment->work_date->format('D, M j, Y')],
+                    ['Workload', rtrim(rtrim(number_format($weekHours, 1), '0'), '.')." of {$limit} paid hours this week".($weekHours > $limit ? ' (overtime)' : '')],
+                    ['Chosen by', $assignment->source_recommendation_id !== null ? 'HR, from an AI recommendation' : 'HR'],
+                ],
+                'note' => $assignment->employee->full_name.' is notified according to their notification settings. The assignment can still be edited or removed from the calendar.',
+                'again' => ['label' => 'Assign another shift', 'target' => '#scheduleAssignmentModal'],
+            ]);
     }
 
     public function update(

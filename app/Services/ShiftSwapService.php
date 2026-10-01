@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Scheduling\RoomAssignmentService;
 use App\Services\Scheduling\RosterWriteContext;
 use App\Services\Scheduling\ScheduleLockService;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -106,6 +107,16 @@ class ShiftSwapService
 
     public function approve(ShiftSwapRequest $swap, User $reviewer, ?string $notes): ShiftSwapRequest
     {
+        $this->ensureNotParticipant($swap, $reviewer, 'approve');
+
+        // A reviewer told "no" on a row that then stays in their queue has been
+        // told nothing useful, so a request that can no longer be answered is
+        // closed here rather than merely refused. Outside the transaction for
+        // the same reason respond() keeps it outside its own: raised from
+        // within, the exception reporting the closure would roll the closure
+        // back with it.
+        $this->expireIfUnanswerable($swap);
+
         return DB::transaction(function () use ($swap, $reviewer, $notes) {
             $swap = ShiftSwapRequest::query()->lockForUpdate()->findOrFail($swap->id);
             if ($swap->status !== 'pending_manager') {
@@ -448,8 +459,8 @@ class ShiftSwapService
             ->where('status', 'scheduled')
             ->when($excludeAssignmentId, fn ($query) => $query->where('id', '!=', $excludeAssignmentId))
             ->whereBetween('work_date', [
-                $date->copy()->startOfWeek()->subDay()->toDateString(),
-                $date->copy()->endOfWeek()->addDay()->toDateString(),
+                ScheduleWeek::start($date)->subDay()->toDateString(),
+                ScheduleWeek::end($date)->addDay()->toDateString(),
             ])
             ->get();
     }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use App\Models\RecurringSchedule;
 use App\Models\ScheduleAssignment;
@@ -16,6 +17,7 @@ use App\Services\Burnout\BurnoutProtection;
 use App\Services\Scheduling\RosterWriteContext;
 use App\Services\Scheduling\ScheduleLockService;
 use App\Services\Scheduling\StaffingRequirementService;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
@@ -184,8 +186,8 @@ class ScheduleService
             ->whereIn('employee_id', $employeeIds)
             ->where('status', 'scheduled')
             ->whereBetween('work_date', [
-                $start->copy()->startOfWeek()->subDay()->subDays($streakMargin)->toDateString(),
-                $end->copy()->endOfWeek()->addDay()->addDays($streakMargin)->toDateString(),
+                ScheduleWeek::start($start)->subDay()->subDays($streakMargin)->toDateString(),
+                ScheduleWeek::end($end)->addDay()->addDays($streakMargin)->toDateString(),
             ])
             ->get()
             ->groupBy('employee_id');
@@ -362,112 +364,29 @@ class ScheduleService
     }
 
     /**
-     * @param  array{employee_id: int, shift_id: int, start_date: string, end_date: string, recurrence_type: string, weekdays?: array<int>|null, interval_weeks: int, notes?: string|null}  $data
+     * Create a recurring series. A date that clashes with a lock, a day off,
+     * approved leave, another shift, or the minimum rest rule refuses the whole
+     * series by default, exactly as before. With skip_conflicts set, those
+     * dates are left out instead and every other date is written — the same
+     * dates the preview listed as skipped, so what HR saw is what is created.
+     *
+     * @param  array{employee_id: int, shift_id: int, start_date: string, end_date: string, recurrence_type: string, weekdays?: array<int>|null, interval_weeks: int, notes?: string|null, skip_conflicts?: bool}  $data
      */
     public function createRecurringSchedule(array $data, User $creator): RecurringSchedule
     {
         return DB::transaction(function () use ($data, $creator) {
-            $employee = Employee::query()->with('department')->findOrFail($data['employee_id']);
-            $shift = Shift::query()->findOrFail($data['shift_id']);
-            $this->ensureSchedulable($employee, $shift);
+            ['employee' => $employee, 'shift' => $shift, 'dates' => $dates, 'blocked' => $blocked] = $this->recurringPlan($data);
 
-            $dates = $this->recurrenceDates(
-                $data['start_date'],
-                $data['end_date'],
-                $data['recurrence_type'],
-                $data['weekdays'] ?? [],
-                $data['interval_weeks'],
-            );
-
-            if ($dates->isEmpty()) {
-                throw ValidationException::withMessages([
-                    'weekdays' => 'The recurrence rule does not generate any schedule dates.',
-                ]);
+            if ($blocked->isNotEmpty() && ! ($data['skip_conflicts'] ?? false)) {
+                throw ValidationException::withMessages(['schedule' => $blocked->first()['message']]);
             }
 
-            // Every date's lock/day-off/conflict/rest rule used to run its own
-            // round trip; a quarter-long daily recurrence could mean hundreds
-            // of them for one click. Each kind is preloaded once for the whole
-            // range instead, and every date below is checked against that
-            // in-memory set — a fetch window wider than any one date's own
-            // conflict/rest window never changes the result, since the actual
-            // overlap test is time-based, not date-based.
-            $rangeStart = $dates->first();
-            $rangeEnd = $dates->last();
-
-            // Every date after the first is later still, so one check covers
-            // the series: a started or past day is not written by a recurrence
-            // any more than by hand.
-            $this->assertDateEditable($rangeStart, 'start_date');
-
-            $locks = $employee->department !== null
-                ? $this->activeLocksFor($employee->department, $rangeStart, $rangeEnd)
-                : collect();
-            $dayOffDates = ScheduleDayOff::query()
-                ->where('employee_id', $employee->id)
-                ->whereBetween('work_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
-                ->pluck('work_date')
-                ->map(fn ($workDate) => Carbon::parse($workDate)->toDateString())
-                ->flip();
-            $nearbyAssignments = ScheduleAssignment::query()
-                ->with('shift')
-                ->where('employee_id', $employee->id)
-                ->where('status', 'scheduled')
-                ->whereBetween('work_date', [
-                    $rangeStart->copy()->subDays(2)->toDateString(),
-                    $rangeEnd->copy()->addDays(2)->toDateString(),
-                ])
-                ->get();
-            $minimumRestMinutes = max(0, (int) config('schedule.minimum_rest_hours')) * 60;
-            // A day of margin on the far end for a night shift running into
-            // the morning after the range.
-            $approvedLeaves = LeaveRequest::query()
-                ->where('employee_id', $employee->id)
-                ->where('status', 'approved')
-                ->whereDate('start_date', '<=', $rangeEnd->copy()->addDay()->toDateString())
-                ->whereDate('end_date', '>=', $rangeStart->toDateString())
-                ->get();
-
-            foreach ($dates as $date) {
-                $dateString = $date->toDateString();
-
-                $lock = $this->lockCovering($locks, $dateString);
-                if ($lock !== null) {
-                    throw ValidationException::withMessages([
-                        'schedule' => "{$employee->department->name} is locked from {$lock->start_date->format('M j, Y')} to {$lock->end_date->format('M j, Y')}. Unlock it before making changes to {$date->format('M j, Y')}.",
-                    ]);
-                }
-
-                if ($dayOffDates->has($dateString)) {
-                    throw ValidationException::withMessages([
-                        'schedule' => 'This employee has a scheduled day off on '.$date->format('M j, Y').'. Remove the day off before assigning a shift.',
-                    ]);
-                }
-
-                [$candidateStart, $candidateEnd] = $this->intervalFor($shift, $dateString);
-
-                $leave = $approvedLeaves->first(fn (LeaveRequest $approved) => $approved->start_date->toDateString() <= $candidateEnd->toDateString()
-                    && $approved->end_date->toDateString() >= $candidateStart->toDateString());
-                if ($leave !== null) {
-                    throw ValidationException::withMessages([
-                        'schedule' => "Recurring schedule falls on approved leave on {$date->format('M j, Y')} ({$leave->start_date->format('M j, Y')} to {$leave->end_date->format('M j, Y')}).",
-                    ]);
-                }
-
-                $conflicts = $this->filterConflicts($nearbyAssignments, $candidateStart, $candidateEnd);
-                if ($conflicts->isNotEmpty()) {
-                    $conflict = $conflicts->first();
-                    throw ValidationException::withMessages([
-                        'schedule' => "Recurring schedule conflicts on {$date->format('M j, Y')} with {$conflict->shift->name} ({$conflict->shift->formatted_time}).",
-                    ]);
-                }
-
-                if ($minimumRestMinutes > 0
-                    && $this->filterRestConflicts($nearbyAssignments, $candidateStart, $candidateEnd, $minimumRestMinutes)->isNotEmpty()) {
-                    throw ValidationException::withMessages([
-                        'schedule' => "Recurring schedule does not provide the configured minimum rest before or after {$date->format('M j, Y')}.",
-                    ]);
-                }
+            $generatedDates = $dates;
+            $dates = $dates->reject(fn (Carbon $date) => $blocked->has($date->toDateString()))->values();
+            if ($dates->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'schedule' => 'Every date in this series clashes with an existing shift, leave, day off, lock, or the minimum rest rule, so nothing was created.',
+                ]);
             }
 
             $series = RecurringSchedule::query()->create([
@@ -475,9 +394,15 @@ class ScheduleService
                 'employee_id' => $employee->id,
                 'shift_id' => $shift->id,
                 'start_date' => $data['start_date'],
-                'end_date' => $data['end_date'],
+                // Ended by a count, the end date is wherever the count ran
+                // out; the value posted was only the window it was taken
+                // from, and storing that would claim months the series does
+                // not cover.
+                'end_date' => ($data['end_mode'] ?? 'on') === 'after'
+                    ? $generatedDates->last()->toDateString()
+                    : $data['end_date'],
                 'recurrence_type' => $data['recurrence_type'],
-                'weekdays' => $data['recurrence_type'] === 'weekly' ? array_values($data['weekdays']) : null,
+                'weekdays' => $data['recurrence_type'] === 'weekly' ? array_values(array_map('intval', $data['weekdays'])) : null,
                 'interval_weeks' => $data['interval_weeks'],
                 'status' => 'active',
                 'notes' => $data['notes'] ?? null,
@@ -499,8 +424,237 @@ class ScheduleService
                 }
             });
 
-            return $series->loadCount('assignments');
+            $series->loadCount('assignments');
+            $series->setAttribute('skipped_dates', $blocked->keys()->values()->all());
+
+            return $series;
         });
+    }
+
+    /**
+     * Every date a recurrence rule generates, and which of them cannot be
+     * scheduled and why. Shared by the create path and the live preview, so
+     * the preview can never promise a date the create would refuse.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{employee: Employee, shift: Shift, dates: Collection<int, Carbon>, blocked: Collection<string, array{date: string, kind: string, message: string}>}
+     *
+     * @throws ValidationException
+     */
+    public function recurringPlan(array $data): array
+    {
+        $employee = Employee::query()->with('department')->findOrFail($data['employee_id']);
+        $shift = Shift::query()->findOrFail($data['shift_id']);
+        $this->ensureSchedulable($employee, $shift);
+
+        $dates = $this->recurrenceDates(
+            $data['start_date'],
+            $data['end_date'],
+            $data['recurrence_type'],
+            $data['weekdays'] ?? [],
+            $data['interval_weeks'],
+            ($data['end_mode'] ?? 'on') === 'after' ? (int) $data['occurrences'] : null,
+        );
+
+        if ($dates->isEmpty()) {
+            throw ValidationException::withMessages([
+                'weekdays' => 'The recurrence rule does not generate any schedule dates.',
+            ]);
+        }
+
+        // Every date's lock/day-off/conflict/rest rule used to run its own
+        // round trip; a quarter-long daily recurrence could mean hundreds
+        // of them for one click. Each kind is preloaded once for the whole
+        // range instead, and every date below is checked against that
+        // in-memory set — a fetch window wider than any one date's own
+        // conflict/rest window never changes the result, since the actual
+        // overlap test is time-based, not date-based.
+        $rangeStart = $dates->first();
+        $rangeEnd = $dates->last();
+
+        // Every date after the first is later still, so one check covers
+        // the series: a started or past day is not written by a recurrence
+        // any more than by hand.
+        $this->assertDateEditable($rangeStart, 'start_date');
+
+        $locks = $employee->department !== null
+            ? $this->activeLocksFor($employee->department, $rangeStart, $rangeEnd)
+            : collect();
+        $dayOffDates = ScheduleDayOff::query()
+            ->where('employee_id', $employee->id)
+            ->whereBetween('work_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
+            ->pluck('work_date')
+            ->map(fn ($workDate) => Carbon::parse($workDate)->toDateString())
+            ->flip();
+        $nearbyAssignments = ScheduleAssignment::query()
+            ->with('shift')
+            ->where('employee_id', $employee->id)
+            ->where('status', 'scheduled')
+            ->whereBetween('work_date', [
+                $rangeStart->copy()->subDays(2)->toDateString(),
+                $rangeEnd->copy()->addDays(2)->toDateString(),
+            ])
+            ->get();
+        $minimumRestMinutes = max(0, (int) config('schedule.minimum_rest_hours')) * 60;
+        // A day of margin on the far end for a night shift running into
+        // the morning after the range.
+        $approvedLeaves = LeaveRequest::query()
+            ->where('employee_id', $employee->id)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $rangeEnd->copy()->addDay()->toDateString())
+            ->whereDate('end_date', '>=', $rangeStart->toDateString())
+            ->get();
+
+        $blocked = collect();
+        foreach ($dates as $date) {
+            $dateString = $date->toDateString();
+            $block = fn (string $kind, string $message) => $blocked->put($dateString, ['date' => $dateString, 'kind' => $kind, 'message' => $message]);
+
+            $lock = $this->lockCovering($locks, $dateString);
+            if ($lock !== null) {
+                $block('lock', "{$employee->department->name} is locked from {$lock->start_date->format('M j, Y')} to {$lock->end_date->format('M j, Y')}. Unlock it before making changes to {$date->format('M j, Y')}.");
+
+                continue;
+            }
+
+            if ($dayOffDates->has($dateString)) {
+                $block('day_off', 'This employee has a scheduled day off on '.$date->format('M j, Y').'. Remove the day off before assigning a shift.');
+
+                continue;
+            }
+
+            [$candidateStart, $candidateEnd] = $this->intervalFor($shift, $dateString);
+
+            $leave = $approvedLeaves->first(fn (LeaveRequest $approved) => $approved->start_date->toDateString() <= $candidateEnd->toDateString()
+                && $approved->end_date->toDateString() >= $candidateStart->toDateString());
+            if ($leave !== null) {
+                $block('leave', "Recurring schedule falls on approved leave on {$date->format('M j, Y')} ({$leave->start_date->format('M j, Y')} to {$leave->end_date->format('M j, Y')}).");
+
+                continue;
+            }
+
+            $conflicts = $this->filterConflicts($nearbyAssignments, $candidateStart, $candidateEnd);
+            if ($conflicts->isNotEmpty()) {
+                $conflict = $conflicts->first();
+                $block('overlap', "Recurring schedule conflicts on {$date->format('M j, Y')} with {$conflict->shift->name} ({$conflict->shift->formatted_time}).");
+
+                continue;
+            }
+
+            if ($minimumRestMinutes > 0
+                && $this->filterRestConflicts($nearbyAssignments, $candidateStart, $candidateEnd, $minimumRestMinutes)->isNotEmpty()) {
+                $block('rest', "Recurring schedule does not provide the configured minimum rest before or after {$date->format('M j, Y')}.");
+            }
+        }
+
+        return compact('employee', 'shift', 'dates', 'blocked');
+    }
+
+    /**
+     * What the recurring-schedule form previews before anything is written:
+     * each generated date and whether it would be created or skipped, the
+     * employee's busiest week with existing shifts counted in, the weekly rest
+     * day, cover already standing on the same shift, and holidays in range.
+     * The weekly checks are advisory here; the date-level blocks are the same
+     * ones the create path enforces.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function recurringPreview(array $data): array
+    {
+        ['employee' => $employee, 'shift' => $shift, 'dates' => $dates, 'blocked' => $blocked] = $this->recurringPlan($data);
+        $kept = $dates->reject(fn (Carbon $date) => $blocked->has($date->toDateString()))->values();
+
+        // Paid minutes and workdays per scheduling week: what is already on
+        // record for this employee plus the dates this series would add.
+        $existing = ScheduleAssignment::query()
+            ->with('shift')
+            ->where('employee_id', $employee->id)
+            ->where('status', 'scheduled')
+            ->whereBetween('work_date', [ScheduleWeek::start($dates->first())->toDateString(), ScheduleWeek::end($dates->last())->toDateString()])
+            ->get();
+        $weeks = [];
+        $add = function (Carbon $date, int $minutes) use (&$weeks): void {
+            $week = ScheduleWeek::start($date)->toDateString();
+            $weeks[$week]['minutes'] = ($weeks[$week]['minutes'] ?? 0) + $minutes;
+            $weeks[$week]['days'][$date->toDateString()] = true;
+        };
+        $existing->each(fn (ScheduleAssignment $assignment) => $add($assignment->work_date, $assignment->shift?->duration_minutes ?? 0));
+        $keptWeeks = $kept->map(fn (Carbon $date) => ScheduleWeek::start($date)->toDateString())->unique()->flip();
+        $kept->each(fn (Carbon $date) => $add($date, $shift->duration_minutes));
+
+        $maxHours = (int) config('schedule.compliance.max_hours_per_week');
+        $daysOff = (int) config('schedule.compliance.days_off_per_week');
+        $weekRows = collect($weeks)
+            ->filter(fn (array $week, string $start) => $keptWeeks->has($start))
+            ->map(fn (array $week, string $start) => [
+                'week_start' => $start,
+                'hours' => round($week['minutes'] / 60, 1),
+                'days_worked' => count($week['days']),
+            ])
+            ->sortKeys()
+            ->values();
+        $busiest = $weekRows->sortByDesc('hours')->first();
+
+        // Cover already standing on this shift in the employee's department.
+        $requiredStaff = $employee->department !== null
+            ? (int) app(StaffingRequirementService::class)->forShift($employee->department, $shift)['staff']
+            : 0;
+        $standing = $employee->department_id === null || $kept->isEmpty() ? collect() : ScheduleAssignment::query()
+            ->where('shift_id', $shift->id)
+            ->where('status', 'scheduled')
+            ->where('employee_id', '!=', $employee->id)
+            ->whereHas('employee', fn ($query) => $query->where('department_id', $employee->department_id))
+            ->whereDate('work_date', '>=', $kept->first()->toDateString())
+            ->whereDate('work_date', '<=', $kept->last()->toDateString())
+            ->get(['work_date'])
+            ->countBy(fn (ScheduleAssignment $assignment) => $assignment->work_date->toDateString());
+        $overCover = $requiredStaff > 0
+            ? $kept->filter(fn (Carbon $date) => ($standing->get($date->toDateString()) ?? 0) >= $requiredStaff)->map->toDateString()->values()
+            : collect();
+
+        $holidays = Holiday::query()
+            ->whereDate('date', '>=', $dates->first()->toDateString())
+            ->whereDate('date', '<=', $dates->last()->toDateString())
+            ->get()
+            ->keyBy(fn (Holiday $holiday) => $holiday->date->toDateString());
+
+        return [
+            'employee' => ['id' => $employee->id, 'name' => $employee->full_name],
+            'shift' => ['id' => $shift->id, 'name' => $shift->name, 'time' => $shift->formatted_time, 'hours' => round($shift->duration_minutes / 60, 1)],
+            'range' => ['start' => $dates->first()->toDateString(), 'end' => $dates->last()->toDateString()],
+            'dates' => $dates->map(fn (Carbon $date) => [
+                'date' => $date->toDateString(),
+                'status' => $blocked->has($date->toDateString()) ? 'skipped' : 'scheduled',
+                'kind' => $blocked->get($date->toDateString())['kind'] ?? null,
+                'reason' => $blocked->get($date->toDateString())['message'] ?? null,
+                'holiday' => $holidays->get($date->toDateString())?->name,
+                'holiday_type' => $holidays->get($date->toDateString())?->typeLabel(),
+                'over_cover' => $overCover->contains($date->toDateString()),
+            ])->values()->all(),
+            'summary' => [
+                'generated' => $dates->count(),
+                'create' => $kept->count(),
+                'skipped' => $blocked->count(),
+            ],
+            'weeks' => $weekRows->all(),
+            'busiest_week' => $busiest,
+            'limits' => [
+                'max_hours_per_week' => $maxHours,
+                'days_off_per_week' => $daysOff,
+                'week_starts_on' => ScheduleWeek::startsOn(),
+            ],
+            'checks' => [
+                'hours_ok' => $busiest === null || $busiest['hours'] <= $maxHours,
+                'rest_ok' => $weekRows->every(fn (array $week) => $week['days_worked'] <= 7 - max(1, $daysOff)),
+                'coverage_required' => $requiredStaff,
+                'over_cover_dates' => $overCover->all(),
+                'holidays' => $kept->filter(fn (Carbon $date) => $holidays->has($date->toDateString()))
+                    ->map(fn (Carbon $date) => ['date' => $date->toDateString(), 'name' => $holidays->get($date->toDateString())->name, 'type' => $holidays->get($date->toDateString())->typeLabel()])
+                    ->values()->all(),
+            ],
+        ];
     }
 
     /**
@@ -539,6 +693,25 @@ class ScheduleService
                 return $candidateStart->lessThan($existingEnd) && $candidateEnd->greaterThan($existingStart);
             })
             ->values();
+    }
+
+    /**
+     * Paid minutes already scheduled for an employee in the scheduling week
+     * (Sunday to Saturday) that contains the work date — the "32 of 48 paid
+     * hours this week" read-back on the assignment form.
+     */
+    public function weeklyPaidMinutes(Employee $employee, string $workDate, ?int $excludeAssignmentId = null): int
+    {
+        $date = Carbon::parse($workDate, config('schedule.timezone'));
+
+        return (int) ScheduleAssignment::query()
+            ->with('shift')
+            ->where('employee_id', $employee->id)
+            ->where('status', 'scheduled')
+            ->whereBetween('work_date', [ScheduleWeek::start($date)->toDateString(), ScheduleWeek::end($date)->toDateString()])
+            ->when($excludeAssignmentId, fn ($query) => $query->where('id', '!=', $excludeAssignmentId))
+            ->get()
+            ->sum(fn (ScheduleAssignment $assignment) => $assignment->shift?->duration_minutes ?? 0);
     }
 
     /**
@@ -673,16 +846,28 @@ class ScheduleService
      * @param  array<int>  $weekdays
      * @return Collection<int, Carbon>
      */
+    /**
+     * @param  int|null  $occurrences  Stop after this many dates, for a series
+     *                                 ended by a count ("after 10 shifts")
+     *                                 rather than by a date. The caller still
+     *                                 passes an end date, which acts as the
+     *                                 outer bound the count is taken from.
+     */
     public function recurrenceDates(
         string $startDate,
         string $endDate,
         string $recurrenceType,
         array $weekdays,
         int $intervalWeeks,
+        ?int $occurrences = null,
     ): Collection {
         $start = Carbon::parse($startDate, config('schedule.timezone'))->startOfDay();
         $end = Carbon::parse($endDate, config('schedule.timezone'))->startOfDay();
-        $startWeek = $start->copy()->startOfWeek(Carbon::MONDAY);
+        $startWeek = ScheduleWeek::start($start);
+        // A form post carries the weekdays as strings ("1", "2", …); compared
+        // strictly against Carbon's integer below, not one of them would match
+        // and a weekly series from the web form would generate no dates at all.
+        $weekdays = array_map('intval', $weekdays);
 
         return collect(CarbonPeriod::create($start, $end))
             ->map(fn ($date) => Carbon::instance($date)->timezone(config('schedule.timezone')))
@@ -691,11 +876,12 @@ class ScheduleService
                     return true;
                 }
 
-                $weekOffset = (int) floor($startWeek->diffInWeeks($date->copy()->startOfWeek(Carbon::MONDAY)));
+                $weekOffset = (int) floor($startWeek->diffInWeeks(ScheduleWeek::start($date)));
 
                 return in_array($date->dayOfWeekIso, $weekdays, true)
                     && $weekOffset % $intervalWeeks === 0;
             })
+            ->when($occurrences !== null, fn (Collection $dates) => $dates->take($occurrences))
             ->values();
     }
 
@@ -805,8 +991,8 @@ class ScheduleService
             return 'Minimum rest period not met';
         }
 
-        $weekStart = $date->copy()->startOfWeek();
-        $weekEnd = $date->copy()->endOfWeek();
+        $weekStart = ScheduleWeek::start($date);
+        $weekEnd = ScheduleWeek::end($date);
         $weeklyAssignments = $assignments->filter(fn (ScheduleAssignment $assignment) => $assignment->work_date->betweenIncluded($weekStart, $weekEnd));
         $daysOffPerWeek = (int) ($rules['days_off_per_week'] ?? 0);
         if ($daysOffPerWeek > 0 && $weeklyAssignments->pluck('work_date')->map->toDateString()->unique()->count() >= 7 - $daysOffPerWeek) {

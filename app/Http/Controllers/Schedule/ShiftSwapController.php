@@ -143,6 +143,65 @@ class ShiftSwapController extends Controller
         return back()->with('success', 'Swap request cancelled.');
     }
 
+    /**
+     * A swap moves a shift on each side, so signing it off is an act over both
+     * people, not just the one who asked. A head who supervises only one of
+     * them is refused the same way any other cross-unit record is.
+     *
+     * Being one of the two parties is checked further in, by the service, and
+     * comes back as a validation error rather than a 403: the account may
+     * review swaps, it just may not review this one.
+     */
+    private function requireSupervisionOfBoth(Request $request, ShiftSwapRequest $swap): void
+    {
+        $swap->loadMissing(['requesterEmployee', 'targetEmployee']);
+
+        $this->requireSupervision($request, $swap->requesterEmployee);
+        $this->requireSupervision($request, $swap->targetEmployee);
+    }
+
+    /**
+     * Tell the people who could actually answer the request that it is waiting.
+     *
+     * Until a colleague accepts, a swap is a conversation between two
+     * employees; the moment they do, it becomes a manager's to sign off, and
+     * nothing used to say so. The requester was told it had gone to their
+     * manager and the manager found out by opening a page they had no reason
+     * to open.
+     *
+     * Who that is comes from User::reviewersOf() -- HR across the hospital, and
+     * the head of the unit the request came from. Two are left out here: an
+     * account whose role cannot write (the approval it would be summoned to is
+     * one it cannot give), and either of the two people trading, for whom
+     * "this needs your review" reads as a mistake. HR is organisation-wide, so
+     * dropping the parties never empties the list.
+     */
+    private function notifyReviewers(ShiftSwapRequest $swap, PreferenceNotificationService $notifications): void
+    {
+        $swap->loadMissing(['requesterEmployee', 'targetEmployee']);
+        $parties = array_filter([$swap->requester_employee_id, $swap->target_employee_id]);
+
+        User::query()
+            ->reviewersOf($swap->requesterEmployee)
+            ->with('employee')
+            ->get()
+            ->reject(fn (User $reviewer): bool => $reviewer->isReadOnly()
+                || in_array($reviewer->employee?->id, $parties, true))
+            ->each(fn (User $reviewer) => $notifications->send(
+                $reviewer,
+                'schedule_updates',
+                new PreferenceMailNotification(
+                    'A shift swap needs your approval',
+                    [
+                        $swap->requesterEmployee->full_name.' and '.$swap->targetEmployee->full_name.' agreed to swap shifts.',
+                        'It is waiting for a manager to approve or reject it.',
+                    ],
+                    'Review shift swaps',
+                    route('shift-swaps.index'),
+                ),
+            ));
+    }
+
     /** @param array<int, string> $lines */
     private function notify(Employee $employee, string $subject, array $lines, PreferenceNotificationService $notifications): void
     {

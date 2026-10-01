@@ -8,7 +8,7 @@
             ? $rangeStart->format('M j').' – '.$rangeEnd->format('M j, Y')
             : $focusDate->format('F Y');
         $queryFor = fn (array $values) => route('schedules.index', array_merge(request()->except('page'), $values));
-        $weekdays = [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'];
+        $weekdays = \App\Support\ScheduleWeek::isoWeekdayNames();
         $scheduleListDates = $assignmentsByDate->keys()->merge($dayOffsByDate->keys())->unique()->sort()->values();
         $today = now(config('schedule.timezone'))->startOfDay();
         $rosterPeriodStart = $focusDate->lt($today) ? $today : $focusDate;
@@ -127,7 +127,7 @@
         @if ($calendarView === 'month')
             <div class="month-calendar">
                 <div class="month-weekdays">
-                    @foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $dayName)
+                    @foreach (\App\Support\ScheduleWeek::shortNames() as $dayName)
                         <span>{{ $dayName }}</span>
                     @endforeach
                 </div>
@@ -333,11 +333,11 @@
     @if ($canManageData)
         <div class="modal fade" id="scheduleAssignmentModal" tabindex="-1" aria-labelledby="scheduleAssignmentModalLabel" aria-hidden="true">
             <div @class(['modal-dialog modal-dialog-centered', 'schedule-assignment-dialog' => $aiSchedulingEnabled])><div class="modal-content schedule-modal-content">
-                <form method="POST" action="{{ route('schedules.store') }}" id="scheduleAssignmentForm" data-store-url="{{ route('schedules.store') }}" data-update-url-template="{{ route('schedules.update', ['scheduleAssignment' => '__ID__']) }}" data-conflict-url="{{ route('schedules.conflicts') }}">
+                <form method="POST" action="{{ route('schedules.store') }}" id="scheduleAssignmentForm" data-store-url="{{ route('schedules.store') }}" data-coverage-url="{{ route('schedules.coverage') }}" data-update-url-template="{{ route('schedules.update', ['scheduleAssignment' => '__ID__']) }}" data-conflict-url="{{ route('schedules.conflicts') }}">
                     @csrf
                     <input type="hidden" name="_method" value="POST" data-method-field>
                     <input type="hidden" name="recommendation_id" data-ai-recommendation-id-field>
-                    <div class="modal-header"><div><p class="panel-kicker">Schedule assignment</p><h2 class="modal-title" id="scheduleAssignmentModalLabel">Assign a shift</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                    <div class="modal-header"><div><p class="panel-kicker">Schedule assignment</p><h2 class="modal-title" id="scheduleAssignmentModalLabel">Assign a shift</h2><small data-assignment-subtitle>{{ $aiSchedulingEnabled ? 'Fill in the shift yourself, or ask the assistant who is free and least loaded.' : 'Fill in the shift details, then save.' }}</small></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div @class(['modal-body', 'schedule-assignment-workspace' => $aiSchedulingEnabled, 'schedule-form-grid' => ! $aiSchedulingEnabled])>
                         @if ($aiSchedulingEnabled)
                             <section class="schedule-assignment-manual" aria-labelledby="manualAssignmentTitle">
@@ -345,16 +345,39 @@
                                     <span><x-icon name="calendar" /></span>
                                     <div><p>Manual assignment</p><h3 id="manualAssignmentTitle">Assignment details</h3></div>
                                 </div>
-                                <p class="schedule-assignment-section-copy">Set the actual shift details here. AI can recommend an employee, but these fields and the final save remain under HR control.</p>
+                                <p class="schedule-assignment-section-copy">These fields and the final save stay with HR.</p>
                                 <div class="schedule-form-grid schedule-assignment-fields">
                         @endif
                                     <label><span>Department</span><select data-assignment-department-filter><option value="">All departments</option>@foreach($departments as $department)<option value="{{ $department->id }}">{{ $department->name }}</option>@endforeach</select></label>
                                     <label><span>Position</span><select data-assignment-position-filter><option value="">All positions</option>@foreach($positions as $position)<option value="{{ $position->id }}" data-department-id="{{ $position->department_id }}">{{ $position->title }}</option>@endforeach</select></label>
-                                    <label class="full-width"><span>Employee</span><select name="employee_id" required data-assignment-employee-select><option value="">Select employee</option>@foreach($employees as $employee)<option value="{{ $employee->id }}" data-department-id="{{ $employee->department_id }}" data-position-id="{{ $employee->position_id }}">{{ $employee->employee_number }} · {{ $employee->full_name }} ({{ $employee->department?->code }})</option>@endforeach</select></label>
-                                    <label><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
+                                    <label><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}" data-hours="{{ round($shift->duration_minutes / 60, 1) }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
                                     <label><span>Work date</span><input type="date" name="work_date" value="{{ ($isEditableDate($focusDate) ? $focusDate : $firstEditableDate)->toDateString() }}" min="{{ $firstEditableDate->toDateString() }}" required></label>
+                                    {{-- The cover already standing on this shift is read before anyone is
+                                         picked, so an over-covered shift is visible while it can still be changed. --}}
+                                    <div class="schedule-coverage-status full-width" data-coverage-status role="status" hidden><x-icon name="users" /><span></span></div>
+                                    <div class="schedule-employee-field full-width">
+                                        <span class="schedule-employee-label"><span id="assignmentEmployeeLabel">Employee</span><span class="schedule-from-ai" data-assignment-from-ai hidden>From AI recommendation</span></span>
+                                        {{-- Grouped by position: one department's staff list is scanned by
+                                             role, which is how the shift is thought about in the first place. --}}
+                                        <select name="employee_id" required data-assignment-employee-select aria-labelledby="assignmentEmployeeLabel" aria-describedby="assignmentEmployeeHelp">
+                                            <option value="">Select employee</option>
+                                            @foreach($employees->groupBy(fn ($employee) => $employee->position?->title ?? 'No position') as $positionTitle => $positionEmployees)
+                                                <optgroup label="{{ $positionTitle }}">@foreach($positionEmployees as $employee)<option value="{{ $employee->id }}" data-department-id="{{ $employee->department_id }}" data-position-id="{{ $employee->position_id }}" data-name="{{ $employee->full_name }}" data-position="{{ $employee->position?->title }}" data-number="{{ $employee->employee_number }}">{{ $employee->employee_number }} · {{ $employee->full_name }} ({{ $employee->department?->code }})</option>@endforeach</optgroup>
+                                            @endforeach
+                                        </select>
+                                        @php($employeeHelpIdle = $aiSchedulingEnabled ? 'Pick someone yourself, or use a recommendation on the right.' : 'Pick the employee to put on this shift.')
+                                        <small id="assignmentEmployeeHelp" data-assignment-employee-help data-idle="{{ $employeeHelpIdle }}">{{ $employeeHelpIdle }}</small>
+                                    </div>
+                                    <div class="schedule-conflict-status full-width" data-conflict-status><x-icon name="check-circle" /><span data-conflict-title>Availability</span><small data-conflict-text>Choose an employee, shift, and date to check availability.</small></div>
+                                    <div class="assignment-repeat full-width" data-assignment-repeat data-recurring-url="{{ route('recurring-schedules.store') }}" data-preview-url="{{ route('recurring-schedules.preview') }}">
+                                        <label class="assignment-repeat-toggle"><input type="checkbox" data-repeat-toggle><span><strong>Repeat weekly</strong><small data-repeat-hint>Also assign this shift every week on the same day.</small></span></label>
+                                        <div class="assignment-repeat-fields" data-repeat-fields hidden>
+                                            <label><span>Until</span><input type="date" data-repeat-until min="{{ $firstEditableDate->toDateString() }}"></label>
+                                            <p class="assignment-repeat-summary" data-repeat-summary aria-live="polite"></p>
+                                            <button type="button" class="btn btn-link btn-sm assignment-repeat-more" data-repeat-more>More repeat options</button>
+                                        </div>
+                                    </div>
                                     <label class="full-width"><span>Notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Optional assignment note"></textarea></label>
-                                    <div class="schedule-conflict-status full-width" data-conflict-status><x-icon name="check-circle" /><span>Select an employee, shift, and date to check availability.</span></div>
                         @if ($aiSchedulingEnabled)
                                 </div>
                             </section>
@@ -363,7 +386,9 @@
                     </div>
                     <div class="modal-footer">
                         @if ($aiSchedulingEnabled)<p class="schedule-save-note"><x-icon name="shield" /> AI suggestions never save automatically.</p>@endif
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save assignment</button>
+                        {{-- Why the save is held back, next to the button it holds back. --}}
+                        <p class="schedule-save-reason" id="assignmentSaveReason" data-assignment-reason hidden><x-icon name="info" /><span></span></p>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary" data-assignment-submit aria-describedby="assignmentSaveReason">Save assignment</button>
                     </div>
                 </form>
             </div></div>
@@ -372,9 +397,9 @@
         <div class="modal fade" id="bulkScheduleModal" tabindex="-1" aria-labelledby="bulkScheduleModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered bulk-schedule-dialog"><div class="modal-content schedule-modal-content">
                 <form method="POST" action="{{ route('schedules.roster.publish') }}" id="bulkScheduleForm" data-roster-fill-url="{{ route('schedules.roster.fill') }}" data-roster-evaluate-url="{{ route('schedules.roster.evaluate') }}" data-roster-publish-url="{{ route('schedules.roster.publish') }}" data-roster-draft-save-url="{{ route('schedules.roster.drafts.save') }}" data-roster-drafts-url="{{ route('schedules.roster.drafts') }}" data-roster-draft-discard-url-template="{{ route('schedules.roster.drafts.discard', ['rosterDraft' => '__ID__']) }}" @if($aiSchedulingEnabled) data-roster-suggest-url="{{ route('schedules.roster.suggest') }}" @endif>@csrf
-                    <div class="modal-header bulk-schedule-header"><span class="bulk-ai-icon"><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'users'" /></span><div><p class="panel-kicker">{{ $aiSchedulingEnabled ? 'AI Scheduling Assistant' : 'Department scheduling' }}</p><h2 class="modal-title" id="bulkScheduleModalLabel">Generate a bulk schedule</h2><small>Build, validate, approve, and publish one department schedule.</small><span class="ai-scheduling-advisory">HR approval required</span></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                    <div class="modal-header bulk-schedule-header"><span class="bulk-ai-icon"><x-icon :name="$aiSchedulingEnabled ? 'ai' : 'users'" /></span><div><p class="panel-kicker">{{ $aiSchedulingEnabled ? 'AI Scheduling Assistant' : 'Department scheduling' }}</p><h2 class="modal-title" id="bulkScheduleModalLabel">Generate a bulk schedule</h2><small data-bulk-header-context>Choose a department to begin.</small></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="bulk-schedule-shell">
-                        <div class="bulk-flow-rail"><ol class="bulk-flow-steps" data-bulk-flow-steps aria-label="Bulk scheduling workflow"><li data-step-item="1" class="active"><span>1</span><strong>Department & staff</strong></li><li data-step-item="2"><span>2</span><strong>Period & rules</strong></li><li data-step-item="3"><span>3</span><strong>Draft generation</strong></li><li data-step-item="4"><span>4</span><strong>Validation</strong></li><li data-step-item="5"><span>5</span><strong>Approve & publish</strong></li></ol></div>
+                        <div class="bulk-flow-rail"><ol class="bulk-flow-steps" data-bulk-flow-steps aria-label="Bulk scheduling workflow"><li data-step-item="1" class="active"><button type="button" class="bulk-flow-step" disabled><span class="bulk-flow-dot" aria-hidden="true"><em>1</em><x-icon name="check" /></span><span class="bulk-flow-copy"><strong>Department & staff</strong><small data-step-sub></small></span><span class="visually-hidden" data-step-state></span></button></li><li data-step-item="2"><button type="button" class="bulk-flow-step" disabled><span class="bulk-flow-dot" aria-hidden="true"><em>2</em><x-icon name="check" /></span><span class="bulk-flow-copy"><strong>Period & rules</strong><small data-step-sub></small></span><span class="visually-hidden" data-step-state></span></button></li><li data-step-item="3"><button type="button" class="bulk-flow-step" disabled><span class="bulk-flow-dot" aria-hidden="true"><em>3</em><x-icon name="check" /></span><span class="bulk-flow-copy"><strong>Draft generation</strong><small data-step-sub></small></span><span class="visually-hidden" data-step-state></span></button></li><li data-step-item="4"><button type="button" class="bulk-flow-step" disabled><span class="bulk-flow-dot" aria-hidden="true"><em>4</em><x-icon name="check" /></span><span class="bulk-flow-copy"><strong>Validation</strong><small data-step-sub></small></span><span class="visually-hidden" data-step-state></span></button></li><li data-step-item="5"><button type="button" class="bulk-flow-step" disabled><span class="bulk-flow-dot" aria-hidden="true"><em>5</em><x-icon name="check" /></span><span class="bulk-flow-copy"><strong>Approve & publish</strong><small data-step-sub></small></span><span class="visually-hidden" data-step-state></span></button></li></ol></div>
                         <div class="modal-body bulk-schedule-form">
                         <div class="schedule-form-grid bulk-schedule-details bulk-step-panel" data-step-panel="1">
                             <div class="bulk-inline-step-heading full-width">
@@ -383,23 +408,40 @@
                             </div>
                             <p class="bulk-schedule-intro full-width">Choose a department and position, then select specific employees or include all active staff. {{ $aiSchedulingEnabled ? 'The assistant generates one reviewed recommendation' : 'The system generates one reviewed bulk plan' }}.</p>
                             <label><span>Department</span><select name="department_id" data-bulk-department-filter required><option value="">Select department</option>@foreach($departments as $department)<option value="{{ $department->id }}" data-employee-count="{{ $employees->where('department_id', $department->id)->count() }}" data-category="{{ $department->category }}">{{ $department->name }}</option>@endforeach</select></label>
-                            <fieldset class="bulk-position-picker full-width" data-bulk-position-picker><legend>Position</legend><p data-bulk-position-help>Select a department first</p><div data-bulk-position-options>@foreach($positions as $position)<label class="bulk-position-option" data-department-id="{{ $position->department_id }}" hidden><input type="checkbox" name="position_ids[]" value="{{ $position->id }}" data-bulk-position-filter disabled><span>{{ $position->title }}</span></label>@endforeach</div></fieldset>
-                            <label class="full-width"><span>Find staff</span><input type="search" data-bulk-employee-search placeholder="Search employee name or ID" disabled></label>
-                            <div class="bulk-staff-scope full-width" data-bulk-staff-scope>
-                                <label class="bulk-staff-scope-field"><span>Include</span><select name="employee_scope" data-bulk-employee-scope disabled><option value="specific">Specific staff</option><option value="all">All active staff</option></select></label>
-                                <button class="btn btn-light" type="button" data-bulk-select-all>Select visible staff</button>
+                            <fieldset class="bulk-position-picker full-width" data-bulk-position-picker><legend>Position</legend><p data-bulk-position-help>Select a department first</p><div data-bulk-position-options>@foreach($positions as $position)<label class="bulk-position-option" data-department-id="{{ $position->department_id }}" hidden><input type="checkbox" name="position_ids[]" value="{{ $position->id }}" data-bulk-position-filter disabled><span>{{ $position->title }}</span><em class="bulk-position-count">{{ $employees->where('position_id', $position->id)->count() }}</em></label>@endforeach</div></fieldset>
+                            <div class="bulk-staff-toolbar full-width" data-bulk-staff-toolbar>
+                                <div class="bulk-staff-search"><x-icon name="search" /><input type="search" data-bulk-employee-search placeholder="Search employee name or ID" aria-label="Search employee name or ID" disabled></div>
+                                <div class="bulk-show-filter" role="group" aria-label="Show employees">
+                                    <button type="button" data-bulk-show="all" aria-pressed="true">All <span data-bulk-show-count="all">0</span></button>
+                                    <button type="button" data-bulk-show="selected" aria-pressed="false">Selected <span data-bulk-show-count="selected">0</span></button>
+                                    <button type="button" data-bulk-show="unselected" aria-pressed="false">Not selected <span data-bulk-show-count="unselected">0</span></button>
+                                </div>
+                                <div class="bulk-selection-status" role="status"><span data-bulk-selection-summary>0 selected</span><button type="button" class="btn btn-sm btn-light" data-bulk-clear-selection hidden>Clear selection</button></div>
                             </div>
-                            <div class="bulk-inline-employee-list full-width" data-bulk-employee-list>
-                                <p class="bulk-employee-empty" data-bulk-employee-empty>Select a department to load its active employees.</p>
+                            {{-- A table, not a list: who someone is, their number, their
+                                 role and what the chosen period already holds for them are
+                                 four things read across, and the last is the one that
+                                 decides whether ticking them is sensible at all. --}}
+                            <div class="bulk-inline-employee-list full-width" data-bulk-employee-list data-staff-load-url="{{ route('schedules.staff-load') }}">
+                                <div class="bulk-employee-head"><label class="bulk-master-check"><input type="checkbox" data-bulk-master disabled><span class="visually-hidden" data-bulk-master-label>Select all shown</span></label><span>Employee</span><span>Employee ID</span><span>Position</span><span>This period</span></div>
+                                <div class="bulk-employee-empty" data-bulk-employee-empty>
+                                    <strong data-bulk-employee-empty-title>Choose a department</strong>
+                                    <span data-bulk-employee-empty-body>Select a department to load its active employees.</span>
+                                    <button type="button" class="btn btn-sm btn-light" data-bulk-employee-empty-action hidden></button>
+                                </div>
                                 @foreach($employees as $employee)
-                                    <label class="bulk-employee-option" data-department-id="{{ $employee->department_id }}" data-position-id="{{ $employee->position_id }}" data-search="{{ strtolower($employee->employee_number.' '.$employee->full_name.' '.$employee->department?->name.' '.$employee->position?->title) }}">
+                                    <label class="bulk-employee-option" data-department-id="{{ $employee->department_id }}" data-position-id="{{ $employee->position_id }}" data-employee-id="{{ $employee->id }}" data-search="{{ strtolower($employee->employee_number.' '.$employee->full_name.' '.$employee->department?->name.' '.$employee->position?->title) }}">
                                         <input type="checkbox" name="employee_ids[]" value="{{ $employee->id }}">
                                         <span class="bulk-employee-check"><x-icon name="check" /></span>
-                                        <span><strong>{{ $employee->full_name }}</strong><small>{{ $employee->employee_number }} · {{ $employee->department?->name ?? 'No department' }} · {{ $employee->position?->title ?? 'No position' }}</small></span>
+                                        <span class="bulk-employee-avatar" aria-hidden="true">{{ collect(explode(' ', $employee->full_name))->filter()->take(2)->map(fn ($part) => strtoupper($part[0]))->join('') }}</span>
+                                        <span class="bulk-employee-name">{{ $employee->full_name }}</span>
+                                        <span class="bulk-employee-number">{{ $employee->employee_number }}</span>
+                                        <span class="bulk-employee-position">{{ $employee->position?->title ?? 'No position' }}</span>
+                                        <span class="bulk-employee-period" data-bulk-employee-period>—</span>
                                     </label>
                                 @endforeach
                             </div>
-                            <div class="bulk-inline-employee-actions full-width"><span>Select the employees to include in this schedule.</span></div>
+                            <div class="bulk-inline-employee-actions full-width"><span data-bulk-period-note>Select the employees to include in this schedule.</span></div>
                         </div>
 
                         {{-- Period, pattern and rules read as one decision — how the
@@ -408,11 +450,11 @@
                         <div class="bulk-step-panel bulk-step-stack" data-step-panel="2" hidden>
                             <div class="schedule-form-grid bulk-schedule-details">
                                 @if($aiSchedulingEnabled)
-                                    <label><span>Shift pattern</span><select name="schedule_method" data-schedule-method><option value="rotation">Rotating · AI balanced</option><option value="custom">Custom · AI optimized mix</option><option value="fixed">Fixed · same shift</option></select></label>
+                                    <label class="bulk-pattern-field"><span>Shift pattern</span><select name="schedule_method" data-schedule-method><option value="rotation">Rotating · AI balanced</option><option value="custom">Custom · AI optimized mix</option><option value="fixed">Fixed · same shift</option></select><small data-schedule-method-hint></small></label>
                                 @endif
-                                <label @class(['full-width' => ! $aiSchedulingEnabled]) data-fixed-shift><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}" data-rotating="{{ $shift->is_rotating ? '1' : '0' }}" data-night="{{ $shift->is_night_shift ? '1' : '0' }}" data-color="{{ $shift->color }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
+                                <label @class(['full-width' => ! $aiSchedulingEnabled]) data-fixed-shift><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}" data-rotating="{{ $shift->is_rotating ? '1' : '0' }}" data-night="{{ $shift->is_night_shift ? '1' : '0' }}" data-color="{{ $shift->color }}" data-hours="{{ round($shift->duration_minutes / 60, 1) }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
                                 @if($aiSchedulingEnabled)
-                                    <fieldset class="rotation-shift-picker full-width" data-rotation-shifts><legend>Shift pool for AI recommendation</legend><p data-shift-pool-help>Select at least two shifts. The assistant balances coverage and rotates employees weekly.</p><div>@foreach($shifts as $shift)<label><input type="checkbox" name="shift_ids[]" value="{{ $shift->id }}" data-rotating="{{ $shift->is_rotating ? '1' : '0' }}" data-night="{{ $shift->is_night_shift ? '1' : '0' }}" data-color="{{ $shift->color }}"><span class="shift-color" style="background:{{ $shift->color }}"></span><span><strong>{{ $shift->name }}</strong><small>{{ $shift->formatted_time }}</small></span></label>@endforeach</div></fieldset>
+                                    <fieldset class="rotation-shift-picker full-width" data-rotation-shifts><legend>Shift pool for AI recommendation</legend><p data-shift-pool-help>Select at least two shifts. The assistant balances coverage and rotates employees weekly.</p><div>@foreach($shifts as $shift)<label><input type="checkbox" name="shift_ids[]" value="{{ $shift->id }}" data-rotating="{{ $shift->is_rotating ? '1' : '0' }}" data-night="{{ $shift->is_night_shift ? '1' : '0' }}" data-color="{{ $shift->color }}" data-hours="{{ round($shift->duration_minutes / 60, 1) }}"><span class="shift-color" style="background:{{ $shift->color }}"></span><span><strong>{{ $shift->name }}</strong><small>{{ $shift->formatted_time }}</small><em class="shift-unavailable-reason" data-shift-reason hidden></em></span></label>@endforeach</div></fieldset>
                                 @endif
                                 <label><span>Schedule period</span><select name="schedule_period" data-schedule-period><option value="weekly">Weekly · 7 days</option><option value="two_weeks">Two weeks · 14 days</option><option value="monthly">Monthly · calendar month</option></select></label>
                                 <label data-period-start><span>Schedule starts</span><input type="date" name="period_start" value="{{ $rosterPeriodStart->toDateString() }}" min="{{ $today->toDateString() }}" required></label>
@@ -472,6 +514,17 @@
                                     </div>
                                     <p class="roster-drag-hint">Drag a name to another day or shift to move it.</p>
                                 </div>
+                                {{-- The board is read by colour, so the colours are named:
+                                     which shift each one is, and what a cell's tint says
+                                     about the cover on it. --}}
+                                <div class="roster-legend" data-roster-legend hidden>
+                                    <div class="roster-legend-shifts" data-roster-legend-shifts></div>
+                                    <div class="roster-legend-key">
+                                        <span class="roster-legend-swatch is-met">Met</span>
+                                        <span class="roster-legend-swatch is-below">Below</span>
+                                        <span class="roster-legend-swatch is-over">Over</span>
+                                    </div>
+                                </div>
                                 <div class="roster-draft-status" data-roster-draft-status hidden></div>
                                 <div class="roster-assistant-notice" data-roster-assistant-notice hidden></div>
                                 {{-- Hard, and deliberately first: a period a previous roster
@@ -525,6 +578,17 @@
                                     </label>
                                 </div>
                                 <div class="roster-board-days" data-roster-days></div>
+                                {{-- The board answers "is this day covered"; this answers
+                                     "is this person carrying a fair share", which is the
+                                     question the grid cannot show because it is arranged
+                                     by day rather than by employee. --}}
+                                <section class="roster-workload" data-roster-workload hidden>
+                                    <header>
+                                        <div><strong>Workload this period</strong><span data-roster-workload-note></span></div>
+                                        <span class="roster-workload-tally" data-roster-workload-tally></span>
+                                    </header>
+                                    <ul data-roster-workload-list></ul>
+                                </section>
                             </section>
                         </div>
 
@@ -539,8 +603,13 @@
                         <div class="bulk-step-panel" data-step-panel="4" hidden>
                             <section class="validation-recap">
                                 <header>
-                                    <strong>What you asked for</strong>
-                                    <span>Check this against what you meant to enter before approving.</span>
+                                    <div><strong>What you asked for</strong><span>Check this against what you meant to enter before approving.</span></div>
+                                    {{-- Reading something wrong here means going back, so the
+                                         way back is on the line that named it. --}}
+                                    <div class="validation-recap-actions">
+                                        <button type="button" class="btn btn-sm btn-light" data-bulk-goto-step="1">Edit staff</button>
+                                        <button type="button" class="btn btn-sm btn-light" data-bulk-goto-step="2">Edit period and rules</button>
+                                    </div>
                                 </header>
                                 <dl class="validation-recap-list" data-validation-recap></dl>
                             </section>
@@ -554,6 +623,14 @@
                                 <p class="validation-checks-empty" data-validation-empty hidden>
                                     No draft to check yet. Go back to Step 3 and generate one.
                                 </p>
+                            </section>
+
+                            <section class="validation-checks labor-compliance" data-labor-compliance hidden>
+                                <header>
+                                    <div><strong>Labor compliance</strong><small>Philippine Labor Code and hospital HR policy</small></div>
+                                    <span class="labor-compliance-tally" data-labor-compliance-tally></span>
+                                </header>
+                                <ul class="labor-compliance-list" data-labor-compliance-list></ul>
                             </section>
                         </div>
 
@@ -571,9 +648,8 @@
                     <div class="modal-footer">
                         <p class="schedule-save-note"><x-icon name="shield" /> {{ $aiSchedulingEnabled ? 'AI recommendations' : 'Bulk plans' }} never publish automatically.</p>
                         <span class="bulk-step-error" data-bulk-step-error hidden></span>
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                         <button type="button" class="btn btn-light" data-bulk-back hidden>Back</button>
-                        <button type="button" class="btn btn-primary" data-bulk-next>Next</button>
+                        <button type="button" class="btn btn-primary bulk-next-button" data-bulk-next>Next <x-icon name="chevron-right" /></button>
                         <button type="submit" class="btn btn-primary" data-bulk-save disabled hidden>Approve & publish</button>
                     </div>
                 </form>
@@ -581,26 +657,107 @@
         </div>
 
         <div class="modal fade" id="recurringScheduleModal" tabindex="-1" aria-labelledby="recurringScheduleModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content schedule-modal-content">
-                <form method="POST" action="{{ route('recurring-schedules.store') }}" id="recurringScheduleForm">@csrf
-                    <div class="modal-header"><div><p class="panel-kicker">Recurring coverage</p><h2 class="modal-title" id="recurringScheduleModalLabel">Create recurring schedule</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-                    <div class="modal-body schedule-form-grid recurring-form-grid">
-                        <label><span>Department</span><select data-recurring-department-filter><option value="">All departments</option>@foreach($departments as $department)<option value="{{ $department->id }}">{{ $department->name }}</option>@endforeach</select></label>
-                        <label><span>Position</span><select data-recurring-position-filter><option value="">All positions</option>@foreach($positions as $position)<option value="{{ $position->id }}" data-department-id="{{ $position->department_id }}">{{ $position->title }}</option>@endforeach</select></label>
-                        <label class="full-width"><span>Employee</span><select name="employee_id" required data-recurring-employee-select><option value="">Select employee</option>@foreach($employees as $employee)<option value="{{ $employee->id }}" data-department-id="{{ $employee->department_id }}" data-position-id="{{ $employee->position_id }}">{{ $employee->employee_number }} · {{ $employee->full_name }}</option>@endforeach</select></label>
-                        <label><span>Shift</span><select name="shift_id" required><option value="">Select shift</option>@foreach($shifts as $shift)<option value="{{ $shift->id }}">{{ $shift->name }} · {{ $shift->formatted_time }}</option>@endforeach</select></label>
-                        <label><span>Starts</span><input type="date" name="start_date" value="{{ $focusDate->toDateString() }}" required></label>
-                        <label><span>Ends</span><input type="date" name="end_date" value="{{ $focusDate->copy()->addMonth()->toDateString() }}" required></label>
-                        <label><span>Repeats</span><select name="recurrence_type" data-recurrence-type><option value="weekly">Weekly</option><option value="daily">Every day</option></select></label>
-                        <label><span>Week interval</span><select name="interval_weeks"><option value="1">Every week</option><option value="2">Every 2 weeks</option><option value="3">Every 3 weeks</option><option value="4">Every 4 weeks</option></select></label>
-                        <fieldset class="weekday-selector full-width" data-weekday-selector><legend>Repeat on</legend><div>@foreach($weekdays as $dayNumber => $dayName)<label><input type="checkbox" name="weekdays[]" value="{{ $dayNumber }}" @checked($dayNumber <= 5)><span>{{ substr($dayName, 0, 3) }}</span></label>@endforeach</div></fieldset>
-                        <label class="full-width"><span>Notes</span><textarea name="notes" rows="2" maxlength="500" placeholder="Optional series note"></textarea></label>
-                        <div class="recurrence-summary full-width"><x-icon name="repeat" /><span data-recurrence-summary>Repeats weekly on weekdays.</span></div>
+            <div class="modal-dialog modal-dialog-centered recurring-dialog"><div class="modal-content schedule-modal-content">
+                <form method="POST" action="{{ route('recurring-schedules.store') }}" id="recurringScheduleForm" data-preview-url="{{ route('recurring-schedules.preview') }}">@csrf
+                    <input type="hidden" name="skip_conflicts" value="0" data-recurring-skip>
+                    <div class="modal-header"><div><p class="panel-kicker">Recurring coverage</p><h2 class="modal-title" id="recurringScheduleModalLabel">Create recurring schedule</h2><small>Repeat one shift for one employee across a date range.</small></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                    <div class="modal-body recurring-workspace">
+                        <div class="recurring-form">
+                            <section class="recurring-section" aria-labelledby="recurringWhoTitle">
+                                <h3 class="recurring-section-title" id="recurringWhoTitle">1 · Who</h3>
+                                <div class="schedule-form-grid">
+                                    <label><span>Department</span><select data-recurring-department-filter><option value="">All departments</option>@foreach($departments as $department)<option value="{{ $department->id }}">{{ $department->name }}</option>@endforeach</select></label>
+                                    <label><span>Position</span><select data-recurring-position-filter><option value="">All positions</option>@foreach($positions as $position)<option value="{{ $position->id }}" data-department-id="{{ $position->department_id }}">{{ $position->title }}</option>@endforeach</select></label>
+                                    <label class="full-width"><span>Employee</span><select name="employee_id" required data-recurring-employee-select><option value="">Select employee</option>@foreach($employees as $employee)<option value="{{ $employee->id }}" data-department-id="{{ $employee->department_id }}" data-position-id="{{ $employee->position_id }}" data-position="{{ $employee->position?->title }}" data-number="{{ $employee->employee_number }}">{{ $employee->employee_number }} · {{ $employee->full_name }}</option>@endforeach</select><small class="recurring-employee-meta" data-recurring-employee-meta hidden></small></label>
+                                </div>
+                            </section>
+                            <fieldset class="recurring-section">
+                                <legend class="recurring-section-title">2 · Shift</legend>
+                                <div class="recurring-shift-options">
+                                    @foreach($shifts as $shift)
+                                        <label class="recurring-shift-option"><input type="radio" name="shift_id" value="{{ $shift->id }}" required><span class="recurring-shift-swatch" style="--shift-color: {{ $shift->color }}" aria-hidden="true"></span><span><strong>{{ $shift->name }}</strong><small>{{ $shift->formatted_time }}</small></span></label>
+                                    @endforeach
+                                </div>
+                            </fieldset>
+                            <section class="recurring-section" aria-labelledby="recurringPatternTitle">
+                                <h3 class="recurring-section-title" id="recurringPatternTitle">3 · Pattern</h3>
+                                {{-- Read as a sentence -- "Repeat every 1 week on
+                                     ..." -- rather than as three labelled fields,
+                                     so the pattern is legible before the weekday
+                                     row below is even looked at. The kind select
+                                     leads it because "every day" and "every N
+                                     weeks" answer the same question. --}}
+                                <div class="recurring-pattern-row">
+                                    <span class="recurring-pattern-lead">Repeat</span>
+                                    <select name="recurrence_type" data-recurrence-type aria-label="How the series repeats"><option value="weekly">every</option><option value="daily">every day</option></select>
+                                    <select name="interval_weeks" data-recurring-interval aria-label="Repeat interval"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
+                                    <span class="recurring-pattern-lead" data-recurring-pattern-on>on</span>
+                                    <div class="recurring-presets" data-weekday-presets>
+                                        <button type="button" class="btn btn-sm btn-light" data-weekday-preset="weekdays">Weekdays</button>
+                                        <button type="button" class="btn btn-sm btn-light" data-weekday-preset="weekends">Weekends</button>
+                                        <button type="button" class="btn btn-sm btn-light" data-weekday-preset="clear">Clear</button>
+                                    </div>
+                                </div>
+                                <fieldset class="weekday-selector" data-weekday-selector><legend class="visually-hidden">Repeat on</legend><div>@foreach($weekdays as $dayNumber => $dayName)<label><input type="checkbox" name="weekdays[]" value="{{ $dayNumber }}" aria-label="{{ $dayName }}" @checked($dayNumber <= 5)><span>{{ substr($dayName, 0, 3) }}</span></label>@endforeach</div></fieldset>
+                            </section>
+                            <section class="recurring-section" aria-labelledby="recurringRangeTitle">
+                                <h3 class="recurring-section-title" id="recurringRangeTitle">4 · Date range</h3>
+                                <div class="recurring-range">
+                                    <label class="recurring-range-start"><span>Starts</span><input type="date" name="start_date" value="{{ ($isEditableDate($focusDate) ? $focusDate : $firstEditableDate)->toDateString() }}" min="{{ $firstEditableDate->toDateString() }}" required></label>
+                                    {{-- Two ways to stop, and only one of them live:
+                                         the control belonging to the mode that is
+                                         off is disabled, so it neither posts nor
+                                         takes a tab stop, and the request decides
+                                         on the mode alone rather than on whichever
+                                         field happens to be filled in. --}}
+                                    <fieldset class="recurring-range-end" data-recurring-end>
+                                        <legend>Ends</legend>
+                                        <label class="recurring-end-mode is-active">
+                                            <input type="radio" name="end_mode" value="on" checked data-recurring-end-mode>
+                                            <span>On</span>
+                                            <input type="date" name="end_date" value="{{ ($isEditableDate($focusDate) ? $focusDate : $firstEditableDate)->copy()->addMonth()->toDateString() }}" min="{{ $firstEditableDate->toDateString() }}" data-recurring-end-date aria-label="Series end date" required>
+                                        </label>
+                                        <label class="recurring-end-mode">
+                                            <input type="radio" name="end_mode" value="after" data-recurring-end-mode>
+                                            <span>After</span>
+                                            <input type="number" name="occurrences" value="10" min="1" max="{{ (int) config('schedule.max_recurrence_days') }}" step="1" data-recurring-occurrences aria-label="Number of shifts" disabled>
+                                            <span>shifts</span>
+                                        </label>
+                                    </fieldset>
+                                </div>
+                            </section>
+                            <div class="schedule-form-grid"><label class="full-width"><span>Notes <small>(optional)</small></span><textarea name="notes" rows="2" maxlength="500" placeholder="Saved on every shift in this series"></textarea></label></div>
+                        </div>
+                        <aside class="recurring-preview" data-recurring-preview aria-live="polite" aria-labelledby="recurringPreviewTitle">
+                            <p class="recurring-section-title" id="recurringPreviewTitle">Preview</p>
+                            <div>
+                                <strong class="recurring-summary" data-recurrence-summary>Every week on weekdays</strong>
+                                <div class="recurring-summary-sub" data-recurring-summary-sub></div>
+                            </div>
+                            <div class="recurring-stats">
+                                <div><span>Shifts to create</span><strong data-recurring-create>—</strong><small data-recurring-create-note></small></div>
+                                <div><span>Busiest week, paid hours</span><strong data-recurring-hours>—</strong><small data-recurring-hours-note></small></div>
+                            </div>
+                            <p class="recurring-preview-empty" data-recurring-preview-empty>Choose an employee and a shift to preview the series.</p>
+                            <div class="recurring-calendar" data-recurring-calendar hidden></div>
+                            <ul class="recurring-checks" data-recurring-checks></ul>
+                            <div class="recurring-conflicts" data-recurring-conflicts hidden>
+                                <strong data-recurring-conflicts-title></strong>
+                                <ul data-recurring-conflict-list></ul>
+                                <label class="recurring-skip"><input type="checkbox" data-recurring-skip-toggle checked> Skip these dates and create the rest</label>
+                            </div>
+                        </aside>
                     </div>
-                    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Create series</button></div>
+                    <div class="modal-footer">
+                        <p class="schedule-save-note"><x-icon name="shield" /> Each shift in the series can still be edited or removed on its own.</p>
+                        <span class="recurring-reason" data-recurring-reason hidden></span>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary" data-recurring-submit>Create series</button>
+                    </div>
                 </form>
             </div></div>
         </div>
+
+        @include('schedules.partials.confirmation-modal')
 
         <div class="modal fade day-roster-modal" id="dayRosterModal" tabindex="-1" aria-labelledby="dayRosterModalLabel" aria-hidden="true" data-schedule-today="{{ $today->toDateString() }}" data-day-roster-url="{{ route('schedules.day-roster') }}" data-update-url-template="{{ route('schedules.update', ['scheduleAssignment' => '__ID__']) }}">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl day-roster-dialog"><div class="modal-content schedule-modal-content">

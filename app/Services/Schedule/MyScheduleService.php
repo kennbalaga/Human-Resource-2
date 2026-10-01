@@ -5,6 +5,7 @@ namespace App\Services\Schedule;
 use App\Models\Employee;
 use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -37,9 +38,9 @@ class MyScheduleService
             ? Carbon::parse($focusDate, $timezone)->startOfDay()
             : $today->copy();
 
-        // Monday-first, matching the calendar's own week and the strip's M T W
-        // T F S S labels.
-        $weekStart = $focus->copy()->startOfWeek(Carbon::MONDAY);
+        // The scheduling week, matching the calendar's own week and the
+        // strip's day letters.
+        $weekStart = ScheduleWeek::start($focus);
         $rangeStart = $weekStart->copy()->min($today);
         $rangeEnd = $today->copy()->addDays(self::HORIZON_DAYS)->max($weekStart->copy()->addDays(6));
 

@@ -11,6 +11,7 @@ use App\Models\ScheduleAssignmentAudit;
 use App\Models\ScheduleComplianceReview;
 use App\Models\Shift;
 use App\Services\ScheduleService;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
@@ -124,9 +125,9 @@ class ScheduleComplianceService
             }
         }
 
-        foreach (CarbonPeriod::create($start->copy()->startOfWeek(), '1 week', $end->copy()->endOfWeek()) as $weekStart) {
+        foreach (CarbonPeriod::create(ScheduleWeek::start($start), '1 week', ScheduleWeek::end($end)) as $weekStart) {
             $weekStart = Carbon::instance($weekStart);
-            $weekEnd = $weekStart->copy()->endOfWeek();
+            $weekEnd = ScheduleWeek::end($weekStart);
             $weekAssignments = $assignments->filter(fn (ScheduleAssignment $assignment) => $assignment->work_date->betweenIncluded($weekStart, $weekEnd));
             if ($weekAssignments->isEmpty()) {
                 continue;

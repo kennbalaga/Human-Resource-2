@@ -12,16 +12,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.querySelector('#scheduleAssignmentForm');
     if (!component || !form) return;
 
-    const department = component.querySelector('[data-ai-department]');
-    const position = component.querySelector('[data-ai-position]');
+    // The assistant reads the same department and position the manual fields
+    // on the left use, rather than keeping a second pair of pickers that can
+    // disagree with them.
+    const department = form.querySelector('[data-assignment-department-filter]');
+    const position = form.querySelector('[data-assignment-position-filter]');
+    const context = component.querySelector('[data-ai-context]');
     const generateButton = component.querySelector('[data-ai-generate]');
     const status = component.querySelector('[data-ai-status]');
     const results = component.querySelector('[data-ai-results]');
-    const applyButton = component.querySelector('[data-ai-apply]');
+    const criteria = component.querySelector('[data-ai-criteria]');
+    const candidateList = component.querySelector('[data-ai-candidates]');
+    const resultsTitle = component.querySelector('[data-ai-results-title]');
+    const weeklyLimit = Number(component.dataset.weeklyLimit) || 48;
     let currentResult = null;
     let selectedCandidateId = null;
+    let appliedCandidateId = null;
     let requestSequence = 0;
     let activeRequest = null;
+
+    const initials = (name) => name.split(/\s+/).filter(Boolean).map((word) => word[0]).slice(0, 2).join('').toUpperCase();
+    const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+    const hours = (minutes) => Math.round((Number(minutes) || 0) / 6) / 10;
+    const shiftHours = () => Number(form.elements.shift_id.selectedOptions[0]?.dataset.hours) || 0;
+    // A candidate's own position, read from the employee field's own options
+    // rather than assumed — the two lists are the same people.
+    const positionOf = (employeeId) => form.elements.employee_id
+        .querySelector(`option[value="${CSS.escape(String(employeeId))}"]`)?.dataset.position ?? '';
+    const workDateLabel = () => {
+        const value = form.elements.work_date.value;
+        if (!value) return 'this date';
+
+        return new Intl.DateTimeFormat('en-PH', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${value}T00:00:00`));
+    };
 
     const showStatus = (message, tone = 'neutral') => {
         status.textContent = message;
@@ -32,53 +55,99 @@ document.addEventListener('DOMContentLoaded', () => {
     const setLoading = (loading) => {
         generateButton.disabled = loading;
         generateButton.classList.toggle('loading', loading);
+        generateButton.textContent = loading ? 'Checking staff…' : (currentResult ? 'Recommend again' : 'Generate AI Recommendation');
         if (loading) showStatus('Analyzing eligible employees and workload records…');
+    };
+
+    // The criteria list is what stands in for a result, so it shows whenever
+    // there is none to read.
+    const showCriteria = (show) => {
+        if (criteria) criteria.hidden = !show;
     };
 
     const isEditMode = () => form.querySelector('[data-method-field]')?.value === 'PUT';
 
-    const filterPositions = () => {
-        const departmentId = department.value;
-        position.value = '';
-        position.disabled = !departmentId;
-        [...position.options].forEach((option) => {
-            if (!option.value) return;
-            const visible = option.dataset.departmentId === departmentId;
-            option.hidden = !visible;
-            option.disabled = !visible;
-        });
+    const optionText = (select, fallback) => (select?.value ? select.selectedOptions[0]?.textContent.trim() : '') || fallback;
+    const contextKey = () => [department?.value, position?.value, form.elements.shift_id.value, form.elements.work_date.value].join('|');
+    let resultKey = null;
+
+    // "Recommending for …" mirrors the left-hand fields, so what the assistant
+    // is about to be asked is always in view.
+    const syncContext = () => {
+        if (context) {
+            const shift = form.elements.shift_id.value ? form.elements.shift_id.selectedOptions[0]?.textContent.trim() : 'No shift yet';
+            const date = form.elements.work_date.value || 'no date';
+            context.textContent = [shift, date, optionText(department, 'All departments'), optionText(position, 'All positions')].join(' · ');
+        }
+        if (currentResult && !results.hidden && resultKey !== contextKey()) {
+            results.hidden = true;
+            showCriteria(true);
+            showStatus('The shift, date, department, or position changed. Recommend again for up-to-date candidates.', 'warning');
+        }
     };
 
-    const candidateCard = (candidate, alternative = false) => {
-        const card = element('article', alternative ? 'ai-candidate ai-candidate-alternative' : 'ai-candidate ai-candidate-primary');
+    /**
+     * One ranked candidate: where they place, who they are, what the assistant
+     * checked, the paid hours this shift would add, and the button that puts
+     * them in the employee field.
+     */
+    const candidateCard = (candidate, rank) => {
+        const chosen = Number(candidate.employee_id) === appliedCandidateId;
+        const card = element('article', `ai-candidate${rank === 1 ? ' ai-candidate-primary' : ''}${chosen ? ' is-chosen' : ''}`);
+
         const heading = element('div', 'ai-candidate-heading');
+        heading.append(element('span', 'ai-candidate-rank', String(rank)), element('span', 'ai-candidate-avatar', initials(candidate.name)));
         const identity = element('div');
-        identity.append(element('strong', null, candidate.name), element('span', null, candidate.employee_number));
-        const score = element('b', null, `${Number(candidate.score).toFixed(1)} / 100`);
-        heading.append(identity, score);
+        identity.append(element('strong', null, candidate.name), element('span', null, [positionOf(candidate.employee_id), candidate.employee_number].filter(Boolean).join(' · ')));
+        heading.append(identity, element('b', null, `${Number(candidate.score).toFixed(1)} / 100`));
+        const use = element('button', 'btn btn-sm btn-outline-primary ai-candidate-use', chosen ? 'Selected' : 'Use this employee');
+        use.type = 'button';
+        use.disabled = chosen;
+        use.dataset.aiUseCandidate = String(candidate.employee_id);
+        use.setAttribute('aria-label', `Use ${candidate.name} for this shift`);
+        heading.append(use);
         card.append(heading);
-        const risk = element('span', `ai-risk ai-risk-${candidate.workload_risk.level}`, `${candidate.workload_risk.label}: ${candidate.workload_risk.level}`);
+
+        // Every listed candidate cleared the hard constraints, so these say
+        // which ones — the ranking below is what separates them.
+        const chips = element('div', 'ai-chip-row');
+        const rest = Number(candidate.metrics?.rest_hours);
+        [
+            `Free on ${workDateLabel()}`,
+            'No approved leave or day off',
+            // 72 is the cap the scoring uses for "no shift anywhere near this one".
+            Number.isFinite(rest) ? (rest >= 72 ? 'No shift within 72 h either side' : `${rest} h rest around this shift`) : null,
+        ].filter(Boolean).forEach((text) => {
+            const chip = element('span', 'ai-chip ai-chip-ok');
+            chip.append(element('span', 'ai-chip-tick', '✓'), element('span', null, text));
+            chips.append(chip);
+        });
+        const risk = candidate.workload_risk;
+        if (risk) chips.append(element('span', `ai-risk ai-risk-${risk.level}`, `${risk.label}: ${risk.level}`));
         const burnout = candidate.burnout_risk;
         const burnoutChip = burnout
             ? element('span', `ai-risk ai-risk-${burnout.level}`, `Burnout risk: ${burnout.level}`)
             : element('span', 'ai-risk ai-risk-unknown', 'Burnout risk: not assessed');
         if (burnout?.drivers?.length) burnoutChip.title = burnout.drivers.join('\n');
-        const chips = element('div', 'ai-risk-row');
-        chips.append(risk, burnoutChip);
+        chips.append(burnoutChip);
         card.append(chips);
+
         if (candidate.burnout_protected) {
             card.append(element('p', 'ai-burnout-note', 'High burnout risk: ranked after the other eligible staff. Choose only if nobody else can cover.'));
         }
-        const reasons = element('ul');
-        candidate.recommendation_reasons.forEach((reason) => reasons.append(element('li', null, reason)));
-        card.append(reasons);
 
-        if (alternative) {
-            const choose = element('button', 'btn btn-sm btn-outline-primary', 'Select alternative');
-            choose.type = 'button';
-            choose.dataset.aiSelectCandidate = String(candidate.employee_id);
-            card.append(choose);
-        }
+        // Hours already on this week, and what this shift would add to them.
+        const now = hours(candidate.metrics?.weekly_workload_minutes);
+        const add = shiftHours();
+        const load = element('div', 'ai-candidate-load');
+        const bar = element('span', 'ai-load-bar');
+        const filled = element('span', 'ai-load-now');
+        filled.style.width = `${Math.min(100, (now / weeklyLimit) * 100)}%`;
+        const added = element('span', 'ai-load-add');
+        added.style.width = `${Math.min(100 - Math.min(100, (now / weeklyLimit) * 100), (add / weeklyLimit) * 100)}%`;
+        bar.append(filled, added);
+        load.append(bar, element('span', 'ai-load-text', `${now} → ${Math.round((now + add) * 10) / 10} of ${weeklyLimit} h`));
+        card.append(load);
 
         return card;
     };
@@ -95,32 +164,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderResult = (data) => {
         currentResult = data;
-        selectedCandidateId = data.recommended ? Number(data.recommended.employee_id) : null;
+        appliedCandidateId = null;
+        const ranked = [data.recommended, ...data.alternatives].filter(Boolean);
+        selectedCandidateId = ranked[0] ? Number(ranked[0].employee_id) : null;
         results.hidden = false;
+        showCriteria(false);
         component.querySelector('[data-ai-rejection]').hidden = true;
         component.querySelector('[data-ai-rejection-reason]').value = '';
         component.querySelector('[data-ai-explanation]').textContent = data.explanation || '';
-        const recommended = component.querySelector('[data-ai-recommended]');
-        const alternatives = component.querySelector('[data-ai-alternatives]');
         const ineligible = component.querySelector('[data-ai-ineligible-list]');
         component.querySelector('[data-ai-breakdown-list]').replaceChildren();
-        recommended.replaceChildren();
-        alternatives.replaceChildren();
+        candidateList.replaceChildren();
         ineligible.replaceChildren();
 
-        if (!data.recommended) {
-            recommended.append(element('p', 'ai-scheduling-empty', 'No eligible employee was found for the selected requirements.'));
-            applyButton.disabled = true;
+        if (!ranked.length) {
+            resultsTitle.textContent = 'Nobody in this department and position is available';
+            candidateList.append(element('p', 'ai-scheduling-empty', 'No eligible employee was found for the selected requirements. The employees left out, and why, are listed below.'));
         } else {
-            recommended.append(element('p', 'ai-result-label', 'Highest-ranked eligible employee'), candidateCard(data.recommended));
-            renderBreakdown(data.recommended);
-            applyButton.disabled = false;
-            applyButton.textContent = 'Apply Recommendation';
-        }
-
-        if (data.alternatives.length) {
-            alternatives.append(element('p', 'ai-result-label', 'Qualified alternatives'));
-            data.alternatives.forEach((candidate) => alternatives.append(candidateCard(candidate, true)));
+            resultsTitle.textContent = `Top ${ranked.length} of ${plural(data.eligible.length, 'available employee', 'available employees')}`;
+            ranked.forEach((candidate, index) => candidateList.append(candidateCard(candidate, index + 1)));
+            renderBreakdown(ranked[0]);
         }
 
         data.ineligible.forEach((candidate) => {
@@ -129,7 +192,10 @@ document.addEventListener('DOMContentLoaded', () => {
             row.append(element('span', null, candidate.reasons.map((reason) => reason.message).join(' ')));
             ineligible.append(row);
         });
+        const ineligibleTitle = component.querySelector('[data-ai-ineligible-title]');
+        if (ineligibleTitle) ineligibleTitle.textContent = `${plural(data.ineligible.length, 'employee', 'employees')} left out`;
         component.querySelector('[data-ai-ineligible]').hidden = data.ineligible.length === 0;
+        component.querySelector('[data-ai-breakdown]').hidden = ranked.length === 0;
         showStatus(data.notice, 'success');
     };
 
@@ -149,9 +215,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return payload.data;
     };
 
-    const applySelected = async () => {
+    const applySelected = async (button = null) => {
         if (!currentResult || !selectedCandidateId) return;
-        applyButton.disabled = true;
+        if (button) button.disabled = true;
         showStatus('Revalidating the selected employee against current scheduling records…');
 
         try {
@@ -162,14 +228,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 shift_id: Number(form.elements.shift_id.value),
                 work_date: form.elements.work_date.value,
             });
+            // Marked before the change fires so the form keeps the "From AI
+            // recommendation" badge instead of treating this as a hand pick.
+            form.elements.employee_id.dataset.aiApplied = '1';
             form.elements.employee_id.value = String(data.employee_id);
             form.elements.employee_id.dispatchEvent(new Event('change', { bubbles: true }));
+            form.dispatchEvent(new CustomEvent('assignment:from-ai', { bubbles: true }));
             if (form.elements.recommendation_id) form.elements.recommendation_id.value = data.recommendation_id;
-            results.hidden = true;
-            showStatus(`${data.message} Review the form, then use the existing Save assignment button when ready.`, 'success');
+            appliedCandidateId = Number(data.employee_id);
+            component.querySelectorAll('[data-ai-use-candidate]').forEach((node) => {
+                const chosen = Number(node.dataset.aiUseCandidate) === appliedCandidateId;
+                node.disabled = chosen;
+                node.textContent = chosen ? 'Selected' : 'Use this employee';
+                node.closest('.ai-candidate')?.classList.toggle('is-chosen', chosen);
+            });
+            showStatus(`${data.message} Review the form, then use Save assignment when ready.`, 'success');
         } catch (error) {
             showStatus(error.message, 'danger');
-            applyButton.disabled = false;
+            if (button) button.disabled = false;
         }
     };
 
@@ -178,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await postJson(currentResult.decision_url, { action, reason });
             results.hidden = true;
+            showCriteria(true);
             showStatus(action === 'rejected'
                 ? 'Recommendation rejected and recorded. Your manual schedule form was preserved.'
                 : 'Recommendation ignored and recorded. Your manual schedule form was preserved.', 'neutral');
@@ -194,8 +271,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const shiftId = form.elements.shift_id.value;
         const workDate = form.elements.work_date.value;
-        if (!department.value || !position.value || !shiftId || !workDate) {
-            showStatus('Select a target department, required position, shift, and work date first.', 'warning');
+        if (!department?.value || !position?.value || !shiftId || !workDate) {
+            showStatus('Choose a department, a position, a shift, and a work date on the left first.', 'warning');
             return;
         }
 
@@ -219,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (sequence !== requestSequence) return;
             const payload = await response.json();
             if (!response.ok) throw new Error(responseError(payload, 'AI recommendation is currently unavailable. You may continue scheduling manually.'));
+            resultKey = contextKey();
             renderResult(payload.data);
         } catch (error) {
             if (error.name !== 'AbortError' && sequence === requestSequence) {
@@ -229,11 +307,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    department.addEventListener('change', filterPositions);
+    form.addEventListener('change', (event) => {
+        if (event.target.matches('[data-assignment-department-filter], [data-assignment-position-filter], select[name="shift_id"], input[name="work_date"]')) syncContext();
+    });
+    document.querySelector('#scheduleAssignmentModal')?.addEventListener('shown.bs.modal', syncContext);
+    syncContext();
     generateButton.addEventListener('click', generate);
     component.querySelector('[data-ai-regenerate]').addEventListener('click', generate);
-    component.querySelector('[data-ai-close]').addEventListener('click', () => { results.hidden = true; status.hidden = true; });
-    applyButton.addEventListener('click', applySelected);
+    component.querySelector('[data-ai-close]').addEventListener('click', () => {
+        results.hidden = true;
+        status.hidden = true;
+        showCriteria(true);
+    });
     component.querySelector('[data-ai-ignore]').addEventListener('click', () => recordDecision('ignored'));
     component.querySelector('[data-ai-reject]').addEventListener('click', () => {
         const rejection = component.querySelector('[data-ai-rejection]');
@@ -248,16 +333,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         recordDecision('rejected', reason);
     });
+    // "Use this employee" is the apply step: the choice is revalidated against
+    // current records before it reaches the form, whichever card it came from.
     component.addEventListener('click', (event) => {
-        const candidateButton = event.target.closest('[data-ai-select-candidate]');
-        if (!candidateButton || !currentResult) return;
-        const candidateId = Number(candidateButton.dataset.aiSelectCandidate);
-        const candidate = currentResult.alternatives.find((item) => Number(item.employee_id) === candidateId);
-        if (candidate) {
-            selectedCandidateId = candidateId;
-            applyButton.disabled = false;
-            applyButton.textContent = 'Apply Selected Alternative';
-            showStatus(`${candidate.name} is selected for revalidation before application.`, 'neutral');
-        }
+        const useButton = event.target.closest('[data-ai-use-candidate]');
+        if (!useButton || !currentResult) return;
+        selectedCandidateId = Number(useButton.dataset.aiUseCandidate);
+        applySelected(useButton);
     });
 });

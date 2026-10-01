@@ -183,7 +183,7 @@
 .schedule-form-grid textarea {
     width: 100%;
     border: 1px solid var(--hr-field-border);
-    border-radius: var(--r-md);
+    border-radius: var(--r-input);
     background: var(--hr-surface);
     color: var(--hr-text);
     font: inherit;
@@ -944,9 +944,32 @@
     font-size: var(--fs-sm);
 }
 
+/* The availability read-back carries a verdict and the hours behind it, so it
+   is two lines with the icon held to the top. */
+.schedule-conflict-status {
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.schedule-conflict-status [data-conflict-title] {
+    font-weight: 700;
+}
+
+.schedule-conflict-status [data-conflict-text] {
+    flex: 1 0 100%;
+    padding-left: 1.55rem;
+    font-size: var(--fs-xs);
+    line-height: 1.45;
+}
+
 .schedule-conflict-status svg,
 .recurrence-summary svg {
     width: 1rem;
+}
+
+.schedule-conflict-status svg {
+    margin-top: .15rem;
+    flex: 0 0 auto;
 }
 
 .schedule-conflict-status.checking {
@@ -996,9 +1019,15 @@
 }
 
 .weekday-selector input:checked + span {
-    border-color: var(--hr-primary);
-    color: var(--hr-primary-text);
-    background: var(--hr-tint-info);
+    border-color: var(--hr-primary-fill);
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
+    font-weight: 700;
+}
+
+.weekday-selector input:focus-visible + span {
+    outline: 3px solid rgba(var(--hr-primary-rgb), .35);
+    outline-offset: 2px;
 }
 
 .shift-template-hint {
@@ -1229,22 +1258,22 @@
     grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
-/* The rail sits beside the step body rather than above it. Five steps read as a
-   list far more naturally than as a band, and the width it borrows is width the
-   form steps were wasting on over-long fields. */
+/* The stepper runs across the top of the wizard: five steps read left to
+   right, each finished step keeps a one-line summary of what was chosen, and
+   the full dialog width goes to the step body, which on Step 3 is a
+   seven-column roster that needs every pixel of it. */
 .bulk-schedule-shell {
     display: grid;
+    min-width: 0;
     min-height: 0;
-    /* Sized to the longest step name rather than to a round number: at a fixed
-       width the divider landed wherever the leftover fell, which read as a gap
-       between the rail and the step body rather than as an edge belonging to
-       either. The padding below now sets that distance outright. */
-    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
 }
 
 .bulk-flow-rail {
-    padding: 1.15rem 1.45rem 1.15rem 1.05rem;
-    border-right: 1px solid var(--hr-border);
+    min-width: 0;
+    padding: .7rem 1.25rem;
+    border-bottom: 1px solid var(--hr-border);
     background: var(--hr-surface-2);
 }
 
@@ -1288,72 +1317,145 @@
 }
 
 .bulk-flow-steps {
-    display: grid;
-    gap: 1.05rem;
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
     margin: 0;
     padding: 0;
+    overflow-x: auto;
     list-style: none;
 }
 
 .bulk-flow-steps li {
-    position: relative;
-    display: grid;
-    grid-template-columns: 1.55rem minmax(0, 1fr);
-    align-items: start;
-    gap: .55rem;
-    color: var(--hr-subtle);
-    font-size: var(--fs-2xs);
-    line-height: 1.3;
+    display: flex;
+    flex: 1 1 auto;
+    align-items: flex-start;
+    gap: .5rem;
+    min-width: 0;
 }
 
-/* Runs from under one pill into the next, which masks its own end. */
+.bulk-flow-steps li:last-child {
+    flex: 0 0 auto;
+}
+
+/* The connector fills whatever width the step names leave over, and turns
+   green once the step before it is done. */
 .bulk-flow-steps li:not(:last-child)::after {
-    position: absolute;
-    z-index: 0;
-    top: 1.75rem;
-    bottom: -1.25rem;
-    left: .75rem;
-    width: 1px;
+    flex: 1 1 auto;
+    min-width: 1rem;
+    height: 2px;
+    margin-top: 1.3rem;
+    border-radius: 2px;
     background: var(--hr-border-strong);
     content: '';
 }
 
-.bulk-flow-steps span {
-    z-index: 1;
-    display: grid;
-    width: 1.55rem;
-    height: 1.55rem;
+.bulk-flow-steps li.done::after {
+    background: var(--hr-primary);
+}
+
+.bulk-flow-step {
+    display: flex;
     flex: 0 0 auto;
-    border: 1px solid var(--hr-border-strong);
+    align-items: flex-start;
+    gap: .6rem;
+    padding: .45rem .6rem;
+    color: var(--hr-subtle);
+    border: 1px solid transparent;
+    border-radius: var(--r-md);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+}
+
+.bulk-flow-step:disabled {
+    cursor: default;
+    opacity: 1;
+}
+
+.bulk-flow-steps .done .bulk-flow-step {
+    color: var(--hr-text);
+    cursor: pointer;
+}
+
+.bulk-flow-steps .done .bulk-flow-step:hover {
+    background: var(--hr-primary-soft);
+}
+
+.bulk-flow-steps .active .bulk-flow-step {
+    color: var(--hr-text);
+    border-color: var(--hr-border);
+    background: var(--hr-surface);
+    box-shadow: 0 1px 2px rgba(20, 33, 29, .06);
+}
+
+.bulk-flow-dot {
+    display: grid;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: 0 0 auto;
+    border: 2px solid var(--hr-border-strong);
     border-radius: 50%;
     background: var(--hr-surface);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
     place-items: center;
 }
 
-.bulk-flow-steps strong {
-    padding-top: .28rem;
-    font-weight: 600;
+.bulk-flow-dot em {
+    font-style: normal;
 }
 
-.bulk-flow-steps .active {
-    color: var(--hr-text);
+.bulk-flow-dot .ui-icon {
+    display: none;
+    width: .85rem;
 }
 
-.bulk-flow-steps .active span {
+.bulk-flow-steps .active .bulk-flow-dot {
     color: var(--hr-on-primary);
     border-color: var(--hr-primary-fill);
     background: var(--hr-primary-fill);
 }
 
-.bulk-flow-steps .done {
-    color: var(--hr-text);
-    cursor: pointer;
-}
-
-.bulk-flow-steps .done span {
-    color: var(--hr-text);
+.bulk-flow-steps .done .bulk-flow-dot {
+    color: var(--hr-primary-text);
     border-color: var(--hr-primary);
     background: var(--hr-primary-soft);
+}
+
+.bulk-flow-steps .done .bulk-flow-dot em {
+    display: none;
+}
+
+.bulk-flow-steps .done .bulk-flow-dot .ui-icon {
+    display: block;
+}
+
+.bulk-flow-copy {
+    display: grid;
+    gap: .1rem;
+    padding-top: .2rem;
+    white-space: nowrap;
+}
+
+.bulk-flow-copy strong {
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.bulk-flow-steps .active .bulk-flow-copy strong {
+    font-weight: 700;
+}
+
+.bulk-flow-copy small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    line-height: 1.3;
+}
+
+.bulk-flow-copy small:empty {
+    display: none;
 }
 
 /* The `hidden` attribute alone isn't enough here: `.schedule-form-grid` (an
@@ -1545,31 +1647,132 @@
     font-weight: 800;
 }
 
-.bulk-staff-scope {
+.bulk-staff-toolbar {
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: .7rem .8rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .6rem 1rem;
+    padding: .55rem .8rem;
     border: 1px solid var(--hr-border);
     border-radius: var(--r-md);
     background: var(--hr-surface-2);
 }
 
-.bulk-staff-scope-field {
-    display: grid;
-    gap: .35rem;
+.schedule-form-grid .bulk-staff-toolbar label.bulk-master-check,
+.bulk-master-check {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
     margin: 0;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    cursor: pointer;
 }
 
-.bulk-staff-scope-field > span {
+.bulk-master-check input {
+    width: 1.05rem;
+    height: 1.05rem;
+    accent-color: var(--hr-primary-fill);
+}
+
+.bulk-staff-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+
+.bulk-staff-search svg {
+    position: absolute;
+    left: .6rem;
+    width: 1rem;
+    height: 1rem;
+    color: var(--hr-placeholder);
+    pointer-events: none;
+}
+
+.schedule-form-grid .bulk-staff-search input[type="search"] {
+    width: 100%;
+    min-height: 2.4rem;
+    padding: .4rem .65rem .4rem 2.1rem;
+    border: 1px solid var(--hr-field-border);
+    border-radius: var(--r-input);
+    font-size: var(--fs-sm);
+    background: var(--hr-surface);
+}
+
+.bulk-staff-search input[type="search"]:focus-visible {
+    border-color: var(--hr-primary);
+    outline: 3px solid rgba(var(--hr-primary-rgb), .35);
+    outline-offset: 0;
+}
+
+.bulk-staff-search input[type="search"]:disabled {
+    background: var(--hr-sunken);
+    cursor: not-allowed;
+}
+
+/* The selection count and Clear sit at the far end of the toolbar. */
+.bulk-staff-toolbar .bulk-selection-status {
+    margin-left: auto;
+}
+
+.bulk-next-button {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.bulk-show-filter {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: var(--r-md);
+    background: var(--hr-border);
+}
+
+.bulk-show-filter button {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    min-height: 2rem;
+    padding: 0 .7rem;
+    color: var(--hr-muted);
+    border: 0;
+    border-radius: calc(var(--r-md) - 2px);
+    background: transparent;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+}
+
+.bulk-show-filter button[aria-pressed='true'] {
+    color: var(--hr-text);
+    background: var(--hr-surface);
+    box-shadow: 0 1px 2px rgba(20, 33, 29, .12);
+}
+
+.bulk-show-filter button span {
+    min-width: 1.25rem;
+    padding: 0 .35rem;
+    border-radius: 999px;
+    background: var(--hr-surface-2);
+    font-size: var(--fs-2xs);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.bulk-show-filter button[aria-pressed='true'] span {
+    color: var(--hr-primary-text);
+    background: var(--hr-primary-soft);
+}
+
+.bulk-selection-status {
+    display: inline-flex;
+    align-items: center;
+    gap: .6rem;
+    margin-left: auto;
     color: var(--hr-muted);
     font-size: var(--fs-xs);
-    font-weight: 800;
-}
-
-.bulk-staff-scope-field select {
-    min-width: 12rem;
 }
 
 .bulk-inline-employee-list {
@@ -2117,21 +2320,398 @@
 }
 
 .bulk-employee-empty {
+    display: grid;
+    justify-items: center;
+    gap: .3rem;
     margin: 0;
-    padding: 1.25rem;
+    padding: 1.5rem 1.25rem;
     color: var(--hr-subtle);
     font-size: var(--fs-sm);
     text-align: center;
 }
 
+.bulk-employee-empty strong {
+    color: var(--hr-text);
+}
+
+.bulk-employee-empty .btn {
+    margin-top: .5rem;
+}
+
+/* Staff read as a table: name, number, role, and what this period already
+   holds for them, in four columns that line up down the list. */
+.bulk-employee-head,
 .bulk-employee-option {
     display: grid;
-    grid-template-columns: 1.15rem 1fr;
+    grid-template-columns: 1.15rem 1.9rem minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1.6fr);
     align-items: center;
     gap: .65rem;
-    padding: .7rem 1rem;
+    padding: .55rem 1rem;
+}
+
+.bulk-employee-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    color: var(--hr-subtle);
+    background: var(--hr-surface-2);
+    border-bottom: 1px solid var(--hr-border);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.bulk-employee-head > span:first-of-type {
+    grid-column: 2 / 4;
+}
+
+/* Select-all sits in the checkbox column above the rows it acts on. */
+.bulk-employee-head > .bulk-master-check {
+    grid-column: 1;
+    justify-self: start;
+}
+
+.bulk-inline-employee-list.is-empty .bulk-employee-head {
+    display: none;
+}
+
+.bulk-employee-option {
     cursor: pointer;
     border-top: 1px solid var(--hr-border);
+}
+
+.bulk-employee-avatar {
+    display: grid;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: var(--r-pill);
+    color: var(--hr-muted);
+    background: var(--hr-surface-2);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    place-items: center;
+}
+
+.bulk-employee-name {
+    overflow: hidden;
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bulk-employee-number,
+.bulk-employee-position,
+.bulk-employee-period {
+    overflow: hidden;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* A period that already holds shifts or leave for this person is the one thing
+   on the row that changes whether ticking them is sensible. */
+.bulk-employee-period.is-busy,
+.bulk-employee-period.is-leave {
+    justify-self: start;
+    padding: .1rem .45rem;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+}
+
+.bulk-employee-period.is-busy {
+    color: var(--hr-warning-text);
+    background: var(--hr-tint-warning);
+}
+
+.bulk-employee-period.is-leave {
+    color: var(--hr-info-text);
+    background: var(--hr-tint-info);
+}
+
+/*
+ * The staff table on a phone.
+ *
+ * Four columns read across is what makes this a table and not a list, and at
+ * 390px there is no width to read them across in: an employee number is
+ * sixteen characters that must not be cut, and squeezed beside a name and a
+ * position it is the first thing to go. So the row keeps its checkbox and its
+ * avatar where they were -- those are what the thumb aims at -- and the four
+ * text columns stack into the space left over, in the order they were read in.
+ *
+ * The header row goes with them. It labels columns that no longer exist, and
+ * the only thing in it a phone still needs is select-all, which keeps the
+ * column it already sits in.
+ */
+@media (max-width: 640px) {
+    .bulk-employee-head,
+    .bulk-employee-option {
+        grid-template-columns: 1.15rem 1.9rem minmax(0, 1fr);
+        align-items: start;
+        gap: .5rem .65rem;
+    }
+
+    .bulk-employee-head > span {
+        display: none;
+    }
+
+    .bulk-employee-head > .bulk-master-check {
+        grid-column: 1;
+    }
+
+    /* Nothing is left to label, so the row shrinks to the select-all it
+       still carries rather than keeping the height of a heading. */
+    .bulk-employee-head {
+        padding: .45rem 1rem;
+    }
+
+    .bulk-employee-name,
+    .bulk-employee-number,
+    .bulk-employee-position,
+    .bulk-employee-period {
+        grid-column: 3;
+        white-space: normal;
+    }
+
+    /* Pinned rather than auto-placed: a row-spanning item and four
+       explicitly-placed ones in the same grid is exactly the arrangement
+       auto-placement resolves differently than it reads. */
+    .bulk-employee-check {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .bulk-employee-avatar {
+        grid-column: 2;
+        grid-row: 1 / span 4;
+    }
+
+    /* The number is the one field that must survive whole: it is what the
+       roster is checked against, and a truncated one is worse than none. */
+    .bulk-employee-number {
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+    }
+}
+/* The picker sits inside the form grid, whose own label rule would otherwise
+   stack the count under the title instead of beside it. */
+/* :not([hidden]) matters: the !important below is needed to beat the form
+   grid's own label rule, and without it this would also beat the `hidden`
+   attribute — which is what keeps every other department's positions out of
+   the list until a department is chosen. */
+.schedule-form-grid .bulk-position-picker label.bulk-position-option:not([hidden]) {
+    display: flex !important;
+    align-items: center;
+    gap: .5rem;
+}
+
+.bulk-position-count {
+    flex: 0 0 auto;
+    padding: 0 .35rem;
+    border-radius: var(--r-pill);
+    color: var(--hr-muted);
+    background: var(--hr-surface-2);
+    font-size: var(--fs-2xs);
+    font-style: normal;
+    font-weight: 800;
+}
+
+.bulk-position-option:has(input:checked) .bulk-position-count {
+    color: var(--hr-primary-text);
+    background: var(--hr-primary-soft);
+}
+
+/* What the chosen pattern will do, and why a shift is closed off. */
+.bulk-pattern-field small,
+.shift-unavailable-reason {
+    display: block;
+    margin-top: .3rem;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+    font-style: normal;
+    line-height: 1.4;
+}
+
+.shift-unavailable-reason {
+    color: var(--hr-warning-text);
+    font-size: var(--fs-2xs);
+}
+
+/* Board key: which colour is which shift, and what a cell's tint means. */
+.roster-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1rem;
+    padding: .5rem .2rem .7rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+}
+
+.roster-legend-shifts,
+.roster-legend-key {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem .85rem;
+}
+
+.roster-legend-key {
+    margin-left: auto;
+}
+
+.roster-legend-shift {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.roster-legend-shift strong {
+    color: var(--hr-text);
+}
+
+.roster-legend-dot {
+    width: .6rem;
+    height: .6rem;
+    border-radius: var(--r-xs);
+    background: var(--hr-border-strong);
+}
+
+.roster-legend-swatch {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.roster-legend-swatch::before {
+    width: .6rem;
+    height: .6rem;
+    border: 1px solid var(--hr-border-strong);
+    border-radius: var(--r-xs);
+    content: '';
+}
+
+.roster-legend-swatch.is-met::before {
+    border-color: var(--hr-success);
+    background: var(--hr-primary-soft);
+}
+
+.roster-legend-swatch.is-below::before {
+    border-color: var(--hr-danger);
+    background: var(--hr-tint-danger);
+}
+
+.roster-legend-swatch.is-over::before {
+    border-color: var(--hr-info);
+    background: var(--hr-tint-info);
+}
+
+/* How the draft lands on each person, which the day-by-day board cannot say. */
+.roster-workload {
+    display: grid;
+    gap: .6rem;
+    margin-top: .9rem;
+    padding: .85rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+}
+
+.roster-workload > header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.roster-workload > header > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .15rem .5rem;
+}
+
+.roster-workload strong {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+}
+
+.roster-workload header span,
+.roster-workload li small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.roster-workload ul {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    gap: .55rem 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    list-style: none;
+}
+
+.roster-workload li {
+    display: grid;
+    gap: .2rem;
+}
+
+.roster-workload-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.roster-workload-heading strong {
+    overflow: hidden;
+    font-size: var(--fs-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.roster-workload-heading span {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.roster-workload-bar {
+    display: block;
+    height: .35rem;
+    border-radius: var(--r-pill);
+    background: var(--hr-surface-2);
+    overflow: hidden;
+}
+
+.roster-workload-bar span {
+    display: block;
+    height: 100%;
+    background: var(--hr-success);
+}
+
+.roster-workload-bar span.is-heavy {
+    background: var(--hr-warning);
+}
+
+.validation-recap > header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.validation-recap-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
 }
 
 .bulk-employee-option:first-child {
@@ -2171,22 +2751,6 @@
 .bulk-employee-option input:focus-visible + .bulk-employee-check {
     outline: 2px solid var(--hr-primary);
     outline-offset: 2px;
-}
-
-.bulk-employee-option strong,
-.bulk-employee-option small {
-    display: block;
-}
-
-.bulk-employee-option strong {
-    color: var(--hr-text);
-    font-size: var(--fs-sm);
-}
-
-.bulk-employee-option small {
-    margin-top: .15rem;
-    color: var(--hr-subtle);
-    font-size: var(--fs-2xs);
 }
 
 .bulk-schedule-notes textarea {
@@ -2491,27 +3055,13 @@
         max-height: calc(100vh - 1rem);
     }
 
-    /* Too narrow for a side rail, so the steps go back over the body as a row
-       that scrolls sideways. Without a column to run down, the connector has
-       nothing to connect. */
-    .bulk-schedule-shell {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
+    /* Narrow screens keep the row, dropping the summaries so five steps
+       still fit before the row has to scroll. */
     .bulk-flow-rail {
-        padding: .75rem 1rem;
-        border-right: 0;
-        border-bottom: 1px solid var(--hr-border);
+        padding: .6rem 1rem;
     }
 
-    .bulk-flow-steps {
-        overflow-x: auto;
-        gap: 1rem;
-        grid-auto-flow: column;
-        grid-auto-columns: max-content;
-    }
-
-    .bulk-flow-steps li:not(:last-child)::after {
+    .bulk-flow-copy small {
         display: none;
     }
 
@@ -2753,6 +3303,27 @@
 .roster-cell.is-short {
     border-color: var(--hr-warning);
     background: var(--hr-tint-warning);
+}
+
+/* Saturday and Sunday read at a glance now that the week opens on Sunday. */
+.roster-cell.is-weekend:not(.is-short) {
+    background: var(--hr-surface-2);
+}
+
+.roster-cell.is-today > header strong {
+    display: inline-grid;
+    min-width: 1.6rem;
+    height: 1.6rem;
+    color: var(--hr-on-primary);
+    border-radius: 999px;
+    background: var(--hr-primary-fill);
+    place-items: center;
+}
+
+.roster-cell-today {
+    color: var(--hr-primary-text);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
 }
 
 /* A weekday the scheduled range never reaches. It holds its column open so
@@ -3286,6 +3857,95 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
     margin: 0;
     color: var(--hr-subtle);
     font-size: var(--fs-xs);
+}
+
+.labor-compliance > header > div {
+    display: grid;
+    gap: .1rem;
+}
+
+.labor-compliance > header small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+.labor-compliance-tally {
+    padding: .15rem .6rem;
+    color: var(--hr-success-text);
+    border-radius: 999px;
+    background: var(--hr-success-soft);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+}
+
+.labor-compliance-tally.is-review {
+    color: var(--hr-warning-text);
+    background: var(--hr-warning-soft);
+}
+
+.labor-compliance-list {
+    display: grid;
+    margin: 0;
+    padding: 0 .85rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+    list-style: none;
+}
+
+.labor-compliance-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: .6rem;
+    align-items: start;
+    padding: .65rem 0;
+}
+
+.labor-compliance-row + .labor-compliance-row {
+    border-top: 1px solid var(--hr-border);
+}
+
+.labor-compliance-row strong {
+    display: block;
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+}
+
+.labor-compliance-row small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+.labor-compliance-row.is-ok .validation-check-mark {
+    color: var(--hr-success);
+    background: var(--hr-tint-success);
+}
+
+.labor-compliance-row.is-review .validation-check-mark {
+    color: var(--hr-warning-text);
+    background: var(--hr-warning-soft);
+}
+
+.labor-compliance-row.is-pending .validation-check-mark {
+    color: var(--hr-muted);
+    background: var(--hr-surface-2);
+}
+
+.labor-compliance-basis {
+    padding: .1rem .5rem;
+    color: var(--hr-muted);
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-sm);
+    background: var(--hr-surface-2);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.labor-compliance-row.is-pending .labor-compliance-basis {
+    color: var(--hr-warning-text);
+    border-color: var(--hr-warning-line);
+    background: var(--hr-warning-soft);
 }
 
 @media (max-width: 520px) {
@@ -3841,4 +4501,824 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
 
 .colleague-back .ui-icon {
     width: 1rem;
+}
+
+/* ---------------------------------------------------------------------
+   Recurring schedule: form on the left, a live preview on the right that
+   reads back what the server would create and skip.
+   --------------------------------------------------------------------- */
+.recurring-dialog {
+    width: min(70rem, calc(100vw - 2rem));
+    max-width: none;
+    margin: 1rem auto;
+}
+
+.recurring-dialog .schedule-modal-content {
+    max-height: calc(100vh - 2rem);
+}
+
+.recurring-dialog #recurringScheduleForm {
+    display: grid;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.recurring-dialog .modal-header small {
+    display: block;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+.recurring-workspace {
+    display: grid;
+    min-height: 0;
+    padding: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 25rem);
+}
+
+.recurring-form {
+    display: grid;
+    align-content: start;
+    gap: 1.1rem;
+    min-width: 0;
+    padding: 1.1rem 1.25rem 1.25rem;
+    overflow-y: auto;
+}
+
+.recurring-form .schedule-form-grid {
+    padding: 0;
+}
+
+.recurring-section {
+    display: grid;
+    gap: .7rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.recurring-section-title {
+    margin: 0;
+    padding: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.recurring-shift-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .55rem;
+}
+
+.recurring-shift-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    min-height: 3.5rem;
+    padding: .55rem .8rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+    cursor: pointer;
+}
+
+.recurring-shift-option:hover {
+    border-color: var(--hr-border-strong);
+}
+
+.recurring-shift-option:has(input:checked) {
+    border-color: var(--hr-primary);
+    background: var(--hr-primary-soft);
+}
+
+.recurring-shift-option input {
+    accent-color: var(--hr-primary-fill);
+}
+
+.recurring-shift-swatch {
+    width: 4px;
+    align-self: stretch;
+    border-radius: 999px;
+    background: var(--shift-color, var(--hr-border-strong));
+}
+
+.recurring-shift-option strong,
+.recurring-shift-option small {
+    display: block;
+}
+
+.recurring-shift-option strong {
+    font-size: var(--fs-sm);
+}
+
+.recurring-shift-option small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+.recurring-pattern-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: .75rem;
+}
+
+.recurring-pattern-row label {
+    display: grid;
+    gap: .35rem;
+}
+
+.recurring-pattern-row label > span {
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
+    font-weight: 800;
+}
+
+.recurring-pattern-row select {
+    min-height: 2.5rem;
+}
+
+.recurring-presets {
+    display: flex;
+    gap: .25rem;
+    margin-left: auto;
+}
+
+/*
+ * The pattern row reads as a sentence -- "Repeat every 1 week on ..." -- so
+ * its parts sit on one baseline rather than each under a label of its own.
+ * `flex-end` is what a row of labelled fields wants; a sentence wants centre.
+ */
+.recurring-pattern-row {
+    align-items: center;
+}
+
+.recurring-pattern-lead {
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+}
+
+/* Who was picked, said back under the picker. */
+.recurring-employee-meta {
+    display: block;
+    margin-top: .35rem;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+/*
+ * Starts is one field; Ends is a choice between two. They are given equal
+ * width anyway, because they are one decision read across -- how long this
+ * runs -- and a narrow Starts beside a wide Ends reads as a hierarchy that
+ * is not there.
+ */
+.recurring-range {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.recurring-range-start {
+    display: grid;
+    gap: .35rem;
+}
+
+.recurring-range-start > span,
+.recurring-range-end > legend {
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
+    font-weight: 800;
+}
+
+.recurring-range-start input {
+    min-height: 2.75rem;
+    padding: .6rem .75rem;
+    font-size: var(--fs-base);
+}
+
+.recurring-range-end {
+    display: grid;
+    gap: .5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.recurring-range-end > legend {
+    float: none;
+    width: auto;
+    margin-bottom: .35rem;
+    padding: 0;
+}
+
+/*
+ * One row per way of ending. The live one is drawn as a selected choice tile
+ * -- the same green plate a selected shift gets -- so which mode is in force
+ * is visible without reading the radio.
+ */
+.recurring-end-mode {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 2.75rem;
+    padding: .35rem .65rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    background: var(--hr-surface);
+    cursor: pointer;
+}
+
+.recurring-end-mode.is-active {
+    border-color: var(--hr-primary);
+    background: var(--hr-primary-soft);
+}
+
+.recurring-end-mode input[type="radio"] {
+    flex: none;
+    margin: 0;
+    accent-color: var(--hr-primary-fill);
+}
+
+.recurring-end-mode > span {
+    flex: none;
+}
+
+.recurring-end-mode input[type="date"],
+.recurring-end-mode input[type="number"] {
+    min-width: 0;
+    min-height: 2.25rem;
+    padding: .35rem .5rem;
+    border: 1px solid var(--hr-field-border);
+    border-radius: var(--r-input);
+    font-size: var(--fs-sm);
+    background: var(--hr-surface);
+}
+
+.recurring-end-mode input[type="date"] {
+    flex: 1 1 auto;
+}
+
+.recurring-end-mode input[type="number"] {
+    width: 5rem;
+    flex: none;
+}
+
+/* A disabled control here means "the other mode is in force", which the
+   plate already says; it is dimmed rather than struck out. */
+.recurring-end-mode input:disabled {
+    color: var(--hr-placeholder);
+    background: var(--hr-sunken);
+    cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+    .recurring-range {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .recurring-pattern-row {
+        align-items: stretch;
+    }
+
+    .recurring-presets {
+        margin-left: 0;
+    }
+}
+
+.recurring-preview {
+    display: grid;
+    align-content: start;
+    gap: .85rem;
+    min-width: 0;
+    padding: 1.1rem 1.25rem 1.25rem;
+    overflow-y: auto;
+    border-left: 1px solid var(--hr-border);
+    background: var(--hr-surface-2);
+}
+
+.recurring-preview[aria-busy='true'] > :not(.recurring-section-title) {
+    opacity: .6;
+}
+
+.recurring-summary {
+    font-size: var(--fs-lg, 1.1rem);
+    line-height: 1.3;
+}
+
+.recurring-summary-sub {
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+.recurring-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .6rem;
+}
+
+.recurring-stats > div {
+    display: grid;
+    gap: .1rem;
+    padding: .7rem .8rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+}
+
+.recurring-stats span,
+.recurring-stats small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.recurring-stats strong {
+    font-size: 1.6rem;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.recurring-calendar {
+    display: grid;
+    gap: .45rem;
+    padding: .7rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+}
+
+.recurring-calendar-table {
+    display: grid;
+    gap: .25rem;
+}
+
+.recurring-calendar-row {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: .25rem;
+}
+
+.recurring-calendar-head {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    text-align: center;
+}
+
+.recurring-calendar-cell {
+    display: grid;
+    min-height: 2rem;
+    border: 1px solid transparent;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-2xs);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    place-items: center;
+}
+
+.recurring-calendar-cell.is-outside {
+    color: var(--hr-muted);
+    background: var(--hr-surface-2);
+}
+
+.recurring-calendar-cell.is-scheduled {
+    color: var(--hr-on-primary);
+    background: var(--hr-primary-fill);
+    font-weight: 700;
+}
+
+.recurring-calendar-cell.is-skipped {
+    color: var(--hr-danger-text);
+    border-color: var(--hr-danger);
+    background: var(--hr-danger-soft);
+    font-weight: 700;
+    text-decoration: line-through;
+}
+
+.recurring-calendar-cell.is-holiday {
+    border-style: dashed;
+    border-color: var(--hr-warning);
+}
+
+.recurring-calendar-cell.is-scheduled.is-holiday {
+    box-shadow: inset 0 0 0 2px var(--hr-warning);
+}
+
+.recurring-calendar-more {
+    margin: 0;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.recurring-calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem .8rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+}
+
+.recurring-calendar-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+}
+
+.recurring-legend-swatch {
+    display: inline-block;
+    width: .7rem;
+    height: .7rem;
+    border: 1px solid transparent;
+    border-radius: 3px;
+}
+
+.recurring-legend-swatch.is-scheduled { background: var(--hr-primary-fill); }
+.recurring-legend-swatch.is-skipped { border-color: var(--hr-danger); background: var(--hr-danger-soft); }
+.recurring-legend-swatch.is-holiday { border: 1px dashed var(--hr-warning); }
+.recurring-legend-swatch.is-outside { background: var(--hr-border); }
+
+.recurring-checks {
+    display: grid;
+    gap: .4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.recurring-check {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: .55rem;
+    align-items: start;
+    padding: .55rem .7rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+}
+
+.recurring-check strong {
+    display: block;
+    font-size: var(--fs-xs);
+}
+
+.recurring-check small {
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    line-height: 1.4;
+}
+
+.recurring-check.is-ok .validation-check-mark {
+    color: var(--hr-success);
+    background: var(--hr-tint-success);
+}
+
+.recurring-check.is-review {
+    border-color: var(--hr-warning-line);
+}
+
+.recurring-check.is-review .validation-check-mark {
+    color: var(--hr-warning-text);
+    background: var(--hr-warning-soft);
+}
+
+.recurring-conflicts {
+    display: grid;
+    gap: .5rem;
+    padding: .7rem .8rem;
+    border: 1px solid var(--hr-danger-line);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+}
+
+.recurring-conflicts > strong {
+    color: var(--hr-danger-text);
+    font-size: var(--fs-xs);
+}
+
+.recurring-conflicts ul {
+    display: grid;
+    gap: .35rem;
+    max-height: 14rem;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.recurring-conflicts li {
+    display: grid;
+    gap: .1rem;
+    padding-top: .35rem;
+    border-top: 1px solid var(--hr-border);
+    font-size: var(--fs-2xs);
+}
+
+.recurring-conflicts li span {
+    color: var(--hr-muted);
+}
+
+.recurring-skip {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: 0;
+    padding-top: .45rem;
+    border-top: 1px solid var(--hr-border);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.recurring-preview-empty {
+    margin: 0;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+.recurring-reason,
+.assignment-footer-reason {
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
+}
+
+@media (max-width: 900px) {
+    .recurring-workspace {
+        grid-template-columns: minmax(0, 1fr);
+        overflow-y: auto;
+    }
+
+    .recurring-preview {
+        border-top: 1px solid var(--hr-border);
+        border-left: 0;
+    }
+
+    .recurring-shift-options {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ---------------------------------------------------------------------
+   Assign a shift: standing cover, weekly repeat.
+   --------------------------------------------------------------------- */
+.schedule-coverage-status {
+    display: flex;
+    align-items: flex-start;
+    gap: .55rem;
+    padding: .65rem .8rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    color: var(--hr-muted);
+    background: var(--hr-surface-2);
+    font-size: var(--fs-xs);
+    line-height: 1.45;
+}
+
+.schedule-coverage-status svg {
+    width: 1rem;
+    flex: 0 0 auto;
+    margin-top: .1rem;
+}
+
+.schedule-coverage-status.is-full {
+    color: var(--hr-info-text);
+    border-color: var(--hr-info-line);
+    background: var(--hr-info-soft);
+}
+
+.schedule-coverage-status.is-open {
+    color: var(--hr-warning-text);
+    border-color: var(--hr-warning-line);
+    background: var(--hr-warning-soft);
+}
+
+.assignment-repeat {
+    display: grid;
+    gap: .6rem;
+    padding: .7rem .8rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+}
+
+.assignment-repeat-toggle {
+    display: flex !important;
+    align-items: flex-start;
+    gap: .6rem;
+    cursor: pointer;
+}
+
+.assignment-repeat-toggle strong,
+.assignment-repeat-toggle small {
+    display: block;
+}
+
+.assignment-repeat-toggle strong {
+    font-size: var(--fs-sm);
+}
+
+.assignment-repeat-toggle small,
+.assignment-repeat-summary {
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+.assignment-repeat-fields {
+    display: grid;
+    gap: .45rem;
+    padding-left: 1.6rem;
+}
+
+.assignment-repeat-fields label {
+    display: flex !important;
+    align-items: center;
+    gap: .6rem;
+}
+
+.assignment-repeat-fields input[type='date'] {
+    max-width: 12rem;
+}
+
+.assignment-repeat-summary {
+    margin: 0;
+}
+
+/* Employee field: the position/number read-back and the applied-recommendation
+   badge sit with the field rather than in the assistant's panel. */
+.schedule-employee-field {
+    display: grid;
+    gap: .35rem;
+}
+
+.schedule-employee-label {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.schedule-from-ai {
+    padding: .12rem .45rem;
+    border-radius: var(--r-pill);
+    color: var(--hr-info-text);
+    background: var(--hr-tint-info);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.schedule-employee-field select {
+    width: 100%;
+    min-height: 2.55rem;
+    padding: .5rem .65rem;
+    border: 1px solid var(--hr-field-border);
+    border-radius: var(--r-md);
+    color: var(--hr-text);
+    background: var(--hr-surface);
+    font-size: var(--fs-sm);
+}
+
+.schedule-employee-field small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+}
+
+/* Why the save is held back, beside the button it holds back. */
+.schedule-save-reason {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
+}
+
+.schedule-save-reason svg {
+    width: .95rem;
+    color: var(--hr-info);
+}
+
+/* The assistant's "Recommending for …" line replaces its own pickers. */
+.ai-scheduling-context {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .6rem 1rem;
+    padding: .7rem .85rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface);
+}
+
+.ai-scheduling-context > div {
+    display: grid;
+    flex: 1 1 14rem;
+    gap: .1rem;
+    min-width: 0;
+}
+
+.ai-scheduling-context small {
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.ai-scheduling-context strong {
+    font-size: var(--fs-sm);
+}
+
+/* ---------------------------------------------------------------------
+   Read-back dialog after a create.
+   --------------------------------------------------------------------- */
+.schedule-confirmation-content {
+    padding: 1.5rem 1.5rem 1.25rem;
+}
+
+.schedule-confirmation-head {
+    display: grid;
+    gap: .5rem;
+    justify-items: center;
+    text-align: center;
+}
+
+.schedule-confirmation-icon {
+    display: grid;
+    width: 3.25rem;
+    height: 3.25rem;
+    color: var(--hr-primary-text);
+    border: 1px solid var(--hr-primary-line);
+    border-radius: 50%;
+    background: var(--hr-primary-soft);
+    place-items: center;
+}
+
+.schedule-confirmation-icon svg {
+    width: 1.5rem;
+}
+
+.schedule-confirmation-head h2 {
+    margin: 0;
+    font-size: var(--fs-lg, 1.15rem);
+    font-weight: 700;
+}
+
+.schedule-confirmation-head p {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.schedule-confirmation-rows {
+    display: grid;
+    margin: 1rem 0 .75rem;
+    padding: .25rem .9rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-md);
+    background: var(--hr-surface-2);
+}
+
+.schedule-confirmation-rows > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .55rem 0;
+}
+
+.schedule-confirmation-rows > div + div {
+    border-top: 1px solid var(--hr-border);
+}
+
+.schedule-confirmation-rows dt {
+    color: var(--hr-muted);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+}
+
+.schedule-confirmation-rows dd {
+    margin: 0;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    text-align: right;
+}
+
+.schedule-confirmation-note {
+    margin: 0;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+}
+
+.schedule-confirmation-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin-top: 1rem;
 }

@@ -5,6 +5,16 @@ const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.conte
 
 const replaceRouteId = (template, id) => template.replace('__ID__', String(id));
 
+const SHORT_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const element = (tag, className, text) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+
+    return node;
+};
+
 const formatScheduleDate = (date) => {
     if (!date) return '—';
 
@@ -45,6 +55,12 @@ const wireEmployeeDirectoryFilter = (form, { departmentSelector, positionSelecto
                 || (Boolean(positionId) && option.dataset.positionId !== positionId);
         });
         if (employeeSelect.selectedOptions[0]?.hidden) employeeSelect.value = '';
+        // A group whose whole staff list was filtered out would otherwise leave
+        // its position heading behind with nothing under it.
+        employeeSelect.querySelectorAll('optgroup').forEach((group) => {
+            group.hidden = [...group.querySelectorAll('option')].every((option) => option.hidden);
+        });
+        employeeSelect.dispatchEvent(new CustomEvent('employees:filtered', { bubbles: true }));
     };
 
     departmentFilter.addEventListener('change', () => {
@@ -69,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ? replaceRouteId(assignmentForm.dataset.updateUrlTemplate, assignment.id)
             : assignmentForm.dataset.storeUrl;
         assignmentForm.querySelector('[data-method-field]').value = assignment ? 'PUT' : 'POST';
+        assignmentForm.dataset.editingId = assignment?.id ?? '';
         assignmentForm.querySelector('.modal-title').textContent = assignment ? 'Edit schedule assignment' : 'Assign a shift';
         assignmentForm.querySelector('button[type="submit"]').textContent = assignment ? 'Update assignment' : 'Save assignment';
 
@@ -76,18 +93,58 @@ document.addEventListener('DOMContentLoaded', () => {
         assignmentForm.elements.shift_id.value = assignment?.shift_id ?? '';
         assignmentForm.elements.work_date.value = assignment?.date ?? preferredDate ?? assignmentForm.elements.work_date.defaultValue;
         assignmentForm.elements.notes.value = assignment?.notes ?? '';
-        updateConflictStatus('idle', 'Select an employee, shift, and date to check availability.');
+        setFromAi(false);
+        syncEmployeeHelp();
+        updateConflictStatus('idle', 'Availability', 'Choose an employee, shift, and date to check availability.');
 
         if (assignment) checkConflicts(assignment.id);
     };
 
-    const updateConflictStatus = (state, message) => {
+    const chosenEmployee = () => assignmentForm?.elements.employee_id.selectedOptions[0] ?? null;
+    const employeeName = () => chosenEmployee()?.dataset.name || 'This employee';
+
+    // The badge stays on only while the employee the assistant applied is the
+    // one in the field — picking someone else by hand takes it off again.
+    const setFromAi = (on) => {
+        const badge = assignmentForm?.querySelector('[data-assignment-from-ai]');
+        if (badge) badge.hidden = !on;
+    };
+
+    const syncEmployeeHelp = () => {
+        const help = assignmentForm?.querySelector('[data-assignment-employee-help]');
+        if (!help) return;
+        const option = chosenEmployee();
+        help.textContent = option?.value
+            ? [option.dataset.position, option.dataset.number].filter(Boolean).join(' · ')
+            : help.dataset.idle;
+    };
+
+    // What is still missing before this can be saved, in the order the form is
+    // filled in, shown beside the button it holds back.
+    const syncSaveGate = () => {
+        const submit = assignmentForm?.querySelector('[data-assignment-submit]');
+        const reason = assignmentForm?.querySelector('[data-assignment-reason]');
+        if (!submit || !reason) return;
+        const status = assignmentForm.querySelector('[data-conflict-status]');
+        const message = !assignmentForm.elements.shift_id.value ? 'Choose a shift.'
+            : !assignmentForm.elements.work_date.value ? 'Choose a work date.'
+                : !assignmentForm.elements.employee_id.value ? 'Choose an employee.'
+                    : status?.classList.contains('conflict') ? 'This employee is not available for this shift.'
+                        : assignmentForm.dataset.repeatError || '';
+        submit.disabled = message !== '';
+        reason.hidden = message === '';
+        reason.querySelector('span').textContent = message;
+    };
+
+    const updateConflictStatus = (state, title, text) => {
         const status = assignmentForm?.querySelector('[data-conflict-status]');
         if (!status) return;
 
         status.classList.remove('checking', 'available', 'conflict');
         if (state !== 'idle') status.classList.add(state);
-        status.querySelector('span').textContent = message;
+        status.querySelector('[data-conflict-title]').textContent = title;
+        status.querySelector('[data-conflict-text]').textContent = text;
+        syncSaveGate();
     };
 
     const checkConflicts = async (excludeId = null) => {
@@ -97,12 +154,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const shiftId = assignmentForm.elements.shift_id.value;
         const workDate = assignmentForm.elements.work_date.value;
         if (!employeeId || !shiftId || !workDate) {
-            updateConflictStatus('idle', 'Select an employee, shift, and date to check availability.');
+            updateConflictStatus('idle', 'Availability', 'Choose an employee, shift, and date to check availability.');
             return;
         }
 
         const requestId = ++conflictRequest;
-        updateConflictStatus('checking', 'Checking this employee’s availability…');
+        updateConflictStatus('checking', 'Checking availability…', `Reading ${employeeName()}’s shifts, approved leave, and rest hours.`);
 
         try {
             const response = await fetch(assignmentForm.dataset.conflictUrl, {
@@ -131,26 +188,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? result.rest_conflicts.filter((conflict) => Number(conflict.id) !== Number(excludeId))
                 : result.rest_conflicts;
 
+            const name = employeeName();
+            const blocked = `${name} can’t take this shift`;
+
             if (result.day_off) {
-                updateConflictStatus('conflict', `Conflict: this employee has a scheduled day off on ${formatScheduleDate(result.day_off.date)}.`);
+                updateConflictStatus('conflict', blocked, `A scheduled day off falls on ${formatScheduleDate(result.day_off.date)}.`);
             } else if (result.leave) {
-                updateConflictStatus('conflict', `Conflict: this employee is on approved leave from ${formatScheduleDate(result.leave.start_date)} to ${formatScheduleDate(result.leave.end_date)}.`);
+                updateConflictStatus('conflict', blocked, `On approved leave from ${formatScheduleDate(result.leave.start_date)} to ${formatScheduleDate(result.leave.end_date)}.`);
             } else if (conflicts.length) {
                 const conflict = conflicts[0];
-                updateConflictStatus('conflict', `Conflict: ${conflict.shift} on ${formatScheduleDate(conflict.date)} (${conflict.time}).`);
+                updateConflictStatus('conflict', blocked, `Already on the ${conflict.shift} on ${formatScheduleDate(conflict.date)} (${conflict.time}).`);
             } else if (restConflicts.length) {
                 const conflict = restConflicts[0];
-                updateConflictStatus('conflict', `Rest conflict: not enough rest before or after ${conflict.shift} on ${formatScheduleDate(conflict.date)} (${conflict.time}).`);
+                updateConflictStatus('conflict', blocked, `Not enough rest before or after the ${conflict.shift} on ${formatScheduleDate(conflict.date)} (${conflict.time}).`);
             } else {
-                updateConflictStatus('available', 'No overlap found. This employee is available.');
+                // The weekly limit is advisory on a hand-made assignment: it is
+                // read back with the hours rather than blocking the save, so
+                // approved overtime can still be scheduled deliberately.
+                const week = result.week;
+                const hours = week
+                    ? `${week.scheduled_hours} of ${week.limit} paid hours this week · ${week.after_hours} after this shift.${week.after_hours > week.limit ? ' Past the weekly limit — the extra time is overtime.' : ''}`
+                    : 'No overlap found.';
+                updateConflictStatus('available', `${name} is available`, hours);
             }
         } catch (error) {
-            if (requestId === conflictRequest) updateConflictStatus('conflict', error.message);
+            if (requestId === conflictRequest) updateConflictStatus('conflict', 'Availability could not be checked', error.message);
         }
     };
 
     assignmentForm?.querySelectorAll('select[name="employee_id"], select[name="shift_id"], input[name="work_date"]').forEach((field) => {
-        field.addEventListener('change', () => checkConflicts(activeAssignment?.id ?? null));
+        field.addEventListener('change', () => {
+            if (field.name === 'employee_id' && !field.dataset.aiApplied) setFromAi(false);
+            delete field.dataset.aiApplied;
+            syncEmployeeHelp();
+            checkConflicts(activeAssignment?.id ?? null);
+        });
+    });
+    // The repeat block and the assistant re-ask for the gate when their own
+    // state changes, so one function decides whether the save is allowed.
+    assignmentForm?.addEventListener('assignment:gate', syncSaveGate);
+    assignmentForm?.addEventListener('assignment:from-ai', () => {
+        setFromAi(true);
+        syncEmployeeHelp();
     });
 
     document.querySelectorAll('[data-quick-schedule-date]').forEach((button) => {
@@ -381,26 +460,9 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(link.href);
     });
 
+    // The recurring form's pattern summary and live preview live in
+    // schedule-forms.js; only the employee directory filter is wired here.
     const recurringForm = document.querySelector('#recurringScheduleForm');
-    const updateRecurrenceForm = () => {
-        if (!recurringForm) return;
-        const type = recurringForm.elements.recurrence_type.value;
-        const weekly = type === 'weekly';
-        const weekdaySelector = recurringForm.querySelector('[data-weekday-selector]');
-        const intervalSelect = recurringForm.elements.interval_weeks;
-        weekdaySelector.hidden = !weekly;
-        intervalSelect.disabled = !weekly;
-
-        const selectedDays = [...recurringForm.querySelectorAll('input[name="weekdays[]"]:checked')]
-            .map((input) => input.nextElementSibling.textContent);
-        const interval = Number(intervalSelect.value);
-        recurringForm.querySelector('[data-recurrence-summary]').textContent = weekly
-            ? `Repeats every ${interval === 1 ? 'week' : `${interval} weeks`} on ${selectedDays.join(', ') || 'no selected days'}.`
-            : 'Repeats every day within the selected date range.';
-    };
-
-    recurringForm?.addEventListener('change', updateRecurrenceForm);
-    updateRecurrenceForm();
 
     wireEmployeeDirectoryFilter(assignmentForm, {
         departmentSelector: '[data-assignment-department-filter]',
@@ -421,6 +483,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const bulkApproval = bulkForm?.querySelector('[data-bulk-approval]');
     const bulkApprovalWrap = bulkForm?.querySelector('[data-bulk-approval-wrap]');
     const bulkEmployeeOptions = [...(bulkForm?.querySelectorAll('[data-bulk-employee-list] .bulk-employee-option') ?? [])];
+    const bulkMaster = bulkForm?.querySelector('[data-bulk-master]');
+    const bulkShowButtons = [...(bulkForm?.querySelectorAll('[data-bulk-show]') ?? [])];
+    const bulkClearSelection = bulkForm?.querySelector('[data-bulk-clear-selection]');
+    // Which slice of the eligible staff the list shows: everyone, only the
+    // ticked names, or only the unticked ones.
+    let bulkShow = 'all';
     const isAiSchedule = () => ['rotation', 'custom'].includes(bulkForm?.elements.schedule_method?.value);
 
     const updateBulkReview = (title, message, state = 'idle', skipped = []) => {
@@ -457,6 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const updateBulkSelectedCount = () => {
         if (bulkSelectedCount) bulkSelectedCount.textContent = `${selectedBulkEmployees().length} selected`;
+        syncBulkSelectionTools();
     };
 
     const invalidateBulkReview = () => {
@@ -485,9 +554,27 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const chosen = selectedShiftOptions().length;
+        if (chosen === 1) {
+            help.textContent = 'A rotation needs at least two shifts. Add another, or switch the pattern to Fixed.';
+
+            return;
+        }
+
         help.textContent = bulkForm.elements.schedule_method?.value === 'custom'
             ? 'Select at least two shifts. The assistant creates a stable custom mix across employees while balancing coverage.'
             : 'Select at least two shifts. The assistant balances coverage and rotates employees weekly.';
+    };
+
+    // What the chosen pattern will do to people, said where it is chosen.
+    const syncSchedulePatternHint = () => {
+        const hint = bulkForm?.querySelector('[data-schedule-method-hint]');
+        if (!hint) return;
+        hint.textContent = {
+            rotation: 'Staff move between the pooled shifts, balanced by the assistant.',
+            custom: 'Each person keeps a stable mix of the pooled shifts across the period.',
+            fixed: 'Each person keeps one shift for the whole period.',
+        }[bulkForm.elements.schedule_method?.value] ?? '';
     };
 
     /**
@@ -514,13 +601,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 : (standaloneChosen || (rotatingChosen && box.dataset.rotating === '0'));
 
             box.disabled = blocked;
-            box.closest('label')?.classList.toggle('is-unavailable', blocked);
-            box.closest('label')?.setAttribute(
+            const label = box.closest('label');
+            label?.classList.toggle('is-unavailable', blocked);
+            label?.setAttribute(
                 'title',
                 blocked
                     ? 'A standalone shift cannot be combined with a rotating one. Untick the current selection to choose this instead.'
                     : '',
             );
+            // Said on the tile, not only in a tooltip a mouse has to find.
+            const reason = label?.querySelector('[data-shift-reason]');
+            if (reason) {
+                reason.hidden = !blocked;
+                reason.textContent = blocked
+                    ? (box.dataset.rotating === '0'
+                        ? 'Unavailable beside a rotating shift'
+                        : 'Unavailable while a standalone shift is chosen')
+                    : '';
+            }
         });
     };
 
@@ -548,6 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bulkForm.elements.include_weekends.checked = aiSchedule;
         syncShiftPoolExclusivity();
         syncShiftPoolHelp();
+        syncSchedulePatternHint();
         bulkSaveButton.textContent = 'Approve & publish';
         invalidateBulkReview();
     };
@@ -597,7 +696,104 @@ document.addEventListener('DOMContentLoaded', () => {
 
         field.value = isMonthly ? monthInputValue(date) : dateInputValue(date);
         syncBulkPeriod();
+        refreshStaffPeriodLoad();
         invalidateBulkReview();
+    };
+
+    // The select-all box, the All / Selected / Not selected counts, and the
+    // "N of M selected" line, all read from the same eligible pool so they
+    // can never disagree with the list under them.
+    const syncBulkSelectionTools = () => {
+        if (!bulkForm) return;
+        const eligible = bulkEmployeeOptions.filter((option) => option.dataset.eligible === '1');
+        const selected = eligible.filter((option) => option.querySelector('input').checked).length;
+        const counts = { all: eligible.length, selected, unselected: eligible.length - selected };
+        bulkShowButtons.forEach((button) => {
+            const key = button.dataset.bulkShow;
+            button.setAttribute('aria-pressed', String(key === bulkShow));
+            const count = button.querySelector('[data-bulk-show-count]');
+            if (count) count.textContent = String(counts[key] ?? 0);
+        });
+
+        const visible = bulkEmployeeOptions.filter((option) => !option.hidden);
+        const visibleSelected = visible.filter((option) => option.querySelector('input').checked).length;
+        if (bulkMaster) {
+            bulkMaster.disabled = visible.length === 0;
+            bulkMaster.checked = visible.length > 0 && visibleSelected === visible.length;
+            bulkMaster.indeterminate = visibleSelected > 0 && visibleSelected < visible.length;
+            const label = bulkForm.querySelector('[data-bulk-master-label]');
+            if (label) label.textContent = bulkMaster.checked ? 'Deselect all shown' : 'Select all shown';
+        }
+
+        const summary = bulkForm.querySelector('[data-bulk-selection-summary]');
+        const totalSelected = selectedBulkEmployees().length;
+        if (summary) summary.textContent = eligible.length ? `${totalSelected} of ${eligible.length} selected` : `${totalSelected} selected`;
+        if (bulkClearSelection) bulkClearSelection.hidden = totalSelected === 0;
+    };
+
+    // What the chosen period already holds for each employee in the chosen
+    // department — read once per department/period change and written into the
+    // "This period" column, so ticking a name is an informed choice.
+    let staffLoadSequence = 0;
+    let staffLoadTimer = null;
+    const staffPeriodCell = (option) => option.querySelector('[data-bulk-employee-period]');
+
+    const renderStaffPeriodLoad = (load) => {
+        const note = bulkForm?.querySelector('[data-bulk-period-note]');
+        let busy = 0;
+        bulkEmployeeOptions.forEach((option) => {
+            const cell = staffPeriodCell(option);
+            if (!cell) return;
+            const row = load?.[option.dataset.employeeId];
+            cell.classList.remove('is-busy', 'is-leave');
+            if (!row) {
+                cell.textContent = '—';
+
+                return;
+            }
+            const parts = [];
+            if (row.shifts) parts.push(`${row.shifts} shift${row.shifts === 1 ? '' : 's'} already scheduled`);
+            if (row.leave_days) parts.push(`${row.leave_days} day${row.leave_days === 1 ? '' : 's'} on leave`);
+            if (row.days_off) parts.push(`${row.days_off} rest day${row.days_off === 1 ? '' : 's'}`);
+            if (row.shifts || row.leave_days) busy += 1;
+            cell.classList.toggle('is-busy', row.shifts > 0);
+            cell.classList.toggle('is-leave', row.shifts === 0 && row.leave_days > 0);
+            cell.textContent = parts.length ? parts.join(' · ') : 'Nothing yet';
+        });
+        if (note) {
+            note.textContent = load
+                ? (busy
+                    ? `${busy} of the staff shown already have shifts or approved leave in this period.`
+                    : 'Nobody shown has shifts or approved leave in this period yet.')
+                : 'Select the employees to include in this schedule.';
+        }
+    };
+
+    const refreshStaffPeriodLoad = () => {
+        const list = bulkForm?.querySelector('[data-bulk-employee-list]');
+        if (!list?.dataset.staffLoadUrl) return;
+        const departmentId = bulkForm.elements.department_id.value;
+        const start = bulkForm.elements.start_date.value;
+        const end = bulkForm.elements.end_date.value;
+        if (!departmentId || !start || !end) {
+            renderStaffPeriodLoad(null);
+
+            return;
+        }
+
+        clearTimeout(staffLoadTimer);
+        staffLoadTimer = setTimeout(async () => {
+            const sequence = ++staffLoadSequence;
+            const params = new URLSearchParams({ department_id: departmentId, start_date: start, end_date: end });
+            try {
+                const response = await fetch(`${list.dataset.staffLoadUrl}?${params}`, { headers: { Accept: 'application/json' } });
+                if (sequence !== staffLoadSequence) return;
+                if (!response.ok) throw new Error('unavailable');
+                renderStaffPeriodLoad((await response.json()).employees);
+            } catch {
+                if (sequence === staffLoadSequence) renderStaffPeriodLoad(null);
+            }
+        }, 250);
     };
 
     const filterBulkEmployees = () => {
@@ -607,26 +803,68 @@ document.addEventListener('DOMContentLoaded', () => {
         const search = bulkForm.querySelector('[data-bulk-employee-search]').value.trim().toLowerCase();
 
         bulkEmployeeOptions.forEach((option) => {
-            const matches = Boolean(departmentId) && positionIds.length > 0
+            const eligible = Boolean(departmentId) && positionIds.length > 0
                 && option.dataset.departmentId === departmentId
                 && positionIds.includes(option.dataset.positionId)
                 && (!search || option.dataset.search.includes(search));
-            option.hidden = !matches;
+            const checked = option.querySelector('input').checked;
+            option.dataset.eligible = eligible ? '1' : '0';
+            option.hidden = !eligible
+                || (bulkShow === 'selected' && !checked)
+                || (bulkShow === 'unselected' && checked);
         });
         const empty = bulkForm.querySelector('[data-bulk-employee-empty]');
+        const list = bulkForm.querySelector('[data-bulk-employee-list]');
         const hasVisibleEmployees = bulkEmployeeOptions.some((option) => !option.hidden);
+        const hasEligibleEmployees = bulkEmployeeOptions.some((option) => option.dataset.eligible === '1');
         empty.hidden = hasVisibleEmployees;
-        if (!departmentId) {
-            empty.textContent = 'Select a department to load its active employees.';
+        // The column headings belong to rows; with none there they are a label
+        // for nothing.
+        list?.classList.toggle('is-empty', !hasVisibleEmployees);
+        syncBulkSelectionTools();
+
+        // Every empty state says what is missing and, where there is one, the
+        // single action that fills it.
+        let title = 'No employees to show';
+        let body = 'No active employees match the selected filters.';
+        let action = null;
+        if (hasEligibleEmployees && !hasVisibleEmployees) {
+            if (bulkShow === 'selected') {
+                title = 'Nobody selected yet';
+                body = 'Tick the employees to schedule, or switch back to All.';
+                action = ['Show all staff', () => setBulkShow('all')];
+            } else {
+                title = 'Everyone shown is selected';
+                body = 'There is nobody left to add under the current filters.';
+                action = ['Show all staff', () => setBulkShow('all')];
+            }
+        } else if (!departmentId) {
+            title = 'Choose a department';
+            body = 'Select a department to load its active employees.';
         } else if (positionIds.length === 0) {
             const departmentOption = bulkForm.querySelector('[data-bulk-department-filter]').selectedOptions[0];
             const count = Number(departmentOption?.dataset.employeeCount ?? 0);
-            const departmentName = departmentOption?.textContent ?? 'this department';
-            empty.textContent = count
-                ? `Loads ${count} active employee${count === 1 ? '' : 's'} in ${departmentName} once at least one position is selected.`
+            const departmentName = departmentOption?.textContent?.trim() ?? 'this department';
+            title = count ? 'Choose a position' : 'No active staff on record';
+            body = count
+                ? `Selecting a position lists the ${count} active employee${count === 1 ? '' : 's'} in ${departmentName}.`
                 : `No active employees are on record for ${departmentName} yet.`;
-        } else {
-            empty.textContent = 'No active employees match the selected filters.';
+        } else if (search) {
+            title = `No employees match “${search}”`;
+            body = 'Check the spelling, or search by employee ID instead.';
+            action = ['Clear search', () => {
+                bulkForm.querySelector('[data-bulk-employee-search]').value = '';
+                filterBulkEmployees();
+            }];
+        }
+
+        empty.querySelector('[data-bulk-employee-empty-title]').textContent = title;
+        empty.querySelector('[data-bulk-employee-empty-body]').textContent = body;
+        const actionButton = empty.querySelector('[data-bulk-employee-empty-action]');
+        actionButton.hidden = action === null;
+        if (action) {
+            actionButton.textContent = action[0];
+            actionButton.onclick = action[1];
         }
     };
 
@@ -705,38 +943,28 @@ document.addEventListener('DOMContentLoaded', () => {
         apply('[data-rotating-only]', !standaloneOnly);
     };
 
+    // A name ticked under a position that has since been unticked is no
+    // longer eligible, so it is dropped rather than left selected out of sight.
     const syncBulkPositionAvailability = () => {
         if (!bulkForm) return;
-        const hasPosition = selectedBulkPositionIds().length > 0;
-        const employeeScope = bulkForm.elements.employee_scope;
-        if (!employeeScope) return;
-        employeeScope.disabled = !hasPosition;
-        if (!hasPosition) employeeScope.value = 'specific';
+        const positionIds = selectedBulkPositionIds();
+        bulkEmployeeOptions.forEach((option) => {
+            if (!positionIds.includes(option.dataset.positionId)) option.querySelector('input').checked = false;
+        });
     };
 
     const syncEmployeeScope = () => {
         if (!bulkForm) return;
-        const scope = bulkForm.elements.employee_scope?.value ?? 'specific';
-        const allStaff = scope === 'all';
-        const departmentId = bulkForm.elements.department_id.value;
-        const positionIds = selectedBulkPositionIds();
         const search = bulkForm.querySelector('[data-bulk-employee-search]');
-        const selectAll = bulkForm.querySelector('[data-bulk-select-all]');
-        search.disabled = allStaff || positionIds.length === 0;
-        selectAll.hidden = allStaff;
-
-        if (allStaff) {
-            search.value = '';
-            bulkEmployeeOptions.forEach((option) => {
-                option.querySelector('input').checked = Boolean(departmentId) && positionIds.length > 0
-                    && option.dataset.departmentId === departmentId
-                    && positionIds.includes(option.dataset.positionId);
-            });
-        }
-
+        search.disabled = selectedBulkPositionIds().length === 0;
         filterBulkEmployees();
         updateBulkSelectedCount();
         invalidateBulkReview();
+    };
+
+    const setBulkShow = (show) => {
+        bulkShow = show;
+        filterBulkEmployees();
     };
 
 
@@ -774,6 +1002,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bulkForm?.querySelectorAll('[data-schedule-period], input[name="period_start"], input[name="period_month"]').forEach((field) => {
         field.addEventListener('change', () => {
             syncBulkPeriod();
+            refreshStaffPeriodLoad();
             invalidateBulkReview();
         });
     });
@@ -785,6 +1014,7 @@ document.addEventListener('DOMContentLoaded', () => {
         syncBulkPositionAvailability();
         syncEmployeeScope();
         syncClinicalOnlyFields();
+        refreshStaffPeriodLoad();
     });
     bulkForm?.querySelector('[data-bulk-position-picker]')?.addEventListener('change', (event) => {
         if (!event.target.matches('[data-bulk-position-filter]')) return;
@@ -792,15 +1022,21 @@ document.addEventListener('DOMContentLoaded', () => {
         syncEmployeeScope();
     });
     bulkForm?.querySelector('[data-bulk-employee-search]')?.addEventListener('input', filterBulkEmployees);
-    bulkForm?.querySelector('[data-bulk-employee-scope]')?.addEventListener('change', syncEmployeeScope);
-    bulkForm?.querySelector('[data-bulk-select-all]')?.addEventListener('click', () => {
+    bulkMaster?.addEventListener('change', () => {
         const visible = bulkEmployeeOptions.filter((option) => !option.hidden);
         const shouldSelect = visible.some((option) => !option.querySelector('input').checked);
         visible.forEach((option) => {
             option.querySelector('input').checked = shouldSelect;
         });
         updateBulkSelectedCount();
-        invalidateBulkReview();
+        refreshRosterPickers();
+    });
+    bulkShowButtons.forEach((button) => button.addEventListener('click', () => setBulkShow(button.dataset.bulkShow)));
+    bulkClearSelection?.addEventListener('click', () => {
+        bulkEmployeeOptions.forEach((option) => { option.querySelector('input').checked = false; });
+        filterBulkEmployees();
+        updateBulkSelectedCount();
+        refreshRosterPickers();
     });
     bulkForm?.querySelector('[data-bulk-period-previous]')?.addEventListener('click', () => moveBulkPeriod(-1));
     bulkForm?.querySelector('[data-bulk-period-next]')?.addEventListener('click', () => moveBulkPeriod(1));
@@ -874,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .filter((option) => option.querySelector('input').checked)
         .map((option) => ({
             id: Number(option.querySelector('input').value),
-            name: option.querySelector('strong').textContent,
+            name: option.querySelector('.bulk-employee-name').textContent,
         }));
 
     // Shift colour is what tells two lanes apart at a glance once the card
@@ -1171,7 +1407,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderRosterDayCell = (day) => {
         const cell = document.createElement('article');
-        cell.className = `roster-cell${day.fully_covered ? '' : ' is-short'}`;
+        const isToday = day.date === dateInputValue(new Date());
+        cell.className = `roster-cell${day.fully_covered ? '' : ' is-short'}${day.is_weekend ? ' is-weekend' : ''}${isToday ? ' is-today' : ''}`;
         cell.dataset.date = day.date;
 
         const heading = document.createElement('header');
@@ -1196,7 +1433,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         add.setAttribute('aria-expanded', 'false');
 
-        heading.append(number, weekday, add);
+        heading.append(number, weekday);
+        if (isToday) {
+            const today = document.createElement('span');
+            today.className = 'roster-cell-today';
+            today.textContent = 'Today';
+            heading.append(today);
+        }
+        heading.append(add);
         cell.append(heading);
 
         day.shifts.forEach((shift) => cell.append(renderShiftLane(day, shift)));
@@ -1450,6 +1694,109 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // Which colour is which shift on the board. Drawn from the evaluation so
+    // it names only the shifts this roster actually uses.
+    const renderRosterLegend = (evaluation) => {
+        const legend = bulkForm?.querySelector('[data-roster-legend]');
+        const shifts = legend?.querySelector('[data-roster-legend-shifts]');
+        if (!legend || !shifts) return;
+
+        const colours = new Map([...bulkForm.querySelectorAll('input[name="shift_ids[]"], select[name="shift_id"] option')]
+            .filter((node) => node.value)
+            .map((node) => [String(node.value), node.dataset.color]));
+        const seen = new Map();
+        (evaluation.days ?? []).forEach((day) => day.shifts.forEach((row) => {
+            if (!seen.has(row.shift_id)) seen.set(row.shift_id, row);
+        }));
+
+        shifts.replaceChildren();
+        seen.forEach((row, shiftId) => {
+            const item = document.createElement('span');
+            item.className = 'roster-legend-shift';
+            const dot = document.createElement('span');
+            dot.className = 'roster-legend-dot';
+            const colour = colours.get(String(shiftId));
+            if (colour) dot.style.background = colour;
+            const name = document.createElement('strong');
+            name.textContent = row.shift;
+            item.append(dot, name);
+            if (row.time) {
+                const time = document.createElement('small');
+                time.textContent = row.time;
+                item.append(time);
+            }
+            shifts.append(item);
+        });
+        legend.hidden = seen.size === 0;
+    };
+
+    /**
+     * How the draft lands on each person: shifts, paid hours against the weekly
+     * maximum in play, and the rest days they end up with. The board is
+     * arranged by day, so this is the only place the fairness of a roster —
+     * the thing the whole run is judged on — can actually be read.
+     */
+    const renderRosterWorkload = (evaluation) => {
+        const panel = bulkForm?.querySelector('[data-roster-workload]');
+        const list = panel?.querySelector('[data-roster-workload-list]');
+        if (!panel || !list) return;
+
+        const shiftHours = new Map([...bulkForm.querySelectorAll('input[name="shift_ids[]"], select[name="shift_id"] option')]
+            .filter((node) => node.value)
+            .map((node) => [String(node.value), Number(node.dataset.hours) || 0]));
+        const people = new Map();
+        const record = (id, name) => {
+            if (!people.has(id)) people.set(id, { name, shifts: 0, hours: 0, rest: [] });
+
+            return people.get(id);
+        };
+        const weekdayOf = (date) => SHORT_WEEKDAYS[parseScheduleDate(date).getDay()];
+
+        (evaluation.days ?? []).forEach((day) => {
+            day.shifts.forEach((row) => row.assigned.filter((person) => !person.blocked).forEach((person) => {
+                const entry = record(person.employee_id, person.name);
+                entry.shifts += 1;
+                entry.hours += shiftHours.get(String(row.shift_id)) ?? 0;
+            }));
+            day.day_offs.forEach((person) => record(person.employee_id, person.name).rest.push(weekdayOf(day.date)));
+        });
+
+        const weeks = Math.max(1, Math.round((evaluation.days?.length ?? 7) / 7));
+        const limit = (Number(bulkForm.elements.max_hours_per_week?.value) || 48) * weeks;
+        const rows = [...people.values()].sort((a, b) => b.hours - a.hours || a.name.localeCompare(b.name));
+
+        list.replaceChildren();
+        rows.forEach((person) => {
+            const item = document.createElement('li');
+            const heading = document.createElement('div');
+            heading.className = 'roster-workload-heading';
+            heading.append(
+                element('strong', null, person.name),
+                element('span', null, `${person.shifts} shift${person.shifts === 1 ? '' : 's'} · ${Math.round(person.hours * 10) / 10} h`),
+            );
+            const bar = document.createElement('span');
+            bar.className = 'roster-workload-bar';
+            const fill = document.createElement('span');
+            const share = limit > 0 ? Math.min(100, (person.hours / limit) * 100) : 0;
+            fill.style.width = `${share}%`;
+            fill.className = share >= 90 ? 'is-heavy' : '';
+            bar.append(fill);
+            item.append(heading, bar, element('small', null, person.rest.length
+                ? `Rest ${person.rest.join(', ')}`
+                : 'No rest day in this period'));
+            list.append(item);
+        });
+
+        panel.querySelector('[data-roster-workload-note]').textContent = weeks === 1
+            ? `Paid hours against the ${limit}-hour weekly limit`
+            : `Paid hours against ${limit} h — ${weeks} weeks at the weekly limit`;
+        const shared = rows.length ? Math.round((rows[0].hours - rows[rows.length - 1].hours) * 10) / 10 : 0;
+        panel.querySelector('[data-roster-workload-tally]').textContent = rows.length
+            ? `${rows.length} employee${rows.length === 1 ? '' : 's'} · ${shared} h between the heaviest and lightest`
+            : '';
+        panel.hidden = rows.length === 0;
+    };
+
     const renderRoster = (evaluation) => {
         if (!rosterDays) return;
         lastEvaluation = evaluation;
@@ -1464,6 +1811,8 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAlreadyRostered(evaluation);
         renderNightStreakWarnings(evaluation);
         renderBurnoutWarnings(evaluation);
+        renderRosterLegend(evaluation);
+        renderRosterWorkload(evaluation);
         if (scroller) scroller.scrollTop = previousScroll;
 
         if (rosterSummary) {
@@ -1920,8 +2269,57 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
     };
 
+    const laborCompliance = bulkForm?.querySelector('[data-labor-compliance]');
+    const laborComplianceList = bulkForm?.querySelector('[data-labor-compliance-list]');
+    const laborComplianceTally = bulkForm?.querySelector('[data-labor-compliance-tally]');
+
+    // Read off the same evaluation as the checks above: the server judges the
+    // roster publishing would write against each Labor Code article it touches.
+    const renderLaborCompliance = () => {
+        if (!laborCompliance || !laborComplianceList) return;
+        const rows = lastEvaluation?.compliance ?? [];
+        laborCompliance.hidden = rows.length === 0;
+        laborComplianceList.replaceChildren();
+        if (!rows.length) return;
+
+        const ok = rows.filter((row) => row.state === 'ok').length;
+        const review = rows.filter((row) => row.state === 'review').length;
+        const pending = rows.filter((row) => row.state === 'pending').length;
+        if (laborComplianceTally) {
+            laborComplianceTally.textContent = [`${ok} compliant`, review ? `${review} to review` : '', pending ? `${pending} not set up` : '']
+                .filter(Boolean).join(' · ');
+            laborComplianceTally.className = `labor-compliance-tally${review ? ' is-review' : ''}`;
+        }
+
+        const stateText = { ok: 'Compliant: ', review: 'Needs review: ', pending: 'Not checked yet: ' };
+        const glyph = { ok: '✓', review: '!', pending: '–' };
+        rows.forEach((row) => {
+            const item = document.createElement('li');
+            item.className = `labor-compliance-row is-${row.state}`;
+            const mark = document.createElement('span');
+            mark.className = 'validation-check-mark';
+            mark.setAttribute('aria-hidden', 'true');
+            mark.textContent = glyph[row.state] ?? '•';
+            const body = document.createElement('div');
+            const state = document.createElement('span');
+            state.className = 'visually-hidden';
+            state.textContent = stateText[row.state] ?? '';
+            const label = document.createElement('strong');
+            label.textContent = row.rule;
+            const detail = document.createElement('small');
+            detail.textContent = row.detail;
+            body.append(state, label, detail);
+            const basis = document.createElement('span');
+            basis.className = 'labor-compliance-basis';
+            basis.textContent = row.article;
+            item.append(mark, body, basis);
+            laborComplianceList.append(item);
+        });
+    };
+
     const renderValidation = () => {
         if (!validationRecapList || !validationCheckList) return;
+        renderLaborCompliance();
 
         validationRecapList.replaceChildren();
         validationRecap().forEach(([label, value]) => {
@@ -2017,14 +2415,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // One short line under each finished or current step, so the choices made
+    // so far stay in view once the stepper runs across the top.
+    const stepSummary = (stepNumber) => {
+        const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+        if (stepNumber === 1) {
+            const staff = selectedBulkEmployees().length;
+
+            return staff ? plural(staff, 'employee', 'employees') : '';
+        }
+        if (stepNumber === 2) {
+            const start = bulkForm.elements.start_date?.value;
+            const end = bulkForm.elements.end_date?.value;
+            const range = start && end ? `${rosterShortDate(start)} – ${rosterShortDate(end)}` : '';
+            const shifts = selectedShiftOptions().length;
+
+            return [range, shifts ? plural(shifts, 'shift', 'shifts') : ''].filter(Boolean).join(' · ');
+        }
+        if (stepNumber === 3) {
+            return lastEvaluation ? plural(lastEvaluation.summary?.assignments ?? 0, 'assignment', 'assignments') : 'Not generated yet';
+        }
+        if (stepNumber === 4) {
+            const checks = validationChecks();
+
+            return checks.length ? `${checks.filter((check) => check.ok).length} of ${checks.length} passed` : '';
+        }
+
+        return 'Awaiting approval';
+    };
+
+    const syncHeaderContext = () => {
+        const context = bulkForm?.querySelector('[data-bulk-header-context]');
+        if (!context) return;
+        const department = bulkForm.elements.department_id?.value
+            ? bulkForm.elements.department_id.selectedOptions[0]?.textContent.trim()
+            : '';
+        context.textContent = department || 'Choose a department to begin.';
+    };
+
+    const syncStepBar = (step) => {
+        stepItems.forEach((item) => {
+            const stepNumber = Number(item.dataset.stepItem);
+            const done = stepNumber < step;
+            const current = stepNumber === step;
+            item.classList.toggle('active', current);
+            item.classList.toggle('done', done);
+            const button = item.querySelector('.bulk-flow-step');
+            if (button) {
+                button.disabled = !done;
+                if (current) button.setAttribute('aria-current', 'step');
+                else button.removeAttribute('aria-current');
+            }
+            const state = item.querySelector('[data-step-state]');
+            if (state) state.textContent = current ? '(current step)' : done ? '(completed)' : '(not started)';
+            const sub = item.querySelector('[data-step-sub]');
+            if (sub) sub.textContent = done || current ? stepSummary(stepNumber) : '';
+        });
+        syncHeaderContext();
+    };
+
     const showStep = (step) => {
         currentStep = step;
         stepPanels.forEach((panel) => { panel.hidden = Number(panel.dataset.stepPanel) !== step; });
-        stepItems.forEach((item) => {
-            const stepNumber = Number(item.dataset.stepItem);
-            item.classList.toggle('active', stepNumber === step);
-            item.classList.toggle('done', stepNumber < step);
-        });
+        syncStepBar(step);
         if (stepBackButton) stepBackButton.hidden = step === 1;
         if (stepNextButton) stepNextButton.hidden = step === 5;
         if (bulkSaveButton) bulkSaveButton.hidden = step !== 5;
@@ -2116,6 +2569,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // for as long as the current step's validator fails, instead of only
     // rejecting the attempt after it's clicked.
     const refreshStepGate = () => {
+        syncStepBar(currentStep);
         if (!stepNextButton) return;
         const message = stepValidators[currentStep]?.();
         stepNextButton.disabled = Boolean(message);
@@ -2134,6 +2588,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showStep(Math.min(5, currentStep + 1));
     });
     stepBackButton?.addEventListener('click', () => showStep(Math.max(1, currentStep - 1)));
+    bulkForm?.querySelectorAll('[data-bulk-goto-step]').forEach((button) => {
+        button.addEventListener('click', () => showStep(Number(button.dataset.bulkGotoStep)));
+    });
     // Jumping back to an already-completed step is safe; jumping ahead stays
     // gated behind Next so a step can't be skipped without its data.
     stepItems.forEach((item) => {
@@ -2182,6 +2639,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (publishSummaryGrid) publishSummaryGrid.replaceChildren();
         if (publishSummaryGap) publishSummaryGap.hidden = true;
         lastEvaluation = null;
+        bulkShow = 'all';
         syncOvertimeJustification();
         syncScheduleMethod();
         syncBulkPeriod();
@@ -2190,6 +2648,9 @@ document.addEventListener('DOMContentLoaded', () => {
         syncEmployeeScope();
         syncClinicalOnlyFields();
         updateBulkSelectedCount();
+        syncSchedulePatternHint();
+        renderStaffPeriodLoad(null);
+        refreshStaffPeriodLoad();
         invalidateBulkReview();
         showStep(1);
     });
@@ -2201,6 +2662,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncEmployeeScope();
     syncClinicalOnlyFields();
     updateBulkSelectedCount();
+    syncSchedulePatternHint();
     showStep(1);
 
     const shiftModalElement = document.querySelector('#shiftTemplateModal');

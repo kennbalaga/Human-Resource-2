@@ -29,7 +29,6 @@
 .organization-filters input,
 .organization-filters select,
 .bulk-schedule-form input[data-bulk-employee-search],
-.bulk-staff-scope-field select,
 .attendance-form input[type='text'] {
     border: 1px solid var(--hr-field-border);
     border-radius: var(--r-md);
@@ -44,7 +43,6 @@
 .organization-filters input:focus,
 .organization-filters select:focus,
 .bulk-schedule-form input[data-bulk-employee-search]:focus,
-.bulk-staff-scope-field select:focus,
 .attendance-form input[type='text']:focus {
     border-color: var(--hr-primary);
     background: var(--hr-surface);

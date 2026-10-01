@@ -77,8 +77,9 @@ class BurnoutSchedulingTest extends TestCase
             'department_id' => $this->ward->id,
             'employee_ids' => [$atRisk->id, $fine->id],
             'shift_id' => $office->id,
-            'start_date' => '2027-11-01',
-            'end_date' => '2027-11-07',
+            // One scheduling week, Sunday to Saturday.
+            'start_date' => '2027-10-31',
+            'end_date' => '2027-11-06',
             'include_weekends' => true,
             'days_off_per_week' => 1,
         ]);
@@ -102,8 +103,9 @@ class BurnoutSchedulingTest extends TestCase
             'department_id' => $this->ward->id,
             'employee_ids' => [$atRisk->id],
             'shift_id' => $night->id,
-            'start_date' => '2027-11-01',
-            'end_date' => '2027-11-07',
+            // One scheduling week, Sunday to Saturday.
+            'start_date' => '2027-10-31',
+            'end_date' => '2027-11-06',
             'include_weekends' => true,
         ]);
 
@@ -139,8 +141,9 @@ class BurnoutSchedulingTest extends TestCase
             'department_id' => $this->ward->id,
             'employee_ids' => [$atRisk->id],
             'shift_id' => $office->id,
-            'start_date' => '2027-11-01',
-            'end_date' => '2027-11-07',
+            // One scheduling week, Sunday to Saturday.
+            'start_date' => '2027-10-31',
+            'end_date' => '2027-11-06',
             'include_weekends' => true,
             'days_off_per_week' => 1,
             'overtime_allowed' => true,

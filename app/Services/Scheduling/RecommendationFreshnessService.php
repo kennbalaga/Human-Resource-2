@@ -10,6 +10,7 @@ use App\Models\Position;
 use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Services\ScheduleService;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 
 class RecommendationFreshnessService
@@ -28,8 +29,8 @@ class RecommendationFreshnessService
             ->whereBetween('work_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
             ->orderBy('id')
             ->get(['id', 'employee_id', 'shift_id', 'work_date', 'status', 'updated_at']);
-        $weekStart = $date->copy()->startOfWeek(Carbon::MONDAY);
-        $weekEnd = $date->copy()->endOfWeek(Carbon::SUNDAY);
+        $weekStart = ScheduleWeek::start($date);
+        $weekEnd = ScheduleWeek::end($date);
 
         $snapshot = [
             'target' => [

@@ -21,6 +21,8 @@ use App\Services\ReferenceDataCache;
 use App\Services\Schedule\MyScheduleService;
 use App\Services\ScheduleService;
 use App\Services\Scheduling\AiSchedulingFeatureSettings;
+use App\Services\Scheduling\StaffingRequirementService;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -210,9 +212,6 @@ class ScheduleCalendarController extends Controller
             'positions' => $canManage ? $activePositions : collect(),
             'shifts' => $activeShifts,
             'aiSchedulingEnabled' => $canManage && $aiSettings->assistantEnabled(),
-            'aiPositions' => $canManage && $aiSettings->assistantEnabled()
-                ? Position::query()->where('is_active', true)->whereHas('department', fn (Builder $query) => $query->where('is_active', true))->orderBy('title')->get()
-                : collect(),
             'activeSeries' => $activeSeries,
             'filters' => $filters,
             'canManage' => $canManage,
@@ -387,8 +386,21 @@ class ScheduleCalendarController extends Controller
             $data['exclude_assignment_id'] ?? null,
         );
 
+        $scheduledMinutes = $scheduleService->weeklyPaidMinutes($employee, $data['work_date'], $data['exclude_assignment_id'] ?? null);
+        $weekStart = ScheduleWeek::start(Carbon::parse($data['work_date'], config('schedule.timezone')));
+
         return response()->json([
             'has_conflicts' => $conflicts->isNotEmpty() || $restConflicts->isNotEmpty() || $dayOff !== null || $leave !== null,
+            // Advisory: a hand-made assignment may run into paid overtime, so
+            // the weekly limit is shown, not enforced, on this form.
+            'week' => [
+                'start' => $weekStart->toDateString(),
+                'end' => ScheduleWeek::end($weekStart)->toDateString(),
+                'scheduled_hours' => round($scheduledMinutes / 60, 1),
+                'shift_hours' => round($shift->duration_minutes / 60, 1),
+                'after_hours' => round(($scheduledMinutes + $shift->duration_minutes) / 60, 1),
+                'limit' => (int) config('schedule.compliance.max_hours_per_week'),
+            ],
             'day_off' => $dayOff ? ['date' => $dayOff->work_date->toDateString()] : null,
             'leave' => $leave ? [
                 'start_date' => $leave->start_date->toDateString(),
@@ -406,6 +418,119 @@ class ScheduleCalendarController extends Controller
                 'shift' => $assignment->shift->name,
                 'time' => $assignment->shift->formatted_time,
             ]),
+        ]);
+    }
+
+    /**
+     * Who already stands on one shift on one date in a department, against the
+     * unit's own staffing standard — the "1 of 1 already staffed" line on the
+     * assignment form, shown before anyone is picked.
+     */
+    public function coverage(Request $request, StaffingRequirementService $staffing): JsonResponse
+    {
+        abort_unless($this->canManage($request), 403);
+        $data = $request->validate([
+            'department_id' => ['required', 'integer', 'exists:departments,id'],
+            'shift_id' => ['required', 'integer', 'exists:shifts,id'],
+            'work_date' => ['required', 'date'],
+            'exclude_assignment_id' => ['nullable', 'integer'],
+        ]);
+        $allowed = $this->supervisedDepartmentIds($request);
+        abort_if($allowed !== null && ! in_array((int) $data['department_id'], $allowed, true), 403);
+
+        $department = Department::query()->with('shiftRequirements')->findOrFail($data['department_id']);
+        $shift = Shift::query()->findOrFail($data['shift_id']);
+        $standing = ScheduleAssignment::query()
+            ->with('employee')
+            ->where('shift_id', $shift->id)
+            ->where('status', 'scheduled')
+            ->whereDate('work_date', $data['work_date'])
+            ->whereHas('employee', fn (Builder $query) => $query->where('department_id', $department->id))
+            ->when($data['exclude_assignment_id'] ?? null, fn (Builder $query, mixed $id) => $query->where('id', '!=', (int) $id))
+            ->get();
+        $requirement = $staffing->forShift($department, $shift);
+
+        return response()->json([
+            'department' => $department->name,
+            'shift' => $shift->name,
+            'staffed' => $standing->count(),
+            'required' => (int) $requirement['staff'],
+            'source' => $requirement['source'],
+            'names' => $standing->map(fn (ScheduleAssignment $assignment) => $assignment->employee?->full_name)->filter()->values(),
+        ]);
+    }
+
+    /**
+     * What each employee in a department already carries over a period: the
+     * shifts a previous run or a hand-made assignment put on them, and the
+     * days approved leave already covers. This is the "This period" column on
+     * Step 1, read before anyone is ticked rather than discovered on the board.
+     */
+    public function staffLoad(Request $request): JsonResponse
+    {
+        abort_unless($this->canManage($request), 403);
+        $data = $request->validate([
+            'department_id' => ['required', 'integer', 'exists:departments,id'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+        ]);
+        $allowed = $this->supervisedDepartmentIds($request);
+        abort_if($allowed !== null && ! in_array((int) $data['department_id'], $allowed, true), 403);
+
+        // Normalised once: the rest of this method compares plain ISO dates,
+        // which only holds if that is what they actually are.
+        $timezone = config('schedule.timezone');
+        $data['start_date'] = Carbon::parse($data['start_date'], $timezone)->toDateString();
+        $data['end_date'] = Carbon::parse($data['end_date'], $timezone)->toDateString();
+
+        $employeeIds = Employee::query()
+            ->where('department_id', $data['department_id'])
+            ->notArchived()
+            ->where('employment_status', '!=', 'terminated')
+            ->pluck('id');
+        $range = [$data['start_date'], $data['end_date']];
+
+        $shifts = ScheduleAssignment::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->where('status', 'scheduled')
+            ->whereBetween('work_date', $range)
+            ->selectRaw('employee_id, count(*) as total')
+            ->groupBy('employee_id')
+            ->pluck('total', 'employee_id');
+        $daysOff = ScheduleDayOff::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->whereBetween('work_date', $range)
+            ->selectRaw('employee_id, count(*) as total')
+            ->groupBy('employee_id')
+            ->pluck('total', 'employee_id');
+        // Counted as days inside the period, not as whole requests: a leave
+        // running past the period only blocks the part that overlaps it.
+        $leaveDays = LeaveRequest::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $data['end_date'])
+            ->whereDate('end_date', '>=', $data['start_date'])
+            ->get()
+            ->groupBy('employee_id')
+            // Compared as plain dates: a leave and a period parsed in different
+            // zones are hours apart, and whole days is the only unit here.
+            ->map(fn ($requests) => $requests->sum(function (LeaveRequest $leave) use ($data): int {
+                $tz = config('schedule.timezone');
+                $from = Carbon::parse(max($leave->start_date->toDateString(), $data['start_date']), $tz);
+                $to = Carbon::parse(min($leave->end_date->toDateString(), $data['end_date']), $tz);
+
+
+                return (int) round($from->diffInDays($to)) + 1;
+            }));
+
+        return response()->json([
+            'start_date' => $data['start_date'],
+            'end_date' => $data['end_date'],
+            'employees' => $employeeIds->mapWithKeys(fn (int $id) => [$id => [
+                'shifts' => (int) ($shifts[$id] ?? 0),
+                'days_off' => (int) ($daysOff[$id] ?? 0),
+                'leave_days' => (int) ($leaveDays[$id] ?? 0),
+            ]]),
         ]);
     }
 
@@ -432,8 +557,8 @@ class ScheduleCalendarController extends Controller
     {
         if ($view === 'week') {
             return [
-                $focusDate->copy()->startOfWeek(Carbon::MONDAY),
-                $focusDate->copy()->endOfWeek(Carbon::SUNDAY),
+                ScheduleWeek::start($focusDate),
+                ScheduleWeek::end($focusDate),
                 $focusDate->copy()->subWeek(),
                 $focusDate->copy()->addWeek(),
             ];
@@ -443,8 +568,8 @@ class ScheduleCalendarController extends Controller
         $rangeEnd = $focusDate->copy()->endOfMonth();
 
         if ($view === 'month') {
-            $rangeStart->startOfWeek(Carbon::MONDAY);
-            $rangeEnd->endOfWeek(Carbon::SUNDAY);
+            $rangeStart = ScheduleWeek::start($rangeStart);
+            $rangeEnd = ScheduleWeek::end($rangeEnd);
         }
 
         return [$rangeStart, $rangeEnd, $focusDate->copy()->subMonth(), $focusDate->copy()->addMonth()];

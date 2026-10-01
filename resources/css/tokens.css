@@ -140,6 +140,15 @@
     --hr-danger-soft: #fbecef;
     --hr-info: #3978b8;           /* fill */
     --hr-info-text: #2e6699;      /* 6.04:1 - the readable counterpart */
+    /*
+     * Info was the one status with no plate of its own, so anything needing
+     * a blue ground reached for --hr-tint-info, a translucent wash that
+     * changes value with whatever rung it lands on. The other three have
+     * been opaque from the start, for the reason stated above the -soft
+     * group: badge wording keeps a known contrast only against a known
+     * ground. --hr-info-text on this plate measures 5.34:1.
+     */
+    --hr-info-soft: #eaf2fa;
     --hr-violet: #6d54c8;         /* 6.02:1 - reads and paints */
 
     /*
@@ -151,6 +160,10 @@
     --hr-success-line: #a7f3d0;
     --hr-warning-line: #ecd9a4;
     --hr-danger-line: #f2bcc5;
+    /* Completes the set: the same hue as the fill, lifted to the lightness
+       the three above sit at, so an info plate is edged like any other
+       rather than by the full-strength fill. */
+    --hr-info-line: #b1cde7;
 
     /* ---- Tints: pill and chip backgrounds, translucent so they inherit the surface ---- */
     --hr-tint-primary: rgba(5, 150, 105, .10);
@@ -316,7 +329,14 @@
      * which guaranteed no two cards agreed on their corners.
      */
     --r-xs: 3px;      /* hairline chips, progress fills */
-    --r-sm: 6px;      /* inputs, small controls */
+    --r-sm: 6px;      /* chips and small controls */
+    /*
+     * A field you type in sits one step inside the button beside it. The
+     * ladder had no rung here, so fields were taking --r-md and reading as
+     * buttons that happened to be empty. Adding a rung rather than moving
+     * one: --r-sm is a chip's radius and several of them are chips.
+     */
+    --r-input: 8px;   /* text, date, number, select, textarea */
     --r-md: 10px;     /* buttons, icon buttons, table cells */
     --r-lg: 14px;     /* cards and panels */
     --r-xl: 18px;     /* modals and dialogs */

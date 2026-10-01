@@ -7,7 +7,8 @@
 
      The flash is drawn visible, so without the script it simply stays on
      screen; toast.js takes it over, times it and announces it. --}}
-@php($flash = session('success'))
+{{-- A schedule create reads back in its own dialog, so the toast stays quiet then. --}}
+@php($flash = session('schedule_confirmation') ? null : session('success'))
 <div class="app-toast" role="status" aria-live="polite" aria-atomic="true" data-toast @unless($flash) hidden @endunless>
     <div class="app-toast-row">
         <span class="app-toast-icon" aria-hidden="true"><x-icon name="check-circle" /></span>

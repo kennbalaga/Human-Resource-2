@@ -29,12 +29,20 @@ return [
         'start' => env('SCHEDULE_NIGHT_DIFFERENTIAL_START', '22:00'),
         'end' => env('SCHEDULE_NIGHT_DIFFERENTIAL_END', '06:00'),
     ],
-    'calendar_week_starts_on' => 1,
+
+    /*
+    | First day of a scheduling week, as a Carbon day number (0 = Sunday …
+    | 6 = Saturday). Weekly rules (days off, maximum hours, night limits, the
+    | compliance review, recurrence intervals) and every calendar grid read it
+    | through App\Support\ScheduleWeek, so they always agree on "this week".
+    | Timesheet periods are a payroll matter and keep their own boundaries.
+    */
+    'calendar_week_starts_on' => (int) env('SCHEDULE_WEEK_STARTS_ON', 0),
 
     /*
     | Hard cap on consecutive scheduled workdays, checked across week
     | boundaries (unlike the days-off-per-week rule, which only counts
-    | distinct dates within a single ISO week).
+    | distinct dates within a single scheduling week).
     */
     'max_consecutive_workdays' => (int) env('SCHEDULE_MAX_CONSECUTIVE_WORKDAYS', 6),
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ScheduleAssignment;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,7 +53,7 @@ class ScheduleCalendarService
     /** @return array<string, mixed> */
     private function build(Carbon $today): array
     {
-        $start = $today->copy()->startOfWeek(Carbon::MONDAY);
+        $start = ScheduleWeek::start($today);
         $end = $start->copy()->addDays(6);
 
         $assigned = $this->workforceOnly(ScheduleAssignment::query())

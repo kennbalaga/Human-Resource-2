@@ -11,6 +11,7 @@ use App\Models\ScheduleDayOff;
 use App\Models\Shift;
 use App\Services\Burnout\BurnoutProtection;
 use App\Services\ScheduleService;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -95,8 +96,8 @@ class RotationScheduleService
             ->whereIn('employee_id', $employeeIds)
             ->where('status', 'scheduled')
             ->whereBetween('work_date', [
-                $start->copy()->startOfWeek()->subDay()->subDays($streakMargin)->toDateString(),
-                $end->copy()->endOfWeek()->addDay()->addDays($streakMargin)->toDateString(),
+                ScheduleWeek::start($start)->subDay()->subDays($streakMargin)->toDateString(),
+                ScheduleWeek::end($end)->addDay()->addDays($streakMargin)->toDateString(),
             ])
             ->get()
             ->groupBy('employee_id');
@@ -718,8 +719,8 @@ class RotationScheduleService
             return 'Weekly rest day not met (Labor Code Art. 91)';
         }
 
-        $weekStart = $date->copy()->startOfWeek();
-        $weekEnd = $date->copy()->endOfWeek();
+        $weekStart = ScheduleWeek::start($date);
+        $weekEnd = ScheduleWeek::end($date);
         $weeklyAssignments = $assignments->filter(fn (ScheduleAssignment $assignment) => $assignment->work_date->betweenIncluded($weekStart, $weekEnd));
         $overtimeAllowed = (bool) ($rules['overtime_allowed'] ?? false);
         $maximumHours = (int) ($rules['max_hours_per_week'] ?? 168);

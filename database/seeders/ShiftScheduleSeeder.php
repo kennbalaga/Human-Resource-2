@@ -7,7 +7,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\Scheduling\RosterWriteContext;
-use Carbon\Carbon;
+use App\Support\ScheduleWeek;
 use Illuminate\Database\Seeder;
 
 class ShiftScheduleSeeder extends Seeder
@@ -21,7 +21,7 @@ class ShiftScheduleSeeder extends Seeder
         // actor of its own, so demo rows are attributed to the same designated
         // migration actor the provenance backfill uses.
         $migrationActorId = User::query()->where('email', 'admin@hrms.local')->value('id');
-        $weekStart = now(config('schedule.timezone'))->startOfWeek(Carbon::MONDAY);
+        $weekStart = ScheduleWeek::start(now(config('schedule.timezone')));
         $seedAssignments = [
             ['employee' => 'SYS-ADMIN-2026-0001', 'shift' => 'ADMIN-0800'],
             ['employee' => 'HR-MGR-2026-0001', 'shift' => 'ADMIN-0800'],

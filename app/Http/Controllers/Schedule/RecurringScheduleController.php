@@ -12,7 +12,9 @@ use App\Services\PreferenceNotificationService;
 use App\Services\ScheduleService;
 use App\Services\Scheduling\RosterWriteContext;
 use App\Services\Scheduling\ScheduleLockService;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +32,64 @@ class RecurringScheduleController extends Controller
         $series = $scheduleService->createRecurringSchedule($request->validated(), $request->user());
         $this->notifyEmployee($series, 'created', $notifications);
 
-        return back()->with('success', "Recurring schedule created with {$series->assignments_count} assignments.");
+        return back()
+            ->with('success', "Recurring schedule created with {$series->assignments_count} assignments.")
+            ->with('schedule_confirmation', $this->confirmation($series, $request->validated('origin') === 'assignment'));
+    }
+
+    /**
+     * Live read-back for the recurring-schedule form: which dates would be
+     * created, which would be skipped and why, and the weekly checks. Nothing
+     * is written.
+     */
+    public function preview(RecurringScheduleRequest $request, ScheduleService $scheduleService): JsonResponse
+    {
+        return response()->json($scheduleService->recurringPreview($request->validated()));
+    }
+
+    /**
+     * What the confirmation dialog shown after the redirect reads back.
+     *
+     * @return array{title: string, text: string, rows: array<int, array{0: string, 1: string}>, note: string}
+     */
+    private function confirmation(RecurringSchedule $series, bool $fromAssignment = false): array
+    {
+        $series->loadMissing(['employee', 'shift']);
+        $dates = $series->assignments()->orderBy('work_date')->pluck('work_date');
+        $names = ScheduleWeek::isoWeekdayNames();
+        $days = $series->recurrence_type === 'daily'
+            ? 'every day'
+            : 'on '.collect(ScheduleWeek::isoWeekdays())
+                ->filter(fn (int $iso) => in_array($iso, array_map('intval', $series->weekdays ?? []), true))
+                ->map(fn (int $iso) => substr($names[$iso], 0, 3))
+                ->join(', ');
+        $every = (int) $series->interval_weeks > 1 ? "Every {$series->interval_weeks} weeks" : 'Every week';
+        $skipped = collect($series->skipped_dates ?? [])
+            ->map(fn (string $date) => Carbon::parse($date)->format('D, M j'));
+
+        $rows = [
+            ['Employee', $series->employee->full_name],
+            ['Shift', $series->shift->name.' · '.$series->shift->formatted_time],
+            ['Pattern', $series->recurrence_type === 'daily' ? 'Every day' : "{$every} {$days}"],
+            ['Dates', $dates->isEmpty() ? '—' : Carbon::parse($dates->first())->format('M j').' – '.Carbon::parse($dates->last())->format('M j, Y')],
+        ];
+        if ($skipped->isNotEmpty()) {
+            $rows[] = ['Skipped', $skipped->take(6)->join(' · ').($skipped->count() > 6 ? ' and '.($skipped->count() - 6).' more' : '')];
+        }
+
+        if ($fromAssignment) {
+            $rows[] = ['Chosen by', 'HR'];
+        }
+
+        return [
+            'title' => $fromAssignment ? 'Weekly shift assigned' : 'Recurring schedule created',
+            'text' => $series->assignments_count.' '.($series->assignments_count === 1 ? 'shift was' : 'shifts were').' added to '.$series->employee->full_name.'’s schedule.',
+            'rows' => $rows,
+            'note' => $series->employee->full_name.' is notified according to their notification settings. Each shift can still be edited or removed on its own.',
+            'again' => $fromAssignment
+                ? ['label' => 'Assign another shift', 'target' => '#scheduleAssignmentModal']
+                : ['label' => 'Create another series', 'target' => '#recurringScheduleModal'],
+        ];
     }
 
     public function destroy(

@@ -8,6 +8,7 @@ import './elapsed';
 import './attendance';
 import './attendance-settings';
 import './schedule';
+import './schedule-forms';
 import './schedule-preferences';
 import './workforce';
 import './audit-logs';

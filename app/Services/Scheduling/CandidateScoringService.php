@@ -8,6 +8,7 @@ use App\Models\ScheduleAssignment;
 use App\Models\Shift;
 use App\Services\Burnout\BurnoutRiskService;
 use App\Services\ScheduleService;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -102,8 +103,8 @@ class CandidateScoringService
     public function metricsFor(Employee $employee, Shift $candidateShift, string $workDate): array
     {
         $targetDate = Carbon::parse($workDate, config('schedule.timezone'))->startOfDay();
-        $weekStart = $targetDate->copy()->startOfWeek(Carbon::MONDAY);
-        $weekEnd = $targetDate->copy()->endOfWeek(Carbon::SUNDAY);
+        $weekStart = ScheduleWeek::start($targetDate);
+        $weekEnd = ScheduleWeek::end($targetDate);
         $historyStart = $targetDate->copy()->subDays(config('ai_workforce_scheduling.history_days'));
 
         $weekAssignments = ScheduleAssignment::query()

@@ -86,6 +86,7 @@ html[data-theme-resolved='dark'] {
     --hr-danger-soft: #3d2029;
     --hr-info: #8fbbec;
     --hr-info-text: #8fbbec;
+    --hr-info-soft: #182b3d;
     --hr-violet: #b6a3e0;
 
     /* Plate edges. On this ground they run lighter than the plate rather than
@@ -94,6 +95,7 @@ html[data-theme-resolved='dark'] {
     --hr-success-line: #1f5646;
     --hr-warning-line: #5c4d2a;
     --hr-danger-line: #603840;
+    --hr-info-line: #2d4a66;
 
     /* Tints for pill backgrounds: translucent so they inherit the surface below. */
     --hr-tint-primary: rgba(16, 185, 129, .14);
@@ -209,13 +211,11 @@ html[data-theme-resolved='dark'] .global-search,
 html[data-theme-resolved='dark'] .organization-filters input,
 html[data-theme-resolved='dark'] .organization-filters select,
 html[data-theme-resolved='dark'] .bulk-schedule-form input[data-bulk-employee-search],
-html[data-theme-resolved='dark'] .bulk-staff-scope-field select,
 html[data-theme-resolved='dark'] .attendance-form input[type='text'] { color:var(--hr-text); border-color:var(--hr-field-border); background:var(--hr-sunken); }
 html[data-theme-resolved='dark'] .global-search:focus-within,
 html[data-theme-resolved='dark'] .organization-filters input:focus,
 html[data-theme-resolved='dark'] .organization-filters select:focus,
 html[data-theme-resolved='dark'] .bulk-schedule-form input[data-bulk-employee-search]:focus,
-html[data-theme-resolved='dark'] .bulk-staff-scope-field select:focus,
 html[data-theme-resolved='dark'] .attendance-form input[type='text']:focus { border-color:var(--hr-primary); background:var(--hr-sunken); box-shadow: none; }
 html[data-theme-resolved='dark'] .global-search:hover:not(:focus-within) { background:var(--hr-surface-2); }
 html[data-theme-resolved='dark'] .global-search .ui-icon { color:var(--hr-placeholder); }
@@ -691,16 +691,18 @@ html[data-theme-resolved='dark'] .bulk-rule-holidays small,
 html[data-theme-resolved='dark'] .bulk-filter-field>span,
 html[data-theme-resolved='dark'] .bulk-protected-rules,
 html[data-theme-resolved='dark'] .bulk-approval small { color:var(--hr-icon); }
-/* The rail is a recessed column beside the step body, so it steps down from the
-   modal surface while the pills sitting on it step back up - which is also what
-   masks the connector line running behind them. */
+/* The stepper band steps down from the modal surface while the dots and the
+   current step's plate sitting on it step back up. */
 html[data-theme-resolved='dark'] .bulk-flow-rail { border-color:var(--hr-border); background:var(--hr-surface); }
-html[data-theme-resolved='dark'] .bulk-flow-steps span { background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .bulk-flow-dot { background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .bulk-flow-steps .active .bulk-flow-step { border-color:var(--hr-border); background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .bulk-flow-steps .done .bulk-flow-step:hover { background:var(--hr-primary-soft); }
+html[data-theme-resolved='dark'] .bulk-flow-steps li.done::after { background:var(--hr-primary-line); }
 html[data-theme-resolved='dark'] .bulk-overtime-toggle { background:var(--hr-surface); }
 html[data-theme-resolved='dark'] .bulk-flow-steps li:not(:last-child)::after { background:var(--hr-border-strong); }
-html[data-theme-resolved='dark'] .bulk-flow-steps span,
+html[data-theme-resolved='dark'] .bulk-flow-dot,
 html[data-theme-resolved='dark'] .bulk-rule-panel { border-color:var(--hr-border); }
-html[data-theme-resolved='dark'] .bulk-flow-steps .active span { color:var(--hr-bg); border-color:var(--hr-primary); background:var(--hr-primary); }
+html[data-theme-resolved='dark'] .bulk-flow-steps .active .bulk-flow-dot { color:var(--hr-bg); border-color:var(--hr-primary); background:var(--hr-primary); }
 html[data-theme-resolved='dark'] .bulk-rule-panel { background:var(--hr-sunken); }
 html[data-theme-resolved='dark'] .bulk-rule-panel legend { color:var(--hr-info-text); }
 html[data-theme-resolved='dark'] .bulk-rule-grid select,
@@ -1031,8 +1033,7 @@ html[data-theme-resolved='dark'] .roster-cell-rest { color:var(--hr-muted); }
  * ------------------------------------------------------------------------- */
 
 /* Step 1 - the staff-scope group is an inset, like the rule panel below it. */
-html[data-theme-resolved='dark'] .bulk-staff-scope { border-color:var(--hr-border); background:var(--hr-sunken); }
-html[data-theme-resolved='dark'] .bulk-staff-scope-field>span { color:var(--hr-icon); }
+html[data-theme-resolved='dark'] .bulk-staff-toolbar { border-color:var(--hr-border); background:var(--hr-sunken); }
 
 /* A filled checkbox has to read as filled: the light theme's green is darker
    than the list it sits on, so the tick disappears. */
@@ -1044,7 +1045,10 @@ html[data-theme-resolved='dark'] .bulk-ai-icon { color:var(--hr-info-text); back
 /* Completed steps stay green, but at the pastel step the dark theme can carry. */
 html[data-theme-resolved='dark'] .bulk-flow-steps .active,
 html[data-theme-resolved='dark'] .bulk-flow-steps .done { color:var(--hr-primary-text); }
-html[data-theme-resolved='dark'] .bulk-flow-steps .done span { color:var(--hr-primary-text); border-color:var(--hr-primary-line); background:var(--hr-primary-soft); }
+html[data-theme-resolved='dark'] .bulk-flow-steps .done .bulk-flow-dot { color:var(--hr-primary-text); border-color:var(--hr-primary-line); background:var(--hr-primary-soft); }
+html[data-theme-resolved='dark'] .bulk-show-filter { background:var(--hr-surface-3); }
+html[data-theme-resolved='dark'] .bulk-show-filter button[aria-pressed='true'] { background:var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .labor-compliance-list { background:var(--hr-surface); }
 html[data-theme-resolved='dark'] .bulk-step-error { color:var(--hr-danger-text); }
 html[data-theme-resolved='dark'] .bulk-protected-rules svg { color:var(--hr-primary-text); }
 
@@ -1370,3 +1374,28 @@ html[data-theme-resolved='dark'] .phone-today-reason input {
 html[data-theme-resolved='dark'] .phone-today-reason input::placeholder {
     color: var(--hr-placeholder);
 }
+
+/* Assign a shift: employee read-back, applied-recommendation badge, save gate. */
+html[data-theme-resolved='dark'] .schedule-employee-label { color: var(--hr-muted); }
+html[data-theme-resolved='dark'] .schedule-from-ai { color: var(--hr-info-text); background: var(--hr-tint-info); }
+html[data-theme-resolved='dark'] .schedule-employee-field select { color: var(--hr-text); border-color: var(--hr-field-border); background: var(--hr-sunken); }
+html[data-theme-resolved='dark'] .schedule-employee-field small,
+html[data-theme-resolved='dark'] .schedule-save-reason { color: var(--hr-muted); }
+
+/* Bulk wizard: staff table, board key, workload panel. */
+html[data-theme-resolved='dark'] .bulk-employee-head { color: var(--hr-muted); background: var(--hr-sunken); border-color: var(--hr-border); }
+html[data-theme-resolved='dark'] .bulk-employee-empty strong,
+html[data-theme-resolved='dark'] .bulk-employee-name,
+html[data-theme-resolved='dark'] .roster-legend-shift strong,
+html[data-theme-resolved='dark'] .roster-workload strong { color: var(--hr-text); }
+html[data-theme-resolved='dark'] .bulk-employee-avatar,
+html[data-theme-resolved='dark'] .bulk-position-count,
+html[data-theme-resolved='dark'] .roster-workload-bar { background: var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .bulk-employee-number,
+html[data-theme-resolved='dark'] .bulk-employee-position,
+html[data-theme-resolved='dark'] .bulk-employee-period,
+html[data-theme-resolved='dark'] .bulk-pattern-field small,
+html[data-theme-resolved='dark'] .roster-legend,
+html[data-theme-resolved='dark'] .roster-workload header span,
+html[data-theme-resolved='dark'] .roster-workload li small { color: var(--hr-muted); }
+html[data-theme-resolved='dark'] .roster-workload { border-color: var(--hr-border); background: var(--hr-sunken); }

@@ -17,6 +17,7 @@ use App\Services\PreferenceNotificationService;
 use App\Services\ReferenceDataCache;
 use App\Services\Security\AttachmentMalwareScanner;
 use App\Services\Security\UnsafeAttachmentException;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -65,8 +66,8 @@ class LeaveController extends Controller
         $requestableTypes = $service->selectableTypes($employee, $types, now(config('workforce.timezone')));
         $balances = $service->balancesFor($employee, $requestableTypes, (int) $filters['year']);
         $focusDate = ! empty($filters['date']) ? Carbon::parse($filters['date']) : now(config('workforce.timezone'));
-        $monthStart = $focusDate->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY);
-        $monthEnd = $focusDate->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
+        $monthStart = ScheduleWeek::start($focusDate->copy()->startOfMonth());
+        $monthEnd = ScheduleWeek::end($focusDate->copy()->endOfMonth());
         $calendarRequests = LeaveRequest::query()
             ->with('employee')
             ->where('status', 'approved')

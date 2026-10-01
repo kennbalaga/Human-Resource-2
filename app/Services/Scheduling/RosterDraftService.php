@@ -13,6 +13,7 @@ use App\Models\Shift;
 use App\Models\User;
 use App\Services\Burnout\BurnoutProtection;
 use App\Services\ScheduleService;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -362,6 +363,97 @@ class RosterDraftService
                 ) / 60, 1),
             ],
             'coverage_standard' => $this->staffingRequirements->derivationSummary($department),
+            'compliance' => $this->laborCompliance($placed, $issues, $context['assignments'], $rules),
+        ];
+    }
+
+    /**
+     * The Step 4 labor-compliance read-back: one row per Labor Code article the
+     * roster touches, judged on what publishing would actually write — the
+     * placements that survived evaluation plus what is already on record for
+     * the same employees. Placements the evaluation held back are counted
+     * against the rule that stopped them, so the reviewer can see the rule was
+     * enforced rather than merely assumed.
+     *
+     * @param  Collection<int, Collection<int, ScheduleAssignment>>  $placed
+     * @param  Collection<int, array<string, mixed>>  $issues
+     * @param  Collection<int, Collection<int, ScheduleAssignment>>  $existing
+     * @param  array<string, mixed>  $rules
+     * @return array<int, array{rule: string, article: string, state: string, detail: string}>
+     */
+    private function laborCompliance(Collection $placed, Collection $issues, Collection $existing, array $rules): array
+    {
+        $assignments = $placed->flatten(1);
+        $shiftsUsed = $assignments->map(fn (ScheduleAssignment $assignment) => $assignment->shift)->filter()->unique('id')->values();
+        $heldBack = fn (array $reasons): int => $issues->filter(fn (array $issue) => in_array($issue['reason'], $reasons, true))->count();
+        $heldNote = fn (int $count): string => $count > 0 ? ' '.$count.' placement'.($count === 1 ? ' was' : 's were').' held back for breaking this rule.' : '';
+
+        $longShifts = $shiftsUsed->filter(fn (Shift $shift) => $shift->duration_minutes > 8 * 60);
+        $shortMeals = $shiftsUsed->filter(fn (Shift $shift) => (int) $shift->break_minutes < 60);
+        $nightMinutes = $assignments->sum(fn (ScheduleAssignment $assignment) => $this->scheduleService->nightDifferentialMinutes($assignment->shift, $assignment->work_date->toDateString()));
+
+        // Paid minutes per employee per scheduling week, counting both this
+        // roster and what is already published for the same people.
+        $weeklyLimit = (int) ($rules['max_hours_per_week'] ?? config('schedule.compliance.max_hours_per_week'));
+        $overLimit = $placed->map(function (Collection $mine, int $employeeId) use ($existing, $weeklyLimit): int {
+            return $mine->concat($existing->get($employeeId, collect()))
+                ->filter(fn (ScheduleAssignment $assignment) => $assignment->shift !== null)
+                ->unique(fn (ScheduleAssignment $assignment) => $assignment->work_date->toDateString().'|'.$assignment->shift_id)
+                ->groupBy(fn (ScheduleAssignment $assignment) => ScheduleWeek::start($assignment->work_date)->toDateString())
+                ->filter(fn (Collection $week) => $week->sum(fn (ScheduleAssignment $assignment) => $assignment->shift->duration_minutes) > $weeklyLimit * 60)
+                ->count();
+        })->sum();
+        $overtimeAllowed = (bool) ($rules['overtime_allowed'] ?? false);
+
+        return [
+            [
+                'rule' => 'Normal hours of work',
+                'article' => 'Labor Code Art. 83',
+                'state' => $longShifts->isEmpty() ? 'ok' : 'review',
+                'detail' => $longShifts->isEmpty()
+                    ? 'Every shift on this roster is at most 8 paid hours a day.'
+                    : $longShifts->pluck('name')->join(', ').' '.($longShifts->count() === 1 ? 'runs' : 'run').' past 8 paid hours; the extra time is overtime.',
+            ],
+            [
+                'rule' => 'Meal period',
+                'article' => 'Labor Code Art. 85',
+                'state' => $shortMeals->isEmpty() ? 'ok' : 'review',
+                'detail' => $shortMeals->isEmpty()
+                    ? 'Every shift includes an unpaid meal break of at least 60 minutes.'
+                    : $shortMeals->pluck('name')->join(', ').' '.($shortMeals->count() === 1 ? 'has' : 'have').' a meal break under 60 minutes. Check that the shorter break is allowed and paid.',
+            ],
+            [
+                'rule' => 'Night-shift differential',
+                'article' => 'Labor Code Art. 86',
+                'state' => 'ok',
+                'detail' => $nightMinutes > 0
+                    ? round($nightMinutes / 60, 1).' hours fall between 10:00 PM and 6:00 AM and are recorded for the night-shift differential.'
+                    : 'No hours on this roster fall between 10:00 PM and 6:00 AM.',
+            ],
+            [
+                'rule' => 'Overtime',
+                'article' => 'Labor Code Art. 87',
+                'state' => $overLimit > 0 ? 'review' : 'ok',
+                'detail' => ($overLimit > 0
+                    ? $overLimit.' employee-week'.($overLimit === 1 ? '' : 's').' go past '.$weeklyLimit.' paid hours'.($overtimeAllowed ? ' under the overtime allowance on Step 2; those hours are paid as overtime.' : '.')
+                    : 'Nobody is scheduled past '.$weeklyLimit.' paid hours in a week.').$heldNote($heldBack(['Maximum weekly hours exceeded'])),
+            ],
+            [
+                'rule' => 'Weekly rest day',
+                'article' => 'Labor Code Art. 91',
+                'state' => 'ok',
+                'detail' => 'Everyone keeps at least 24 consecutive hours of rest after six workdays.'.$heldNote($heldBack([
+                    'Weekly rest day not met (Labor Code Art. 91)',
+                    'Days-off rule would be exceeded',
+                    'Maximum consecutive workdays exceeded',
+                ])),
+            ],
+            [
+                'rule' => 'Hospital HR policy',
+                'article' => 'Hospital policy',
+                'state' => 'pending',
+                'detail' => 'The hospital’s own scheduling rules are not set up in the system yet, so they are not checked here. Review them by hand before approving.',
+            ],
         ];
     }
 
@@ -734,8 +826,8 @@ class RosterDraftService
                 ->whereIn('employee_id', $employeeIds)
                 ->where('status', 'scheduled')
                 ->whereBetween('work_date', [
-                    $start->copy()->startOfWeek()->subDay()->subDays($streakMargin)->toDateString(),
-                    $end->copy()->endOfWeek()->addDay()->addDays($streakMargin)->toDateString(),
+                    ScheduleWeek::start($start)->subDay()->subDays($streakMargin)->toDateString(),
+                    ScheduleWeek::end($end)->addDay()->addDays($streakMargin)->toDateString(),
                 ])
                 ->get()
                 ->groupBy('employee_id'),

@@ -179,6 +179,13 @@
             <path d="M12 3.8 2.9 19.2a1 1 0 0 0 .9 1.5h16.4a1 1 0 0 0 .9-1.5Z" />
             <path d="M12 9.5v4M12 17h.01" />
             @break
+        {{-- Not a warning triangle tinted blue. A state the reader has not
+             reached yet is told, not flagged, and the two owe different
+             shapes as much as different colours. --}}
+        @case('info')
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5M12 7.5h.01" />
+            @break
         @case('trend')
             <path d="M3 17l6-6 4 4 8-8" />
             <path d="M15 7h6v6" />

@@ -34,17 +34,19 @@ class AiScheduleUiTest extends TestCase
             ->assertSee('Generate a bulk schedule')
             ->assertSee('Rotating · AI balanced')
             ->assertSee('Custom · AI optimized mix')
-            ->assertSee('All active staff')
+            ->assertSee('Select all shown')
             ->assertSee('Choose who to schedule')
             ->assertSee('name="night_shift_limit" value="6"', false)
             ->assertSee('bulk-inline-employee-list')
             ->assertSee('Select a department to load its active employees.')
-            ->assertSeeInOrder(['value="specific"', 'value="all"'], false)
+            ->assertSeeInOrder(['data-bulk-show="all"', 'data-bulk-show="selected"', 'data-bulk-show="unselected"'], false)
             ->assertSeeInOrder(['Choose who to schedule', 'Shift pattern'])
             ->assertSee('I reviewed the summary above and approve this bulk schedule')
             ->assertSee('Approve & publish', false)
             ->assertSee('Generate AI Recommendation')
-            ->assertSee('AI-Generated Recommendation')
+            ->assertSee('Who can take this shift?')
+            ->assertSee('The assistant checks each employee for:')
+            ->assertSee('Performance ratings and disciplinary records are never used.')
             ->assertSee('schedule-assignment-dialog')
             ->assertSee('Manual assignment')
             ->assertSee('AI suggestions never save automatically.')
@@ -54,6 +56,38 @@ class AiScheduleUiTest extends TestCase
             ->assertSee('Save assignment')
             ->assertSee(route('schedules.store'), false)
             ->assertSee(route('schedules.ai-recommendations.store'), false);
+    }
+
+    /**
+     * The three scheduling dialogs against the workforce design: the staff
+     * table's own select-all and search, the two ways a series ends, and the
+     * left-out list shown rather than folded away.
+     *
+     * Markup, not looks -- but each of these is a control that moved, and a
+     * control that moves silently back is the way a redesign comes undone.
+     */
+    public function test_the_scheduling_dialogs_carry_the_workforce_design_controls(): void
+    {
+        config(['ai_workforce_scheduling.enabled' => true]);
+
+        $this->actingAs(User::query()->where('email', 'hr.manager@hrms.local')->firstOrFail())
+            ->get(route('schedules.index'))
+            ->assertOk()
+            // Step 1: select-all is the table's own header cell, and the
+            // search sits in the toolbar over the rows it filters.
+            ->assertSee('bulk-employee-head', false)
+            ->assertSee('bulk-staff-search', false)
+            ->assertSee('aria-label="Search employee name or ID"', false)
+            ->assertSee('Choose a department and position, then select specific employees')
+            // Recurring: ends on a date, or after a number of shifts.
+            ->assertSee('name="end_mode" value="on"', false)
+            ->assertSee('name="end_mode" value="after"', false)
+            ->assertSee('name="occurrences"', false)
+            ->assertSee('data-recurring-employee-meta', false)
+            ->assertSee('Busiest week, paid hours')
+            // Assign: who was left out is shown, not folded.
+            ->assertSee('data-ai-ineligible-title', false)
+            ->assertSee('These fields and the final save stay with HR.');
     }
 
     public function test_standard_employee_never_sees_ai_management_controls(): void
@@ -71,7 +105,7 @@ class AiScheduleUiTest extends TestCase
 
         $this->assertStringNotContainsString('.submit(', $script);
         $this->assertStringNotContainsString('.reset(', $script);
-        $this->assertStringContainsString("event.target.closest('[data-ai-select-candidate]')", $script);
+        $this->assertStringContainsString("event.target.closest('[data-ai-use-candidate]')", $script);
         $this->assertStringContainsString('form.elements.employee_id.value = String(data.employee_id)', $script);
         $this->assertStringContainsString("form.elements.employee_id.dispatchEvent(new Event('change'", $script);
     }

@@ -201,6 +201,8 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     Route::post('/schedules/room-bookings/{roomBooking}/staff', [RoomBookingController::class, 'attach'])->name('schedules.room-bookings.attach');
     Route::delete('/schedules/room-bookings/{roomBooking}', [RoomBookingController::class, 'destroy'])->name('schedules.room-bookings.destroy');
     Route::post('/schedules/conflicts', [ScheduleCalendarController::class, 'conflicts'])->name('schedules.conflicts');
+    Route::get('/schedules/staff-load', [ScheduleCalendarController::class, 'staffLoad'])->name('schedules.staff-load');
+    Route::get('/schedules/coverage', [ScheduleCalendarController::class, 'coverage'])->name('schedules.coverage');
     Route::post('/schedules/roster/evaluate', [RosterDraftController::class, 'evaluate'])->name('schedules.roster.evaluate');
     Route::post('/schedules/roster/fill', [RosterDraftController::class, 'fill'])->name('schedules.roster.fill');
     Route::post('/schedules/roster/suggest', [RosterDraftController::class, 'suggest'])->middleware('throttle:10,1')->name('schedules.roster.suggest');
@@ -218,6 +220,7 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     Route::put('/schedules/{scheduleAssignment}', [ScheduleAssignmentController::class, 'update'])->name('schedules.update');
     Route::delete('/schedules/{scheduleAssignment}', [ScheduleAssignmentController::class, 'destroy'])->name('schedules.destroy');
     Route::delete('/schedule-day-offs/{scheduleDayOff}', [ScheduleDayOffController::class, 'destroy'])->name('schedule-day-offs.destroy');
+    Route::post('/recurring-schedules/preview', [RecurringScheduleController::class, 'preview'])->middleware('throttle:60,1')->name('recurring-schedules.preview');
     Route::post('/recurring-schedules', [RecurringScheduleController::class, 'store'])->name('recurring-schedules.store');
     Route::delete('/recurring-schedules/{recurringSchedule}', [RecurringScheduleController::class, 'destroy'])->name('recurring-schedules.destroy');
 

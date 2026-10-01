@@ -5,6 +5,7 @@ namespace App\Services\Burnout;
 use App\Models\BurnoutRiskSnapshot;
 use App\Models\ScheduleAssignment;
 use App\Models\Shift;
+use App\Support\ScheduleWeek;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -68,8 +69,8 @@ class BurnoutProtection
     public function blockReason(Shift $shift, Carbon $date, Collection $assignments): ?string
     {
         $limits = config('burnout.protection');
-        $weekStart = $date->copy()->startOfWeek();
-        $weekEnd = $date->copy()->endOfWeek();
+        $weekStart = ScheduleWeek::start($date);
+        $weekEnd = ScheduleWeek::end($date);
         $week = $assignments->filter(fn (ScheduleAssignment $assignment) => $assignment->shift !== null
             && $assignment->work_date->betweenIncluded($weekStart, $weekEnd));
 

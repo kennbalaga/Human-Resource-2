@@ -111,6 +111,9 @@ class AiRotationScheduleTest extends TestCase
         $payload = $this->payload();
         $payload['max_hours_per_week'] = 16;
         $payload['overtime_allowed'] = false;
+        // One whole scheduling week (Sunday to Saturday), so the 16-hour cap
+        // applies to all seven days at once.
+        $payload['period_start'] = '2027-10-31';
 
         $this->actingAs($this->manager)
             ->postJson(route('schedules.roster.suggest'), $payload)

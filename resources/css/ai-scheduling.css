@@ -37,13 +37,51 @@
 .ai-scheduling-status[data-tone='danger'] { color: var(--hr-danger); background: var(--hr-tint-danger); }
 .ai-scheduling-results { display: grid; max-height: 25rem; gap: .8rem; overflow-y: auto; }
 .ai-result-label { margin: 0 0 .4rem; color: var(--hr-muted); font-size: var(--fs-2xs); font-weight: 800; text-transform: uppercase; }
+
+/* What the assistant weighs, shown while there is no result to read. */
+.ai-scheduling-criteria { display: grid; gap: .5rem; padding: .85rem .9rem; border: 1px solid var(--hr-border); border-radius: var(--r-md); background: var(--hr-surface); }
+.ai-scheduling-criteria p { margin: 0; color: var(--hr-text); font-size: var(--fs-sm); font-weight: 700; }
+.ai-scheduling-criteria ul { display: grid; margin: 0; padding: 0; gap: .4rem 1rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); list-style: none; }
+.ai-scheduling-criteria li { position: relative; padding-left: .85rem; color: var(--hr-muted); font-size: var(--fs-xs); line-height: 1.45; }
+.ai-scheduling-criteria li::before { position: absolute; top: .45rem; left: 0; width: .35rem; height: .35rem; border-radius: var(--r-pill); background: var(--hr-info); content: ''; }
+.ai-scheduling-criteria small { padding-top: .5rem; border-top: 1px solid var(--hr-border); color: var(--hr-subtle); font-size: var(--fs-xs); }
+
+.ai-scheduling-results-heading { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+.ai-scheduling-results-heading strong { color: var(--hr-text); font-size: var(--fs-sm); }
+.ai-scheduling-results-heading small { color: var(--hr-subtle); font-size: var(--fs-2xs); }
+.ai-candidate-list { display: grid; gap: .6rem; align-content: start; }
 .ai-candidate { display: grid; gap: .55rem; padding: .75rem; border: 1px solid var(--hr-border); border-radius: var(--r-md); background: var(--hr-surface); }
 .ai-candidate-primary { border-color: var(--hr-primary); box-shadow: 0 0 0 2px rgba(var(--hr-primary-rgb), .12); }
+.ai-candidate.is-chosen { border-color: var(--hr-success); box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .16); }
 .ai-candidate-heading { justify-content: space-between; }
-.ai-candidate-heading strong { color: var(--hr-text); font-size: var(--fs-sm); }
+.ai-candidate-heading > div { flex: 1 1 auto; min-width: 0; }
+.ai-candidate-heading strong { display: block; overflow: hidden; color: var(--hr-text); font-size: var(--fs-sm); text-overflow: ellipsis; white-space: nowrap; }
 .ai-candidate-heading span { color: var(--hr-subtle); font-size: var(--fs-2xs); }
-.ai-candidate-heading b { color: var(--hr-text); font-size: var(--fs-sm); }
+.ai-candidate-heading b { color: var(--hr-text); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/*
+ * Where someone placed, not how good a choice they are: the ranks below the
+ * first are neutral, and only the first is filled. The green that used to fill
+ * it is already doing that job on the card edge, and saying "recommended"
+ * twice on one card leaves nothing to say it once.
+ */
+.ai-candidate-rank { display: grid; width: 1.5rem; height: 1.5rem; flex: 0 0 auto; border-radius: var(--r-pill); color: var(--hr-subtle); background: var(--hr-sunken); font-size: var(--fs-2xs); font-weight: 800; place-items: center; }
+.ai-candidate-primary .ai-candidate-rank { color: var(--hr-on-primary, #fff); background: var(--hr-info-text); }
+.ai-candidate-avatar { display: grid; width: 2.1rem; height: 2.1rem; flex: 0 0 auto; border-radius: var(--r-pill); color: var(--hr-muted); background: var(--hr-surface-2); font-size: var(--fs-2xs); font-weight: 800; place-items: center; }
+.ai-candidate-use { flex: 0 0 auto; }
 .ai-candidate ul { margin: 0; padding-left: 1rem; color: var(--hr-muted); font-size: var(--fs-2xs); }
+
+/* The checks each listed candidate cleared, as chips beside the risk flags. */
+.ai-chip-row { display: flex; flex-wrap: wrap; gap: .35rem; }
+.ai-chip { display: inline-flex; align-items: center; gap: .25rem; padding: .22rem .48rem; border-radius: var(--r-pill); font-size: var(--fs-2xs); font-weight: 700; }
+.ai-chip-ok { color: var(--hr-primary-text); background: var(--hr-primary-soft); }
+.ai-chip-tick { font-weight: 900; }
+
+/* Paid hours already on the week, and what this shift would add. */
+.ai-candidate-load { display: flex; align-items: center; gap: .6rem; }
+.ai-load-bar { display: flex; flex: 1 1 auto; height: .38rem; border-radius: var(--r-pill); background: var(--hr-surface-2); overflow: hidden; }
+.ai-load-now { display: block; height: 100%; background: var(--hr-info); }
+.ai-load-add { display: block; height: 100%; background: var(--hr-info); opacity: .4; }
+.ai-load-text { color: var(--hr-muted); font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ai-risk { width: max-content; padding: .22rem .48rem; border-radius: var(--r-pill); font-size: var(--fs-2xs); font-weight: 800; text-transform: capitalize; }
 .ai-risk-low { color: var(--hr-text); background: var(--hr-primary-soft); }
 .ai-risk-moderate { color: var(--hr-warning-text); background: var(--hr-tint-warning); }
@@ -167,41 +205,33 @@
     height: 100%;
     overflow: hidden;
     align-content: start;
-    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
 }
 
+/* The panel scrolls at the candidate list, so the actions that record the
+   review decision stay in view without floating over the cards. */
 .schedule-assignment-workspace .ai-scheduling-results {
     min-height: 0;
     max-height: none;
     padding-right: .25rem;
-    grid-template-columns: minmax(0, 1.15fr) minmax(15rem, .85fr);
-    align-content: start;
+    overflow: hidden;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
 }
 
-.schedule-assignment-workspace .ai-scheduling-explanation,
-.schedule-assignment-workspace .ai-scheduling-result-actions,
-.schedule-assignment-workspace .ai-scheduling-rejection {
-    grid-column: 1 / -1;
+.schedule-assignment-workspace .ai-candidate-list {
+    min-height: 0;
+    padding-right: .25rem;
+    overflow-y: auto;
 }
 
-.schedule-assignment-workspace [data-ai-recommended],
-.schedule-assignment-workspace [data-ai-alternatives],
 .schedule-assignment-workspace [data-ai-breakdown],
 .schedule-assignment-workspace [data-ai-ineligible] {
     min-width: 0;
 }
 
-.schedule-assignment-workspace [data-ai-alternatives] {
-    display: grid;
-    gap: .55rem;
-}
-
 .schedule-assignment-workspace .ai-scheduling-result-actions {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    padding: .7rem 0 .1rem;
-    background: linear-gradient(to bottom, transparent, var(--hr-tint-info) 28%);
+    padding-top: .6rem;
+    border-top: 1px solid var(--hr-border);
 }
 
 html[data-theme-resolved='dark'] .ai-scheduling { border-color: var(--hr-info); background: var(--hr-sunken); }
@@ -214,6 +244,16 @@ html[data-theme-resolved='dark'] .ai-scheduling-notice,
 html[data-theme-resolved='dark'] .ai-candidate ul,
 html[data-theme-resolved='dark'] .ai-result-label,
 html[data-theme-resolved='dark'] .ai-scheduling-explanation { color: var(--hr-muted); }
+html[data-theme-resolved='dark'] .ai-scheduling-criteria { border-color: var(--hr-border); background: var(--hr-sunken); }
+html[data-theme-resolved='dark'] .ai-scheduling-criteria p,
+html[data-theme-resolved='dark'] .ai-scheduling-results-heading strong { color: var(--hr-text); }
+html[data-theme-resolved='dark'] .ai-scheduling-criteria li { color: var(--hr-muted); }
+html[data-theme-resolved='dark'] .ai-scheduling-criteria small,
+html[data-theme-resolved='dark'] .ai-scheduling-results-heading small,
+html[data-theme-resolved='dark'] .ai-load-text { color: var(--hr-subtle); }
+html[data-theme-resolved='dark'] .ai-candidate-avatar,
+html[data-theme-resolved='dark'] .ai-load-bar { background: var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .ai-chip-ok { color: var(--hr-primary-text); background: var(--hr-tint-success); }
 html[data-theme-resolved='dark'] .ai-scheduling-controls select { color: var(--hr-text); border-color: var(--hr-field-border); background: var(--hr-sunken); }
 html[data-theme-resolved='dark'] .ai-candidate,
 html[data-theme-resolved='dark'] .ai-scheduling details { color: var(--hr-text); border-color: var(--hr-border); background: var(--hr-sunken); }
@@ -229,7 +269,7 @@ html[data-theme-resolved='dark'] .schedule-assignment-section-heading p { color:
 html[data-theme-resolved='dark'] .schedule-assignment-section-heading > span { color: var(--hr-primary-text); background: var(--hr-tint-success); }
 html[data-theme-resolved='dark'] .schedule-assignment-section-copy,
 html[data-theme-resolved='dark'] .schedule-save-note { color: var(--hr-muted); }
-html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-result-actions { background: linear-gradient(to bottom, rgba(16, 31, 40, 0), var(--hr-sunken) 28%); }
+html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-result-actions { border-color: var(--hr-border); }
 
 @media (max-width: 1100px) {
     .schedule-assignment-dialog {
@@ -257,6 +297,12 @@ html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-r
 
     .schedule-assignment-workspace .ai-scheduling-results {
         max-height: 32rem;
+        overflow-y: auto;
+        grid-template-rows: none;
+    }
+
+    .schedule-assignment-workspace .ai-candidate-list {
+        overflow: visible;
     }
 }
 
@@ -274,14 +320,6 @@ html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-r
         padding: .75rem;
     }
 
-    .schedule-assignment-workspace .ai-scheduling-results {
-        grid-template-columns: 1fr;
-    }
-
-    .schedule-assignment-workspace .ai-scheduling-results > * {
-        grid-column: 1;
-    }
-
     .schedule-save-note {
         display: none;
     }
@@ -292,4 +330,55 @@ html[data-theme-resolved='dark'] .schedule-assignment-workspace .ai-scheduling-r
     .ai-scheduling-controls .btn { grid-column: 1; width: 100%; }
     .ai-scheduling-advisory { display: none; }
     .ai-scheduling-result-actions .btn { flex: 1 1 9rem; }
+}
+
+/*
+ * Who was left out, and why. Not a disclosure: the reason a name is missing is
+ * the thing a reviewer checks this list for, and a closed list answers it only
+ * for whoever thinks to open it.
+ */
+.ai-ineligible {
+    padding-top: .6rem;
+    border-top: 1px solid var(--hr-border);
+}
+
+.ai-ineligible-title {
+    margin: 0 0 .25rem;
+    color: var(--hr-subtle);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+}
+
+/*
+ * Name on the left, reason hard against the right, so a column of reasons can
+ * be read down without reading the names again. It collapses to two lines on a
+ * narrow panel, where side by side would leave neither of them room.
+ */
+@media (min-width: 40rem) {
+    .ai-ineligible-row {
+        grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+        gap: 1rem;
+    }
+
+    .ai-ineligible-row span {
+        text-align: right;
+    }
+}
+
+/* The standing explanation of what is weighed, folded away by default. */
+.ai-scheduling-about > summary {
+    color: var(--hr-primary-text);
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ai-scheduling-about > summary:focus-visible {
+    outline: 3px solid rgba(var(--hr-primary-rgb), .35);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+}
+
+.ai-scheduling-about[open] > summary {
+    margin-bottom: .5rem;
 }
