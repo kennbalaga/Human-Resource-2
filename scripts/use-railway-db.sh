@@ -47,9 +47,6 @@ php artisan config:clear >/dev/null 2>&1 || true
 echo "Applying any migrations Railway is missing..."
 php artisan migrate --force
 
-echo "Seeding the hospital rooms (idempotent)..."
-php artisan db:seed --class=HospitalRoomSeeder --force
-
 php artisan optimize:clear >/dev/null 2>&1 || true
 echo
-echo "Done. The app is on the Railway database, schema and rooms up to date."
+echo "Done. The app is on the Railway database, schema up to date."

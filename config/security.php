@@ -105,7 +105,7 @@ return [
         'password_timeout_seconds' => (int) env('DOWNLOAD_PASSWORD_TIMEOUT', 900),
 
         // Files one account may take per minute. Generous for somebody saving
-        // a handful of payslips, tight for a script emptying the system.
+        // a handful of exports, tight for a script emptying the system.
         'per_minute' => (int) env('DOWNLOAD_RATE_LIMIT', 20),
     ],
 
@@ -125,7 +125,7 @@ return [
          * the hospital; a system administrator's reaches the audit log. A phone
          * is carried, lent, left on a desk and shoulder-read on a jeepney, and
          * the app lock that mitigates exactly that is a device-local PIN — good
-         * enough for one employee's own payslip, not for the whole workforce.
+         * enough for one employee's own records, not for the whole workforce.
          * So the org-wide roles are desk-bound and the phone belongs to the
          * staff who only ever see themselves.
          *

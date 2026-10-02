@@ -15,8 +15,8 @@ use Throwable;
  * already say so themselves.
  *
  * AuditWriteRequests skips GET by design, and every download is a GET. Reports
- * (ReportExportAuditor) and payslips (PayslipController::recordAccess) record
- * richer rows of their own and are not routed through here; this covers the
+ * (ReportExportAuditor) record richer rows of their own and are not routed
+ * through here; this covers the
  * rest -- timesheet, analytics and audit-trail exports, leave attachments and
  * the attendance badge -- so "who took what, when" has an answer for all of
  * them. Refusals are kept too: a 403 on somebody else's fit note is the row a

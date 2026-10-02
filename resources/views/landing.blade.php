@@ -20,7 +20,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{{ config('branding.short_name') }} · {{ config('branding.tagline') }}</title>
-    <meta name="description" content="{{ config('branding.short_name') }} is the workforce and HR system for {{ config('branding.organization') }}: rostering, attendance, timesheets, leave and payslips in one place.">
+    <meta name="description" content="{{ config('branding.short_name') }} is the workforce and HR system for {{ config('branding.organization') }}: rostering, attendance, timesheets and leave in one place.">
     {{-- A sign-in page has nothing to offer a search engine, and this page is
          for the staff who already know the address. --}}
     <meta name="robots" content="noindex, follow">
@@ -59,7 +59,7 @@
                 <h1>Every shift, every hour, every department &mdash; in one place.</h1>
                 <p class="landing-lede">
                     {{ config('branding.short_name') }} is the workforce system for {{ config('branding.organization') }}.
-                    Rostering, attendance, timesheets, leave and payslips run on one set of records,
+                    Rostering, attendance, timesheets and leave run on one set of records,
                     so what the schedule promised is what the timesheet counts.
                 </p>
 
@@ -117,15 +117,9 @@
                     </article>
 
                     <article class="landing-module">
-                        <span class="landing-module-icon"><x-icon name="receipt" /></span>
-                        <h3>Payslips</h3>
-                        <p>Issued payslips, reaching the employee they belong to and nobody else.</p>
-                    </article>
-
-                    <article class="landing-module">
                         <span class="landing-module-icon"><x-icon name="building" /></span>
                         <h3>Organization</h3>
-                        <p>Departments, positions, rooms and the people posted to them &mdash; the structure every other module reads from.</p>
+                        <p>Departments, positions and the people posted to them &mdash; the structure every other module reads from.</p>
                     </article>
 
                     <article class="landing-module">

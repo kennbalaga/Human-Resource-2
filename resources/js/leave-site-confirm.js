@@ -45,7 +45,7 @@ document.addEventListener('click', (event) => {
 document.addEventListener('submit', (event) => markUntilCancelled(event), true);
 
 // Back and forward are only an exit when they leave the system. Moving between
-// Timesheets and Payslips with the mouse's side buttons is ordinary use and
+// Attendance and Timesheets with the mouse's side buttons is ordinary use and
 // must not ask "Leave site?".
 //
 // Those buttons reach the page as a mouseup -- back is 3, forward 4 -- just

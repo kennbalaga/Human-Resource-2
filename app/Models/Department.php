@@ -85,12 +85,7 @@ class Department extends Model
     }
 
     /**
-     * The units that treat patients.
-     *
-     * Rooms and the room board are limited to these. A theatre or a ward is a
-     * clinical fact; Finance and Procurement have offices, not rooms anybody is
-     * rostered into, and offering them a room board would only invite somebody
-     * to model a meeting room as a ward.
+     * The units that treat patients, as against the administrative ones.
      */
     public function scopeClinical(Builder $query): Builder
     {
@@ -100,16 +95,6 @@ class Department extends Model
     public function isClinical(): bool
     {
         return $this->category === self::CATEGORY_CLINICAL;
-    }
-
-    /**
-     * The physical places this unit staffs -- theatres, wards, clinic rooms.
-     * A unit with none is not an error; plenty of offices have no rooms to
-     * roster anyone into.
-     */
-    public function rooms(): HasMany
-    {
-        return $this->hasMany(Room::class);
     }
 
     public function employees(): HasMany

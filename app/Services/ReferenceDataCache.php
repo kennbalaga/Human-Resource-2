@@ -6,7 +6,6 @@ use App\Models\Department;
 use App\Models\LeaveType;
 use App\Models\OfficeLocation;
 use App\Models\Position;
-use App\Models\Room;
 use App\Models\Shift;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -38,7 +37,6 @@ class ReferenceDataCache
         LeaveType::class => 'reference.leave-types.v1',
         Shift::class => 'reference.shifts.v1',
         OfficeLocation::class => 'reference.office-locations.v1',
-        Room::class => 'reference.rooms.v1',
     ];
 
     /**
@@ -76,12 +74,6 @@ class ReferenceDataCache
     public function officeLocations(): Collection
     {
         return $this->table(OfficeLocation::class);
-    }
-
-    /** @return Collection<int, Room> */
-    public function rooms(): Collection
-    {
-        return $this->table(Room::class);
     }
 
     /**

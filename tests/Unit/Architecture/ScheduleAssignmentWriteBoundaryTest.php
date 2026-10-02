@@ -29,8 +29,6 @@ class ScheduleAssignmentWriteBoundaryTest extends TestCase
         'app/Services/ScheduleService.php' => 'manual create/update, recurring schedule create',
         'app/Services/Scheduling/RosterDraftService.php' => 'roster publish',
         'app/Services/ShiftSwapService.php' => 'shift swap approval',
-        'app/Services/Scheduling/RoomAssignmentService.php' => 'room placement -- writes room_id on an existing row, never creates or deletes one',
-        'app/Services/Scheduling/RoomBookingService.php' => 'theatre list -- writes room_booking_id on an existing row, never creates or deletes one',
         'app/Http/Controllers/Schedule/ScheduleAssignmentController.php' => 'manual delete (web)',
         'app/Http/Controllers/Api/V1/ScheduleController.php' => 'manual delete (API)',
         'app/Http/Controllers/Schedule/RecurringScheduleController.php' => 'recurring series cancellation (per-row delete, so each is audited)',

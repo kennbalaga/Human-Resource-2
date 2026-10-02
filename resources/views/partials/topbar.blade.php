@@ -15,15 +15,13 @@
      */
     $topbarContext = match (true) {
         request()->routeIs('dashboard') => ['Human Resource Management', 'Workforce operations'],
-        request()->routeIs('organization.*', 'employees.*', 'departments.*', 'positions.*', 'rooms.*') => ['Organization', 'Employees, departments and positions'],
-        request()->routeIs('schedules.rooms.*') => ['Scheduling', 'Who is in which room today'],
+        request()->routeIs('organization.*', 'employees.*', 'departments.*', 'positions.*') => ['Organization', 'Employees, departments and positions'],
         request()->routeIs('schedules.*', 'shifts.*', 'schedule-preferences.*', 'shift-swaps.*') => ['Scheduling', 'Coverage and shift assignments'],
         request()->routeIs('attendance.reports.*') => ['Insights', 'Reports and workforce analytics'],
         request()->routeIs('attendance.override.*') => ['Time & attendance', 'Authorised unscheduled punches'],
         request()->routeIs('attendance.*') => ['Time & attendance', 'Today and your recent records'],
         request()->routeIs('timesheets.*') => ['Time & attendance', 'Weekly work records'],
-        request()->routeIs('leaves.*', 'leave-attachments.*') => ['Time off & pay', 'Balances, requests and documents'],
-        request()->routeIs('payslips.*') => ['Time off & pay', 'Semi-monthly pay periods'],
+        request()->routeIs('leaves.*', 'leave-attachments.*') => ['Time off', 'Balances, requests and documents'],
         request()->routeIs('reports.*', 'analytics.*') => ['Insights', 'Reports and workforce analytics'],
         request()->routeIs('settings.*', 'profile.*') => ['Account', 'Profile, appearance and tools'],
         request()->routeIs('audit-logs.*', 'integrations.*') => ['Account', 'Operational tools'],

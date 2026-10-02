@@ -5,14 +5,14 @@
      *
      * It replaces the drawer rather than joining it: the rail is a desktop
      * control that was ported to the phone behind a hamburger, which put every
-     * destination an employee has — seven of them, under four headings — one
+     * destination an employee has — six of them, under four headings — one
      * tap further away than the screen they were already looking at.
      *
      * Rendered only for accounts that may use a phone at all. A restricted role
      * reaching a narrow layout (which happens only when MOBILE_RESTRICTED_ROLES
      * is emptied for testing) keeps the drawer, because these five tabs do not
-     * name Organization, Reports or the room board and it would otherwise be
-     * navigation with no way to the rest of the app.
+     * name Organization or Reports and it would otherwise be navigation with no
+     * way to the rest of the app.
      */
     $tabBadges = $sidebarBadges ?? ['swaps' => 0, 'timesheets' => 0, 'leave' => 0];
 
@@ -22,18 +22,17 @@
     $tabRequestsWaiting = (int) ($tabBadges['swaps'] ?? 0) + (int) ($tabBadges['leave'] ?? 0);
 
     /* Matched here rather than declared per page, so a new view cannot forget
-       to light a tab. The exclusions mirror the rail's: the attendance report
-       belongs to Insights, and the room board is a supervisor's screen that
-       shares the schedules prefix. */
+       to light a tab. The exclusion mirrors the rail's: the attendance report
+       belongs to Insights. */
     $onToday = request()->routeIs('dashboard');
     $onAttendance = (request()->routeIs('attendance.*') && ! request()->routeIs('attendance.reports.*'))
         || request()->routeIs('timesheets.*');
-    $onSchedule = request()->routeIs('schedules.*') && ! request()->routeIs('schedules.rooms.*');
+    $onSchedule = request()->routeIs('schedules.*');
     $onRequests = request()->routeIs('requests.*', 'leaves.*', 'leave-attachments.*', 'shift-swaps.*', 'schedule-preferences.*');
 
-    /* Everything the four tabs do not claim — payslips, notifications, the
-       profile, settings, search — is reached through More, so More lights for
-       all of it rather than listing routes that would drift. */
+    /* Everything the four tabs do not claim — notifications, the profile,
+       settings, search — is reached through More, so More lights for all of it
+       rather than listing routes that would drift. */
     $onMore = ! ($onToday || $onAttendance || $onSchedule || $onRequests);
 @endphp
 

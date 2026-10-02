@@ -64,12 +64,6 @@
                     <x-icon name="chevron-right" />
                 </a>
 
-                <a class="more-row" href="{{ route('payslips.index') }}">
-                    <span class="more-row-icon"><x-icon name="receipt" /></span>
-                    <span class="more-row-label">Payslips</span>
-                    <x-icon name="chevron-right" />
-                </a>
-
                 @if ($employee)
                     <a class="more-row" href="{{ route('insights.mine') }}">
                         <span class="more-row-icon"><x-icon name="trend" /></span>

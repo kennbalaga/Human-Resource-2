@@ -49,9 +49,6 @@
                             <td data-label="Status"><x-status-badge :status="$timesheet->status" /></td>
                             <td>
                                 <div class="row-action-group">
-                                    @if($timesheet->status === 'approved' && auth()->user()->canViewPayslipOf($timesheet->employee))
-                                        <a class="btn btn-sm btn-outline-secondary" href="{{ route('payslips.show', [$timesheet->employee_id, \App\Services\Payroll\PayslipPeriod::forDate($timesheet->entries->first()?->work_date ?? $timesheet->period_start)->key()]) }}">View payslip</a>
-                                    @endif
                                     @if(in_array($timesheet->status, ['draft', 'rejected']) && $timesheet->employee_id === auth()->user()->employee?->id && auth()->user()->canManageData())
                                         <form method="POST" action="{{ route('timesheets.submit', $timesheet) }}" class="timesheet-submit-form">@csrf<button class="btn btn-sm btn-primary" type="submit" aria-describedby="timesheet-submit-note-{{ $timesheet->id }}">Submit</button><small class="timesheet-submit-note" id="timesheet-submit-note-{{ $timesheet->id }}">You can’t edit it after submitting.</small></form>
                                     @endif

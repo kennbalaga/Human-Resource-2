@@ -20,16 +20,12 @@ use App\Http\Controllers\MobileUnavailableController;
 use App\Http\Controllers\MoreController;
 use App\Http\Controllers\MyInsightsController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\RequestsController;
-use App\Http\Controllers\RoomController;
 use App\Http\Controllers\Schedule\AiScheduleRecommendationController;
 use App\Http\Controllers\Schedule\RecurringScheduleController;
-use App\Http\Controllers\Schedule\RoomBoardController;
-use App\Http\Controllers\Schedule\RoomBookingController;
 use App\Http\Controllers\Schedule\RosterDraftController;
 use App\Http\Controllers\Schedule\ScheduleAssignmentController;
 use App\Http\Controllers\Schedule\ScheduleCalendarController;
@@ -61,7 +57,7 @@ Route::get('/', fn () => auth()->check()
 /*
  * Every route that hands out a file: password re-entry first, then a per-user
  * rate limit. `$auditedDownload` adds the audit row for the downloads that do
- * not already write their own (reports and payslips do).
+ * not already write their own (reports do).
  */
 $download = ['download.confirm', 'throttle:downloads'];
 $auditedDownload = [...$download, 'download.audit'];
@@ -136,8 +132,6 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     Route::resource('departments', DepartmentController::class)->except(['show', 'destroy']);
     Route::put('/departments/{department}/shift-coverage', [DepartmentController::class, 'updateShiftRequirements'])->name('departments.shift-coverage.update');
     Route::resource('positions', PositionController::class)->except(['show', 'destroy']);
-    Route::resource('rooms', RoomController::class)->except(['show', 'destroy']);
-    Route::put('/rooms/{room}/shift-coverage', [RoomController::class, 'updateShiftRequirements'])->name('rooms.shift-coverage.update');
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -201,13 +195,6 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     Route::get('/schedules', [ScheduleCalendarController::class, 'index'])->name('schedules.index');
     Route::get('/schedules/events', [ScheduleCalendarController::class, 'events'])->name('schedules.events');
     Route::get('/schedules/day-roster', [ScheduleCalendarController::class, 'dayRoster'])->name('schedules.day-roster');
-    Route::get('/schedules/rooms', [RoomBoardController::class, 'index'])->name('schedules.rooms.index');
-    Route::get('/schedules/rooms/{room}/{shift}/candidates', [RoomBoardController::class, 'candidates'])->name('schedules.rooms.candidates');
-    Route::post('/schedules/rooms/assign', [RoomBoardController::class, 'store'])->name('schedules.rooms.store');
-    Route::delete('/schedules/rooms/{scheduleAssignment}', [RoomBoardController::class, 'destroy'])->name('schedules.rooms.destroy');
-    Route::post('/schedules/rooms/{room}/bookings', [RoomBookingController::class, 'store'])->name('schedules.room-bookings.store');
-    Route::post('/schedules/room-bookings/{roomBooking}/staff', [RoomBookingController::class, 'attach'])->name('schedules.room-bookings.attach');
-    Route::delete('/schedules/room-bookings/{roomBooking}', [RoomBookingController::class, 'destroy'])->name('schedules.room-bookings.destroy');
     Route::post('/schedules/conflicts', [ScheduleCalendarController::class, 'conflicts'])->name('schedules.conflicts');
     Route::get('/schedules/staff-load', [ScheduleCalendarController::class, 'staffLoad'])->name('schedules.staff-load');
     Route::get('/schedules/coverage', [ScheduleCalendarController::class, 'coverage'])->name('schedules.coverage');
@@ -257,12 +244,6 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     Route::post('/timesheets/{timesheet}/submit', [TimesheetController::class, 'submit'])->name('timesheets.submit');
     Route::post('/timesheets/{timesheet}/approve', [TimesheetController::class, 'approve'])->name('timesheets.approve');
     Route::post('/timesheets/{timesheet}/reject', [TimesheetController::class, 'reject'])->name('timesheets.reject');
-
-    Route::get('/payslips', [PayslipController::class, 'index'])->name('payslips.index');
-    Route::get('/payslips/{employee}/{period}', [PayslipController::class, 'show'])
-        ->where('period', '\d{4}-\d{2}-[12]')->name('payslips.show');
-    Route::get('/payslips/{employee}/{period}/pdf', [PayslipController::class, 'download'])
-        ->where('period', '\d{4}-\d{2}-[12]')->middleware($download)->name('payslips.download');
 
     Route::get('/leaves', [LeaveController::class, 'index'])->name('leaves.index');
     Route::post('/leaves', [LeaveController::class, 'store'])->name('leaves.store');

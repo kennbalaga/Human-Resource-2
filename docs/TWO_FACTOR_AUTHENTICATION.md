@@ -62,9 +62,9 @@ roles is refused: roles add reach rather than average it out.
 
 An HR manager's session reaches every employee record in the hospital and a system
 administrator's reaches the audit log. A device-local PIN is the right safeguard
-for one employee's own payslip and the wrong one for the whole workforce, so those
+for one employee's own records and the wrong one for the whole workforce, so those
 accounts stay on a hospital computer. Staff who only ever see their own roster,
-attendance, leave and payslips are unaffected on every device.
+attendance and leave are unaffected on every device.
 
 Enforced in four places, because no one of them is sufficient:
 

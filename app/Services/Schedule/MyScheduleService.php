@@ -45,7 +45,7 @@ class MyScheduleService
         $rangeEnd = $today->copy()->addDays(self::HORIZON_DAYS)->max($weekStart->copy()->addDays(6));
 
         $assignments = ScheduleAssignment::query()
-            ->with(['shift', 'room'])
+            ->with('shift')
             ->where('employee_id', $employee->id)
             ->where('status', 'scheduled')
             ->whereBetween('work_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
@@ -125,7 +125,6 @@ class MyScheduleService
             'hours' => $assignment?->shift !== null
                 ? Carbon::parse($assignment->shift->start_time)->format('g:i A').' – '.Carbon::parse($assignment->shift->end_time)->format('g:i A')
                 : null,
-            'room' => $assignment?->room?->name,
             'color' => $assignment?->shift?->color,
         ];
     }

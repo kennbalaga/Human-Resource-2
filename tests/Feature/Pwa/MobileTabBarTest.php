@@ -16,8 +16,8 @@ use Tests\TestCase;
  * ones it would strand.
  *
  * The stranding is the failure worth guarding. The five tabs name an
- * employee's destinations only; they have no Organization, no Reports, no room
- * board. A restricted role reaching a narrow layout (which happens when
+ * employee's destinations only; they have no Organization and no Reports.
+ * A restricted role reaching a narrow layout (which happens when
  * MOBILE_RESTRICTED_ROLES is emptied for testing) must therefore keep the
  * drawer, or it is navigation with no way to most of the app.
  */

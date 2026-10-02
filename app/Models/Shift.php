@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Services\ReferenceDataCache;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -49,29 +48,6 @@ class Shift extends Model
         static::saved($forget);
         static::deleted($forget);
         static::restored($forget);
-    }
-
-    /**
-     * The shifts a room can be staffed on.
-     *
-     * A room is a clinical place -- a theatre, a ward, a delivery room -- and
-     * the only shifts worked in one are the legs of the round-the-clock
-     * rotation. The standalone office day is worked at a desk in an
-     * administrative unit, which has no rooms to roster anybody into, so it is
-     * neither a column on the room board nor a row on a room's coverage
-     * standard. `is_rotating` already draws that line on the template, so a
-     * second 8-to-5 shift added later is excluded for the same reason rather
-     * than by name.
-     */
-    public function scopeStaffsRooms(Builder $query): Builder
-    {
-        return $query->where('is_rotating', true);
-    }
-
-    /** Whether this shift is one a room can be staffed on. */
-    public function staffsRooms(): bool
-    {
-        return (bool) $this->is_rotating;
     }
 
     public function creator(): BelongsTo

@@ -141,7 +141,7 @@ class DownloadSecurityTest extends TestCase
     public function test_every_file_route_asks_for_the_password(): void
     {
         $names = ['timesheets.export', 'analytics.export', 'audit-logs.export', 'leave-attachments.download',
-            'profile.attendance-qr.download', 'payslips.download', 'reports.export', 'reports.print',
+            'profile.attendance-qr.download', 'reports.export', 'reports.print',
             'attendance.reports.export', 'attendance.reports.export-pdf', 'attendance.reports.export-excel'];
 
         foreach ($names as $name) {
