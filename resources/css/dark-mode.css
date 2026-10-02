@@ -631,7 +631,7 @@ html[data-theme-resolved='dark'] .bulk-position-picker,
 html[data-theme-resolved='dark'] .rotation-preview { border-color:var(--hr-border); background:var(--hr-sunken); }
 html[data-theme-resolved='dark'] .rotation-shift-picker legend,
 html[data-theme-resolved='dark'] .bulk-position-picker legend,
-html[data-theme-resolved='dark'] .rotation-preview-heading { color:var(--hr-info-text); }
+html[data-theme-resolved='dark'] .rotation-preview-heading { color:var(--hr-primary-text); }
 html[data-theme-resolved='dark'] .rotation-shift-picker label,
 html[data-theme-resolved='dark'] .bulk-position-option { border-color:var(--hr-border); background:var(--hr-sunken); }
 html[data-theme-resolved='dark'] .rotation-preview-heading { background:var(--hr-surface-2); }
@@ -702,7 +702,7 @@ html[data-theme-resolved='dark'] .bulk-flow-dot,
 html[data-theme-resolved='dark'] .bulk-rule-panel { border-color:var(--hr-border); }
 html[data-theme-resolved='dark'] .bulk-flow-steps .active .bulk-flow-dot { color:var(--hr-bg); border-color:var(--hr-primary); background:var(--hr-primary); }
 html[data-theme-resolved='dark'] .bulk-rule-panel { background:var(--hr-sunken); }
-html[data-theme-resolved='dark'] .bulk-rule-panel legend { color:var(--hr-info-text); }
+html[data-theme-resolved='dark'] .bulk-rule-panel legend { color:var(--hr-primary-text); }
 html[data-theme-resolved='dark'] .bulk-rule-grid select,
 html[data-theme-resolved='dark'] .bulk-rule-grid input,
 html[data-theme-resolved='dark'] .bulk-employee-filters select,
@@ -715,7 +715,7 @@ html[data-theme-resolved='dark'] .bulk-inline-step-heading { border-color:var(--
 html[data-theme-resolved='dark'] .bulk-inline-step-heading>span { color:var(--hr-text); }
 html[data-theme-resolved='dark'] .bulk-inline-employee-list { border-color:var(--hr-border); background:var(--hr-sunken); }
 html[data-theme-resolved='dark'] .bulk-inline-employee-actions { color:var(--hr-icon); }
-html[data-theme-resolved='dark'] .bulk-pattern-step-heading { color:var(--hr-info-text); border-color:var(--hr-border); }
+html[data-theme-resolved='dark'] .bulk-pattern-step-heading { color:var(--hr-primary-text); border-color:var(--hr-border); }
 
 /* Complete the remaining AI panel labels and status text that use dedicated colors. */
 html[data-theme-resolved='dark'] .ai-scheduling-heading p,
@@ -1106,7 +1106,7 @@ html[data-theme-resolved='dark'] .validation-check.is-warning .validation-check-
 
 /* Calendar and week board: the "today" tag and the date medallion kept their
    light-theme ink. */
-html[data-theme-resolved='dark'] .calendar-day-header small { color:var(--hr-info-text); }
+html[data-theme-resolved='dark'] .calendar-day-header small { color:var(--hr-muted); }
 html[data-theme-resolved='dark'] .event-copy small { color:var(--hr-icon); }
 /* Guarded on :not(.is-today) so the medallion below keeps its own fill: an
    unguarded rule here outranks the state rule and would repaint it. */
@@ -1448,3 +1448,24 @@ html[data-theme-resolved='dark'] .bulk-staff-search { border-color: var(--hr-fie
 html[data-theme-resolved='dark'] .bulk-staff-search:focus-within { border-color: var(--hr-primary); }
 html[data-theme-resolved='dark'] .bulk-staff-search .ui-icon { color: var(--hr-placeholder); }
 html[data-theme-resolved='dark'] .bulk-schedule-form .bulk-staff-search input[data-bulk-employee-search] { color: var(--hr-text); background: transparent; }
+
+/* Recurring date range: the two ways a series can end. */
+html[data-theme-resolved='dark'] .recurring-range-start > span,
+html[data-theme-resolved='dark'] .recurring-range-end > legend,
+html[data-theme-resolved='dark'] .recurring-end-mode > span { color: var(--hr-muted); }
+html[data-theme-resolved='dark'] .recurring-range-start input[type='date'],
+html[data-theme-resolved='dark'] .recurring-end-mode input[type='date'],
+html[data-theme-resolved='dark'] .recurring-end-mode input[type='number'] { color: var(--hr-text); border-color: var(--hr-field-border); background: var(--hr-sunken); }
+html[data-theme-resolved='dark'] .recurring-end-mode.is-active { border-color: var(--hr-primary-soft); background: var(--hr-primary-soft); }
+html[data-theme-resolved='dark'] .recurring-end-mode.is-active > span { color: var(--hr-text); }
+html[data-theme-resolved='dark'] .recurring-end-mode:not(.is-active) input:disabled { color: var(--hr-subtle); background: var(--hr-surface-2); }
+html[data-theme-resolved='dark'] .bulk-step-card { border-color: var(--hr-border); background: var(--hr-sunken); }
+html[data-theme-resolved='dark'] .bulk-step-card-title { color: var(--hr-primary-text); }
+html[data-theme-resolved='dark'] .bulk-pattern-field small { color: var(--hr-muted); }html[data-theme-resolved='dark'] .bulk-step-intro h3 { color: var(--hr-text); }
+html[data-theme-resolved='dark'] .bulk-step-intro p { color: var(--hr-muted); }
+html[data-theme-resolved='dark'] .bulk-step-card-title,
+html[data-theme-resolved='dark'] .bulk-step-stack > .bulk-rule-panel legend { color: var(--hr-text); }
+html[data-theme-resolved='dark'] .bulk-step-stack > .bulk-rule-panel { border-color: var(--hr-border); background: var(--hr-sunken); }
+html[data-theme-resolved='dark'] .bulk-period-row .bulk-period-range strong,
+html[data-theme-resolved='dark'] .bulk-field-unit em { color: var(--hr-muted); }
+html[data-theme-resolved='dark'] .bulk-rule-note { color: var(--hr-muted); }
