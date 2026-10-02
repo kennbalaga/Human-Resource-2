@@ -79,7 +79,7 @@
                 <div>
                     <p class="schedule-phone-hours">{{ $day['hours'] }}</p>
                     <p class="schedule-phone-where">
-                        {{ $day['shift_name'] }}@if ($day['room']) · {{ $day['room'] }}@endif
+                        {{ $day['shift_name'] }}
                     </p>
                 </div>
             </div>

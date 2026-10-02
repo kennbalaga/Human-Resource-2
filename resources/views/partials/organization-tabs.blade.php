@@ -8,7 +8,4 @@
     <a href="{{ route('positions.index') }}" @class(['page-tab', 'active' => request()->routeIs('positions.*')]) @if(request()->routeIs('positions.*')) aria-current="page" @endif>
         <x-page-tab-label icon="briefcase" title="Positions" description="Defined roles and their codes" />
     </a>
-    <a href="{{ route('rooms.index') }}" @class(['page-tab', 'active' => request()->routeIs('rooms.*')]) @if(request()->routeIs('rooms.*')) aria-current="page" @endif>
-        <x-page-tab-label icon="layers" title="Rooms" description="Theatres, wards, and clinic rooms" />
-    </a>
 </nav>

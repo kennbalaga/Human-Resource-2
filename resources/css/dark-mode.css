@@ -1426,13 +1426,6 @@ html[data-theme-resolved='dark'] .hr-date-action:hover:not(:disabled) { backgrou
 html[data-theme-resolved='dark'] .hr-date-action:disabled { color: var(--hr-subtle); }
 html[data-theme-resolved='dark'] .hr-date-trigger { color: var(--hr-muted); }
 
-/* Room board findings: the severity is the chip and, for a blocker, the card's
-   own tint — there is no bar down the side to re-point here. */
-html[data-theme-resolved='dark'] .room-board-finding { border-color: var(--hr-border); background: var(--hr-sunken); }
-html[data-theme-resolved='dark'] .room-board-finding.is-blocker { border-color: var(--hr-danger); background: var(--hr-danger-soft); }
-html[data-theme-resolved='dark'] .room-board-finding-code { color: var(--hr-muted); background: var(--hr-surface-3); }
-html[data-theme-resolved='dark'] .room-board-booking-form { border-color: var(--hr-border); background: var(--hr-sunken); }
-html[data-theme-resolved='dark'] .room-board-booking-form input { color: var(--hr-text); border-color: var(--hr-field-border); background: var(--hr-surface); }
 html[data-theme-resolved='dark'] .hr-time-cell { color: var(--hr-text); }
 html[data-theme-resolved='dark'] .hr-time-cell:hover { background: var(--hr-surface-3); }
 html[data-theme-resolved='dark'] .hr-time-cell.is-selected { color: var(--hr-on-primary); background: var(--hr-primary-fill); }

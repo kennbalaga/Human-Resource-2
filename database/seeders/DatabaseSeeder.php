@@ -20,9 +20,6 @@ class DatabaseSeeder extends Seeder
             InitialUserSeeder::class,
             AttendanceSeeder::class,
             ShiftScheduleSeeder::class,
-            // After the shifts, because a room's dark shifts are recorded
-            // against them.
-            HospitalRoomSeeder::class,
             LeaveManagementSeeder::class,
             NursingStaffSeeder::class,
             SamplePositionStaffSeeder::class,

@@ -20,7 +20,6 @@ final class ReportRegistry
         'attendance' => AttendanceReport::class,
         'leave' => LeaveReport::class,
         'timesheet' => TimesheetReport::class,
-        'room-utilization' => RoomUtilizationReport::class,
     ];
 
     public function __construct(private readonly Container $container) {}

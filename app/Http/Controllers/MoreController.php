@@ -27,8 +27,8 @@ class MoreController extends Controller
 
         /*
          * The one count worth carrying here. A draft timesheet is the only item
-         * in this list that goes stale if it is not acted on — payslips and the
-         * profile keep. Counted for this employee alone; the rail's badge is a
+         * in this list that goes stale if it is not acted on — the profile and
+         * work patterns keep. Counted for this employee alone; the rail's badge is a
          * supervisor's review queue and means something different.
          */
         $timesheetsToSubmit = $employee === null ? 0 : Timesheet::query()

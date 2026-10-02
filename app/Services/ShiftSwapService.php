@@ -8,7 +8,6 @@ use App\Models\ScheduleAssignment;
 use App\Models\ScheduleDayOff;
 use App\Models\ShiftSwapRequest;
 use App\Models\User;
-use App\Services\Scheduling\RoomAssignmentService;
 use App\Services\Scheduling\RosterWriteContext;
 use App\Services\Scheduling\ScheduleLockService;
 use App\Support\ScheduleWeek;
@@ -33,7 +32,6 @@ class ShiftSwapService
     public function __construct(
         private readonly ScheduleService $scheduleService,
         private readonly ScheduleLockService $scheduleLockService,
-        private readonly RoomAssignmentService $roomAssignments,
     ) {}
 
     /** @param array{requester_assignment_id: int, target_assignment_id: int, reason: string} $data */
@@ -167,30 +165,9 @@ class ShiftSwapService
                 throw ValidationException::withMessages(['swap' => "This swap cannot be approved: {$reasonForTarget} for {$targetEmployee->full_name} on {$requesterAssignment->shift->name}."]);
             }
 
-            // The room stays with the slot, so each person inherits the other's
-            // room. That is the right answer for a swap -- but a theatre must
-            // not lose its charge cover because two nurses agreed a trade
-            // between themselves.
-            foreach ([[$requesterAssignment, $targetEmployee], [$targetAssignment, $requesterEmployee]] as [$assignment, $incoming]) {
-                $roomReason = $this->roomAssignments->substitutionBlockReason($assignment, $incoming);
-
-                if ($roomReason !== null) {
-                    throw ValidationException::withMessages([
-                        'swap' => "This swap cannot be approved: {$roomReason} for {$incoming->full_name}.",
-                    ]);
-                }
-            }
-
             RosterWriteContext::allow($reviewer, function () use ($requesterAssignment, $targetAssignment, $requesterEmployee, $targetEmployee): void {
                 $requesterAssignment->update(['employee_id' => $targetEmployee->id]);
                 $targetAssignment->update(['employee_id' => $requesterEmployee->id]);
-
-                // Whether the new occupant is borrowed from another unit is a
-                // fact about the pairing, not about the row, so it is worked
-                // out again rather than carried over from whoever stood here
-                // before.
-                $this->roomAssignments->refreshCrossUnitFlag($requesterAssignment, $targetEmployee);
-                $this->roomAssignments->refreshCrossUnitFlag($targetAssignment, $requesterEmployee);
             });
 
             $swap->update([

@@ -59,10 +59,6 @@
     "file": "assets/rolldown-runtime-QTnfLwEv.js",
     "name": "rolldown-runtime"
   },
-  "_toast-CU2Yilhc.js": {
-    "file": "assets/toast-CU2Yilhc.js",
-    "name": "toast"
-  },
   "node_modules/jsqr/dist/jsQR.js": {
     "file": "assets/jsQR-dbrgLl2D.js",
     "name": "jsQR",
@@ -73,7 +69,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-DKjHDqdg.css",
+    "file": "assets/app-gLnOdYJw.css",
     "name": "app",
     "names": [
       "app.css"
@@ -100,13 +96,12 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-CY5LuAvC.js",
+    "file": "assets/app-BN9zrkBr.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
       "_rolldown-runtime-QTnfLwEv.js",
-      "_toast-CU2Yilhc.js",
       "_mobile-access-Dm8SsAY_.js"
     ]
   },
@@ -139,15 +134,6 @@
     "name": "pwa",
     "src": "resources/js/pwa.js",
     "isEntry": true
-  },
-  "resources/js/room-board.js": {
-    "file": "assets/room-board-Cd3fF4sl.js",
-    "name": "room-board",
-    "src": "resources/js/room-board.js",
-    "isEntry": true,
-    "imports": [
-      "_toast-CU2Yilhc.js"
-    ]
   },
   "resources/js/script.js": {
     "file": "assets/script-CFPZKJQf.js",

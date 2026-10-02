@@ -16,8 +16,8 @@ use Tests\TestCase;
  * The roles that can read the whole hospital's records are desk-bound: they are
  * refused at sign-in, turned out of a session that reaches the app from a handset,
  * and never offered the installable app in the first place. An employee, who only
- * ever sees their own roster, attendance, leave and payslips, is unaffected on
- * every device.
+ * ever sees their own roster, attendance and leave, is unaffected on every
+ * device.
  *
  * Two halves are asserted here because the feature has two halves. The server
  * reads the user agent, which covers every phone and Android tablet; the browser

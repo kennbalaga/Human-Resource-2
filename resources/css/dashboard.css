@@ -1838,7 +1838,7 @@ input {
 
 /*
  * A cell holding a value and a qualifier under it -- a shift and the date it
- * falls on, a room and its code. A bare <span> after a <strong> is inline, so
+ * falls on. A bare <span> after a <strong> is inline, so
  * the two ran together as "Administrative ShiftSep 9, 2026"; every cell that
  * got this right was carrying .organization-secondary and the ones that forgot
  * had no way to show it. The pattern is now correct by construction, and that
