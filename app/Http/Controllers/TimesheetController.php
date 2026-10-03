@@ -6,9 +6,6 @@ use App\Http\Controllers\Concerns\ScopesWorkforceAccess;
 use App\Http\Requests\Timesheet\TimesheetFilterRequest;
 use App\Models\Employee;
 use App\Models\Timesheet;
-use App\Notifications\PreferenceMailNotification;
-use App\Services\Payroll\PayslipPeriod;
-use App\Services\PreferenceNotificationService;
 use App\Services\TimesheetService;
 use App\Support\SpreadsheetExport;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,44 +49,14 @@ class TimesheetController extends Controller
         return back()->with('success', 'Timesheet submitted for approval.');
     }
 
-    public function approve(Request $request, Timesheet $timesheet, TimesheetService $service, PreferenceNotificationService $notifications): RedirectResponse
+    public function approve(Request $request, Timesheet $timesheet, TimesheetService $service): RedirectResponse
     {
         $this->requireManager($request);
         $this->requireSupervision($request, $timesheet->loadMissing('employee')->employee, 'workforce.manage.record');
         $validated = $request->validate(['reviewer_notes' => ['nullable', 'string', 'max:500']]);
         $service->review($timesheet, $request->user(), 'approved', $validated['reviewer_notes'] ?? null);
-        $this->notifyPayslipReady($timesheet, $notifications);
 
         return back()->with('success', 'Timesheet approved.');
-    }
-
-    /**
-     * Approval is the moment a week's days reach a payslip, so it is the
-     * moment the employee is told. A week that straddles the 15th lands on two
-     * payslips, and the message names both.
-     */
-    private function notifyPayslipReady(Timesheet $timesheet, PreferenceNotificationService $notifications): void
-    {
-        $timesheet->loadMissing(['employee.user', 'entries']);
-        $user = $timesheet->employee?->user;
-        $periods = $timesheet->entries
-            ->map(fn ($entry) => PayslipPeriod::forDate($entry->work_date))
-            ->unique(fn (PayslipPeriod $period) => $period->key())
-            ->values();
-
-        if ($user === null || $periods->isEmpty()) {
-            return;
-        }
-
-        $notifications->send($user, 'payroll_updates', new PreferenceMailNotification(
-            $periods->count() === 1 ? 'Your payslip is ready' : 'Your payslips are ready',
-            [
-                'Your payslip for '.$periods->map(fn (PayslipPeriod $period) => $period->label())->join(' and ').' now includes your approved timesheet.',
-                'Timesheet week: '.$timesheet->period_start->format('M j').'–'.$timesheet->period_end->format('M j, Y').'.',
-            ],
-            'View payslip',
-            route('payslips.show', [$timesheet->employee_id, $periods->first()->key()]),
-        ));
     }
 
     public function reject(Request $request, Timesheet $timesheet, TimesheetService $service): RedirectResponse

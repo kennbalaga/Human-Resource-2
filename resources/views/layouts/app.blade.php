@@ -106,8 +106,6 @@
         // Only the entrance scanner needs it. Badges are drawn by the server,
         // so an employee's own page carries no QR script at all.
         request()->routeIs('attendance.index') ? 'resources/js/attendance-qr.js' : null,
-        // Fills the room board's assign picker. Nowhere else needs it.
-        request()->routeIs('schedules.rooms.index') ? 'resources/js/room-board.js' : null,
         // Holds the screen awake while the badge is being shown at a door.
         request()->routeIs('profile.badge') ? 'resources/js/badge-screen.js' : null,
     ])))

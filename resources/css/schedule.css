@@ -1485,6 +1485,151 @@
     align-content: start;
 }
 
+/*
+ * A step's three decisions, each on its own plate. Step 2 used to be one
+ * unbroken column of fields — pattern, pool, dates and eight rules all at the
+ * same weight — and nothing told a reviewer where one question ended and the
+ * next began.
+ */
+/* The step's own title and sentence. Step 1's heading is a row — a title with
+   a running count opposite it — and this one has nothing to sit opposite, so
+   it stacks instead of pushing one sentence to the far margin. */
+.bulk-step-intro {
+    display: grid;
+    gap: .15rem;
+}
+
+.bulk-step-intro h3 {
+    margin: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-md);
+}
+
+.bulk-step-intro p {
+    margin: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+}
+
+.bulk-step-card {
+    display: grid;
+    gap: .7rem;
+    padding: 1rem;
+    border: 1px solid var(--hr-border);
+    border-radius: var(--r-lg);
+    background: var(--hr-surface);
+}
+
+.bulk-step-card .schedule-form-grid {
+    padding: 0;
+}
+
+.bulk-step-card-title,
+.bulk-step-card .bulk-rule-panel legend,
+.bulk-step-stack > .bulk-rule-panel legend {
+    margin: 0;
+    padding: 0;
+    color: var(--hr-text);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+/* The rules are the step's third card, so they are drawn as one. */
+.bulk-step-stack > .bulk-rule-panel {
+    gap: .7rem;
+    padding: 1rem;
+    border-radius: var(--r-lg);
+    background: var(--hr-surface);
+}
+
+/* Length, start date, and the range the two settle on, across one row. */
+.schedule-form-grid.bulk-period-row {
+    grid-template-columns: minmax(8rem, .8fr) minmax(9rem, .9fr) minmax(0, 1.6fr);
+    align-items: end;
+    gap: .75rem;
+}
+
+.bulk-period-row .bulk-period-range {
+    justify-content: flex-start;
+    min-height: 2.75rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.bulk-period-row .bulk-period-range strong {
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+}
+
+/* The unit belongs to the field, inside its edge, rather than in the label —
+   "Minimum rest between shifts (hrs)" spent a third of its line saying it. */
+.bulk-field-unit {
+    position: relative;
+    display: block;
+}
+
+.bulk-field-unit input {
+    width: 100%;
+    padding-right: 2.4rem !important;
+}
+
+.bulk-field-unit em {
+    position: absolute;
+    top: 50%;
+    right: .7rem;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+    font-style: normal;
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+/* The two switches on this step, side by side. */
+.bulk-rule-toggles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: .7rem;
+}
+
+@media (max-width: 860px) {
+    .schedule-form-grid.bulk-period-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* The hint belongs beside the choice it explains, not under it: read down the
+   column and the next thing after "Shift pattern" should be the pool, not a
+   sentence about the pattern. */
+.schedule-form-grid label.bulk-pattern-field {
+    display: grid;
+    gap: .35rem .75rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: center;
+}
+
+.bulk-pattern-field > span {
+    grid-column: 1 / -1;
+}
+
+.bulk-pattern-field small {
+    margin: 0;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+}
+
+@media (max-width: 860px) {
+    .schedule-form-grid label.bulk-pattern-field {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 /* A step holding more than one block — the period fields and the rule card
    below them. The modal body's own gap does not reach inside a panel, so the
    stack supplies the same spacing between its parts. */
@@ -1538,10 +1683,35 @@
    the smallest type in the app. Columns wide enough to keep a label on one line
    are what stops both, and there are few enough rules that a second row costs
    nothing. */
+/* Four to a row: the limits are read across, compared against each other, and
+   a column wide enough for a sentence made each one look like its own section. */
 .bulk-rule-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
-    gap: 1rem .9rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .8rem .9rem;
+}
+
+/* A note that belongs to the row rather than to one field in it. */
+.bulk-rule-note {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--hr-subtle);
+    font-size: var(--fs-xs);
+    line-height: 1.45;
+}
+
+/* Four holds down to the width the wizard itself stops at; the drop to two is
+   for a laptop running the dialog narrow, not for an ordinary window. */
+@media (max-width: 860px) {
+    .bulk-rule-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .bulk-rule-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 /* Start-aligned, not stretched. A field with no note under it would otherwise
@@ -2542,8 +2712,7 @@
     background: var(--hr-primary-soft);
 }
 
-/* What the chosen pattern will do, and why a shift is closed off. */
-.bulk-pattern-field small,
+/* Why a shift in the pool is closed off, said on the tile. */
 .shift-unavailable-reason {
     display: block;
     margin-top: .3rem;
@@ -4669,6 +4838,124 @@ button.roster-gap-heading[aria-expanded="true"] .roster-gap-caret {
     display: flex;
     gap: .25rem;
     margin-left: auto;
+}
+
+/* ------------------------------------------------------------------ *
+   Date range
+
+   This block carried no styling of its own, so every part of it arrived in
+   the browser's default: "Ends" came in at a <legend>'s own heading size
+   beside a "Starts" label half its height, and the two end modes were raw
+   radios on a stacked line. The two choices are the same kind of choice, so
+   they are the same kind of control — one label above each, and the mode that
+   is off reads as off.
+   ------------------------------------------------------------------ */
+.recurring-range {
+    display: grid;
+    gap: .7rem;
+    grid-template-columns: minmax(10rem, 13rem) minmax(0, 1fr);
+    align-items: start;
+}
+
+.recurring-range-start,
+.recurring-range-end {
+    display: grid;
+    gap: .35rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+/* The fieldset's legend and the start field's label are the same thing to a
+   reader, so they are the same thing to look at. */
+.recurring-range-start > span,
+.recurring-range-end > legend {
+    padding: 0;
+    color: var(--hr-muted);
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.recurring-range-start input[type='date'],
+.recurring-end-mode input[type='date'],
+.recurring-end-mode input[type='number'] {
+    width: 100%;
+    min-height: 2.4rem;
+    padding: .4rem .6rem;
+    border: 1px solid var(--hr-field-border);
+    border-radius: var(--r-sm);
+    color: var(--hr-text);
+    background: var(--hr-surface);
+    font: inherit;
+    font-size: var(--fs-sm);
+    outline: none;
+}
+
+.recurring-range-start input[type='date']:focus,
+.recurring-end-mode input:focus {
+    border-color: var(--hr-primary);
+    box-shadow: 0 0 0 3px rgba(var(--hr-primary-rgb), .18);
+}
+
+.recurring-end-mode input[type='number'] {
+    width: 4.5rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Two rows, one per way of ending. The whole row is the radio's label, so the
+   wording and the field it governs are one target rather than three. */
+.recurring-end-mode {
+    display: flex !important;
+    align-items: center;
+    gap: .55rem;
+    min-height: 2.4rem;
+    margin: 0;
+    padding: .3rem .55rem;
+    border: 1px solid transparent;
+    border-radius: var(--r-md);
+    cursor: pointer;
+}
+
+.recurring-end-mode > span {
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+    white-space: nowrap;
+}
+
+.recurring-end-mode input[type='radio'] {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: var(--hr-primary-fill);
+}
+
+/* The live mode is on a plate; the other is dimmed, which is the same thing
+   its disabled field is already saying. */
+.recurring-end-mode.is-active {
+    border-color: var(--hr-primary-soft);
+    background: var(--hr-primary-soft);
+}
+
+.recurring-end-mode.is-active > span {
+    color: var(--hr-text);
+    font-weight: 600;
+}
+
+.recurring-end-mode:not(.is-active) input:disabled {
+    color: var(--hr-subtle);
+    background: var(--hr-surface-2);
+    cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+    .recurring-range {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .recurring-preview {

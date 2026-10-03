@@ -22,7 +22,7 @@
             'attendance' => ['label' => 'Attendance', 'tone' => 'warning', 'icon' => 'clock', 'description' => 'Punches, lateness and corrections'],
             'schedule' => ['label' => 'Schedule', 'tone' => 'primary', 'icon' => 'calendar', 'description' => 'Published rosters and changes'],
             'leave' => ['label' => 'Leave', 'tone' => 'success', 'icon' => 'leave', 'description' => 'Requests and decisions'],
-            'payroll' => ['label' => 'Payroll', 'tone' => 'primary', 'icon' => 'receipt', 'description' => 'Payslips ready to view'],
+            'payroll' => ['label' => 'Payroll', 'tone' => 'primary', 'icon' => 'receipt', 'description' => 'Pay period updates'],
             'security' => ['label' => 'Security', 'tone' => 'danger', 'icon' => 'shield', 'description' => 'Sign-ins and account changes'],
             'general' => ['label' => 'General', 'tone' => 'secondary', 'icon' => 'bell', 'description' => 'Announcements and the rest'],
         ];

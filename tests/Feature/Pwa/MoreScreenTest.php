@@ -40,7 +40,6 @@ class MoreScreenTest extends TestCase
             route('profile.show'),
             route('profile.badge'),
             route('timesheets.index'),
-            route('payslips.index'),
             route('insights.mine'),
             route('settings.edit'),
             route('privacy-policy'),
@@ -59,20 +58,20 @@ class MoreScreenTest extends TestCase
      * to notifications" cannot be tested against the whole document, only
      * against this list's own shape.
      *
-     * Seven is the design: badge, timesheets, payslips and work patterns under
-     * Your records; app lock, settings and privacy under This device.
-     * Notifications is not among them on purpose — the bell reaches it from
-     * every screen, and a row here would be the same door twice on the one
-     * screen whose entire job is being an unambiguous index.
+     * Six is the design: badge, timesheets and work patterns under Your
+     * records; app lock, settings and privacy under This device. Notifications
+     * is not among them on purpose — the bell reaches it from every screen, and
+     * a row here would be the same door twice on the one screen whose entire
+     * job is being an unambiguous index.
      */
-    public function test_the_list_is_exactly_the_seven_intended_rows(): void
+    public function test_the_list_is_exactly_the_six_intended_rows(): void
     {
         $html = $this->actingAs($this->employeeUser())
             ->get(route('more'))
             ->assertOk()
             ->getContent();
 
-        $this->assertSame(7, substr_count($html, 'class="more-row"'));
+        $this->assertSame(6, substr_count($html, 'class="more-row"'));
     }
 
     public function test_a_draft_timesheet_is_counted_for_this_employee_only(): void

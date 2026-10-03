@@ -3,7 +3,7 @@
  *
  * A list of destinations, so almost all of this is row geometry. The rows are
  * built to the same 52px floor the tab bar uses, because this is the screen
- * somebody opens one-handed on a ward to find their payslip.
+ * somebody opens one-handed on a ward to find their timesheet.
  *
  * It renders on a desktop too — the route is not gated — so the whole thing is
  * held to a readable measure rather than stretched across a monitor.

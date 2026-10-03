@@ -461,6 +461,16 @@
                              schedule is shaped — so they are set on one step rather
                              than split across a Next button. --}}
                         <div class="bulk-step-panel bulk-step-stack" data-step-panel="2" hidden>
+                            {{-- The step says what it is for before it asks for
+                                 anything, as step 1 does. Its three decisions —
+                                 which shifts, which dates, which limits — are
+                                 three cards rather than one long column of
+                                 fields, so a reviewer can answer one and move on. --}}
+                            <div class="bulk-step-intro">
+                                <h3>Period and rules</h3>
+                                <p>Pick the shifts the assistant may use, the dates to cover, and the limits every roster must respect.</p>
+                            </div>
+                            <section class="bulk-step-card">
                             <div class="schedule-form-grid bulk-schedule-details">
                                 @if($aiSchedulingEnabled)
                                     <label class="bulk-pattern-field"><span>Shift pattern</span><select name="schedule_method" data-schedule-method><option value="rotation">Rotating · AI balanced</option><option value="custom">Custom · AI optimized mix</option><option value="fixed">Fixed · same shift</option></select><small data-schedule-method-hint></small></label>
@@ -469,29 +479,51 @@
                                 @if($aiSchedulingEnabled)
                                     <fieldset class="rotation-shift-picker full-width" data-rotation-shifts><legend>Shift pool for AI recommendation</legend><p data-shift-pool-help>Select at least two shifts. The assistant balances coverage and rotates employees weekly.</p><div>@foreach($shifts as $shift)<label><input type="checkbox" name="shift_ids[]" value="{{ $shift->id }}" data-rotating="{{ $shift->is_rotating ? '1' : '0' }}" data-night="{{ $shift->is_night_shift ? '1' : '0' }}" data-color="{{ $shift->color }}" data-hours="{{ round($shift->duration_minutes / 60, 1) }}"><span class="shift-color" style="background:{{ $shift->color }}"></span><span><strong>{{ $shift->name }}</strong><small>{{ $shift->formatted_time }}</small><em class="shift-unavailable-reason" data-shift-reason hidden></em></span></label>@endforeach</div></fieldset>
                                 @endif
-                                <label><span>Schedule period</span><select name="schedule_period" data-schedule-period><option value="weekly">Weekly · 7 days</option><option value="two_weeks">Two weeks · 14 days</option><option value="monthly">Monthly · calendar month</option></select></label>
+                            </div>
+                            </section>
+                            <section class="bulk-step-card">
+                            <h4 class="bulk-step-card-title">Schedule period</h4>
+                            {{-- Length, start and the range the two produce read
+                                 left to right as one sentence, so the dates a run
+                                 will cover are beside the controls that set them
+                                 rather than on a strip of their own below. --}}
+                            <div class="schedule-form-grid bulk-period-row">
+                                <label><span>Length</span><select name="schedule_period" data-schedule-period><option value="weekly">Weekly · 7 days</option><option value="two_weeks">Two weeks · 14 days</option><option value="monthly">Monthly · calendar month</option></select></label>
                                 <label data-period-start><span>Schedule starts</span><input type="date" name="period_start" value="{{ $rosterPeriodStart->toDateString() }}" min="{{ $today->toDateString() }}" required></label>
                                 <label data-period-month hidden><span>Schedule month</span><input type="month" name="period_month" value="{{ $focusDate->format('Y-m') }}"></label>
                                 <input type="hidden" name="start_date" value="{{ $focusDate->toDateString() }}">
                                 <input type="hidden" name="end_date" value="{{ $focusDate->copy()->addDays(6)->toDateString() }}">
-                                <div class="bulk-period-range full-width"><button type="button" class="icon-button subtle" data-bulk-period-previous aria-label="Previous schedule period"><x-icon name="chevron-right" class="flip-horizontal" /></button><strong data-bulk-period-range>Weekly period</strong><button type="button" class="icon-button subtle" data-bulk-period-next aria-label="Next schedule period"><x-icon name="chevron-right" /></button></div>
-                                <label class="bulk-weekend-toggle full-width"><input type="checkbox" name="include_weekends" value="1"><span><strong>Include weekends</strong><small>Weekdays are scheduled by default for a fixed pattern.</small></span></label>
+                                <div class="bulk-period-range"><button type="button" class="icon-button subtle" data-bulk-period-previous aria-label="Previous schedule period"><x-icon name="chevron-right" class="flip-horizontal" /></button><strong data-bulk-period-range>Weekly period</strong><button type="button" class="icon-button subtle" data-bulk-period-next aria-label="Next schedule period"><x-icon name="chevron-right" /></button></div>
                             </div>
+                            </section>
 
                             <fieldset class="bulk-rule-panel">
                                 <legend>Scheduling rules</legend>
                                 <div class="bulk-rule-grid">
+                                    {{-- The four limits every roster is judged against,
+                                         across one row. The Art. 85 note belongs to all of
+                                         them rather than to the field it used to hang
+                                         under, so it runs the width of the row instead of
+                                         wrapping to three lines inside one column. --}}
                                     <label><span>Days off / week</span><select name="days_off_per_week"><option value="1">1 day</option><option value="2">2 days</option><option value="0">No automatic day off</option></select></label>
-                                    <label><span>Maximum paid hours / week</span><input type="number" name="max_hours_per_week" value="48" min="1" max="168"><small>Paid hours only, net of each shift's unpaid meal period (Labor Code Art. 85) — a shift's clocked span runs longer than this total.</small></label>
+                                    <label><span>Maximum paid hours / week</span><span class="bulk-field-unit"><input type="number" name="max_hours_per_week" value="48" min="1" max="168"><em>hrs</em></span></label>
+                                    <label><span>Minimum rest between shifts</span><span class="bulk-field-unit"><input type="number" name="minimum_rest_hours" value="{{ config('schedule.minimum_rest_hours') }}" min="1" max="48"><em>hrs</em></span></label>
+                                    <label><span>Maximum staff / shift</span><input type="number" name="maximum_staff_per_shift" value="1" min="1" max="100"></label>
+                                    <p class="bulk-rule-note">Paid hours only, net of each shift's unpaid meal period (Labor Code Art. 85) — a shift's clocked span runs longer than this total. The assistant never puts more than the maximum on one shift; minimum cover is held to the unit's own standard.</p>
                                     <label data-clinical-only><span>Night shift limit / week</span><input type="number" name="night_shift_limit" value="6" min="0" max="7"></label>
                                     <label data-clinical-only><span>Maximum consecutive nights</span><input type="number" name="max_consecutive_nights" value="4" min="1" max="7"><small>Caps a night-shift streak even when the weekly limit and days-off would otherwise allow it.</small></label>
-                                    <label><span>Minimum rest between shifts (hrs)</span><input type="number" name="minimum_rest_hours" value="{{ config('schedule.minimum_rest_hours') }}" min="1" max="48"></label>
-                                    <label><span>Maximum staff / shift</span><input type="number" name="maximum_staff_per_shift" value="1" min="1" max="100"><small>The assistant never puts more than this on one shift. Minimum cover is held to the unit's own standard.</small></label>
                                     <label data-rotating-only><span>Minimum senior / shift</span><input type="number" name="minimum_senior_per_shift" value="1" min="0" max="100"><small>Flags any shift left to entry-level staff alone. Set to 0 to skip the check.</small></label>
                                     <label data-rotating-only><span>Counts as senior</span><select name="senior_rank_threshold">@foreach($seniorRankOptions as $rank => $label)<option value="{{ $rank }}" @selected($rank === $defaultSeniorRank)>Rank {{ $rank }}+ — {{ $label }}</option>@endforeach</select></label>
                                     <label class="bulk-rule-holidays"><span>Holiday / closure dates</span><input type="text" name="holiday_dates_csv" placeholder="2026-12-25, 2026-12-30"><small>Comma-separated dates are protected from assignment.</small></label>
                                 </div>
-                                <label class="bulk-weekend-toggle bulk-overtime-toggle"><input type="checkbox" name="overtime_allowed" value="1" data-overtime-toggle><span><strong>Allow overtime recommendations</strong><small>When off, recommendations exceeding maximum weekly hours are blocked.</small></span></label>
+                                {{-- Weekends and overtime are the two switches on
+                                     this step, so they stand together rather than
+                                     one being filed under the period and the other
+                                     under the rules. --}}
+                                <div class="bulk-rule-toggles">
+                                    <label class="bulk-weekend-toggle"><input type="checkbox" name="include_weekends" value="1"><span><strong>Include weekends</strong><small>Saturday and Sunday are scheduled like any other day.</small></span></label>
+                                    <label class="bulk-weekend-toggle bulk-overtime-toggle"><input type="checkbox" name="overtime_allowed" value="1" data-overtime-toggle><span><strong>Allow overtime</strong><small>Off: nobody is scheduled past the weekly maximum.</small></span></label>
+                                </div>
                                 <label class="bulk-justification-field" data-overtime-justification-wrap hidden>
                                     <span>Reason for allowing overtime this run</span>
                                     <textarea name="overtime_justification" rows="2" maxlength="500" placeholder="Explain why overtime is necessary for this roster (e.g. short-staffed shift, approved coverage need)." data-overtime-justification></textarea>

@@ -29,9 +29,8 @@
             as it always has.
         </p>
         <p>
-            Staff who only see their own records — their schedule, their attendance,
-            their leave and their payslips — can install the app on a phone and use
-            it there.
+            Staff who only see their own records — their schedule, their attendance
+            and their leave — can install the app on a phone and use it there.
         </p>
     </div>
 

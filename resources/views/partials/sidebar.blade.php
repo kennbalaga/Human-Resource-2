@@ -4,12 +4,6 @@
     $sidebarRoles = $sidebarUser->roles->pluck('slug');
     $sidebarCanManageShifts = $sidebarRoles->intersect(['system-administrator', 'hr-manager'])->isNotEmpty();
 
-    /* The room board answers "who is in which theatre tonight", which is a
-       supervisor's question -- the same set the workforce.view gate admits. */
-    $sidebarCanSeeRoomBoard = $sidebarRoles
-        ->intersect(['system-administrator', 'hr-manager', 'department-head'])
-        ->isNotEmpty();
-
     /* Staff have no reason to browse the workforce directory, so the Organization
        entry is limited to the roles that administer it. */
     $sidebarCanSeeOrganization = $sidebarRoles
@@ -80,26 +74,16 @@
             </x-sidebar-link>
 
             @if ($sidebarCanSeeOrganization)
-                {{-- Rooms is the fourth tab of this workspace, so it belongs here. Reaching
-                     it from the room board's "Manage rooms" used to leave the whole rail
-                     unlit, with nothing saying which section you had landed in. --}}
-                <x-sidebar-link :href="route('organization.index')" icon="building" :active="request()->routeIs('organization.*', 'employees.*', 'departments.*', 'positions.*', 'rooms.*')">Organization</x-sidebar-link>
+                <x-sidebar-link :href="route('organization.index')" icon="building" :active="request()->routeIs('organization.*', 'employees.*', 'departments.*', 'positions.*')">Organization</x-sidebar-link>
             @endif
         </div>
 
         <div class="sidebar-nav-group" role="group" aria-labelledby="sidebar-group-scheduling">
             <h2 class="sidebar-nav-heading" id="sidebar-group-scheduling">Scheduling</h2>
 
-            {{-- Narrowed away from schedules.* so the room board, which shares
-                 that prefix, lights its own entry instead of this one. --}}
-            <x-sidebar-link :href="route('schedules.index')" icon="calendar" :active="request()->routeIs('schedules.*') && ! request()->routeIs('schedules.rooms.*')">
+            <x-sidebar-link :href="route('schedules.index')" icon="calendar" :active="request()->routeIs('schedules.*')">
                 Schedules
             </x-sidebar-link>
-            @if ($sidebarCanSeeRoomBoard)
-                <x-sidebar-link :href="route('schedules.rooms.index')" icon="hospital" :active="request()->routeIs('schedules.rooms.*')">
-                    Room board
-                </x-sidebar-link>
-            @endif
             <x-sidebar-link :href="route('schedule-preferences.index')" icon="swap" :active="request()->routeIs('schedule-preferences.*', 'shift-swaps.*')" :badge="$sidebarBadge($sidebarBadges['swaps'])">
                 Preferences and Swaps
             </x-sidebar-link>
@@ -126,15 +110,12 @@
             </x-sidebar-link>
         </div>
 
-        {{-- Pay and time off are not attendance, so they no longer sit under it. --}}
-        <div class="sidebar-nav-group" role="group" aria-labelledby="sidebar-group-pay">
-            <h2 class="sidebar-nav-heading" id="sidebar-group-pay">Time off &amp; pay</h2>
+        {{-- Time off is not attendance, so it no longer sits under it. --}}
+        <div class="sidebar-nav-group" role="group" aria-labelledby="sidebar-group-time-off">
+            <h2 class="sidebar-nav-heading" id="sidebar-group-time-off">Time off</h2>
 
             <x-sidebar-link :href="route('leaves.index')" icon="leave" :active="request()->routeIs('leaves.*') || request()->routeIs('leave-attachments.*')" :badge="$sidebarBadge($sidebarBadges['leave'])">
                 Leave Management
-            </x-sidebar-link>
-            <x-sidebar-link :href="route('payslips.index')" icon="receipt" :active="request()->routeIs('payslips.*')">
-                Payslips
             </x-sidebar-link>
         </div>
 

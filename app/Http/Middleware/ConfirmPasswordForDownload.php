@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Reading a screen is bounded by what one person can look through; a download
  * is the whole extract, carried off. So downloads ask again, and the answer is
  * trusted for a short window (security.downloads.password_timeout_seconds) so
- * somebody saving six payslips types it once.
+ * somebody saving six exports types it once.
  *
  * Normally the asking happens in a modal on the page the link is on
  * (partials.download-confirm), and this middleware never gets to answer: the

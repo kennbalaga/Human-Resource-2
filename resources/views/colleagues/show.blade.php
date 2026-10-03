@@ -45,17 +45,8 @@
                 <p class="colleague-shift-hours">{{ $hours }}</p>
             @endif
             <p class="colleague-shift-where">
-                {{ $shift?->name ?? 'Same shift' }}@if ($theirRoom) · {{ $theirRoom }}@endif
+                {{ $shift?->name ?? 'Same shift' }}
             </p>
-            @if ($sameRoom)
-                <p class="colleague-shift-note">
-                    <x-icon name="check-circle" /> You are both rostered to {{ $theirRoom }}.
-                </p>
-            @elseif ($theirRoom && $myRoom)
-                <p class="colleague-shift-note">
-                    <x-icon name="map-pin" /> You are in {{ $myRoom }}, they are in {{ $theirRoom }}.
-                </p>
-            @endif
         </article>
 
         @unless ($isPast)

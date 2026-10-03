@@ -189,29 +189,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Whether this account reads payslips across the workforce.
-     *
-     * Narrower than the organisation-wide roles on purpose. A system
-     * administrator keeps its reach over every other workforce record for
-     * support and audit work, but pay is HR's alone; a department head, who
-     * supervises the unit's attendance, does not see what the unit is paid.
-     */
-    public function seesEveryPayslip(): bool
-    {
-        return $this->hasRole('hr-manager');
-    }
-
-    public function canViewPayslipOf(?Employee $employee): bool
-    {
-        if ($employee === null) {
-            return false;
-        }
-
-        return $this->seesEveryPayslip()
-            || ($this->employee !== null && $this->employee->id === $employee->id);
-    }
-
-    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

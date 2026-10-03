@@ -10,11 +10,11 @@ use Tests\TestCase;
 /**
  * Every page says where it is.
  *
- * A screen reached by a cross-link rather than by the rail -- "Manage rooms" on
- * the room board, the override screen under attendance -- used to leave the
- * whole rail unlit, so the reader had no way to tell which section they had
- * landed in. The rail's entries match on route name, and a route nobody
- * remembered to list simply matched nothing.
+ * A screen reached by a cross-link rather than by the rail -- the override
+ * screen under attendance, say -- used to leave the whole rail unlit, so the
+ * reader had no way to tell which section they had landed in. The rail's entries
+ * match on route name, and a route nobody remembered to list simply matched
+ * nothing.
  *
  * The four screens with no rail entry at all (profile, settings, audit logs,
  * integrations) are covered by the topbar's context line instead, which is
@@ -53,12 +53,10 @@ class SidebarActiveStateTest extends TestCase
     public static function railPages(): array
     {
         return [
-            'rooms directory' => ['/rooms', 'Organization'],
             'employee directory' => ['/employees', 'Organization'],
             'attendance override' => ['/attendance/override', 'Attendance'],
             'attendance' => ['/attendance', 'Attendance'],
             'attendance report' => ['/attendance/reports', 'Reports'],
-            'room board' => ['/schedules/rooms', 'Room board'],
             'schedules' => ['/schedules', 'Schedules'],
             'shift templates' => ['/shifts', 'Shift templates'],
         ];

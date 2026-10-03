@@ -46,7 +46,7 @@ class ColleagueController extends Controller
         abort_if($mine === null, 404, 'You are not rostered on that day.');
 
         $theirs = ScheduleAssignment::query()
-            ->with(['shift', 'room'])
+            ->with('shift')
             ->where('employee_id', $employee->id)
             ->where('work_date', $date->toDateString())
             ->where('shift_id', $mine->shift_id)
@@ -69,16 +69,12 @@ class ColleagueController extends Controller
             'hours' => $theirs->shift !== null
                 ? Carbon::parse($theirs->shift->start_time)->format('g:i A').' – '.Carbon::parse($theirs->shift->end_time)->format('g:i A')
                 : null,
-            'theirRoom' => $theirs->room?->name,
-            'myRoom' => $mine->room?->name,
-            'sameRoom' => $theirs->room_id !== null && $theirs->room_id === $mine->room_id,
         ]);
     }
 
     private function assignmentOn(Employee $employee, Carbon $date): ?ScheduleAssignment
     {
         return ScheduleAssignment::query()
-            ->with('room')
             ->where('employee_id', $employee->id)
             ->where('work_date', $date->toDateString())
             ->where('status', 'scheduled')
