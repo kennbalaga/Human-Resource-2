@@ -110,6 +110,120 @@ Add one cron entry:
 
 Deploys should call `php artisan queue:restart` so workers load current code.
 
+## Biometric terminal and bridge agent
+
+Deploying this is not only a code release. The terminal holds a copy of who
+people are, and that copy has to agree with the database the application is
+actually running against.
+
+### Read this before anything else
+
+**A device PIN is the employee's record id**, and record ids belong to one
+database. The terminal currently holds users enrolled from whichever database
+they were exported from. Point the application at a different database and the
+same PIN can mean a different person — or nobody.
+
+That failure is silent. A punch arrives, resolves to whoever holds that id in
+the new database, and files a real attendance record against the wrong person.
+Nothing errors.
+
+So: **check before trusting a single punch.** Pick three or four people, compare
+the PIN on the roster against their employee number in both databases, and
+confirm they are the same human being.
+
+If the ids do not line up, the enrolment has to be redone against the
+production database:
+
+1. Register the terminal in production (Settings → Operational tools →
+   Biometric terminals), using the real serial.
+2. Reserve PINs there — per department first, not all at once.
+3. Export the **ZKTime import file** from *production*.
+4. Delete the users on the terminal and re-import from that file, then
+   **Machine → Upload user info and FP**.
+5. Fingerprint templates already captured can be kept: download them from the
+   device first, and upload them back after the users are recreated. Only do
+   that if the PINs are unchanged — a template restored onto a different PIN
+   attaches somebody's finger to somebody else's record.
+
+Enrolment data does not travel with a code deployment. There is no export or
+import of `biometric_enrollments` between environments, deliberately: the
+mapping is only meaningful against one set of employee ids.
+
+### Environment
+
+```dotenv
+# Required. Unset, the punch endpoint answers 503 to everything -- there is no
+# unsigned fallback. Generate a NEW one for production; do not reuse a value
+# that has been on a developer machine.
+#   openssl rand -hex 32
+BIOMETRIC_BRIDGE_SECRET=
+
+# All optional, shown with their defaults.
+BIOMETRIC_BRIDGE_MAX_PUNCH_AGE_HOURS=72
+BIOMETRIC_BRIDGE_MAX_BATCH_SIZE=500
+BIOMETRIC_BRIDGE_REQUESTS_PER_MINUTE=120
+BIOMETRIC_BRIDGE_DEVICE_REQUESTS_PER_MINUTE=60
+BIOMETRIC_BRIDGE_MAX_PIN_LENGTH=9
+BIOMETRIC_BRIDGE_MIN_PUNCH_INTERVAL_MINUTES=2
+```
+
+**`TRUSTED_PROXIES` matters more than usual here.** The punch endpoint is rate
+limited by address before its signature is checked. Behind a load balancer with
+the proxy list wrong, every bridge in the hospital shares one apparent address
+and they throttle each other.
+
+The migration that creates `biometric_punches` runs with the `migrate --force`
+already in the release commands above. Nothing extra is needed.
+
+### The bridge agent is not deployed with the application
+
+It runs on a PC inside the hospital LAN, because the terminal cannot be reached
+from outside it. See `bridge/README.md`. On that machine:
+
+```dotenv
+BRIDGE_SERVER_URL=https://hrms.example.com/api/biometric/punches
+BRIDGE_SECRET=<the same value as BIOMETRIC_BRIDGE_SECRET above>
+BRIDGE_DEVICE_IP=<the terminal's address on the hospital network>
+BRIDGE_DEVICE_SERIAL=<the serial registered in the application>
+BRIDGE_VERIFY_TLS=true
+```
+
+`BRIDGE_VERIFY_TLS=false` is only defensible on a trusted LAN with a
+self-signed certificate. Over the public internet it sends a signed payload
+across a connection nobody has verified.
+
+### Order of operations
+
+1. Deploy the code and run the migrations.
+2. Set `BIOMETRIC_BRIDGE_SECRET` and confirm `php artisan security:check`
+   passes — it has to, independently of this feature.
+3. Register the terminal and verify the PIN-to-person mapping as above.
+4. Configure and start the bridge agent. Run it once with `--dry-run` first:
+   it reads the device and reports, writing nothing anywhere.
+5. Have one person scan. Confirm the attendance record names the right human
+   being before letting a ward through.
+
+### After go-live
+
+Watch for `unmatched`, `unsupported` or `stale` in the agent's log. Those
+punches are stored but became no attendance, and are recoverable once the cause
+is fixed:
+
+```bash
+php artisan biometric:replay --dry-run
+php artisan biometric:replay
+```
+
+`biometric:replay` is deliberately not scheduled. A replay follows a fix;
+running it on a timer would re-attempt the same stuck punches nightly and bury
+the signal that something still needs attention.
+
+Finally, turn on `schedule_aware` and `enforce_published_shift` once rosters are
+reliably published. The PIN scheme has no check digit, so a mis-keyed PIN lands
+on a real colleague; a published shift is what refuses it. Enabling it before
+schedules are published rejects almost everything, so it is a step after
+go-live, not part of it.
+
 ## Pre-release and post-release checks
 
 Before release:
