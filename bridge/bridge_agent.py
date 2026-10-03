@@ -202,6 +202,35 @@ def fingerprint_for(serial, pin, punched_at, punch_code):
 # Device
 # ---------------------------------------------------------------------------
 
+# What the last quiet line of each kind said, and when it was last allowed
+# through regardless.
+_said = {}
+
+QUIET_HEARTBEAT_SECONDS = 300
+
+
+def say_quietly(message, key, heartbeat=QUIET_HEARTBEAT_SECONDS):
+    """
+    Log a routine per-cycle line only when it changes, or every few minutes.
+
+    At a twenty-second poll these two lines are six an hour and harmless. At
+    five seconds they are twenty-four a minute -- around thirty thousand a day
+    of "nothing happened", which buries the one line somebody is scrolling back
+    to find. Repeating identical idle state is not information.
+
+    The heartbeat still lets them through periodically, because a log that goes
+    completely silent is indistinguishable from an agent that has died.
+    """
+    now = time.time()
+    previous = _said.get(key)
+
+    if previous is not None and previous[0] == message and now - previous[1] < heartbeat:
+        return
+
+    LOG.info(message)
+    _said[key] = (message, now)
+
+
 def read_device(config):
     """
     Connect, check the clock, read the log, disconnect.
@@ -239,7 +268,7 @@ def read_device(config):
         # Never conn.clear_attendance(). The log is the only copy of anything
         # this agent has not yet delivered.
         records = conn.get_attendance() or []
-        LOG.info("Device holds %d punch record(s).", len(records))
+        say_quietly("Device holds %d punch record(s)." % len(records), key="holds")
         return records
 
     finally:
@@ -274,7 +303,14 @@ def check_clock(conn, tolerance):
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         )
     else:
-        LOG.info("Terminal clock is within %.0fs of this PC.", drift)
+        # Rounded, because the raw figure wanders a second either side between
+        # polls and a message that changes every cycle defeats the suppressor
+        # it is passing through. The exact drift matters only when it crosses
+        # the tolerance, and that path logs it in full above.
+        say_quietly(
+            "Terminal clock is within about %ds of this PC." % (round(drift / 10) * 10),
+            key="clock",
+        )
 
 
 def store(state, serial, records):

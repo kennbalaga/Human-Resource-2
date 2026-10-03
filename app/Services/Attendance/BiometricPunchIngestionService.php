@@ -248,6 +248,12 @@ class BiometricPunchIngestionService
         return BiometricPunch::query()
             ->where('device_sn', (string) $device->serial_number)
             ->whereIn('fingerprint', array_unique($fingerprints))
+            // Chronological, explicitly. Direction is decided from what came
+            // before, so deriving a batch out of order would resolve a
+            // check-out against a check-in that has not happened yet. Insert
+            // order usually gives this for free; usually is not a guarantee.
+            ->orderBy('punched_at')
+            ->orderBy('id')
             ->get();
     }
 
@@ -408,10 +414,19 @@ class BiometricPunchIngestionService
      */
     private function resolveDirection(BiometricDevice $device, BiometricPunch $punch): ?string
     {
+        // Any earlier punch in the window counts, whatever became of it.
+        //
+        // This used to require the previous one to have reached 'processed',
+        // which made the guard depend on a second thing having gone right. A
+        // rapid repeat is a rapid repeat regardless of how its predecessor was
+        // filed -- and a guard that quietly stops guarding when something
+        // upstream fails is worse than no guard, because the record it lets
+        // through looks deliberate. 'duplicate' itself is excluded so a burst
+        // of taps cannot chain off one another.
         $recent = BiometricPunch::query()
             ->where('device_sn', $punch->device_sn)
             ->where('pin', $punch->pin)
-            ->where('processing_status', 'processed')
+            ->where('processing_status', '!=', 'duplicate')
             ->whereKeyNot($punch->id)
             ->where('punched_at', '<', $punch->punched_at)
             ->where('punched_at', '>=', $punch->punched_at->copy()->subMinutes($this->minimumInterval()))

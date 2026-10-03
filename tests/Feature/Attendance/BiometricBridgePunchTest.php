@@ -416,6 +416,64 @@ class BiometricBridgePunchTest extends TestCase
         $this->assertNull($record->check_out_at, 'A double tap must not close the day.');
     }
 
+    public function test_a_second_scan_eighty_seconds_later_is_still_inside_the_guard(): void
+    {
+        // Seen in production: 19:30:20 then 19:31:40, eighty seconds apart with
+        // a two-minute guard, and the second became a check-out rather than a
+        // duplicate. Pinned here as the exact shape rather than a rounder
+        // number, because the twenty-second case already passed and whatever
+        // separates them is the thing worth catching.
+        $employee = $this->enrolledEmployee('1001');
+        config(['attendance.biometric_bridge.min_punch_interval_minutes' => 2]);
+
+        $this->postBatch([$this->punch('first', '1001', 255)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'processed');
+
+        $this->travel(80)->seconds();
+
+        $this->postBatch([$this->punch('second', '1001', 255)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'duplicate');
+
+        $this->assertNull(
+            AttendanceRecord::query()->where('employee_id', $employee->id)->sole()->check_out_at,
+        );
+    }
+
+    public function test_the_guard_holds_even_when_the_punch_before_it_was_refused(): void
+    {
+        // The guard used to require the previous punch to have reached
+        // 'processed', which made it depend on a second thing having gone
+        // right. Here the first scan closes a day that is already closed and is
+        // refused -- and the tap moments later must still be caught, because a
+        // guard that stops guarding when something upstream fails lets through
+        // a record that then looks deliberate.
+        $employee = $this->enrolledEmployee('1001');
+
+        $this->travelTo(Carbon::parse('2026-10-06 07:00:00', 'Asia/Manila'));
+        $this->postBatch([$this->punch('in', '1001', 255)])->assertAccepted();
+        $this->travelTo(Carbon::parse('2026-10-06 16:00:00', 'Asia/Manila'));
+        $this->postBatch([$this->punch('out', '1001', 255)])->assertAccepted();
+
+        // Day closed. This one is refused by AttendanceService.
+        $this->travelTo(Carbon::parse('2026-10-06 17:00:00', 'Asia/Manila'));
+        $this->postBatch([$this->punch('extra', '1001', 255)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'rejected');
+
+        // The tap right behind it is still a duplicate, not another attempt.
+        $this->travel(30)->seconds();
+        $this->postBatch([$this->punch('tap', '1001', 255)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'duplicate');
+
+        $this->assertSame(
+            1,
+            AttendanceRecord::query()->where('employee_id', $employee->id)->count(),
+        );
+    }
+
     public function test_a_scan_past_the_interval_is_a_real_check_out(): void
     {
         $employee = $this->enrolledEmployee('1001');
