@@ -40,6 +40,7 @@ class BiometricPunchIngestionService
 {
     public function __construct(
         private readonly BiometricAttendanceGateway $gateway,
+        private readonly BiometricEnrollmentService $enrollments,
     ) {}
 
     /**
@@ -319,6 +320,28 @@ class BiometricPunchIngestionService
             'failure_reason' => $event->failure_reason,
             'processed_at' => now(),
         ])->save();
+
+        // A punch that resolved to a person is the only proof available that
+        // the template is genuinely on the terminal, so the enrolment roster
+        // heals itself and nobody has to remember to tick a box after walking
+        // a ward through enrolment.
+        //
+        // Keyed on employee_id rather than on a 'processed' status,
+        // deliberately. The gateway sets employee_id the moment the device
+        // identity matches an active enrolment, before AttendanceService runs.
+        // A punch it matched and then refused -- "already checked in today",
+        // "no published shift covers this punch" -- is still a finger the
+        // device recognised, and is the commonest real case. The early
+        // rejections (inactive device, capture mode off, future timestamp) and
+        // 'unmatched' all leave employee_id null, so an unknown PIN cannot mark
+        // anybody enrolled. The simulator calls the gateway directly and never
+        // reaches ingestion, so dev traffic cannot either.
+        //
+        // After the write-back above, so a failure here cannot cost the punch
+        // its recorded status.
+        if ($event->employee_id !== null) {
+            $this->enrollments->confirmCapturedFromPunch($device, $punch->pin);
+        }
 
         return $event->status;
     }

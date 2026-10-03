@@ -40,6 +40,15 @@ return [
         // Largest batch the agent may send in one request.
         'max_batch_size' => (int) env('BIOMETRIC_BRIDGE_MAX_BATCH_SIZE', 500),
 
+        // Longest device PIN this terminal can hold. A PIN is the employee's
+        // own id, so this is only ever reached by an installation with very
+        // high id values -- but it is the one thing standing between a 10-digit
+        // id and a PIN the device silently truncates, which would map two
+        // people onto one identity. Nine digits is the ZKTeco user-id
+        // convention for this firmware generation and is, like the punch codes
+        // above, unconfirmed on this unit.
+        'max_pin_length' => (int) env('BIOMETRIC_BRIDGE_MAX_PIN_LENGTH', 9),
+
         // Requests per minute allowed before the signature is checked (keyed
         // to the caller's address) and after it (keyed to the proven terminal
         // serial). See the limiters in AppServiceProvider.

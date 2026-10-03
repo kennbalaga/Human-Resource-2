@@ -65,9 +65,14 @@
         <div class="staff-biometric" role="group" aria-label="Biometric attendance link">
             <span class="staff-biometric-icon"><x-icon name="fingerprint" /></span>
             <div class="staff-biometric-copy">
+                {{-- Three states, not two. A reserved PIN is not a captured
+                     fingerprint, and saying otherwise sends somebody to a
+                     terminal that does not know them. --}}
                 <strong>
                     @if ($today['biometric']['enrolled'])
                         Enrolled on {{ $today['biometric']['device'] ?? 'a biometric terminal' }}
+                    @elseif ($today['biometric']['assigned'])
+                        Awaiting fingerprint capture on {{ $today['biometric']['device'] ?? 'a biometric terminal' }}
                     @else
                         Not enrolled on a biometric terminal
                     @endif
@@ -76,13 +81,26 @@
                     @if ($today['biometric']['enrolled'])
                         Biometric ID {{ $today['biometric']['external_id'] }}
                         @if ($today['biometric']['last_sync']) · last synced {{ $today['biometric']['last_sync'] }} @endif
+                    @elseif ($today['biometric']['assigned'])
+                        Your PIN {{ $today['biometric']['external_id'] }} is reserved. See HR to have your
+                        fingerprint captured before your next shift.
                     @else
                         Ask HR to enrol your fingerprint so terminal scans post to this card.
                     @endif
                 </span>
             </div>
-            <span @class(['staff-biometric-state', 'is-online' => $today['biometric']['enrolled'] && $today['biometric']['online']])>
-                {{ $today['biometric']['enrolled'] && $today['biometric']['online'] ? 'Linked' : 'Not linked' }}
+            <span @class([
+                'staff-biometric-state',
+                'is-online' => $today['biometric']['enrolled'] && $today['biometric']['online'],
+                'is-pending' => ! $today['biometric']['enrolled'] && $today['biometric']['assigned'],
+            ])>
+                @if ($today['biometric']['enrolled'] && $today['biometric']['online'])
+                    Linked
+                @elseif (! $today['biometric']['enrolled'] && $today['biometric']['assigned'])
+                    Awaiting capture
+                @else
+                    Not linked
+                @endif
             </span>
         </div>
 

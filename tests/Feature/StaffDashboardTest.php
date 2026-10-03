@@ -142,6 +142,92 @@ class StaffDashboardTest extends TestCase
         $this->assertTrue($today['can_clock_out']);
         $this->assertFalse($today['can_clock_in']);
         $this->assertTrue($today['biometric']['enrolled']);
+        $this->assertTrue($today['biometric']['assigned']);
+    }
+
+    public function test_a_reserved_pin_does_not_claim_the_fingerprint_has_been_captured(): void
+    {
+        $this->seed();
+
+        $employee = $this->staffEmployee();
+        $device = BiometricDevice::query()->create([
+            'office_location_id' => $this->office()->id,
+            'code' => 'TERM-ER-1',
+            'name' => 'Emergency Lobby Terminal',
+            'provider' => 'zkteco',
+            'is_active' => true,
+        ]);
+
+        // What a bulk PIN assignment leaves behind: the number is reserved, but
+        // nobody has stood at the terminal and taken this person's finger.
+        BiometricEnrollment::query()->create([
+            'biometric_device_id' => $device->id,
+            'employee_id' => $employee->id,
+            'external_user_id' => (string) $employee->id,
+            'is_active' => true,
+            'enrolled_at' => null,
+        ]);
+
+        $response = $this->actingAs($this->staffUser())->get('/dashboard');
+
+        $response
+            ->assertOk()
+            ->assertSee('Awaiting fingerprint capture')
+            ->assertSee('Awaiting capture')
+            ->assertDontSee('Enrolled on');
+
+        $today = $response->viewData('dashboard')['today'];
+        $this->assertTrue($today['biometric']['assigned']);
+        $this->assertFalse($today['biometric']['enrolled']);
+    }
+
+    public function test_the_dashboard_prefers_the_terminal_that_is_still_in_service(): void
+    {
+        $this->seed();
+
+        $employee = $this->staffEmployee();
+        $office = $this->office();
+
+        // A retired terminal still holding a captured template, and the
+        // replacement holding only a reservation. Sorting on enrolled_at alone
+        // would send the nurse to the machine that is switched off.
+        $retired = BiometricDevice::query()->create([
+            'office_location_id' => $office->id,
+            'code' => 'TERM-OLD',
+            'name' => 'Retired Lobby Terminal',
+            'provider' => 'zkteco',
+            'is_active' => false,
+        ]);
+        $current = BiometricDevice::query()->create([
+            'office_location_id' => $office->id,
+            'code' => 'TERM-NEW',
+            'name' => 'Replacement Lobby Terminal',
+            'provider' => 'zkteco',
+            'is_active' => true,
+        ]);
+
+        BiometricEnrollment::query()->create([
+            'biometric_device_id' => $retired->id,
+            'employee_id' => $employee->id,
+            'external_user_id' => '4417',
+            'is_active' => true,
+            'enrolled_at' => now()->subMonth(),
+        ]);
+        BiometricEnrollment::query()->create([
+            'biometric_device_id' => $current->id,
+            'employee_id' => $employee->id,
+            'external_user_id' => (string) $employee->id,
+            'is_active' => true,
+            'enrolled_at' => null,
+        ]);
+
+        $response = $this->actingAs($this->staffUser())->get('/dashboard');
+
+        $response->assertOk()->assertSee('Replacement Lobby Terminal');
+
+        $today = $response->viewData('dashboard')['today'];
+        $this->assertSame((string) $employee->id, $today['biometric']['external_id']);
+        $this->assertFalse($today['biometric']['enrolled']);
     }
 
     public function test_attendance_card_reports_the_closed_day_with_its_total_hours(): void

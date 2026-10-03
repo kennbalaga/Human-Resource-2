@@ -277,6 +277,21 @@ class StaffDashboardService
      * unenrolled nurse needs to know that before her shift starts, not after her
      * finger is refused at the door.
      *
+     * Two keys, because there are two states and conflating them is the whole
+     * point. `assigned` means the roster has reserved her PIN; `enrolled` means
+     * somebody actually captured her finger at the terminal. A bulk PIN
+     * assignment creates a row for every active employee, so row existence --
+     * what `enrolled` used to be keyed off -- would tell several hundred people
+     * their finger was on a device that has never seen them.
+     *
+     * The pick is made in PHP rather than in ORDER BY on purpose. Two things
+     * decide it: a terminal still in service beats a retired one, and a
+     * captured template beats a reserved PIN. Expressing the second in SQL
+     * means relying on how the driver sorts NULL, and this query runs on MySQL
+     * in production and SQLite under test (compare
+     * Employee::scopeDueForAutomaticArchive, which says the same). The result
+     * set is bounded by the number of terminals, so get() is safe here.
+     *
      * @return array<string, mixed>
      */
     private function biometricLink(Employee $employee): array
@@ -285,13 +300,19 @@ class StaffDashboardService
             ->with('device')
             ->where('employee_id', $employee->id)
             ->where('is_active', true)
-            ->orderByDesc('enrolled_at')
+            ->get()
+            ->sortByDesc(fn (BiometricEnrollment $enrollment) => [
+                (int) ($enrollment->device?->is_active ?? false),
+                (int) ($enrollment->enrolled_at !== null),
+                $enrollment->enrolled_at?->getTimestamp() ?? 0,
+            ])
             ->first();
 
         $device = $enrollment?->device;
 
         return [
-            'enrolled' => $enrollment !== null,
+            'assigned' => $enrollment !== null,
+            'enrolled' => $enrollment?->enrolled_at !== null,
             'external_id' => $enrollment?->external_user_id,
             'device' => $device?->name,
             'online' => (bool) $device?->is_active,

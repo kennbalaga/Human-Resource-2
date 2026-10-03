@@ -290,9 +290,77 @@ class BiometricBridgePunchTest extends TestCase
         $this->assertDatabaseMissing('audit_logs', ['route_name' => 'api.biometric.punches.store']);
     }
 
+    public function test_the_first_punch_that_resolves_to_a_person_records_the_template_as_captured(): void
+    {
+        $employee = $this->enrolledEmployee('1001', captured: false);
+
+        $this->assertDatabaseHas('biometric_enrollments', [
+            'employee_id' => $employee->id,
+            'enrolled_at' => null,
+        ]);
+
+        $this->postBatch([$this->punch('a', '1001', 0)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'processed');
+
+        // A real scan arriving from the device is the only proof available that
+        // the finger is genuinely on the terminal, so the roster heals itself.
+        $this->assertNotNull(
+            BiometricEnrollment::query()->where('employee_id', $employee->id)->sole()->enrolled_at,
+        );
+    }
+
+    public function test_a_punch_the_gateway_refused_after_matching_still_proves_the_template_is_on_the_device(): void
+    {
+        $employee = $this->enrolledEmployee('1001', captured: false);
+
+        // First check-in succeeds, second is refused as a duplicate — but the
+        // device recognised the finger both times, and this is the commonest
+        // real case. A 'processed'-only condition would miss it.
+        $this->postBatch([$this->punch('first', '1001', 0)])->assertAccepted();
+
+        BiometricEnrollment::query()->where('employee_id', $employee->id)->update(['enrolled_at' => null]);
+
+        $this->postBatch([$this->punch('second', '1001', 0)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'rejected');
+
+        $this->assertNotNull(
+            BiometricEnrollment::query()->where('employee_id', $employee->id)->sole()->enrolled_at,
+            'A punch the gateway matched and then refused should still record the capture.',
+        );
+    }
+
+    public function test_a_punch_for_an_unenrolled_pin_marks_nobody_as_captured(): void
+    {
+        $employee = $this->enrolledEmployee('1001', captured: false);
+
+        $this->postBatch([$this->punch('stranger', '7777', 0)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'unmatched');
+
+        $this->assertNull(
+            BiometricEnrollment::query()->where('employee_id', $employee->id)->sole()->enrolled_at,
+        );
+    }
+
+    public function test_a_later_punch_does_not_move_an_existing_capture_date(): void
+    {
+        $employee = $this->enrolledEmployee('1001', captured: true);
+        $original = BiometricEnrollment::query()->where('employee_id', $employee->id)->sole()->enrolled_at;
+
+        $this->travel(2)->days();
+        $this->postBatch([$this->punch('later', '1001', 0)])->assertAccepted();
+
+        $this->assertSame(
+            $original->toDateTimeString(),
+            BiometricEnrollment::query()->where('employee_id', $employee->id)->sole()->enrolled_at->toDateTimeString(),
+        );
+    }
+
     // --- helpers ---------------------------------------------------------
 
-    private function enrolledEmployee(string $pin): Employee
+    private function enrolledEmployee(string $pin, bool $captured = true): Employee
     {
         $office = OfficeLocation::query()->where('is_active', true)->firstOrFail();
 
@@ -315,7 +383,7 @@ class BiometricBridgePunchTest extends TestCase
             'employee_id' => $employee->id,
             'external_user_id' => $pin,
             'is_active' => true,
-            'enrolled_at' => now(),
+            'enrolled_at' => $captured ? now() : null,
         ]);
 
         return $employee;

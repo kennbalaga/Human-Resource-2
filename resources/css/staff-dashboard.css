@@ -446,6 +446,14 @@
     background: var(--hr-primary-soft);
 }
 
+/* A reserved PIN whose fingerprint has not been captured yet. Deliberately
+   warning-coloured rather than neutral: this is an action the employee has to
+   take before their next shift, not a steady state. */
+.staff-biometric-state.is-pending {
+    color: var(--hr-warning-text);
+    background: var(--hr-tint-warning);
+}
+
 .staff-source-list {
     display: flex;
     flex-wrap: wrap;
