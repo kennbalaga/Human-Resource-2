@@ -217,8 +217,18 @@ class BiometricPunchReplayTest extends TestCase
         $this->postPunch('recent', (string) $employee->id, 0)->assertAccepted();
         $this->enroll($device, $employee);
 
-        // Window opens tomorrow, so today's punch is outside it.
-        $this->artisan('biometric:replay', ['--since' => now()->addDay()->toDateString()])
+        /*
+         * Window opens tomorrow, so today's punch is outside it -- and
+         * "tomorrow" has to be read off the office clock, because that is the
+         * clock both halves of this assertion keep. The terminal reports local
+         * wall time and --since is read as a local date, while the app runs in
+         * UTC; taking tomorrow's date from the UTC clock instead asks for a
+         * window that has already opened during Manila's small hours, when the
+         * two dates disagree, and the punch is then correctly replayed.
+         */
+        $tomorrow = now()->timezone(config('workforce.timezone'))->addDay()->toDateString();
+
+        $this->artisan('biometric:replay', ['--since' => $tomorrow])
             ->expectsOutputToContain('0 punch(es) replayed.')
             ->assertSuccessful();
 
