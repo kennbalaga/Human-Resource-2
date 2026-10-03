@@ -60,9 +60,18 @@ acceptable in a hospital setting or defensible to the ethics board.
 
 ---
 
-## 3. What already exists (bridge side — written, not yet deployed)
+## 3. The bridge agent (NOT written — corrected 2026-10-03)
 
-`bridge_agent.py` and `bridge.env.example` are complete. The agent:
+**This section previously claimed `bridge_agent.py` and `bridge.env.example`
+were complete. They do not exist.** Searched the project, Desktop, Documents,
+Downloads and OneDrive on 2026-10-03: the only Python present is
+`zk_test.py` in Downloads, which is a read-only diagnostic — it connects with
+`pyzk`, prints device info, enrolled users and attendance logs, and sends
+nothing anywhere.
+
+Everything below is therefore the **specification** for an agent still to be
+written, not a description of one that exists. It is accurate as a spec and the
+Laravel side is built to meet it exactly. The agent must:
 
 - polls the terminal on a configurable interval
 - fingerprints each punch as `sha256(serial|pin|timestamp|punch_code)`
@@ -74,6 +83,17 @@ acceptable in a hospital setting or defensible to the ethics board.
 - signs every request with HMAC-SHA256 over the raw body
 - warns when the device clock drifts more than 120 seconds
 - never clears the device log
+
+Useful groundwork that does exist: `zk_test.py` already proves the connection
+approach, and carries the working device settings (`192.168.1.201:4370`, comm
+key `0`, `ommit_ping=True`, `force_udp=False`) and a punch-code table to check
+against reality.
+
+Until the agent runs, **no attendance reaches the application at all**. The
+terminal stores punches in its own log and cannot call out — that is the whole
+reason this architecture was chosen over ADMS push. Verified end to end on
+2026-10-03: a signed test batch posted by hand was accepted, stored and derived
+correctly, so the server side is not what is missing.
 
 ---
 
