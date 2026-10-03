@@ -4,7 +4,6 @@
     :no-referrer="true"
 >
 
-    <p class="auth-card-kicker">Account recovery</p>
     <h1 class="auth-card-title">Choose a New Password</h1>
     <p class="auth-card-sub">Use a strong password that you do not use on another account.</p>
 

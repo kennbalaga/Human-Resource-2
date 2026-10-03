@@ -21,9 +21,16 @@
     the same <head>, the same header and the same footer. Five copies is five
     chances for them to drift.
 
-    The brand name is a <p>, not a heading: each page's own <h1> belongs to the
-    card, so a screen reader hears what the page is for rather than hearing the
-    organisation's name announced as the heading of all five.
+    The organisation's name sits inside the lockup, under the wordmark, exactly
+    as the sidebar sets it (partials/sidebar.blade.php). It used to be a
+    .brand-title line of its own with the tagline in the lockup above it, which
+    left the front door and the rail behind it introducing the product two
+    different ways. The tagline still has a home in the topbar and on the
+    privacy notice; it does not need a third one here.
+
+    It is a <span> in a <p>-free block, not a heading: each page's own <h1>
+    belongs to the card, so a screen reader hears what the page is for rather
+    than hearing the organisation's name announced as the heading of all five.
 --}}
 <!DOCTYPE html>
 <html lang="en">
@@ -62,11 +69,10 @@
                     <x-brand-mark :size="48" class="brand-lockup-mark" />
                     <span class="brand-lockup-copy">
                         <x-brand-wordmark class="brand-lockup-name" />
-                        <span class="brand-lockup-tagline">{{ config('branding.tagline') }}</span>
+                        <span class="brand-lockup-org">{{ config('branding.organization') }}</span>
                     </span>
                 </div>
 
-                <p class="brand-title">{{ config('branding.organization') }}</p>
                 <p class="brand-lede">{{ $lede }}</p>
 
                 <ul class="brand-features">
@@ -85,7 +91,7 @@
 
         <footer class="auth-foot">
             <div class="auth-foot-row">
-                <span class="copyright">&copy; {{ now()->year }} {{ config('branding.organization') }}. All rights reserved.</span>
+                <span class="copyright">&copy; {{ now()->year }} {{ config('branding.organization') }}</span>
                 {{-- A real link to a real page, which privacy-modal.js upgrades
                      into the modal below on a plain left click. Ctrl-click, the
                      middle button and a browser with no JavaScript all still get

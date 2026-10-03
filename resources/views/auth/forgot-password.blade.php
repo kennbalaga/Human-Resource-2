@@ -4,7 +4,6 @@
     :no-referrer="true"
 >
 
-    <p class="auth-card-kicker">Account recovery</p>
     <h1 class="auth-card-title">Reset Your Password</h1>
     <p class="auth-card-sub">Enter your employee ID and registered work email. We will send a secure reset link if they match an active account.</p>
 

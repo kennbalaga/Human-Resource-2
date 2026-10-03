@@ -14,11 +14,6 @@
     lede="Your account is one of the ones that runs the hospital's records, so it stays on a hospital computer."
 >
 
-    <div class="auth-card-icon" aria-hidden="true">
-        <i class="fa-solid fa-desktop"></i>
-    </div>
-
-    <p class="auth-card-kicker">Wrong device, not a wrong password</p>
     <h1 class="auth-card-title">Use a computer for this account</h1>
 
     {{-- The refusal wording comes from the policy, so the sentence on the sign-in

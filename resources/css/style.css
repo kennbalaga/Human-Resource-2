@@ -82,11 +82,20 @@ body {
     position: relative;
 }
 
+/* A whole tap target, not a bare glyph. The icon stays 16px; the button around
+   it is --tap-min square, which is what a thumb on a ward phone actually has to
+   hit. It sits 0.25rem off the edge so the 44px box lands inside the field
+   rather than overhanging it. */
 .toggle-password {
     position: absolute;
-    right: 1rem;
+    right: 0.25rem;
     top: 50%;
     transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: var(--tap-min);
+    height: var(--tap-min);
+    border-radius: var(--r-md);
     color: var(--text-light);
     cursor: pointer;
     padding: 0;
@@ -96,7 +105,7 @@ body {
 }
 
 .password-wrapper input {
-    padding-right: 3rem !important;
+    padding-right: 3.25rem !important;
 }
 
 .auth-alert {
@@ -284,10 +293,14 @@ body {
     font-weight: 600;
 }
 
+/* The fill is --hr-primary-fill, not --hr-primary: white on the brand value
+   measures 3.77:1, which clears the 3:1 a painted component owes but not the
+   4.5:1 a label owes. tokens.css keeps the darker counterpart for exactly this
+   — a solid button and the white wording on it. */
 .btn-primary {
     width: 100%;
     padding: 0.875rem;
-    background-color: var(--primary-blue);
+    background-color: var(--hr-primary-fill);
     color: white;
     border: none;
     border-radius: var(--r-md);
@@ -298,7 +311,7 @@ body {
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-hover);
+    background-color: var(--hr-primary-fill-hover);
 }
 
 /* The auth pages clear the outline on their inputs; give keyboard users a ring
@@ -447,9 +460,10 @@ body {
     width: min(32rem, 100%);
 }
 
-/* The WorkForce lockup: mark, wordmark, and the tagline set small and spaced
-   beneath it, as in the logo artwork. The mark paints in currentColor, so this
-   is where it is told to be navy. */
+/* The WorkForce lockup: mark, wordmark, and the organisation it serves set
+   small beneath it — the same two lines, in the same order, that the sidebar
+   shows once you are inside. The mark paints in currentColor, so this is where
+   it is told to be navy. */
 .brand-lockup {
     display: flex;
     align-items: center;
@@ -472,27 +486,21 @@ body {
     line-height: 1.05;
 }
 
-.brand-lockup-tagline {
+/* Set as a name, not as a strapline: no caps and no tracking, because this is
+   an institution's own name and the uppercase treatment the tagline wore would
+   shout it. Wraps rather than ellipsing — there is room here that the rail does
+   not have, and losing a word off an organisation's name is not on. */
+.brand-lockup-org {
     margin-top: 0.35rem;
     color: var(--hr-subtle);
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-}
-
-.brand-title {
-    margin-top: 2.5rem;
-    font-size: var(--fs-3xl);
-    font-weight: 700;
-    line-height: 1.14;
-    letter-spacing: -0.018em;
-    text-wrap: balance;
+    font-size: var(--fs-base);
+    font-weight: 500;
+    line-height: 1.3;
 }
 
 .brand-lede {
     max-width: 40ch;
-    margin-top: 0.875rem;
+    margin-top: 1.75rem;
     color: var(--text-gray);
     font-size: var(--fs-sm);
 }
@@ -544,16 +552,8 @@ body {
     box-shadow: 0 1px 2px rgba(25, 52, 81, 0.04), 0 20px 48px rgba(25, 52, 81, 0.09);
 }
 
-.auth-card-kicker {
-    color: var(--primary-blue-text);
-    font-size: 0.6875rem;
-    font-weight: 800;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-}
-
 .auth-card-title {
-    margin-top: 0.5rem;
+    margin-top: 0;
     font-size: var(--fs-xl);
     font-weight: 700;
     line-height: 1.3;
@@ -616,11 +616,16 @@ body {
     padding: 0 2.5rem 3rem;
 }
 
+/* One row: the copyright and the policy link sit on a single line once the
+   "All rights reserved." tail is gone. It still wraps rather than overflowing,
+   because BRAND_ORGANIZATION is configurable and a longer name than the
+   default would not fit beside the link on a narrow handset. */
 .auth-foot-row {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 1rem;
+    gap: 0.25rem 1rem;
     width: min(32rem, 100%);
     padding-top: 1.25rem;
     border-top: 1px solid var(--border-color);
@@ -638,20 +643,6 @@ body {
 .auth-foot-row a:hover {
     color: var(--primary-blue-text);
     text-decoration: underline;
-}
-
-/* The plate above the heading on the pages that interrupt something rather
-   than start it — two-factor, and the confirm step before a download. */
-.auth-card-icon {
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    margin-bottom: 1.25rem;
-    border-radius: var(--r-md);
-    color: var(--primary-blue-text);
-    background: var(--hr-primary-soft);
-    font-size: var(--fs-md);
 }
 
 /* The pieces the other auth pages bring with them. The rules above the sign-in
@@ -730,9 +721,13 @@ body {
 /* Stacked at the width this sheet already reflows at, so the sign-in screen
    changes shape together with every other auth page. */
 @media (max-width: 1000px) {
+    /* The middle row takes the leftover height so the footer sits on the bottom
+       of the viewport instead of wherever the card happens to end. Three `auto`
+       tracks left the slack below the footer, which only showed once the brand
+       column stopped filling the screen. */
     .auth-split {
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto;
+        grid-template-rows: auto 1fr auto;
     }
 
     .brand-pane {
@@ -747,9 +742,14 @@ body {
     }
 
     .brand-col { width: 100%; }
-    .brand-title { margin-top: 1.5rem; font-size: var(--fs-2xl); }
-    .brand-lede { max-width: none; }
-    .brand-features { margin-top: 1.5rem; }
+
+    /* On a phone the brand column is the lockup and nothing else. The lede and
+       the feature list are what pushed the password field under the fold, and
+       the card's own sub already says what the page is for — two paragraphs of
+       grey within 100px of each other was the redundancy. Both stay on desktop,
+       where the column has room and is not competing with the form. */
+    .brand-lede,
+    .brand-features { display: none; }
 
     .form-pane {
         grid-column: 1;
@@ -757,13 +757,18 @@ body {
         overflow: visible;
         background: transparent;
         padding:
-            2rem
+            1.5rem
             calc(1.5rem + env(safe-area-inset-right, 0px))
-            0
+            1.5rem
             calc(1.5rem + env(safe-area-inset-left, 0px));
     }
 
-    .auth-card { width: 100%; margin: 0; }
+    /* Centred with auto margins rather than with `justify-content`, which
+       overflows in BOTH directions once a card is taller than the space it sits
+       in — on the two-factor page that would crop the error above the code
+       field. Auto margins resolve to 0 when there is nothing spare, so a tall
+       card top-aligns and scrolls instead. */
+    .auth-card { width: 100%; margin: auto 0; }
 
     .auth-foot {
         grid-column: 1;
@@ -800,13 +805,6 @@ body {
 
 @media (max-width: 420px) {
     .auth-card { padding: 1.5rem 1.25rem; }
-    .brand-title { font-size: var(--fs-2xl); }
-
-    .auth-foot-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.25rem;
-    }
 }
 
 /* ------------------------------------------------------------------------

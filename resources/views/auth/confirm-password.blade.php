@@ -2,11 +2,6 @@
     lede="A second check before any file leaves the system, in case this screen was left signed in."
 >
 
-    <div class="auth-card-icon" aria-hidden="true">
-        <i class="fa-solid fa-file-shield"></i>
-    </div>
-
-    <p class="auth-card-kicker">Security check</p>
     <h1 class="auth-card-title">Confirm it’s you</h1>
     <p class="auth-card-sub">You are about to download a file containing personal records. Enter the password for <strong>{{ auth()->user()->name }}</strong> to continue.</p>
 

@@ -1,6 +1,5 @@
 <x-auth-shell :title="config('branding.organization').' - Login'">
 
-    <p class="auth-card-kicker">Welcome Back</p>
     <h1 class="auth-card-title">Sign in to {{ config('branding.short_name') }}</h1>
     <p class="auth-card-sub">Use your hospital credentials to continue to the operations workspace.</p>
 

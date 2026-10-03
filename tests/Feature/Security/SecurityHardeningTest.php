@@ -19,7 +19,7 @@ class SecurityHardeningTest extends TestCase
         $this->get('/login')
             ->assertOk()
             ->assertHeader('Content-Security-Policy-Report-Only')
-            ->assertSee('Welcome Back');
+            ->assertSee('Sign in to');
     }
 
     /**

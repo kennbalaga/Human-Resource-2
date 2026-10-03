@@ -44,7 +44,15 @@ class PrivacyPolicyPageTest extends TestCase
                 // The whole point of the change: the footer link used to go
                 // nowhere, and a "#" here would mean it silently went back.
                 ->assertDontSee('<a href="#" class="privacy">', false)
-                ->assertSee('All rights reserved.', false);
+                // The link lives in the footer, so check the footer itself
+                // rendered rather than trusting the href alone.
+                //
+                // Keyed on the copyright line, which appears only there. The
+                // organisation's name is not usable for this: it now also sits
+                // in the brand lockup, so asserting on it would pass with no
+                // footer at all — and asserting it unescaped fails anyway,
+                // because Blade writes the ampersand as &amp;.
+                ->assertSee('<span class="copyright">', false);
         }
     }
 
