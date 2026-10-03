@@ -4,6 +4,7 @@ namespace App\Services\Attendance;
 
 use App\Models\BiometricDevice;
 use App\Models\BiometricPunch;
+use App\Models\BiometricScanEvent;
 use App\Services\BiometricAttendanceGateway;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -33,7 +34,7 @@ use Throwable;
  *      bridge into a retry loop it can never escape.
  *
  * What that buys: nothing is lost, nothing is counted twice, and a mapping
- * mistake is a replay rather than a hole in the attendance record.
+ * mistake is a `biometric:replay` rather than a hole in the attendance record.
  */
 class BiometricPunchIngestionService
 {
@@ -62,6 +63,129 @@ class BiometricPunchIngestionService
             'accepted' => count($results),
             'results' => $results,
         ];
+    }
+
+    /**
+     * Statuses a replay re-attempts when nobody names any.
+     *
+     * Each one is a punch the device genuinely reported and this application
+     * then failed to place, for a reason outside the punch itself: no
+     * enrolment for that PIN yet, a punch code not mapped to a direction, or a
+     * transient failure mid-derivation. All three are fixed by a change here
+     * rather than at the terminal, which is what makes re-attempting them
+     * meaningful.
+     *
+     * Absent on purpose: 'processed' (already placed), 'rejected' (a rule
+     * refused it, not a gap -- nameable explicitly for the config-fixable
+     * cases like a disabled capture mode), and 'stale'. Stale is the one that
+     * must never be swept in by default: it means either a device clock that
+     * has drifted, where replaying writes fiction into the attendance record,
+     * or a genuine outage backlog, where replaying recovers real work. Only a
+     * person who knows which can make that call, so they have to ask for it
+     * by name.
+     *
+     * @var list<string>
+     */
+    public const REPLAYABLE_STATUSES = ['unmatched', 'unsupported', 'pending'];
+
+    /**
+     * The punches a replay would re-attempt, without re-attempting them.
+     *
+     * Asked for separately so a dry run cannot describe a different set from
+     * the real run.
+     *
+     * @param  list<string>  $statuses
+     * @return Collection<int, BiometricPunch>
+     */
+    public function replayable(array $statuses = self::REPLAYABLE_STATUSES, ?string $since = null): Collection
+    {
+        return BiometricPunch::query()
+            ->whereIn('processing_status', $statuses)
+            ->when($since !== null, fn ($query) => $query->where('punched_at', '>=', $since))
+            ->orderBy('punched_at')
+            ->get();
+    }
+
+    /**
+     * Re-attempt stored punches that never became attendance.
+     *
+     * The raw punches have been on file since the moment they arrived -- this
+     * reads them back and pushes them through the same derivation the bridge
+     * endpoint uses, now that whatever blocked them has been fixed. Nothing is
+     * fetched from the terminal, so a replay cannot invent a punch; the worst
+     * it can do is fail the same way twice.
+     *
+     * @param  list<string>  $statuses
+     * @return Collection<int, BiometricPunch>
+     */
+    public function replay(array $statuses = self::REPLAYABLE_STATUSES, ?string $since = null): Collection
+    {
+        $punches = $this->replayable($statuses, $since);
+
+        // One lookup for the whole run rather than one per punch, and keyed on
+        // the serial because that is all a raw punch carries. A punch whose
+        // terminal has since been retired or deleted cannot be placed against
+        // any device, so it is left exactly as it was rather than guessed at.
+        $devices = BiometricDevice::query()
+            ->with('officeLocation')
+            ->whereIn('serial_number', $punches->pluck('device_sn')->unique()->all())
+            ->where('is_active', true)
+            ->get()
+            ->keyBy('serial_number');
+
+        foreach ($punches as $punch) {
+            $device = $devices->get($punch->device_sn);
+
+            if ($device === null) {
+                $punch->setAttribute('replay_outcome', 'skipped');
+                $punch->setAttribute('replay_reason', 'No active terminal is registered with serial '.$punch->device_sn.'.');
+
+                continue;
+            }
+
+            $before = $punch->processing_status;
+
+            $this->reopen($punch);
+            $after = $this->derive($device, $punch);
+
+            $punch->setAttribute('replay_outcome', $after === $before ? 'unchanged' : $after);
+        }
+
+        return $punches;
+    }
+
+    /**
+     * Put a punch back into the state derivation expects, including the scan
+     * event it already produced.
+     *
+     * The event reset is the part that is easy to miss and silently fatal
+     * without. BiometricAttendanceGateway::receive() is idempotent by design:
+     * it looks the event up by (device, provider_event_id) and returns early
+     * unless the status is still 'received'. So a punch that failed as
+     * 'unmatched' already owns an event stamped 'unmatched', and re-deriving
+     * it without this would short-circuit inside the gateway and report the
+     * same failure while doing no work at all -- a replay that looks like it
+     * ran and changed nothing.
+     *
+     * Resetting is sound because the scan event is derived data, not evidence.
+     * The evidence is the raw punch, and that is never rewritten. 'unsupported'
+     * and 'stale' punches own no event at all, since those are settled before
+     * the gateway is ever called.
+     */
+    private function reopen(BiometricPunch $punch): void
+    {
+        if ($punch->biometric_scan_event_id !== null) {
+            BiometricScanEvent::query()
+                ->whereKey($punch->biometric_scan_event_id)
+                ->where('status', '!=', 'processed')
+                ->update(['status' => 'received', 'failure_reason' => null, 'updated_at' => now()]);
+        }
+
+        $punch->forceFill([
+            'processing_status' => 'pending',
+            'failure_reason' => null,
+            'processed_at' => null,
+        ])->save();
     }
 
     /**
@@ -175,7 +299,7 @@ class BiometricPunchIngestionService
             );
         } catch (Throwable $exception) {
             // The raw punch is already committed, so this is recoverable: the
-            // row stays pending and the replay path picks it up again.
+            // row stays pending and `biometric:replay` picks it up again.
             Log::error('A biometric punch could not be derived into attendance.', [
                 'event' => 'biometric.punch.derivation_failed',
                 'fingerprint' => $punch->fingerprint,

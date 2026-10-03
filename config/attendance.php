@@ -54,7 +54,7 @@ return [
         // 4 in the handoff brief). A code missing from this map is stored as a
         // raw punch and left unprocessed rather than guessed at, so correcting
         // the mapping after enrolling a test user is a change to this array
-        // and a replay -- not lost attendance.
+        // and a `biometric:replay` -- not lost attendance.
         'punch_codes' => [
             0 => 'check_in',
             1 => 'check_out',

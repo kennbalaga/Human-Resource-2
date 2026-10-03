@@ -96,6 +96,41 @@ for that PIN), `rejected` (the gateway declined it), `unsupported` (punch code
 not mapped to a direction), `stale` (timestamp older than
 `BIOMETRIC_BRIDGE_MAX_PUNCH_AGE_HOURS`).
 
+### Recovering punches that never became attendance
+
+```
+php artisan biometric:replay --dry-run
+php artisan biometric:replay
+php artisan biometric:replay --status=stale --since=2026-10-01
+```
+
+Because a 2xx is what stops the agent retrying, a punch this application cannot
+place is stored with a status rather than refused. `biometric:replay` is the
+other half of that bargain: it reads those punches back and pushes them through
+the same derivation the endpoint uses, now that whatever blocked them is fixed.
+Nothing is fetched from the terminal, so a replay cannot invent a scan — at
+worst it fails the same way twice.
+
+Two cases it exists for. Enrollment runs ward by ward, so staff whose ward is
+not done yet still try the terminal and their punches land `unmatched`; once
+their enrollment exists, those days are recoverable only from here. And if the
+`punch_codes` mapping turns out wrong, a run of check-outs lands `unsupported`
+— correcting the config is one line, and the replay is what turns that back
+into attendance instead of hand-keying it.
+
+Default statuses are `unmatched`, `unsupported` and `pending`. `rejected` and
+`stale` can be named explicitly with `--status`; `processed` never can.
+
+**`stale` is deliberately not in the default set.** A stale punch means either a
+device clock that has drifted — where replaying writes fiction into the
+time-and-attendance record — or a genuine outage backlog, where replaying
+recovers work people actually did. The row cannot tell you which, so naming it
+has to be a decision somebody makes rather than something a sweep does for them.
+
+The command is **not scheduled**, on purpose: a replay follows a fix, and
+running one on a timer would re-attempt the same stuck punches nightly and
+bury the signal that something still needs attention.
+
 ### Raw punches are separate from attendance
 
 `biometric_punches` is what the device said; `attendance_records` is what the
@@ -113,8 +148,8 @@ instant, the verify mode and the device serial (RA 10173; see
   serial is refused — this is the allowlist.
 - Enroll each person on the terminal and create the matching
   `BiometricEnrollment` with the device PIN as `external_user_id`. Punches for
-  an unmapped PIN land as `unmatched` and can be replayed once the enrollment
-  exists.
+  an unmapped PIN land as `unmatched`; recover them with `biometric:replay`
+  once the enrollment exists.
 - **Confirm `punch_code` and `verify_mode` against the real unit.** No users
   were enrolled when the terminal was tested, so the values it emits for face
   versus fingerprint, and for in versus out, have never been observed. The
