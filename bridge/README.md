@@ -57,8 +57,19 @@ see the real `punch_code` and `verify_mode` values this unit emits.
 
 **Close ZKTime first.** Only one program can hold the terminal's connection.
 
-For a machine that is not always on, Task Scheduler running `--once` every few
-minutes is the better shape than a long-lived process.
+For a machine that is not always on, Task Scheduler running `--once` is the
+better shape than a long-lived process. Windows accepts a repeat interval down
+to **1 minute** if you type it rather than picking from the dropdown:
+
+- Program: `python`
+- Arguments: `bridge_agent.py --once`
+- Start in: the folder this file is in
+- Trigger: repeat every 1 minute, indefinitely
+
+How often to poll is bounded by the server, which allows 60 requests a minute
+per terminal, and by the device read, which takes a second or two. `20` seconds
+is responsive enough that a scan appears in the system while the person is
+still standing at the terminal.
 
 ## Enrolling a finger is not the same as the system seeing it
 
