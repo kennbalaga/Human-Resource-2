@@ -139,17 +139,50 @@ rewrites the underlying punch. Templates are not stored — only the PIN, the
 instant, the verify mode and the device serial (RA 10173; see
 `docs/DATA_PRIVACY.md`).
 
+### PIN reserved vs. fingerprint captured
+
+Two states, and the page keeps them apart on purpose.
+
+A **reserved PIN** is a `biometric_enrollments` row: the roster knows which
+number to key in for this person. A **captured fingerprint** is `enrolled_at`
+set: somebody stood at the terminal and took their finger. Reserving PINs for
+everybody creates a row per active employee, so treating row existence as
+"enrolled" would tell several hundred staff their finger was on a device that
+has never seen them — and that card exists precisely so an unenrolled nurse
+learns this before her shift rather than at the door.
+
+`enrolled_at` is filled either by HR marking it on the roster, or on its own:
+the first punch that resolves to a person is proof the template is genuinely on
+the terminal, so the roster heals itself without anybody ticking a box. The
+gateway does not check `enrolled_at`, so a finger that is on the device works
+whether or not the roster has caught up.
+
+The PIN is the employee's own record id. The terminal's PIN field is numeric and
+short, so DJNRMHS employee numbers (`NUR-HEAD-OPD-2026-0009`) do not fit. One
+consequence worth stating: the PIN space is dense, so a one-digit slip at the
+terminal lands on another real enrolled colleague. There is no check digit. The
+controls that remain are `enforce_published_shift`, the approval queue, and the
+employee being able to read their own PIN off their dashboard.
+
 ### Before go-live
 
 - Set `BIOMETRIC_BRIDGE_SECRET` on both sides (`openssl rand -hex 32`). Unset
   refuses every request; there is no unsigned fallback.
-- Register the terminal as a `BiometricDevice` with `provider = zkteco`, the
-  real `serial_number`, and the office location it stands in. An unregistered
-  serial is refused — this is the allowlist.
-- Enroll each person on the terminal and create the matching
-  `BiometricEnrollment` with the device PIN as `external_user_id`. Punches for
-  an unmapped PIN land as `unmatched`; recover them with `biometric:replay`
-  once the enrollment exists.
+- Register the terminal at **Settings → Operational tools → Biometric
+  terminals**, with `provider = zkteco`, the real serial and the office it
+  stands in. An unregistered serial is refused — registering is the allowlist.
+- Reserve PINs on that page, then capture each person's fingerprint at the
+  terminal. "Reserve PINs for all active staff" does the roster in one go;
+  export the CSV and take it to the device. Punches for a PIN with no
+  enrollment land as `unmatched`; recover them with `biometric:replay` once the
+  enrollment exists, which is what makes a ward-by-ward rollout safe.
+- **Turn on `schedule_aware` and `enforce_published_shift`** once punches are
+  flowing and matching. This is the strongest control there is against a
+  mis-keyed PIN: a typo'd PIN almost always belongs to somebody not rostered
+  for that hour, so the punch is refused as "No published shift covers this
+  punch" instead of being filed against the wrong person. Not on day one,
+  though — enabled before schedules are reliably published it rejects almost
+  everything.
 - **Confirm `punch_code` and `verify_mode` against the real unit.** No users
   were enrolled when the terminal was tested, so the values it emits for face
   versus fingerprint, and for in versus out, have never been observed. The

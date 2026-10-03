@@ -6,6 +6,8 @@ use App\Http\Controllers\Attendance\AttendanceApprovalController;
 use App\Http\Controllers\Attendance\AttendanceController;
 use App\Http\Controllers\Attendance\AttendanceOverrideController;
 use App\Http\Controllers\Attendance\AttendanceQrScanController;
+use App\Http\Controllers\Attendance\BiometricDeviceController;
+use App\Http\Controllers\Attendance\BiometricEnrollmentController;
 use App\Http\Controllers\Attendance\BiometricSimulatorController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BurnoutRiskController;
@@ -173,6 +175,35 @@ Route::middleware('auth')->group(function () use ($download, $auditedDownload) {
     Route::patch('/settings/system/attendance-capture', [SettingsController::class, 'updateAttendanceCaptureSettings'])->name('settings.attendance-capture.update');
     Route::patch('/settings/system/attendance-schedule', [SettingsController::class, 'updateAttendanceScheduleSettings'])->name('settings.attendance-schedule.update');
     Route::post('/settings/system/biometric-simulator', [BiometricSimulatorController::class, 'store'])->name('settings.biometric-simulator.store');
+
+    /*
+     * The enrolment roster and the terminals it hangs off.
+     *
+     * Named settings.* because they have to be: a system administrator is a
+     * read-only role (User::READ_ONLY_ROLES), and EnforceReadOnlyRole allows
+     * that role's writes only for route names in its allowlist, of which
+     * 'settings.*' is one. A write named anything else here answers 403 from
+     * middleware before the FormRequest is ever consulted, which reads as an
+     * authorization bug rather than a naming one.
+     *
+     * The /settings path also files these writes under the audit trail's
+     * Administration module, which AuditActivity derives from the first path
+     * segment, with no change to its module map.
+     *
+     * The roster export carries $auditedDownload: it is a personnel directory
+     * joined to the credentials that open the attendance record. It is
+     * deliberately NOT in EnforceReadOnlyRole::DENIED_ROUTES -- a system
+     * administrator is the only role that can open the page at all, so denying
+     * it would leave nobody able to do the commissioning work. Same reasoning
+     * the audit log export is exempt for.
+     */
+    Route::get('/settings/biometric-terminals', [BiometricEnrollmentController::class, 'index'])->name('settings.biometric-terminals.index');
+    Route::get('/settings/biometric-terminals/roster.csv', [BiometricEnrollmentController::class, 'export'])->middleware($auditedDownload)->name('settings.biometric-terminals.export');
+    Route::post('/settings/biometric-devices', [BiometricDeviceController::class, 'store'])->name('settings.biometric-devices.store');
+    Route::patch('/settings/biometric-devices/{biometricDevice}', [BiometricDeviceController::class, 'update'])->name('settings.biometric-devices.update');
+    Route::post('/settings/biometric-enrollments', [BiometricEnrollmentController::class, 'store'])->name('settings.biometric-enrollments.store');
+    Route::post('/settings/biometric-enrollments/bulk', [BiometricEnrollmentController::class, 'bulk'])->middleware('throttle:6,1')->name('settings.biometric-enrollments.bulk');
+    Route::patch('/settings/biometric-enrollments/{biometricEnrollment}', [BiometricEnrollmentController::class, 'update'])->name('settings.biometric-enrollments.update');
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
     Route::post('/settings/two-factor', [TwoFactorSettingsController::class, 'enable'])->name('two-factor.settings.enable');
     Route::post('/settings/two-factor/confirm', [TwoFactorSettingsController::class, 'confirm'])->name('two-factor.settings.confirm');

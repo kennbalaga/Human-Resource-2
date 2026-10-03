@@ -20,6 +20,7 @@
 @import './room-board.css';
 @import './workforce.css';
 @import './audit-logs.css';
+@import './biometric-terminals.css';
 @import './analytics.css';
 @import './profile-settings.css';
 /* The phone's fifth tab. After profile-settings.css because it reuses the

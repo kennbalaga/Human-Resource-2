@@ -147,8 +147,19 @@ class EmployeeArchiver
             ->whereNull('check_out_at')
             ->exists();
 
+        // Filing the record does not reach the terminal. Their punches are
+        // already refused by the gateway, so this is not a security gap -- it
+        // is a fingerprint somebody has to go and delete from the device, and
+        // the one thing here that outlives them physically rather than only in
+        // the database.
+        $capturedTemplate = $employee->biometricEnrollments()
+            ->where('is_active', true)
+            ->whereNotNull('enrolled_at')
+            ->exists();
+
         return array_values(array_filter([
             $stillClockedIn ? 'an attendance day that has not been checked out' : null,
+            $capturedTemplate ? 'a fingerprint still stored on a biometric terminal' : null,
             $futureShifts > 0 ? $futureShifts.' '.str('scheduled shift')->plural($futureShifts).' from today onwards' : null,
             $pendingLeave > 0 ? $pendingLeave.' pending leave '.str('request')->plural($pendingLeave) : null,
             $directReports > 0 ? $directReports.' direct '.str('report')->plural($directReports) : null,

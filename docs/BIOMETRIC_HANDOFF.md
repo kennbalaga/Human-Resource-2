@@ -164,11 +164,20 @@ IREB protocol.
 
 ## 6. Open questions — resolve before building
 
-1. **PIN to employee mapping.** The terminal knows a person only as a
-   numeric PIN. Either enroll staff using their existing DJNRMHS
-   employee number as the PIN (simpler, preferred), or maintain a
-   mapping table. Depends on whether employee numbers fit the device's
-   PIN field.
+1. ~~**PIN to employee mapping.**~~ **RESOLVED (2026-10-03): the PIN is the
+   employee's record id.** The preferred option here — reusing the DJNRMHS
+   employee number — is not available: employee numbers read
+   `NUR-HEAD-OPD-2026-0009` (position code, hire year, sequence; see
+   `EmployeeNumberGenerator`), which is alphanumeric and around twenty
+   characters, while the terminal's PIN field is numeric and short. So the
+   mapping table is the answer, and `biometric_enrollments` already is one:
+   `external_user_id` holds the PIN. Using `employees.id` as that PIN means no
+   separate sequence to keep in step, uniqueness for free, and PINs that carry
+   over unchanged if the terminal is ever replaced. Managed at Settings →
+   Operational tools → Biometric terminals. The cost, recorded rather than
+   glossed: the PIN space is dense and there is no check digit, so a mis-keyed
+   PIN lands on a real colleague — see the controls listed in
+   `docs/BIOMETRIC_ATTENDANCE.md`.
 2. **Which PC hosts the bridge**, and whether it stays powered on.
    Always-on allows a 60-second interval; otherwise use a longer
    interval via Task Scheduler.

@@ -41,7 +41,7 @@
                 @if($canManageAttendanceSettings)<a href="#attendance-capture"><x-icon name="clock" /><span><strong>Attendance capture</strong><small>Biometric and manual modes</small></span></a>@endif
                 @if($canManageAttendanceSettings)<a href="#attendance-schedule"><x-icon name="calendar" /><span><strong>Schedule-aware attendance</strong><small>Roster-based lateness and overtime</small></span></a>@endif
                 @if($canManageAttendanceSettings && $biometricSimulatorAvailable)<a href="#biometric-simulator"><x-icon name="settings" /><span><strong>Scanner simulator</strong><small>Local testing tool</small></span></a>@endif
-                @if($canAccessSystemAdministration)<a href="#system-administration"><x-icon name="plug" /><span><strong>Operational tools</strong><small>Integrations and audit logs</small></span></a>@endif
+                @if($canAccessSystemAdministration)<a href="#system-administration"><x-icon name="plug" /><span><strong>Operational tools</strong><small>Integrations, biometric terminals and audit logs</small></span></a>@endif
             @endif
         </aside>
 
@@ -293,6 +293,7 @@
                     <div class="panel-header"><div><p class="panel-kicker">System administration</p><h2>Operational tools</h2></div><x-icon name="shield" /></div>
                     <div class="settings-resource-links">
                         <a href="{{ route('integrations.index') }}"><span class="settings-resource-icon"><x-icon name="plug" /></span><span><strong>Integrations</strong><small>Manage AI scheduling and the Gemini connection.</small></span><x-icon name="chevron-right" /></a>
+                        <a href="{{ route('settings.biometric-terminals.index') }}"><span class="settings-resource-icon"><x-icon name="fingerprint" /></span><span><strong>Biometric terminals</strong><small>Register the fingerprint terminal and manage who is enrolled on it.</small></span><x-icon name="chevron-right" /></a>
                         <a href="{{ route('audit-logs.index') }}"><span class="settings-resource-icon"><x-icon name="report" /></span><span><strong>Audit logs</strong><small>Review security and compliance activity.</small></span><x-icon name="chevron-right" /></a>
                     </div>
                 </article>

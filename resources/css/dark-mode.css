@@ -1199,6 +1199,16 @@ html[data-theme-resolved='dark'] .staff-shift-pill { color:var(--hr-text); }
 html[data-theme-resolved='dark'] .staff-biometric-icon { color:var(--hr-primary-text); background:var(--hr-primary-soft); }
 html[data-theme-resolved='dark'] .staff-biometric-state.is-pending { color:var(--hr-warning); background:var(--hr-tint-warning); }
 
+/* Enrolment roster pills. The three states have to stay distinguishable here
+   too: a reserved PIN reading the same as a captured fingerprint is the one
+   mistake this page cannot afford. */
+html[data-theme-resolved='dark'] .bio-pill { color:var(--hr-muted); background:var(--hr-tint-neutral); }
+html[data-theme-resolved='dark'] .bio-pill.is-captured { color:var(--hr-primary-text); background:var(--hr-primary-soft); }
+html[data-theme-resolved='dark'] .bio-pill.is-pending { color:var(--hr-warning); background:var(--hr-tint-warning); }
+html[data-theme-resolved='dark'] .bio-pill.is-retired { color:var(--hr-danger); background:var(--hr-tint-danger); }
+html[data-theme-resolved='dark'] .bio-attention-list li { background:var(--hr-surface-3); }
+html[data-theme-resolved='dark'] .dashboard-table tr.is-selected { background:var(--hr-primary-soft); }
+
 /* The unfilled meter track is a lighter step of the fill's own hue here too, so
    the ratio still reads across the whole bar instead of only where it is painted. */
 html[data-theme-resolved='dark'] .staff-meter,

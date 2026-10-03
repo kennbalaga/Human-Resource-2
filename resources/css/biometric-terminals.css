@@ -1,0 +1,113 @@
+/* Biometric terminals and the enrolment roster.
+ *
+ * Deliberately small: the page reuses the audit log's summary cards, filter
+ * panel and table classes rather than growing a parallel set of its own. What
+ * is here is the one thing that page has no equivalent for -- a pill that has
+ * to tell three enrolment states apart, where "PIN reserved" and "fingerprint
+ * captured" must never read the same. */
+
+.bio-pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: var(--r-pill);
+    color: var(--hr-muted);
+    background: var(--hr-sunken);
+    font-size: var(--fs-2xs);
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+/* The terminal knows this person. */
+.bio-pill.is-captured {
+    color: var(--hr-text);
+    background: var(--hr-primary-soft);
+}
+
+/* A PIN is reserved but no finger has been taken. Warning-coloured rather than
+   neutral, because it is work outstanding rather than a settled state -- and
+   because reading it as "done" is the exact mistake this page exists to stop. */
+.bio-pill.is-pending {
+    color: var(--hr-warning-text);
+    background: var(--hr-tint-warning);
+}
+
+.bio-pill.is-retired {
+    color: var(--hr-danger);
+    background: var(--hr-tint-danger);
+}
+
+.bio-row-actions {
+    display: flex;
+    gap: .4rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.bio-empty-note {
+    margin: 0 0 .75rem;
+    color: var(--hr-muted);
+    font-size: var(--fs-sm);
+}
+
+.bio-device-form {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--hr-border);
+}
+
+.bio-device-form label {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+
+.bio-device-form small {
+    color: var(--hr-muted);
+    font-weight: 400;
+}
+
+.bio-attention-panel {
+    border-left: 3px solid var(--hr-warning);
+}
+
+.bio-attention-heading {
+    margin: 1rem 0 .35rem;
+    font-size: var(--fs-sm);
+    font-weight: 700;
+}
+
+.bio-attention-list {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.bio-attention-list li {
+    display: flex;
+    gap: .75rem;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: .6rem .75rem;
+    border-radius: var(--r-md);
+    background: var(--hr-sunken);
+    font-size: var(--fs-sm);
+}
+
+.dashboard-table tr.is-selected {
+    background: var(--hr-primary-soft);
+}
+
+@media (max-width: 640px) {
+    .bio-device-form {
+        grid-template-columns: 1fr;
+    }
+}
