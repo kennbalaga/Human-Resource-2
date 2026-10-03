@@ -375,10 +375,19 @@
 }
 
 .more-events {
+    display: inline-block;
     padding-left: .4rem;
     color: var(--hr-muted);
     font-size: var(--fs-2xs);
     font-weight: 700;
+    text-decoration: none;
+}
+
+/* It leads somewhere now, so it has to look like it does. */
+.more-events:hover,
+.more-events:focus-visible {
+    color: var(--hr-text);
+    text-decoration: underline;
 }
 
 .quick-add-schedule {

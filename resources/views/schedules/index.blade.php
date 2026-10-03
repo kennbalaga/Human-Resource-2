@@ -171,7 +171,17 @@
                                     </button>
                                 @endforeach
                                 @if ($day['assignments']->count() > 3)
-                                    <span class="more-events">+{{ $day['assignments']->count() - 3 }}{{-- Clipped out of sight on a phone, where the cell is 47px wide and the count is the whole message. --}}<span> more</span></span>
+                                    {{-- A link, not a label. The month cell shows three shifts and a count,
+                                         and on a busy day that leaves most of the roster behind it: ten
+                                         assigned means seven invisible. Saying "+7 more" without anywhere to
+                                         go reads as a promise the page does not keep. The week view has no
+                                         cap, so it is where the rest of that day actually lives, and
+                                         $queryFor carries the department and employee filters across. --}}
+                                    <a
+                                        class="more-events"
+                                        href="{{ $queryFor(['view' => 'week', 'date' => $day['date']->toDateString()]) }}"
+                                        aria-label="Show all {{ $day['assignments']->count() }} shifts on {{ $day['date']->format('F j') }}"
+                                    >+{{ $day['assignments']->count() - 3 }}{{-- Clipped out of sight on a phone, where the cell is 47px wide and the count is the whole message. --}}<span> more</span></a>
                                 @endif
                                 @foreach($day['day_offs']->take(2) as $dayOff)
                                     <span class="schedule-day-off-event"><x-icon name="calendar" /><span><strong>{{ $dayOff->employee->full_name }}</strong><small>Day off</small></span>@if($canManageData && $isEditableDate($dayOff->work_date))<form method="POST" action="{{ route('schedule-day-offs.destroy', $dayOff) }}" data-confirm="Remove {{ $dayOff->employee->full_name }}’s day off on {{ $dayOff->work_date->format('M j') }}? They can be scheduled that day again." data-confirm-button="Remove day off" data-confirm-tone="caution">@csrf @method('DELETE')<button type="submit" aria-label="Remove day off"><x-icon name="close" /></button></form>@endif</span>
