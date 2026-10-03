@@ -160,7 +160,7 @@ class ReplayBiometricPunchesCommand extends Command
             return BiometricPunchIngestionService::REPLAYABLE_STATUSES;
         }
 
-        $allowed = ['unmatched', 'unsupported', 'pending', 'stale', 'rejected'];
+        $allowed = ['unmatched', 'unsupported', 'pending', 'stale', 'rejected', 'duplicate'];
         $unknown = array_values(array_diff($named, $allowed));
 
         if ($unknown !== []) {

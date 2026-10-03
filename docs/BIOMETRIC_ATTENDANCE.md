@@ -96,6 +96,47 @@ for that PIN), `rejected` (the gateway declined it), `unsupported` (punch code
 not mapped to a direction), `stale` (timestamp older than
 `BIOMETRIC_BRIDGE_MAX_PUNCH_AGE_HOURS`).
 
+### This terminal reports no direction
+
+**Confirmed on the installed ZK3969, 2026-10-03.** It sends `punch_code` 255 on
+every scan, on every verify mode. 255 is the terminal saying it has no in/out
+state configured at all: a punch means "somebody was recognised" and nothing
+more. The ZKTeco convention of 0 for in and 1 for out is never used by this
+unit.
+
+So the application decides, through `255 => 'auto'` in
+`config/attendance.php`:
+
+- the scan is a **check-out** when that person has a day open
+- a **check-in** otherwise
+
+Whether a day is open is answered by `AttendanceService::recordToClose()`,
+reused rather than reimplemented — it already understands the night shift,
+where a nurse checks in at 22:00 and out at 06:00 the next day.
+
+`min_punch_interval_minutes` (default 2) stops a second tap moments later from
+reading as the opposite direction. Without it, somebody who does not hear the
+beep is checked straight back out and the record shows a ten-second shift.
+Those land as `duplicate`, which is replayable if the interval is later judged
+too long. This guard earned itself on the first real run: two of nine scans
+were double taps.
+
+Two behaviours worth knowing:
+
+**A scan after the day is closed is refused**, with "You have already checked in
+today". One check-in and one check-out per day is how `AttendanceService`
+already works for manual attendance; biometric capture does not change it. The
+punch is still stored.
+
+**An overnight shift needs a published schedule.** `recordToClose()` only
+matches a check-out onto the previous day's record when `shift_end_at` says the
+shift runs into today. Without a published shift, a night nurse's morning
+check-out opens a new day instead of closing the old one — one more reason to
+publish schedules before relying on night-shift figures.
+
+If the terminal is ever configured with function keys for in and out, map those
+codes in `punch_codes` and the `auto` line stops being reached.
+
 ### Recovering punches that never became attendance
 
 ```

@@ -69,7 +69,28 @@ return [
             1 => 'check_out',
             4 => 'check_in',  // overtime in
             5 => 'check_out', // overtime out
+
+            // CONFIRMED on the installed ZK3969, 2026-10-03: it reports 255
+            // for every scan, on every verify mode. 255 is the terminal saying
+            // it has no in/out state configured at all -- each punch means
+            // "somebody was recognised" and nothing more.
+            //
+            // 'auto' hands the decision to the application: a scan is a
+            // check-out when that person has a day open, and a check-in
+            // otherwise. That is a real policy choice and not a reading of the
+            // device, so it is written here where it can be seen rather than
+            // buried in code. If the terminal is ever configured with function
+            // keys for in and out, map those codes above and this line stops
+            // being reached.
+            255 => 'auto',
         ],
+
+        // How close two scans of the same PIN may be before the second is
+        // treated as a repeat rather than the opposite direction. Only applies
+        // to 'auto': without it, somebody who taps twice because they did not
+        // hear the beep is checked straight back out and the record shows a
+        // ten-second shift.
+        'min_punch_interval_minutes' => (int) env('BIOMETRIC_BRIDGE_MIN_PUNCH_INTERVAL_MINUTES', 2),
 
         // Device verify_mode -> label stored on the scan event's metadata.
         // Same caveat: unconfirmed on this unit. An unmapped value is recorded

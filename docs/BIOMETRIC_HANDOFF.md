@@ -211,7 +211,16 @@ IREB protocol.
    interval via Task Scheduler.
 4. **Terminal's IP on the hospital network** — `192.168.1.201` was the
    test network address and will likely differ at DJNRMHS.
-5. **Punch code semantics.** No users were enrolled at time of testing,
+5. ~~**Punch code semantics.**~~ **RESOLVED (2026-10-03): the terminal reports
+   `punch_code` 255 for every scan** — it has no in/out state configured, so it
+   states no direction at all. Confirmed against 20 real punches from the
+   installed unit. `verify_mode` was 1 for fingerprint (19 of 20) and 13 for
+   the one face scan. The application now decides direction from whether the
+   person has a day open (`255 => 'auto'`), with a minimum interval so a double
+   tap is not read as the opposite direction. See
+   `docs/BIOMETRIC_ATTENDANCE.md`. Original question kept below for the record:
+
+   **Punch code semantics.** No users were enrolled at time of testing,
    so the actual `punch_code` and `verify_mode` values this unit emits
    for face vs. fingerprint have not been observed. Enroll a test user,
    scan both ways, and confirm against real output before finalizing

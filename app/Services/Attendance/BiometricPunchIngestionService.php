@@ -3,8 +3,10 @@
 namespace App\Services\Attendance;
 
 use App\Models\BiometricDevice;
+use App\Models\BiometricEnrollment;
 use App\Models\BiometricPunch;
 use App\Models\BiometricScanEvent;
+use App\Services\AttendanceService;
 use App\Services\BiometricAttendanceGateway;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -41,6 +43,7 @@ class BiometricPunchIngestionService
     public function __construct(
         private readonly BiometricAttendanceGateway $gateway,
         private readonly BiometricEnrollmentService $enrollments,
+        private readonly AttendanceService $attendance,
     ) {}
 
     /**
@@ -273,6 +276,18 @@ class BiometricPunchIngestionService
             ));
         }
 
+        if ($eventType === 'auto') {
+            $eventType = $this->resolveDirection($device, $punch);
+
+            if ($eventType === null) {
+                return $this->settle($punch, 'duplicate', sprintf(
+                    'Another scan was already recorded for PIN %s within %d minute(s).',
+                    $punch->pin,
+                    $this->minimumInterval(),
+                ));
+            }
+        }
+
         $maxAgeHours = max(1, (int) config('attendance.biometric_bridge.max_punch_age_hours', 72));
 
         // A terminal whose clock has drifted badly, or a batch recovered from a
@@ -368,7 +383,71 @@ class BiometricPunchIngestionService
     {
         $mapped = config('attendance.biometric_bridge.punch_codes')[$punchCode] ?? null;
 
-        return in_array($mapped, ['check_in', 'check_out'], true) ? $mapped : null;
+        return in_array($mapped, ['check_in', 'check_out', 'auto'], true) ? $mapped : null;
+    }
+
+    /**
+     * Decide the direction when the terminal does not state one.
+     *
+     * The installed ZK3969 reports punch_code 255 for every scan: it has no
+     * in/out state configured, so each punch means "somebody was recognised"
+     * and nothing more. Something has to decide which way it went, and with no
+     * key for staff to press, the only honest source left is whether this
+     * person currently has a day open.
+     *
+     * AttendanceService::recordToClose() is what answers that, reused rather
+     * than reimplemented -- it already understands the night shift, where a
+     * nurse checks in at 22:00 and out at 06:00 the following day, and a second
+     * rule written here would eventually disagree with it.
+     *
+     * Returns null when the scan lands inside the minimum interval. Without
+     * that guard, somebody who taps twice because they did not hear the beep is
+     * checked straight back out, and the record shows a ten-second shift. The
+     * guard looks at punches already processed rather than at the attendance
+     * record, so a repeat is caught even before the first one has derived.
+     */
+    private function resolveDirection(BiometricDevice $device, BiometricPunch $punch): ?string
+    {
+        $recent = BiometricPunch::query()
+            ->where('device_sn', $punch->device_sn)
+            ->where('pin', $punch->pin)
+            ->where('processing_status', 'processed')
+            ->whereKeyNot($punch->id)
+            ->where('punched_at', '<', $punch->punched_at)
+            ->where('punched_at', '>=', $punch->punched_at->copy()->subMinutes($this->minimumInterval()))
+            ->exists();
+
+        if ($recent) {
+            return null;
+        }
+
+        $employee = BiometricEnrollment::query()
+            ->where('biometric_device_id', $device->id)
+            ->where('external_user_id', $punch->pin)
+            ->where('is_active', true)
+            ->first()?->employee;
+
+        // Nobody is enrolled under this PIN. Handed to the gateway as a
+        // check-in so that it is the one place that decides what an unknown
+        // identity means -- it answers 'unmatched', which is the right record
+        // and keeps that judgement in a single class.
+        if ($employee === null) {
+            return 'check_in';
+        }
+
+        $timezone = $device->officeLocation?->timezone
+            ?: (string) config('workforce.timezone', 'Asia/Manila');
+
+        $open = $this->attendance->recordToClose($employee, $timezone, $punch->punched_at);
+
+        return $open !== null && $open->check_in_at !== null && $open->check_out_at === null
+            ? 'check_out'
+            : 'check_in';
+    }
+
+    private function minimumInterval(): int
+    {
+        return max(0, (int) config('attendance.biometric_bridge.min_punch_interval_minutes', 2));
     }
 
     private function verifyModeFor(?int $verifyMode): string

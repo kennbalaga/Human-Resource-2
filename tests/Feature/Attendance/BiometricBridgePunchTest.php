@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Attendance;
 
+use App\Models\AttendanceRecord;
 use App\Models\BiometricDevice;
 use App\Models\BiometricEnrollment;
 use App\Models\BiometricPunch;
 use App\Models\Employee;
 use App\Models\OfficeLocation;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Testing\TestResponse;
@@ -356,6 +358,91 @@ class BiometricBridgePunchTest extends TestCase
             $original->toDateTimeString(),
             BiometricEnrollment::query()->where('employee_id', $employee->id)->sole()->enrolled_at->toDateTimeString(),
         );
+    }
+
+    public function test_a_terminal_that_reports_no_direction_has_it_decided_from_the_open_day(): void
+    {
+        // The installed ZK3969 sends punch_code 255 for every scan: it has no
+        // in/out state configured, so nothing in the punch says which way the
+        // person went. The first scan opens the day, the next closes it.
+        $employee = $this->enrolledEmployee('1001');
+
+        // Pinned to a morning, so both scans land on the same attendance date.
+        // Left to the wall clock, a nine-hour jump taken late in the day
+        // crosses midnight -- and a punch on the next date opens a new record
+        // instead of closing the open one, unless a published shift tells
+        // recordToClose() that the day runs overnight.
+        $this->travelTo(Carbon::parse('2026-10-05 07:00:00', 'Asia/Manila'));
+
+        $this->postBatch([$this->punch('in', '1001', 255)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'processed');
+
+        $this->assertDatabaseHas('attendance_records', [
+            'employee_id' => $employee->id,
+            'check_in_method' => 'biometric',
+            'check_out_at' => null,
+        ]);
+
+        $this->travelTo(Carbon::parse('2026-10-05 16:00:00', 'Asia/Manila'));
+
+        $this->postBatch([$this->punch('out', '1001', 255)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'processed');
+
+        $record = AttendanceRecord::query()->where('employee_id', $employee->id)->sole();
+        $this->assertNotNull($record->check_out_at, 'The second scan should have closed the day.');
+        $this->assertSame('biometric', $record->check_out_method);
+    }
+
+    public function test_a_second_tap_moments_later_does_not_check_somebody_straight_back_out(): void
+    {
+        // Somebody who does not hear the beep and scans again. Without the
+        // interval guard this reads as the opposite direction and the record
+        // shows a shift of a few seconds.
+        $employee = $this->enrolledEmployee('1001');
+
+        $this->postBatch([$this->punch('first', '1001', 255)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'processed');
+
+        $this->travel(20)->seconds();
+
+        $this->postBatch([$this->punch('tap', '1001', 255)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'duplicate');
+
+        $record = AttendanceRecord::query()->where('employee_id', $employee->id)->sole();
+        $this->assertNull($record->check_out_at, 'A double tap must not close the day.');
+    }
+
+    public function test_a_scan_past_the_interval_is_a_real_check_out(): void
+    {
+        $employee = $this->enrolledEmployee('1001');
+        config(['attendance.biometric_bridge.min_punch_interval_minutes' => 2]);
+
+        $this->postBatch([$this->punch('open', '1001', 255)])->assertAccepted();
+
+        $this->travel(5)->minutes();
+
+        $this->postBatch([$this->punch('close', '1001', 255)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'processed');
+
+        $this->assertNotNull(
+            AttendanceRecord::query()->where('employee_id', $employee->id)->sole()->check_out_at,
+        );
+    }
+
+    public function test_an_unknown_pin_on_a_directionless_terminal_is_still_unmatched(): void
+    {
+        $this->enrolledEmployee('1001');
+
+        $this->postBatch([$this->punch('stranger', '7777', 255)])
+            ->assertAccepted()
+            ->assertJsonPath('results.0.status', 'unmatched');
+
+        $this->assertDatabaseCount('attendance_records', 0);
     }
 
     // --- helpers ---------------------------------------------------------
