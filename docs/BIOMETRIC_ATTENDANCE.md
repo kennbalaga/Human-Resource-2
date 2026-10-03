@@ -164,6 +164,44 @@ terminal lands on another real enrolled colleague. There is no check digit. The
 controls that remain are `enforce_published_shift`, the approval queue, and the
 employee being able to read their own PIN off their dashboard.
 
+### Creating the users with ZKTime
+
+The roster page exports two files. The **enrolment sheet** is for a person to
+carry to the terminal. The **ZKTime import file** is for ZKTime 5.0's
+*Import data wizard*, which maps source columns onto its own Employee List
+fields, so the headers are named exactly as that dialog names them:
+
+| Column | Holds |
+|---|---|
+| `AC No.` | the device PIN — the employee's record id |
+| `Name` | "Last, First", one column, because ZKTime holds a single name field |
+| `No.` | the DJNRMHS employee number, which does not fit `AC No.` |
+| `Title` | the position |
+
+Only employees who already hold an active enrollment here are in it. A terminal
+must not know a user this roster has not reserved a PIN for: the two would
+disagree, and that user's punches would arrive `unmatched` with nothing to
+explain them.
+
+The path is Employee List → Import → CSV, then **Machine → Upload user info and
+FP** to push the users to the terminal. That creates the *user records* only —
+**a fingerprint still has to be captured from the real finger at the device**.
+What it removes is the typing of each PIN in front of each person, which is
+where a mis-keyed PIN comes from and which the PIN scheme has no check digit to
+catch. Worth doing for that reason alone.
+
+A template that has been captured can afterwards be copied to another terminal
+(**Download user info and Fp**, then upload to the second device), so a
+replacement or a second door does not mean enrolling everybody again.
+
+> **Do not use ZKTime's "Download attendance logs" while the bridge agent is
+> running.** The agent never clears the device log and relies on punches staying
+> there until it has collected them. Software that downloads and then clears
+> would take punches the agent has not seen yet — and those are unrecoverable,
+> because they never reached `biometric_punches` and so `biometric:replay`
+> cannot bring them back. Use ZKTime for enrollment; leave attendance to the
+> bridge.
+
 ### Before go-live
 
 - Set `BIOMETRIC_BRIDGE_SECRET` on both sides (`openssl rand -hex 32`). Unset

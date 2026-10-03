@@ -24,14 +24,51 @@
         </div>
         @if ($device !== null)
             <div class="audit-heading-actions">
-                <a
-                    class="btn btn-primary dashboard-action"
-                    data-download
-                    href="{{ route('settings.biometric-terminals.export', $appliedFilters) }}"
-                >
-                    <x-icon name="download" />
-                    Export roster CSV
-                </a>
+                <div class="dropdown">
+                    <button
+                        class="btn btn-primary dashboard-action audit-export-toggle"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        data-bs-auto-close="true"
+                        aria-expanded="false"
+                    >
+                        <x-icon name="download" />
+                        Export CSV
+                        <x-icon name="chevron-down" class="audit-export-caret" />
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end audit-export-menu">
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                data-download
+                                href="{{ route('settings.biometric-terminals.export', $appliedFilters) }}"
+                            >
+                                <x-icon name="report" />
+                                <span>
+                                    <strong>Enrolment sheet</strong>
+                                    <small>To print and carry to the terminal, with a column to sign.</small>
+                                </span>
+                            </a>
+                        </li>
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                data-download
+                                href="{{ route('settings.biometric-terminals.export', $appliedFilters + ['format' => 'zktime']) }}"
+                            >
+                                <x-icon name="plug" />
+                                <span>
+                                    <strong>ZKTime import file</strong>
+                                    <small>
+                                        Columns named as ZKTime&rsquo;s Employee List names them, so its import
+                                        wizard maps them without guesswork. Creates the users; fingerprints are
+                                        still captured at the device.
+                                    </small>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         @endif
     </section>

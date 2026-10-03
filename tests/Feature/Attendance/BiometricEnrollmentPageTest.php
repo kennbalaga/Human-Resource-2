@@ -299,6 +299,86 @@ class BiometricEnrollmentPageTest extends TestCase
         $this->assertStringContainsString((string) $employee->id, $csv);
     }
 
+    public function test_the_zktime_export_names_its_columns_as_zktime_names_its_fields(): void
+    {
+        $device = $this->device();
+        $employee = $this->activeEmployee();
+        BiometricEnrollment::query()->create([
+            'biometric_device_id' => $device->id,
+            'employee_id' => $employee->id,
+            'external_user_id' => (string) $employee->id,
+            'is_active' => true,
+        ]);
+
+        $csv = $this->actingAs($this->admin())
+            ->get(route('settings.biometric-terminals.export', ['device' => $device->id, 'format' => 'zktime']))
+            ->assertOk()
+            ->streamedContent();
+
+        // The wizard asks you to map source columns onto ZKTime's own fields,
+        // so the headers have to read the way that dialog reads.
+        $this->assertStringContainsString('AC No.', $csv);
+        $this->assertStringContainsString('Name', $csv);
+        $this->assertStringContainsString('No.', $csv);
+        $this->assertStringContainsString('Title', $csv);
+
+        // One Name column, not the roster's two: ZKTime holds a single field.
+        $this->assertStringContainsString($employee->last_name.', '.$employee->first_name, $csv);
+        $this->assertStringNotContainsString('Enrolled By (sign here)', $csv);
+
+        // AC No. is the device PIN, and is the one column that must be right.
+        $this->assertStringContainsString((string) $employee->id, $csv);
+    }
+
+    public function test_the_zktime_export_leaves_out_anyone_with_no_pin_reserved(): void
+    {
+        $device = $this->device();
+        $withPin = $this->activeEmployee();
+        BiometricEnrollment::query()->create([
+            'biometric_device_id' => $device->id,
+            'employee_id' => $withPin->id,
+            'external_user_id' => (string) $withPin->id,
+            'is_active' => true,
+        ]);
+
+        $without = Employee::query()
+            ->where('employment_status', 'active')
+            ->notArchived()
+            ->whereKeyNot($withPin->id)
+            ->firstOrFail();
+
+        $csv = $this->actingAs($this->admin())
+            ->get(route('settings.biometric-terminals.export', ['device' => $device->id, 'format' => 'zktime']))
+            ->assertOk()
+            ->streamedContent();
+
+        // A terminal must not hold a user this roster has not reserved a PIN
+        // for: their punches would arrive unmatched with nothing to explain it.
+        $this->assertStringContainsString($withPin->last_name.', '.$withPin->first_name, $csv);
+        $this->assertStringNotContainsString($without->last_name.', '.$without->first_name, $csv);
+
+        // The human sheet still lists everybody, including the unreserved.
+        $sheet = $this->actingAs($this->admin())
+            ->get(route('settings.biometric-terminals.export', ['device' => $device->id]))
+            ->assertOk()
+            ->streamedContent();
+
+        $this->assertStringContainsString($without->last_name, $sheet);
+    }
+
+    public function test_an_unknown_export_format_is_refused(): void
+    {
+        $this->device();
+
+        // A redirect back with the error, not a 422: this is a browser GET on
+        // a web route, and that is what the audit log export does with a bad
+        // filter too.
+        $this->actingAs($this->admin())
+            ->get(route('settings.biometric-terminals.export', ['format' => 'nonsense']))
+            ->assertRedirect()
+            ->assertSessionHasErrors('format');
+    }
+
     public function test_the_roster_export_is_wired_to_the_audited_download_stack(): void
     {
         // Asserted at the route rather than by exercising it, because

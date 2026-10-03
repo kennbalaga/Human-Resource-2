@@ -67,6 +67,10 @@ class BiometricEnrollmentController extends Controller
 
         abort_if($device === null, 404, 'No biometric terminal is registered yet.');
 
+        if (($filters['format'] ?? 'roster') === 'zktime') {
+            return $this->exportForZkTime($device, $filters, $service);
+        }
+
         // lazy() rather than cursor(), so the eager loads are honoured chunk by
         // chunk instead of costing a query per row.
         $employees = $this->query($device, $filters)->lazy(500);
@@ -100,6 +104,73 @@ class BiometricEnrollmentController extends Controller
                     // rather than from memory is one of the few controls there
                     // is against a mis-keyed PIN.
                     '',
+                ]);
+            }
+
+            fclose($output);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    /**
+     * The same roster shaped for ZKTime's "Import data wizard".
+     *
+     * ZKTime is used for one job here: creating the user records on the
+     * terminal so that nobody has to key a PIN in by hand while a nurse stands
+     * waiting. Typing it is where the mis-keyed PIN comes from, and the PIN
+     * scheme has no check digit to catch one, so removing the typing is the
+     * cheapest real control available.
+     *
+     * The columns are named exactly as ZKTime's Employee List names its fields,
+     * because the wizard asks you to map source columns onto them and matching
+     * names make that mapping obvious rather than a guess:
+     *
+     *   AC No.  the device user id -- our device PIN, and the one column that
+     *           must be right. It is what a punch arrives as, so a wrong value
+     *           here files somebody's attendance against a colleague.
+     *   Name    one column, not the two the human roster uses: ZKTime holds a
+     *           single Name field, and it is what the terminal shows on a scan.
+     *   No.     ZKTime's own separate employee-number field, which is where the
+     *           DJNRMHS number belongs -- it does not fit AC No.
+     *   Title   the position, for recognising somebody in the list.
+     *
+     * Only people who already hold an active enrolment here are included. A
+     * terminal should not know a user this roster has not reserved a PIN for:
+     * the two would disagree, and a punch from that user would arrive unmatched
+     * with nothing to explain it.
+     *
+     * The page filters still apply, so one ward can be exported, enrolled and
+     * watched before the rest follow.
+     */
+    private function exportForZkTime(
+        BiometricDevice $device,
+        array $filters,
+        BiometricEnrollmentService $service,
+    ): StreamedResponse {
+        $employees = $this->query($device, $filters)
+            ->whereHas('biometricEnrollments', fn (Builder $query) => $query
+                ->where('biometric_device_id', $device->id)
+                ->where('is_active', true))
+            ->lazy(500);
+
+        $filename = 'zktime-import-'.$device->code.'-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($employees, $service): void {
+            $output = fopen('php://output', 'w');
+
+            SpreadsheetExport::writeCsvRow($output, ['AC No.', 'Name', 'No.', 'Title']);
+
+            foreach ($employees as $employee) {
+                SpreadsheetExport::writeCsvRow($output, [
+                    $service->pinFor($employee),
+                    // "Last, First" rather than the roster's full name: it is
+                    // how somebody looks a person up on a list, and it matches
+                    // the order this page is sorted in. The terminal may
+                    // truncate a long name on its own screen -- that is
+                    // cosmetic, since AC No. is what attendance is filed
+                    // against, not the label.
+                    trim($employee->last_name.', '.$employee->first_name),
+                    $employee->employee_number,
+                    $employee->position?->title,
                 ]);
             }
 
@@ -302,6 +373,10 @@ class BiometricEnrollmentController extends Controller
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'state' => ['nullable', 'in:unassigned,assigned,captured,retired'],
             'employment' => ['nullable', 'in:active,inactive'],
+            // Which shape the export takes. 'roster' is the sheet a person
+            // carries to the terminal; 'zktime' is the file ZKTime's import
+            // wizard reads. Ignored by the page itself.
+            'format' => ['nullable', 'in:roster,zktime'],
         ]);
     }
 
