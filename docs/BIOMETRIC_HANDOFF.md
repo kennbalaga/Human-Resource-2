@@ -178,12 +178,20 @@ IREB protocol.
    glossed: the PIN space is dense and there is no check digit, so a mis-keyed
    PIN lands on a real colleague — see the controls listed in
    `docs/BIOMETRIC_ATTENDANCE.md`.
-2. **Which PC hosts the bridge**, and whether it stays powered on.
+2. **Terminal capacity against headcount.** ZKTime reports this unit as
+   `0/200` users. The hospital has roughly 300 active employees, so the
+   terminal cannot hold them all. Either a second terminal is needed or
+   somebody has to decide which staff it holds -- a hospital decision, not a
+   technical one. Confirm the real figure on the device menu first: a face+
+   fingerprint unit often quotes different limits for each, and `200` may be
+   one of those rather than the user ceiling. This was not among the hardware
+   facts recorded in section 1 and should have been.
+3. **Which PC hosts the bridge**, and whether it stays powered on.
    Always-on allows a 60-second interval; otherwise use a longer
    interval via Task Scheduler.
-3. **Terminal's IP on the hospital network** — `192.168.1.201` was the
+4. **Terminal's IP on the hospital network** — `192.168.1.201` was the
    test network address and will likely differ at DJNRMHS.
-4. **Punch code semantics.** No users were enrolled at time of testing,
+5. **Punch code semantics.** No users were enrolled at time of testing,
    so the actual `punch_code` and `verify_mode` values this unit emits
    for face vs. fingerprint have not been observed. Enroll a test user,
    scan both ways, and confirm against real output before finalizing

@@ -325,6 +325,11 @@ class BiometricEnrollmentPageTest extends TestCase
         // Written out on every row rather than left to a default: the other
         // values in this field make somebody an administrator of the terminal.
         $this->assertStringContainsString('Privilege', $csv);
+
+        // Not cosmetic: ZKTime's upload dialog filters by department, and a
+        // user filed under none is invisible to it -- the upload then looks
+        // like it simply has no users to send.
+        $this->assertStringContainsString('Department', $csv);
         $this->assertStringContainsString('User', $csv);
 
         // Access-control columns are deliberately absent -- they are the

@@ -177,6 +177,7 @@ fields, so the headers are named exactly as that dialog names them:
 | `Name` | "Last, First", one column, because ZKTime holds a single name field |
 | `No.` | the DJNRMHS employee number, which does not fit `AC No.` |
 | `Title` | the position |
+| `Department` | which node ZKTime files the user under |
 | `Privilege` | always `User` |
 
 Only employees who already hold an active enrollment here are in it. A terminal
@@ -197,6 +198,21 @@ ones it is not given are left alone.
 somebody an administrator **of the terminal** — able to enroll, delete users and
 open its menus. Nobody should acquire that by being imported from an HR list,
 and the comm key on this unit is still the factory default.
+
+**Create the departments in ZKTime first**, under Maintenance/Options →
+Department List, with names matching the HRMS ones. `Department` is not
+cosmetic: *From PC To Device* filters by department, so a user imported without
+one is filed under no node and the upload finds nobody to send — the dialog
+simply shows an empty user list, which reads as "nothing to upload" rather than
+as an error. If they have already been imported without a department, select
+them in the Employee List and move them with its `transfer` button.
+
+**Check the device capacity before importing.** ZKTime shows it in the
+*From PC To Device* device panel as `UserCount/Capacity`. On this unit it reads
+`0/200`, which is fewer than the hospital's active headcount — so the terminal
+cannot hold everybody and somebody has to decide who it holds, or a second
+terminal is needed. This is not recorded in the hardware facts in
+`docs/BIOMETRIC_HANDOFF.md` and should be.
 
 **Two wizard settings to get right.** Set *Comma* to `,` and *Quote* to `"`.
 The `Name` column contains a comma ("Dela Cruz, Juan"), so with the wrong quote

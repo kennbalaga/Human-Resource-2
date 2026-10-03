@@ -131,6 +131,9 @@ class BiometricEnrollmentController extends Controller
      *           single Name field, and it is what the terminal shows on a scan.
      *   No.     ZKTime's own separate employee-number field, which is where the
      *           DJNRMHS number belongs -- it does not fit AC No.
+     *   Department  which node the user is filed under. Not cosmetic: the
+     *           upload dialog filters by department, and a user filed under
+     *           none is invisible to it.
      *   Title   the position, for recognising somebody in the list.
      *   Privilege always "User". See the note on the column below.
      *
@@ -167,7 +170,7 @@ class BiometricEnrollmentController extends Controller
         return response()->streamDownload(function () use ($employees, $service): void {
             $output = fopen('php://output', 'w');
 
-            SpreadsheetExport::writeCsvRow($output, ['AC No.', 'Name', 'No.', 'Title', 'Privilege']);
+            SpreadsheetExport::writeCsvRow($output, ['AC No.', 'Name', 'Department', 'No.', 'Title', 'Privilege']);
 
             foreach ($employees as $employee) {
                 SpreadsheetExport::writeCsvRow($output, [
@@ -179,6 +182,14 @@ class BiometricEnrollmentController extends Controller
                     // cosmetic, since AC No. is what attendance is filed
                     // against, not the label.
                     trim($employee->last_name.', '.$employee->first_name),
+                    // ZKTime files users under a department and its dialogs
+                    // filter by one, so a row imported without this lands
+                    // outside every node: the Employee List still shows it, but
+                    // "From PC To Device" finds nobody to send and the upload
+                    // looks like it simply has no users. The name has to match
+                    // one in ZKTime's own Department List, or the employees
+                    // need moving with its `transfer` button afterwards.
+                    $employee->department?->name,
                     $employee->employee_number,
                     $employee->position?->title,
                     // Stated rather than left to a default. ZKTime's Employee
