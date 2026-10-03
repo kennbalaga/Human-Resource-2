@@ -34,11 +34,22 @@ Then fill in `bridge.env`. The two that must be right:
 
 ## Run
 
+**Easiest:** double-click `run-bridge.bat`. It checks that Python and
+`bridge.env` are present, starts the agent, and keeps the window open so the
+log can be read. Leave that window open -- closing it stops the agent.
+
+From a terminal:
+
 ```
 python bridge_agent.py              # polls forever, for an always-on PC
 python bridge_agent.py --once       # one cycle, for Task Scheduler
 python bridge_agent.py --dry-run    # read and report, writing nothing
 ```
+
+**Nothing is collected while it is not running.** Nothing is lost either -- the
+terminal keeps its log and the local queue keeps anything undelivered -- but
+attendance does not appear in the system until the agent is running again. If
+punches seem to have stopped arriving, check this first.
 
 Start with `--dry-run`. It prints what the terminal is actually reporting
 without touching the queue or the server, which is also the quickest way to
@@ -48,6 +59,18 @@ see the real `punch_code` and `verify_mode` values this unit emits.
 
 For a machine that is not always on, Task Scheduler running `--once` every few
 minutes is the better shape than a long-lived process.
+
+## Enrolling a finger is not the same as the system seeing it
+
+Registering somebody's fingerprint on the terminal sends nothing anywhere. The
+roster marks a person **Captured** when a punch from them reaches the
+application -- the scan is the proof the template is really on the device, and
+nothing else is.
+
+So after enrolling someone, have them **scan once**. Until they do, they stay
+*Awaiting capture* no matter how many fingers were registered. An administrator
+can also tick *Mark captured* on the roster if the list needs to be right
+before anybody scans.
 
 ## What it guarantees
 
