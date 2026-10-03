@@ -31,6 +31,7 @@
         id="attendanceApp"
         data-office-timezone="{{ $office->timezone }}"
         data-attendance-capture-state="{{ $attendanceCaptureState }}"
+        data-attendance-revision="{{ $attendanceRevision }}"
         data-attendance-state-url="{{ route('attendance.state') }}"
         @if ($attendanceCaptureMode === \App\Services\AttendanceCaptureSettings::EMERGENCY_MANUAL && $manualAttendanceExpiresAt)
             data-manual-mode-expires-at="{{ $manualAttendanceExpiresAt->getTimestamp() }}"
@@ -149,9 +150,17 @@
         @else
             @php($today = $attendance['today'])
 
+            {{-- Each [data-attendance-live] below is re-read from the server
+                 every few seconds, so a punch made at a biometric terminal or
+                 the entrance scanner appears here without the page being
+                 reloaded by hand. There are always four, in this order, which is
+                 what lets the refresh pair them up without naming any of them.
+                 The heading, tabs and clock stay outside — they do not change,
+                 and the clock should not restart every five seconds. --}}
+
             {{-- The phone's version of the panel below: same payload, ordered
                  for one fold. Each is hidden where the other is shown. --}}
-            <div class="attendance-phone-fold">
+            <div class="attendance-phone-fold" data-attendance-live>
                 @include('attendance._phone-today')
 
                 {{-- Which window the records below cover, and the one other
@@ -252,21 +261,27 @@
                 </div>
             </section>
 
-            @if ($attendance['missing_time_out'] !== [])
-                @php($missingCount = count($attendance['missing_time_out']))
-                <div class="attendance-exception" role="status">
-                    <x-icon name="alert" />
-                    <p>
-                        <strong>{{ $missingCount }} {{ str('record')->plural($missingCount) }} {{ $missingCount === 1 ? 'needs' : 'need' }} attention.</strong>
-                        {{ collect($attendance['missing_time_out'])->join(', ', ' and ') }}
-                        {{ $missingCount === 1 ? 'has' : 'have' }} a time-in but no time-out, so those hours aren’t counted yet.
-                        Ask HR or your department head to add the missing time-out.
-                    </p>
-                    <a class="btn btn-outline-primary dashboard-action" href="{{ route('timesheets.index') }}">Open timesheets</a>
-                </div>
-            @endif
+            {{-- A slot rather than a bare @if: the banner has to be able to arrive
+                 and clear on a refresh, and a swap needs something already in
+                 the page to swap. display:contents keeps it out of the page grid
+                 so an empty slot adds no gap. --}}
+            <div class="attendance-exception-slot" data-attendance-live>
+                @if ($attendance['missing_time_out'] !== [])
+                    @php($missingCount = count($attendance['missing_time_out']))
+                    <div class="attendance-exception" role="status">
+                        <x-icon name="alert" />
+                        <p>
+                            <strong>{{ $missingCount }} {{ str('record')->plural($missingCount) }} {{ $missingCount === 1 ? 'needs' : 'need' }} attention.</strong>
+                            {{ collect($attendance['missing_time_out'])->join(', ', ' and ') }}
+                            {{ $missingCount === 1 ? 'has' : 'have' }} a time-in but no time-out, so those hours aren’t counted yet.
+                            Ask HR or your department head to add the missing time-out.
+                        </p>
+                        <a class="btn btn-outline-primary dashboard-action" href="{{ route('timesheets.index') }}">Open timesheets</a>
+                    </div>
+                @endif
+            </div>
 
-            <section class="panel attendance-history-panel" aria-labelledby="attendanceHistoryTitle">
+            <section class="panel attendance-history-panel" data-attendance-live aria-labelledby="attendanceHistoryTitle">
                 <div class="panel-header">
                     {{-- Kicker, title, count: the same three parts every other
                          panel header in the product carries. The window used to

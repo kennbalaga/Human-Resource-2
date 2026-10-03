@@ -56,6 +56,8 @@ class AttendanceController extends Controller
             'view' => $view,
             'todayRecord' => $todayRecord,
             'attendance' => $view === 'mine' ? $myAttendance->forEmployee($employee, $office, $period) : null,
+            // What the browser's poll compares against to notice a punch landing.
+            'attendanceRevision' => $myAttendance->revisionFor($employee),
             'currentRole' => $request->user()->roles->first()?->name ?? 'Employee',
             'attendanceCaptureMode' => $captureState['mode'],
             'attendanceCaptureState' => $captureState['identifier'],
@@ -65,14 +67,23 @@ class AttendanceController extends Controller
         ]);
     }
 
-    public function state(AttendanceCaptureSettings $captureSettings): JsonResponse
-    {
+    public function state(
+        Request $request,
+        AttendanceCaptureSettings $captureSettings,
+        MyAttendanceService $myAttendance,
+    ): JsonResponse {
         $captureState = $this->captureState($captureSettings);
+
+        /* The settings page polls this endpoint too, for the capture mode alone,
+           and an administrator need not carry an employee record. No employee,
+           no records to have changed. */
+        $employee = $request->user()->employee;
 
         return response()->json([
             'state' => $captureState['identifier'],
             'mode' => $captureState['mode'],
             'expires_at' => $captureState['expires_at']?->toIso8601String(),
+            'revision' => $employee === null ? null : $myAttendance->revisionFor($employee),
         ])->header('Cache-Control', 'no-store');
     }
 

@@ -125,6 +125,29 @@ class MyAttendanceService
     }
 
     /**
+     * A signature of everything the page draws from this employee's records, so
+     * the browser can poll for "has anything changed" without rebuilding the
+     * payload above on every tick.
+     *
+     * Count and latest write together cover the three ways the page goes stale:
+     * a punch inserted at a terminal, a time-out HR adds to an open day, and a
+     * record removed. It is deliberately not scoped to the window on screen --
+     * the history reaches back a month and the missing-time-out banner fourteen
+     * days, and an edit to an older record is exactly the kind of correction
+     * worth showing rather than hiding until the next hand reload.
+     */
+    public function revisionFor(Employee $employee): string
+    {
+        /** @var object{total: int, latest: string|null}|null $state */
+        $state = AttendanceRecord::query()
+            ->where('employee_id', $employee->id)
+            ->selectRaw('COUNT(*) as total, MAX(updated_at) as latest')
+            ->first();
+
+        return ((int) ($state->total ?? 0)).':'.($state->latest ?? '');
+    }
+
+    /**
      * Today as one state, one heading and one sentence. Attendance is asked
      * first: someone who clocked in on a rest day or a leave day was at work.
      *

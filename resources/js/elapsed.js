@@ -18,6 +18,11 @@
 
 const HALF_MINUTE = 30_000;
 
+/* Readouts already ticking. The attendance page replaces its panels in place
+   when a punch lands, so track() is called again on the new nodes; without this
+   a panel that survived a swap would end up with two tickers on one number. */
+const tracked = new WeakSet();
+
 const sinceFor = (output) => {
     const own = Number(output.dataset.elapsedSince);
 
@@ -41,9 +46,11 @@ const format = (seconds) => {
 const track = (output) => {
     const since = sinceFor(output);
 
-    if (since === null) {
+    if (since === null || tracked.has(output)) {
         return;
     }
+
+    tracked.add(output);
 
     // Scoped to the readout's own card so a page with two of these cannot have
     // one bar following the other's clock.
@@ -72,9 +79,28 @@ const track = (output) => {
     render();
     // Half a minute: the readout is written to the minute, so anything finer
     // just spends battery on a number that has not changed.
-    window.setInterval(render, HALF_MINUTE);
+    const timer = window.setInterval(() => {
+        // A page that swaps this panel out leaves the old node detached and this
+        // interval the only thing still holding it. Stop with the node.
+        if (!output.isConnected) {
+            window.clearInterval(timer);
+
+            return;
+        }
+
+        render();
+    }, HALF_MINUTE);
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('[data-elapsed-since]').forEach(track);
-});
+/**
+ * Start any readout that is not already running. Exposed because the attendance
+ * page re-renders its panels in place, and a freshly swapped-in readout has no
+ * ticker of its own -- same shape as window.markIntentionalNavigation.
+ *
+ * @param {ParentNode} root
+ */
+window.trackElapsed = (root = document) => {
+    root.querySelectorAll('[data-elapsed-since]').forEach(track);
+};
+
+document.addEventListener('DOMContentLoaded', () => window.trackElapsed());

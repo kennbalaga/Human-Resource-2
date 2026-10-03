@@ -99,6 +99,74 @@ class MyAttendancePageTest extends TestCase
             ->assertDontSee('Late after');
     }
 
+    /**
+     * The page refreshes itself by re-reading its own URL and pairing the live
+     * panels up by position, so the count and the order are load-bearing: four
+     * panels, one of them the slot the missing-time-out banner arrives in.
+     */
+    public function test_the_page_marks_the_panels_a_refresh_replaces(): void
+    {
+        $html = $this->actingAs($this->user)->get('/attendance')->assertOk()->getContent();
+
+        $this->assertSame(4, substr_count($html, 'data-attendance-live'));
+
+        // The slot is there whether or not it has a banner in it; with a clean
+        // week it has none, and the refresh still has something to swap.
+        $this->assertStringContainsString('attendance-exception-slot', $html);
+        $this->assertStringNotContainsString('needs attention', $html);
+    }
+
+    /**
+     * What the browser's five-second poll compares. A punch recorded anywhere
+     * else -- a terminal, the entrance scanner, HR closing an open day -- has to
+     * move this, or the page never learns it is out of date.
+     */
+    public function test_the_state_endpoint_revision_moves_when_a_punch_lands(): void
+    {
+        $before = $this->actingAs($this->user)->getJson(route('attendance.state'))
+            ->assertOk()->json('revision');
+
+        $this->assertNotNull($before);
+        $this->assertSame(
+            $before,
+            $this->actingAs($this->user)->getJson(route('attendance.state'))->json('revision'),
+            'An unchanged week must report an unchanged revision, or the page refreshes every five seconds for nothing.',
+        );
+
+        $this->record(Carbon::now($this->office->timezone)->setTime(7, 55));
+
+        $afterCheckIn = $this->actingAs($this->user)->getJson(route('attendance.state'))
+            ->assertOk()->json('revision');
+
+        $this->assertNotSame($before, $afterCheckIn);
+
+        // Checking out edits the row it already wrote rather than adding one, so
+        // a revision built on the row count alone would miss the time-out.
+        $this->travel(4)->hours();
+        AttendanceRecord::query()->where('employee_id', $this->user->employee->id)
+            ->firstOrFail()
+            ->update(['check_out_at' => now(), 'worked_minutes' => 240]);
+
+        $this->assertNotSame(
+            $afterCheckIn,
+            $this->actingAs($this->user)->getJson(route('attendance.state'))->json('revision'),
+        );
+    }
+
+    /**
+     * The settings page polls the same endpoint for the capture mode alone, and
+     * the administrator reading it need not be an employee at all.
+     */
+    public function test_the_state_endpoint_serves_a_user_without_an_employee_record(): void
+    {
+        $user = User::query()->whereDoesntHave('employee')->first()
+            ?? User::factory()->create();
+
+        $this->actingAs($user)->getJson(route('attendance.state'))
+            ->assertOk()
+            ->assertJson(['revision' => null]);
+    }
+
     private function record(Carbon $checkIn, string $status = 'present', int $lateMinutes = 0): void
     {
         AttendanceRecord::query()->create([

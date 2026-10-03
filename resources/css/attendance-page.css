@@ -261,6 +261,14 @@
 
 /* ---- Records that need attention ------------------------------------------ */
 
+/* Always in the page so the five-second refresh has something to swap, whether
+   or not there is a banner to put in it. Transparent to layout: the banner
+   inside stays a direct grid item of .attendance-page, and an empty slot draws
+   no box and so adds no gap to the column. */
+.attendance-exception-slot {
+    display: contents;
+}
+
 .attendance-exception {
     display: flex;
     flex-wrap: wrap;
