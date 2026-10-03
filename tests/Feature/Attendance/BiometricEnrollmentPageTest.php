@@ -322,6 +322,17 @@ class BiometricEnrollmentPageTest extends TestCase
         $this->assertStringContainsString('No.', $csv);
         $this->assertStringContainsString('Title', $csv);
 
+        // Written out on every row rather than left to a default: the other
+        // values in this field make somebody an administrator of the terminal.
+        $this->assertStringContainsString('Privilege', $csv);
+        $this->assertStringContainsString('User', $csv);
+
+        // Access-control columns are deliberately absent -- they are the
+        // device's settings, not facts this roster holds.
+        $this->assertStringNotContainsString('AccGroup', $csv);
+        $this->assertStringNotContainsString('TimeZone1', $csv);
+        $this->assertStringNotContainsString('Password', $csv);
+
         // One Name column, not the roster's two: ZKTime holds a single field.
         $this->assertStringContainsString($employee->last_name.', '.$employee->first_name, $csv);
         $this->assertStringNotContainsString('Enrolled By (sign here)', $csv);

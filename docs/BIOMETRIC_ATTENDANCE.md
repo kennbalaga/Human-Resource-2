@@ -177,11 +177,35 @@ fields, so the headers are named exactly as that dialog names them:
 | `Name` | "Last, First", one column, because ZKTime holds a single name field |
 | `No.` | the DJNRMHS employee number, which does not fit `AC No.` |
 | `Title` | the position |
+| `Privilege` | always `User` |
 
 Only employees who already hold an active enrollment here are in it. A terminal
 must not know a user this roster has not reserved a PIN for: the two would
 disagree, and that user's punches would arrive `unmatched` with nothing to
 explain them.
+
+ZKTime's Employee List carries many more columns — `AccGroup`, `Verify`,
+`TimeZone1`–`3`, `ValidTimeBegin`/`End`, `IDCardNo`, `Password` and the rest.
+They are deliberately not exported. They are access-control settings belonging
+to the device rather than facts this application holds, and filling them would
+be the HR roster quietly deciding who may pass a door and when.
+`FingerCountV9` and `FingerCountV10.0` could not be supplied even in principle —
+they count templates the device itself holds. The wizard maps columns, so the
+ones it is not given are left alone.
+
+`Privilege` is the exception, and is written on every row. Its other values make
+somebody an administrator **of the terminal** — able to enroll, delete users and
+open its menus. Nobody should acquire that by being imported from an HR list,
+and the comm key on this unit is still the factory default.
+
+**Two wizard settings to get right.** Set *Comma* to `,` and *Quote* to `"`.
+The `Name` column contains a comma ("Dela Cruz, Juan"), so with the wrong quote
+character every column shifts by one and `AC No.` silently takes the wrong
+value — which is the failure that misfiles attendance. The wizard previews the
+mapping before it executes: check that `AC No.` really holds the number before
+pressing Execute.
+
+Leave **IDCardNo as AC No.** unticked. The PIN must come from this roster.
 
 The path is Employee List → Import → CSV, then **Machine → Upload user info and
 FP** to push the users to the terminal. That creates the *user records* only —

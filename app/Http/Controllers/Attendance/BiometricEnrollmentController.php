@@ -132,6 +132,16 @@ class BiometricEnrollmentController extends Controller
      *   No.     ZKTime's own separate employee-number field, which is where the
      *           DJNRMHS number belongs -- it does not fit AC No.
      *   Title   the position, for recognising somebody in the list.
+     *   Privilege always "User". See the note on the column below.
+     *
+     * ZKTime's Employee List carries far more columns than these -- AccGroup,
+     * Verify, TimeZone1-3, ValidTimeBegin/End, IDCardNo, Password and the rest.
+     * They are deliberately absent. They are access-control settings belonging
+     * to the device, not facts this application holds, and writing a guess into
+     * them would be this roster quietly deciding who may pass a door and when.
+     * FingerCountV9 and FingerCountV10.0 could not be supplied even in
+     * principle: they count templates the device itself holds. The import is a
+     * mapping wizard, so columns it is not given are simply left alone.
      *
      * Only people who already hold an active enrolment here are included. A
      * terminal should not know a user this roster has not reserved a PIN for:
@@ -157,7 +167,7 @@ class BiometricEnrollmentController extends Controller
         return response()->streamDownload(function () use ($employees, $service): void {
             $output = fopen('php://output', 'w');
 
-            SpreadsheetExport::writeCsvRow($output, ['AC No.', 'Name', 'No.', 'Title']);
+            SpreadsheetExport::writeCsvRow($output, ['AC No.', 'Name', 'No.', 'Title', 'Privilege']);
 
             foreach ($employees as $employee) {
                 SpreadsheetExport::writeCsvRow($output, [
@@ -171,6 +181,15 @@ class BiometricEnrollmentController extends Controller
                     trim($employee->last_name.', '.$employee->first_name),
                     $employee->employee_number,
                     $employee->position?->title,
+                    // Stated rather than left to a default. ZKTime's Employee
+                    // List has a Privilege field whose other values make
+                    // somebody an administrator *of the terminal* -- able to
+                    // enrol, delete users and open its menus. Nobody acquires
+                    // that by being imported from an HR roster, and the comm
+                    // key on this unit is still the factory default, so the
+                    // column is written out explicitly on every row instead of
+                    // trusting whatever an unmapped field falls back to.
+                    'User',
                 ]);
             }
 
