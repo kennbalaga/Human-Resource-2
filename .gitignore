@@ -39,3 +39,11 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Bridge agent: the shared secret, the local punch queue and its log. The queue
+# holds undelivered attendance, so it belongs with the hospital PC's backups,
+# never in the repository.
+/bridge/bridge.env
+/bridge/bridge_state.sqlite3
+/bridge/*.log
+/bridge/__pycache__/

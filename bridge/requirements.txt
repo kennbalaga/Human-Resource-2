@@ -1,0 +1,3 @@
+# Two packages only. A bridge nobody can install on a hospital PC is not a bridge.
+pyzk==0.9
+requests>=2.31,<3
