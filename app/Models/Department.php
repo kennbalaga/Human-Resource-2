@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\ReferenceDataCache;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -95,6 +96,27 @@ class Department extends Model
     public function isClinical(): bool
     {
         return $this->category === self::CATEGORY_CLINICAL;
+    }
+
+    /**
+     * Whether Sunday is this unit's standing rest day.
+     *
+     * Administrative offices (HR, Finance, IT, ...) run Monday-Saturday, so
+     * Sunday is not a day their roster happens to leave blank -- it is a rest
+     * day the unit's own calendar sets, for everyone in it, without a reviewer
+     * having to place it. A clinical ward runs every day of the week and a
+     * support unit covers one, so neither carries a standing rest day: their
+     * rest days are rotated, and nothing here may impose a day on them.
+     */
+    public function restsOnSundays(): bool
+    {
+        return $this->category === self::CATEGORY_ADMINISTRATIVE;
+    }
+
+    /** Whether this date is a rest day the unit's own calendar already sets. */
+    public function isStandingRestDay(CarbonInterface $date): bool
+    {
+        return $this->restsOnSundays() && $date->isSunday();
     }
 
     public function employees(): HasMany

@@ -1408,7 +1408,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderRosterDayCell = (day) => {
         const cell = document.createElement('article');
         const isToday = day.date === dateInputValue(new Date());
-        cell.className = `roster-cell${day.fully_covered ? '' : ' is-short'}${day.is_weekend ? ' is-weekend' : ''}${isToday ? ' is-today' : ''}`;
+        // A day the department itself does not staff (an administrative office's
+        // Sunday): it carries the unit's rest day and no shift lanes, so there is
+        // nothing to add anyone to.
+        const isStandingRest = Boolean(day.is_standing_rest_day);
+        cell.className = `roster-cell${day.fully_covered ? '' : ' is-short'}${day.is_weekend ? ' is-weekend' : ''}${isStandingRest ? ' is-standing-rest' : ''}${isToday ? ' is-today' : ''}`;
         cell.dataset.date = day.date;
 
         const heading = document.createElement('header');
@@ -1440,7 +1444,7 @@ document.addEventListener('DOMContentLoaded', () => {
             today.textContent = 'Today';
             heading.append(today);
         }
-        heading.append(add);
+        if (!isStandingRest) heading.append(add);
         cell.append(heading);
 
         day.shifts.forEach((shift) => cell.append(renderShiftLane(day, shift)));
@@ -1448,7 +1452,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (day.day_offs.length) {
             const rest = document.createElement('p');
             rest.className = 'roster-cell-rest';
-            rest.textContent = `Rest day · ${day.day_offs.length}`;
+            rest.textContent = isStandingRest
+                ? `Rest day · ${day.day_offs.length} · unit closed`
+                : `Rest day · ${day.day_offs.length}`;
             rest.title = day.day_offs.map((person) => person.name).join(', ');
             cell.append(rest);
         }

@@ -42,6 +42,13 @@ class RosterDraftService
 
     public const REASON_REST_DAY_RECORDED = 'Rest day already recorded';
 
+    /**
+     * Why a shift was refused on a date the department's own calendar keeps as a
+     * rest day. Named for the same reason as the two above: publish() matches on
+     * it to tell the reviewer what was held back.
+     */
+    public const REASON_STANDING_REST_DAY = 'Administrative departments do not schedule Sundays';
+
     public function __construct(
         private readonly ScheduleService $scheduleService,
         private readonly StaffingRequirementService $staffingRequirements,
@@ -59,13 +66,14 @@ class RosterDraftService
         $end = Carbon::parse($endDate, config('schedule.timezone'))->startOfDay();
         $dates = collect(CarbonPeriod::create($start, $end))
             ->map(fn ($date) => Carbon::instance($date)->timezone(config('schedule.timezone'))->startOfDay())
-            // Administrative offices (HR, Finance, IT, ...) run Monday–Saturday;
-            // the board shouldn't offer, or gate publishing on, a Sunday shift
-            // those departments never actually staff.
-            ->when(
-                $department->category === Department::CATEGORY_ADMINISTRATIVE,
-                fn (Collection $dates) => $dates->reject(fn (Carbon $date) => $date->isSunday())->values(),
-            );
+            ->values();
+
+        // The dates this department's own calendar keeps as rest days. An
+        // administrative office runs Monday-Saturday, so its Sundays stay on
+        // the board -- but as the unit's rest day, not as a column of shifts
+        // nobody staffs and publishing is then gated on. Empty for a clinical
+        // or support unit, which rotates its rest days and has no standing one.
+        $standingRestDates = $dates->filter(fn (Carbon $date) => $department->isStandingRestDay($date))->values();
 
         $employees = Employee::query()
             ->with('position')
@@ -111,7 +119,21 @@ class RosterDraftService
         $burnoutWarnings = collect();
 
         $working = $entries->filter(fn (array $entry) => $entry['shift_id'] !== null);
-        $dayOffEntries = $entries->filter(fn (array $entry) => $entry['shift_id'] === null);
+
+        // A standing rest day belongs to the roster whether or not the reviewer
+        // placed it: an administrative office's Sunday is a rest day for
+        // everyone on the board, however the board was filled -- by the
+        // assistant, by a bulk fill, or by hand. Derived here from the one
+        // department rule so every path shows, and publishes, the same thing,
+        // instead of each fill path having to remember the rule for itself.
+        $dayOffEntries = $entries->filter(fn (array $entry) => $entry['shift_id'] === null)
+            ->merge($this->standingRestDayEntries(
+                $employees->keys(),
+                $standingRestDates,
+                $entries,
+                $context['dayOffs'],
+            ))
+            ->values();
 
         // Blocking reasons are resolved per entry against the roster as it stands,
         // including the other entries in this same draft.
@@ -123,6 +145,15 @@ class RosterDraftService
 
             if ($employee === null || $shift === null) {
                 $issues->push($this->issue($entry, $employee?->full_name ?? 'Unknown employee', $shift?->name, 'Unknown employee or shift'));
+
+                continue;
+            }
+
+            // Reported here rather than only refused at publish time, so the
+            // reviewer sees on the board that this unit does not staff the day
+            // at all -- the rest day below takes it instead.
+            if ($department->isStandingRestDay($date)) {
+                $issues->push($this->issue($entry, $employee->full_name, $shift->name, self::REASON_STANDING_REST_DAY));
 
                 continue;
             }
@@ -245,10 +276,11 @@ class RosterDraftService
             }
         }
 
-        $days = $dates->map(function (Carbon $date) use ($working, $dayOffEntries, $employees, $relevantShifts, $requirements, $seniorRank, $blocked, $rostered, $burnout) {
+        $days = $dates->map(function (Carbon $date) use ($department, $working, $dayOffEntries, $employees, $relevantShifts, $requirements, $seniorRank, $blocked, $rostered, $burnout) {
             $dateString = $date->toDateString();
+            $isStandingRestDay = $department->isStandingRestDay($date);
 
-            $shiftRows = $relevantShifts->map(function (Shift $shift) use ($working, $employees, $requirements, $seniorRank, $blocked, $dateString, $rostered, $burnout) {
+            $shiftRows = $isStandingRestDay ? collect() : $relevantShifts->map(function (Shift $shift) use ($working, $employees, $requirements, $seniorRank, $blocked, $dateString, $rostered, $burnout) {
                 $assigned = $working
                     ->filter(fn (array $entry) => $entry['work_date'] === $dateString && (int) $entry['shift_id'] === $shift->id)
                     ->map(function (array $entry) use ($employees, $seniorRank, $blocked, $burnout) {
@@ -319,6 +351,10 @@ class RosterDraftService
                 'date' => $dateString,
                 'weekday' => $date->format('l'),
                 'is_weekend' => $date->isWeekend(),
+                // No shift rows at all on a standing rest day, which is also
+                // what keeps the publish-time coverage gate off a date the unit
+                // never staffs: an empty set of shifts is vacuously covered.
+                'is_standing_rest_day' => $isStandingRestDay,
                 'shifts' => $shiftRows->all(),
                 'day_offs' => $offToday->all(),
                 'fully_covered' => $shiftRows->every(fn (array $row) => $row['meets_requirement']),
@@ -478,6 +514,15 @@ class RosterDraftService
                 ->map(fn (array $issue) => $issue['employee_id'].'|'.$issue['work_date'])
                 ->flip();
 
+            // The period the reviewer actually chose, which is wider than the
+            // entries whenever a date carries none -- and a standing rest day
+            // is exactly such a date, since no fill path ever places a shift on
+            // one. Read from the entries only as a fallback, and deliberately
+            // not used for the evaluation above: grading a date nobody was
+            // placed on would read as a shift left short and refuse the publish.
+            $periodStart = Carbon::parse($rules['start_date'] ?? $dates->min(), config('schedule.timezone'))->startOfDay();
+            $periodEnd = Carbon::parse($rules['end_date'] ?? $dates->max(), config('schedule.timezone'))->startOfDay();
+
             // Hard block: any part of this period that a previous roster run
             // already published stops the whole publish, rather than the run
             // going ahead with the overlapping days quietly held back.
@@ -544,11 +589,30 @@ class RosterDraftService
             ])->filter()->implode(' — ');
             $notes = trim(collect([$notes, $auditTrail])->filter()->implode(' | ')) ?: null;
 
-            $locks = $this->lockedRangesFor(
-                $department,
-                Carbon::parse($dates->min(), config('schedule.timezone')),
-                Carbon::parse($dates->max(), config('schedule.timezone')),
-            );
+            // Added only now that every publish gate above has had its say, and
+            // deliberately not before: the gates judge what the reviewer
+            // submitted, and a derived rest day counted among the writable
+            // entries would mask the "already rostered" refusal on a re-run of
+            // a period that is wholly duplicate.
+            //
+            // The standing rest days are the unit's own calendar rather than a
+            // roster decision, so they land however the board was filled -- by
+            // the assistant, by a bulk fill, or by hand. Derived from the same
+            // department rule the board was evaluated under, so the write and
+            // the board agree by construction.
+            $entries = $entries->merge($this->standingRestDayEntries(
+                $employees->keys(),
+                collect(CarbonPeriod::create($periodStart, $periodEnd))
+                    ->map(fn ($date) => Carbon::instance($date)->timezone(config('schedule.timezone'))->startOfDay())
+                    ->filter(fn (Carbon $date) => $department->isStandingRestDay($date))
+                    ->values(),
+                $entries,
+            ));
+
+            // Over the chosen period, not the entries' own extent: a standing
+            // rest day can fall on a date no entry reaches, and it must still
+            // be held back when that date is locked.
+            $locks = $this->lockedRangesFor($department, $periodStart, $periodEnd);
 
             $created = collect();
             $dayOffs = collect();
@@ -563,13 +627,16 @@ class RosterDraftService
                         continue;
                     }
 
-                    if ($department->category === Department::CATEGORY_ADMINISTRATIVE
-                        && Carbon::parse($entry['work_date'], config('schedule.timezone'))->isSunday()) {
+                    // A shift is refused on the unit's standing rest day; a rest
+                    // day on it is exactly what should be written, which is what
+                    // this guard used to swallow along with the shifts.
+                    if ($entry['shift_id'] !== null
+                        && $department->isStandingRestDay(Carbon::parse($entry['work_date'], config('schedule.timezone')))) {
                         $lockSkipped->push($this->issue(
                             $entry,
                             $employees->get($entry['employee_id'])?->full_name ?? 'Unknown employee',
-                            $entry['shift_id'] !== null ? $shifts->get($entry['shift_id'])?->name : null,
-                            'Administrative departments do not schedule Sundays',
+                            $shifts->get($entry['shift_id'])?->name,
+                            self::REASON_STANDING_REST_DAY,
                         ));
 
                         continue;
@@ -587,13 +654,35 @@ class RosterDraftService
                     }
 
                     if ($entry['shift_id'] === null) {
-                        $dayOffs->push(ScheduleDayOff::query()->create([
-                            'employee_id' => $entry['employee_id'],
-                            'work_date' => $entry['work_date'],
-                            'source' => 'roster_draft',
-                            'notes' => $notes ?? 'Rest day set on the reviewed roster.',
-                            'created_by' => $creator->id,
-                        ]));
+                        // Derived here as well as flagged, so a rest day the
+                        // assistant placed on the unit's standing rest day is
+                        // recorded as what it is rather than as a roster
+                        // decision that happened to land on a Sunday.
+                        $standing = ($entry['standing'] ?? false)
+                            || $department->isStandingRestDay(Carbon::parse($entry['work_date'], config('schedule.timezone')));
+                        // firstOrCreate, not create: a standing rest day is
+                        // derived rather than placed, so one already on record
+                        // is a no-op here instead of an entry nobody chose
+                        // failing against the table's unique key. What the
+                        // reviewer did place is still reported as a duplicate
+                        // by evaluate() and never reaches this line.
+                        $dayOff = ScheduleDayOff::query()->firstOrCreate(
+                            [
+                                'employee_id' => $entry['employee_id'],
+                                'work_date' => $entry['work_date'],
+                            ],
+                            [
+                                'source' => $standing ? 'standing_rest_day' : 'roster_draft',
+                                'notes' => $standing
+                                    ? $department->name.' is closed on Sundays.'
+                                    : ($notes ?? 'Rest day set on the reviewed roster.'),
+                                'created_by' => $creator->id,
+                            ],
+                        );
+
+                        if ($dayOff->wasRecentlyCreated) {
+                            $dayOffs->push($dayOff);
+                        }
 
                         continue;
                     }
@@ -849,6 +938,48 @@ class RosterDraftService
                 ->get()
                 ->groupBy('employee_id'),
         ];
+    }
+
+    /**
+     * The rest days a department's own calendar sets over this period, for
+     * everyone on the board.
+     *
+     * A date already carrying an entry for that employee is left alone: the
+     * reviewer put something there, and if it is a shift on a standing rest day
+     * the working loop refuses it by name rather than a second entry quietly
+     * appearing beside it. One already on record is left out too -- nobody
+     * placed it, and the table's unique key would refuse it anyway.
+     *
+     * @param  Collection<int, int>  $employeeIds
+     * @param  Collection<int, Carbon>  $restDates
+     * @param  Collection<int, array{employee_id: int, shift_id: int|null, work_date: string}>  $placed
+     * @param  Collection<int, Collection<int, ScheduleDayOff>>  $recorded
+     * @return Collection<int, array{employee_id: int, shift_id: null, work_date: string, standing: true}>
+     */
+    private function standingRestDayEntries(
+        Collection $employeeIds,
+        Collection $restDates,
+        Collection $placed,
+        Collection $recorded = new Collection,
+    ): Collection {
+        if ($restDates->isEmpty() || $employeeIds->isEmpty()) {
+            return collect();
+        }
+
+        $taken = $placed->map(fn (array $entry) => $entry['employee_id'].'|'.$entry['work_date'])->flip();
+
+        return $employeeIds
+            ->crossJoin($restDates->map(fn (Carbon $date) => $date->toDateString()))
+            ->map(fn (array $pair) => [
+                'employee_id' => (int) $pair[0],
+                'shift_id' => null,
+                'work_date' => $pair[1],
+                'standing' => true,
+            ])
+            ->reject(fn (array $entry) => $taken->has($entry['employee_id'].'|'.$entry['work_date']))
+            ->reject(fn (array $entry) => $recorded->get($entry['employee_id'], collect())
+                ->contains(fn (ScheduleDayOff $dayOff) => $dayOff->work_date->toDateString() === $entry['work_date']))
+            ->values();
     }
 
     /**

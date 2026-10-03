@@ -3517,6 +3517,14 @@
     font-weight: 700;
 }
 
+/* A day the department itself does not staff -- an administrative office's
+   Sunday. Unlike .is-empty it is a real day with the unit's rest day on it, so
+   it keeps its date and its rest line and only gives up the shift lanes. */
+.roster-cell.is-standing-rest:not(.is-short) {
+    border-style: dashed;
+    background: var(--hr-surface-2);
+}
+
 /* A weekday the scheduled range never reaches. It holds its column open so
    Tuesday stays under Tuesday, and offers nothing to act on. */
 .roster-cell.is-empty {

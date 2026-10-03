@@ -145,17 +145,21 @@ class ScheduleService
             throw ValidationException::withMessages(['shift_id' => 'The selected shift is inactive.']);
         }
 
-        $isAdministrativeDepartment = isset($data['department_id'])
-            && Department::query()->find($data['department_id'])?->category === Department::CATEGORY_ADMINISTRATIVE;
+        $fillDepartment = isset($data['department_id'])
+            ? Department::query()->find($data['department_id'])
+            : null;
 
         $start = Carbon::parse($data['start_date'], config('schedule.timezone'))->startOfDay();
         $end = Carbon::parse($data['end_date'], config('schedule.timezone'))->startOfDay();
         $dates = collect(CarbonPeriod::create($start, $end))
             ->map(fn ($date) => Carbon::instance($date)->timezone(config('schedule.timezone'))->startOfDay())
             ->filter(fn (Carbon $date) => ($data['include_weekends'] ?? false) || ! $date->isWeekend())
-            // Administrative offices don't staff Sundays at all, so a bulk fill
-            // never proposes one even when "include weekends" is checked.
-            ->reject(fn (Carbon $date) => $isAdministrativeDepartment && $date->isSunday())
+            // A day the unit's own calendar keeps as a rest day is not a day a
+            // bulk fill may staff -- an administrative office is closed on
+            // Sunday, so none is proposed even when "include weekends" is
+            // checked. Asked of the department itself, so this rule lives in
+            // one place rather than being restated per fill path.
+            ->reject(fn (Carbon $date) => $fillDepartment?->isStandingRestDay($date) ?? false)
             ->values();
         if ($dates->isEmpty()) {
             throw ValidationException::withMessages([

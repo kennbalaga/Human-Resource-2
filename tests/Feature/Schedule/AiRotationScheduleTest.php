@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Schedule;
 
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
@@ -213,10 +214,10 @@ class AiRotationScheduleTest extends TestCase
             ])
             ->assertSessionHasNoErrors();
 
-        // The section is an administrative unit, and those run Monday-Saturday,
-        // so the fortnight's two Sundays are never staffed: the twelve working
-        // days the assistant proposed are written as ten.
-        $this->assertSame(10, ScheduleAssignment::query()
+        // The section is an administrative unit, and those run Monday-Saturday:
+        // the fortnight's two Sundays are the unit's own rest days, so all
+        // twelve working days are written and neither Sunday is staffed.
+        $this->assertSame(12, ScheduleAssignment::query()
             ->where('employee_id', $this->employee->id)
             ->whereDate('work_date', '>=', '2027-11-01')
             ->whereDate('work_date', '<=', '2027-11-14')
@@ -225,11 +226,115 @@ class AiRotationScheduleTest extends TestCase
             'employee_id' => $this->employee->id,
             'work_date' => '2027-11-07',
         ]);
-        $this->assertSame(2, ScheduleDayOff::query()
-            ->where('employee_id', $this->employee->id)
-            ->whereDate('work_date', '>=', '2027-11-01')
-            ->whereDate('work_date', '<=', '2027-11-14')
-            ->count());
+
+        // Two rest days, and both of them the Sundays -- not a weekday the
+        // rotation spent on top of a Sunday it was never going to staff.
+        $this->assertSame(
+            ['2027-11-07', '2027-11-14'],
+            ScheduleDayOff::query()
+                ->where('employee_id', $this->employee->id)
+                ->whereDate('work_date', '>=', '2027-11-01')
+                ->whereDate('work_date', '<=', '2027-11-14')
+                ->orderBy('work_date')
+                ->pluck('work_date')
+                ->map(fn ($date) => $date->toDateString())
+                ->all(),
+        );
+    }
+
+    /**
+     * The standing Sunday rest day belongs to the department, not to the fill
+     * path: a plain bulk fill never places one, so the roster has to supply it
+     * or an administrative employee is published with no rest day at all.
+     */
+    public function test_a_bulk_filled_administrative_roster_still_gets_its_sunday_rest_day(): void
+    {
+        $shift = Shift::query()->findOrFail($this->shiftIds[0]);
+        $employeeIds = Employee::query()
+            ->where('department_id', $this->employee->department_id)
+            ->where('employment_status', 'active')
+            ->orderBy('id')
+            ->pluck('id')
+            ->all();
+
+        $filled = $this->actingAs($this->manager)
+            ->postJson(route('schedules.roster.fill'), [
+                'department_id' => $this->employee->department_id,
+                'employee_ids' => $employeeIds,
+                'shift_id' => $shift->id,
+                'start_date' => '2027-11-01',
+                'end_date' => '2027-11-07',
+                'include_weekends' => true,
+            ])
+            ->assertOk();
+
+        // The fill itself proposes six days: Sunday is not a day this unit
+        // staffs, even with weekends included.
+        $entries = collect($filled->json('data.entries'));
+        $this->assertFalse($entries->contains('work_date', '2027-11-07'));
+
+        // The board nonetheless shows the Sunday, as the unit's rest day for
+        // everyone on it, rather than as a blank column.
+        $sunday = collect($filled->json('data.evaluation.days'))->firstWhere('date', '2027-11-07');
+        $this->assertTrue($sunday['is_standing_rest_day']);
+        $this->assertSame([], $sunday['shifts']);
+        $this->assertCount(count($employeeIds), $sunday['day_offs']);
+
+        $this->actingAs($this->manager)
+            ->post(route('schedules.roster.publish'), [
+                'department_id' => $this->employee->department_id,
+                'start_date' => '2027-11-01',
+                'end_date' => '2027-11-07',
+                'shift_ids' => [$shift->id],
+                'entries' => $entries->all(),
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('schedule_day_offs', [
+            'employee_id' => $this->employee->id,
+            'work_date' => '2027-11-07 00:00:00',
+            'source' => 'standing_rest_day',
+        ]);
+    }
+
+    /**
+     * The same rule, from the other side: a clinical unit runs every day, so
+     * nothing may impose a Sunday on it. Its rest days stay rotated.
+     */
+    public function test_a_clinical_roster_is_given_no_standing_sunday_rest_day(): void
+    {
+        $department = Department::query()
+            ->where('category', Department::CATEGORY_CLINICAL)
+            ->whereHas('employees', fn ($query) => $query->where('employment_status', 'active'))
+            ->firstOrFail();
+        $shift = Shift::query()->findOrFail($this->shiftIds[0]);
+        $employeeIds = Employee::query()
+            ->where('department_id', $department->id)
+            ->where('employment_status', 'active')
+            ->orderBy('id')
+            ->take(3)
+            ->pluck('id')
+            ->all();
+
+        // Nov 2-7, not Nov 1-7: a seventh consecutive workday is refused by the
+        // consecutive-workday cap, which would leave the Sunday unfilled for a
+        // reason that has nothing to do with the rule under test.
+        $filled = $this->actingAs($this->manager)
+            ->postJson(route('schedules.roster.fill'), [
+                'department_id' => $department->id,
+                'employee_ids' => $employeeIds,
+                'shift_id' => $shift->id,
+                'start_date' => '2027-11-02',
+                'end_date' => '2027-11-07',
+                'include_weekends' => true,
+            ])
+            ->assertOk();
+
+        $sunday = collect($filled->json('data.evaluation.days'))->firstWhere('date', '2027-11-07');
+        $this->assertFalse($sunday['is_standing_rest_day']);
+        $this->assertSame([], $sunday['day_offs'], 'A clinical unit is given no standing Sunday rest day.');
+        $this->assertNotSame([], $sunday['shifts'], 'Sunday stays an ordinary working day for a clinical unit.');
+        $this->assertTrue(collect($filled->json('data.entries'))->contains('work_date', '2027-11-07'));
     }
 
     public function test_manual_assignment_cannot_override_a_generated_day_off(): void

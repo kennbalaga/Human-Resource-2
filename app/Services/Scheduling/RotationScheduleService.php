@@ -189,6 +189,26 @@ class RotationScheduleService
                     ->map(fn (ScheduleDayOff $dayOff) => $dayOff->work_date->copy())
                     ->values();
 
+                // The unit's own standing rest day comes first, and it is not a
+                // preference the rotation may trade away: an administrative
+                // office is closed on Sunday, so that is the day off, recorded
+                // as one rather than left as a gap the planner then compensates
+                // for with a second rest day in the same week. Only departments
+                // that actually carry a standing rest day reach this -- a
+                // clinical or support unit rotates its rest days as before, and
+                // Sunday stays an ordinary candidate among the seven.
+                foreach ($weekDates as $date) {
+                    if (! $department->isStandingRestDay($date)) {
+                        continue;
+                    }
+                    if ($dayOffDates->contains(fn (Carbon $taken) => $taken->toDateString() === $date->toDateString())) {
+                        continue;
+                    }
+
+                    $dayOffDates->push($date->copy());
+                    $readyDayOffs->push(['employee' => $employee, 'date' => $date->copy()]);
+                }
+
                 // A shift's own daily turnaround can be shorter than the
                 // configured minimum rest (e.g. a 9-to-6 shift under a
                 // 16-hour rule can't be worked two days running); when that
