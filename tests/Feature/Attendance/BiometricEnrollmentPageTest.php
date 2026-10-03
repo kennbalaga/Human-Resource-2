@@ -377,6 +377,51 @@ class BiometricEnrollmentPageTest extends TestCase
         $this->assertStringContainsString($without->last_name, $sheet);
     }
 
+    public function test_the_page_does_not_default_to_the_simulator(): void
+    {
+        // The list is sorted by name, so "Local Biometric Simulator" beats
+        // "Main Entrance Terminal" alphabetically. Defaulting to it would hand
+        // somebody exporting for ZKTime a file of fake enrolments that looks
+        // plausible enough to import.
+        BiometricDevice::query()->create([
+            'office_location_id' => OfficeLocation::query()->where('is_active', true)->firstOrFail()->id,
+            'code' => 'local-biometric-simulator',
+            'name' => 'Local Biometric Simulator',
+            'provider' => 'simulator',
+            'serial_number' => 'SIMULATOR-ONLY',
+            'is_active' => true,
+        ]);
+        $real = $this->device();
+
+        $selected = $this->actingAs($this->admin())
+            ->get(route('settings.biometric-terminals.index'))
+            ->assertOk()
+            ->viewData('device');
+
+        $this->assertSame($real->id, $selected->id);
+        $this->assertSame('zkteco', $selected->provider);
+    }
+
+    public function test_the_simulator_can_still_be_selected_by_hand(): void
+    {
+        $simulator = BiometricDevice::query()->create([
+            'office_location_id' => OfficeLocation::query()->where('is_active', true)->firstOrFail()->id,
+            'code' => 'local-biometric-simulator',
+            'name' => 'Local Biometric Simulator',
+            'provider' => 'simulator',
+            'serial_number' => 'SIMULATOR-ONLY',
+            'is_active' => true,
+        ]);
+        $this->device();
+
+        $selected = $this->actingAs($this->admin())
+            ->get(route('settings.biometric-terminals.index', ['device' => $simulator->id]))
+            ->assertOk()
+            ->viewData('device');
+
+        $this->assertSame($simulator->id, $selected->id);
+    }
+
     public function test_an_unknown_export_format_is_refused(): void
     {
         $this->device();

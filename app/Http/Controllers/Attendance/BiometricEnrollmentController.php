@@ -373,9 +373,21 @@ class BiometricEnrollmentController extends Controller
             return $devices->firstWhere('id', (int) $filters['device']) ?? $devices->first();
         }
 
-        // The terminal in service, by preference: a retired one is on the page
-        // to be read, not to be enrolled against.
-        return $devices->firstWhere('is_active', true) ?? $devices->first();
+        // A real terminal in service, by preference.
+        //
+        // The simulator is excluded from this choice deliberately. It is a
+        // development fixture that BiometricSimulatorController creates, it
+        // holds a handful of fake enrolments, and because the list is sorted by
+        // name it otherwise wins the default against a terminal called "Main
+        // Entrance Terminal". Somebody exporting the roster for ZKTime would
+        // then get the simulator's two rows instead of the ward's three
+        // hundred, and the file looks plausible enough to import.
+        //
+        // It stays selectable by hand, since being able to read what it holds
+        // is the point of it existing.
+        return $devices->first(fn (BiometricDevice $device) => $device->is_active && $device->provider !== 'simulator')
+            ?? $devices->firstWhere('is_active', true)
+            ?? $devices->first();
     }
 
     /**
