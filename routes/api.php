@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\BiometricPunchController;
 use App\Http\Controllers\Api\V1\AiScheduleRecommendationController;
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AttendanceController;
@@ -10,7 +11,24 @@ use App\Http\Controllers\Api\V1\LeaveController;
 use App\Http\Controllers\Api\V1\ScheduleController;
 use App\Http\Controllers\Api\V1\TimesheetController;
 use App\Http\Middleware\EnsureApiTwoFactorEnrollment;
+use App\Http\Middleware\VerifyBiometricBridgeSignature;
 use Illuminate\Support\Facades\Route;
+
+// Deliberately outside the v1 prefix. The bridge agent is already written
+// against this exact path, it ships as a separate Python process on hospital
+// hardware rather than as a client of the public API, and it authenticates by
+// body signature instead of a Sanctum token -- so it shares neither the
+// versioning nor the middleware stack of the routes below.
+//
+// CSRF needs no exclusion here: api.php routes are stateless and the web
+// middleware group, which is what verifies the token, never runs on them.
+Route::post('/biometric/punches', [BiometricPunchController::class, 'store'])
+    ->middleware([
+        'throttle:biometric-bridge',
+        VerifyBiometricBridgeSignature::class,
+        'throttle:biometric-bridge-device',
+    ])
+    ->name('api.biometric.punches.store');
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::post('/security/csp-report', CspReportController::class)

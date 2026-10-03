@@ -19,8 +19,18 @@ class AuditWriteRequests
         // CSP reports are untrusted, high-volume telemetry. They are handled by
         // the dedicated logger/rate limiter and must not fill the business audit
         // table or become an audit-log export surface.
+        //
+        // Biometric punch batches are excluded for the same reason: a bridge
+        // agent polling every 60 seconds would add well over a thousand rows a
+        // day, and they would be the least informative rows in the table --
+        // every punch already keeps its own immutable record in
+        // biometric_punches, which is the better audit trail. The security
+        // signal below still fires for rejected batches.
         if (! in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'], true)
-            && $request->route()?->getName() !== 'api.v1.security.csp-report') {
+            && ! in_array($request->route()?->getName(), [
+                'api.v1.security.csp-report',
+                'api.biometric.punches.store',
+            ], true)) {
             $this->record($request, $response);
         }
 

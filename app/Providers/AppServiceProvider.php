@@ -44,6 +44,23 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api-login', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('password-reset', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('csp-report', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
+        // The punch endpoint is unauthenticated until its body signature is
+        // checked, so it is limited twice, for two different problems.
+        //
+        // This one runs before the signature and keys on the address, to cap
+        // what an anonymous caller can spend of the server's time. It is the
+        // looser of the two because it is shared: one hospital NAT address
+        // fronts every bridge PC.
+        RateLimiter::for('biometric-bridge', fn (Request $request) => Limit::perMinute(
+            (int) config('attendance.biometric_bridge.requests_per_minute', 120),
+        )->by('biometric-bridge|'.$request->ip()));
+        // This one runs after the signature, so the serial it keys on has been
+        // proven rather than claimed -- a header alone could otherwise be
+        // rotated to escape the limit. Sized for a 60-second poll plus the
+        // burst of batches a bridge flushes when connectivity returns.
+        RateLimiter::for('biometric-bridge-device', fn (Request $request) => Limit::perMinute(
+            (int) config('attendance.biometric_bridge.device_requests_per_minute', 60),
+        )->by('biometric-bridge-device|'.($request->headers->get('X-Bridge-Device') ?: $request->ip())));
         // Keyed to the account, not the IP: the point is to slow an account
         // being emptied, and a ward shares one address across many staff.
         RateLimiter::for('downloads', fn (Request $request) => Limit::perMinute(
